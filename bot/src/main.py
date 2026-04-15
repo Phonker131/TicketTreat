@@ -2,7 +2,7 @@ import os
 import requests
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import telebot
 from dotenv import load_dotenv
 from telebot.types import (
@@ -110,7 +110,7 @@ def notification_worker():
             time.sleep(600)
             continue
 
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         for e in events:
             if not e.get("starts_at"):
