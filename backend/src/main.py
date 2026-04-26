@@ -28,6 +28,8 @@ class ProfileUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     phone: str | None = None
+    contact_preference: str | None = None
+    instagram: str | None = None
 
 @app.get("/health")
 def health_check():
@@ -51,6 +53,7 @@ class EventCreate(BaseModel):
     title: str
     organizer: str | None = None
     description: str | None = None
+    location: str | None = None
     max_participants: int | None = None
     price: Decimal | None = None
     image_url: str | None = None
@@ -66,6 +69,7 @@ def create_event(payload: EventCreate):
             title=payload.title,
             organizer=payload.organizer,
             description=payload.description,
+            location=payload.location,
             max_participants=payload.max_participants,
             price=payload.price,
             image_url=payload.image_url,
@@ -81,6 +85,7 @@ def create_event(payload: EventCreate):
             "title": event.title,
             "organizer": event.organizer,
             "description": event.description,
+            "location": event.location,
             "max_participants": event.max_participants,
             "price": str(event.price) if event.price is not None else None,
             "image_url": event.image_url,
@@ -157,13 +162,19 @@ def register_to_event(event_id: int, payload: RegisterPayload):
 def list_events():
     db = SessionLocal()
     try:
-        events = db.query(Event).all()
+        events = (
+            db.query(Event)
+            .filter(Event.starts_at > datetime.utcnow())
+            .order_by(Event.starts_at.asc())
+            .all()
+        )
         return [
             {
                 "id": e.id,
                 "title": e.title,
                 "organizer": e.organizer,
                 "description": e.description,
+                "location": e.location,
                 "max_participants": e.max_participants,
                 "price": str(e.price) if e.price is not None else None,
                 "image_url": e.image_url,
@@ -189,6 +200,7 @@ def get_event(event_id: int):
             "title": event.title,
             "organizer": event.organizer,
             "description": event.description,
+            "location": event.location,
             "max_participants": event.max_participants,
             "price": str(event.price) if event.price is not None else None,
             "image_url": event.image_url,
@@ -216,6 +228,8 @@ def get_participants(event_id: int):
                 "first_name": r.user.first_name,
                 "last_name": r.user.last_name,
                 "phone": r.user.phone,
+                "contact_preference": r.user.contact_preference,
+                "instagram": r.user.instagram,
             })
 
         return results
@@ -245,6 +259,12 @@ def update_profile(payload: ProfileUpdate):
         if payload.phone is not None:
             user.phone = payload.phone
 
+        if payload.contact_preference is not None:
+            user.contact_preference = payload.contact_preference
+
+        if payload.instagram is not None:
+            user.instagram = payload.instagram
+
         db.commit()
         db.refresh(user)
 
@@ -254,6 +274,8 @@ def update_profile(payload: ProfileUpdate):
             "first_name": user.first_name,
             "last_name": user.last_name,
             "phone": user.phone,
+            "contact_preference": user.contact_preference,
+            "instagram": user.instagram,
         }
     finally:
         db.close()
@@ -273,6 +295,9 @@ def get_profile(telegram_id: int):
             "first_name": user.first_name,
             "last_name": user.last_name,
             "phone": user.phone,
+            "username": user.username,
+            "contact_preference": user.contact_preference,
+            "instagram": user.instagram,
         }
     finally:
         db.close()

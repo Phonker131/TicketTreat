@@ -14,6 +14,8 @@ class User(Base):
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     phone = Column(String, nullable=True)
+    contact_preference = Column(String, nullable=True)
+    instagram = Column(String, nullable=True)
 
     registrations = relationship("Registration", back_populates="user")
 
@@ -25,6 +27,7 @@ class Event(Base):
     title = Column(String, nullable=False)
     organizer = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    location = Column(String, nullable=True)
     max_participants = Column(Integer, nullable=True)
     price = Column(Numeric(10, 2), nullable=True)
     image_url = Column(String, nullable=True)

@@ -36,11 +36,45 @@ user_temp = {}
 # ---------- Admin event creation state ----------
 admin_event_state = {}
 admin_event_temp = {}
+sent_reminders = set()
 
 
 # =========================================================
 # Helpers
 # =========================================================
+def save_profile_to_backend(message):
+    tid = message.from_user.id
+
+    payload = {
+        "telegram_id": tid,
+        "username": message.from_user.username,
+        "first_name": user_temp.get(tid, {}).get("first_name"),
+        "last_name": user_temp.get(tid, {}).get("last_name"),
+        "phone": user_temp.get(tid, {}).get("phone"),
+        "contact_preference": user_temp.get(tid, {}).get("contact_preference"),
+        "instagram": user_temp.get(tid, {}).get("instagram"),
+    }
+
+    try:
+        resp = requests.post(f"{BACKEND_URL}/profile", json=payload, timeout=5)
+        resp.raise_for_status()
+    except Exception as e:
+        bot.send_message(
+            message.chat.id,
+            f"Ошибка сохранения профиля: {e}",
+            reply_markup=get_main_menu(message.from_user.id),
+        )
+        return
+
+    user_state.pop(tid, None)
+    user_temp.pop(tid, None)
+
+    bot.send_message(
+        message.chat.id,
+        "✅ Профиль сохранён! Теперь можешь записываться через Events.",
+        reply_markup=get_main_menu(message.from_user.id),
+    )
+
 def get_main_menu(user_id: int):
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
 
@@ -100,53 +134,75 @@ def ask_to_register(chat_id: int):
         reply_markup=markup,
     )
 
+
 def notification_worker():
+    print("REMINDER WORKER STARTED")
+
     while True:
         try:
-            resp = requests.get(f"{BACKEND_URL}/events", timeout=5)
+            resp = requests.get(f"{BACKEND_URL}/events", timeout=10)
             resp.raise_for_status()
             events = resp.json()
-        except Exception:
-            time.sleep(600)
+        except Exception as e:
+            print("Reminder worker: cannot get events:", e)
+            time.sleep(60)
             continue
 
-        now = datetime.now(UTC)
+        now = datetime.now()
 
-        for e in events:
-            if not e.get("starts_at"):
+        for event in events:
+            event_id = event.get("id")
+            starts_at_raw = event.get("starts_at")
+
+            if not event_id or not starts_at_raw:
                 continue
 
             try:
-                start_time = datetime.fromisoformat(e["starts_at"])
-            except Exception:
+                starts_at = datetime.fromisoformat(starts_at_raw)
+            except Exception as e:
+                print("Reminder worker: bad starts_at:", starts_at_raw, e)
                 continue
 
-            diff = start_time - now
+            diff = starts_at - now
+            diff_minutes = diff.total_seconds() / 60
 
-            if timedelta(hours=11, minutes=50) < diff < timedelta(hours=12, minutes=10):
+            print(
+                f"Reminder check: event={event_id}, "
+                f"title={event.get('title')}, "
+                f"starts_at={starts_at}, "
+                f"minutes_left={diff_minutes:.1f}"
+            )
+
+            reminder_key = f"12h:{event_id}"
+
+            # send once when event starts in 12 hours or less, but not after event started
+            if 0 < diff_minutes <= 720 and reminder_key not in sent_reminders:
                 try:
                     resp = requests.get(
-                        f"{BACKEND_URL}/events/{e['id']}/participants",
-                        timeout=5
+                        f"{BACKEND_URL}/events/{event_id}/participants",
+                        timeout=10,
                     )
                     resp.raise_for_status()
                     users = resp.json()
-                except Exception:
+                except Exception as e:
+                    print("Reminder worker: cannot get participants:", e)
                     continue
 
-                for u in users:
+                for user in users:
                     try:
                         bot.send_message(
-                            u["telegram_id"],
-                            f"⏰ Напоминание!\n\n"
-                            f"Завтра ивент:\n"
-                            f"🎉 {e['title']}\n"
-                            f"🕒 Начало: {format_event_datetime(e.get('starts_at'))}"
+                            user["telegram_id"],
+                            f"⏰ Напоминание об ивенте!\n\n"
+                            f"🎉 {event.get('title')}\n"
+                            f"🕒 Начало: {format_event_datetime(starts_at_raw)}\n\n"
+                            f"Ивент начнётся меньше чем через 12 часов."
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print("Reminder worker: cannot send message:", e)
 
-        time.sleep(600)
+                sent_reminders.add(reminder_key)
+
+        time.sleep(60)
 
 def format_event_datetime(dt_value) -> str:
     if not dt_value:
@@ -209,6 +265,7 @@ def show_event_details_by_id(chat_id: int, user_id: int, event_id: int):
     text = (
         f"🎉 {event['title']}\n"
         f"👤 Организатор: {event.get('organizer') or '-'}\n"
+        f"📍 Локация: {event.get('location') or '-'}\n"
         f"📝 Описание: {event.get('description') or '-'}\n"
         f"💰 Цена: {event.get('price') or 'Free'}\n"
         f"👥 Макс. участников: {event.get('max_participants') or '-'}\n"
@@ -226,24 +283,29 @@ def show_event_details_by_id(chat_id: int, user_id: int, event_id: int):
     photo_file_id = event.get("telegram_photo_file_id")
 
     if photo_file_id:
-        bot.send_photo(
-            chat_id,
-            photo=photo_file_id,
-            caption=text,
-            reply_markup=markup,
-        )
-    else:
-        bot.send_message(
-            chat_id,
-            text,
-            reply_markup=markup,
-        )
+        try:
+            bot.send_photo(
+                chat_id,
+                photo=photo_file_id,
+                caption=text,
+                reply_markup=markup,
+            )
+            return
+        except Exception:
+            pass
+
+    bot.send_message(
+        chat_id,
+        text,
+        reply_markup=markup,
+    )
 
 
 def create_event_from_temp(chat_id: int, temp_user_id: int, reply_user_id: int):
     payload = {
         "title": admin_event_temp[temp_user_id]["title"],
         "organizer": admin_event_temp[temp_user_id]["organizer"],
+        "location": admin_event_temp[temp_user_id]["location"],
         "description": admin_event_temp[temp_user_id]["description"],
         "max_participants": admin_event_temp[temp_user_id]["max_participants"],
         "price": admin_event_temp[temp_user_id]["price"],
@@ -274,6 +336,7 @@ def create_event_from_temp(chat_id: int, temp_user_id: int, reply_user_id: int):
         f"🆔 ID: {data['id']}\n"
         f"🎉 Название: {data['title']}\n"
         f"👤 Организатор: {data.get('organizer') or '-'}\n"
+        f"📍 Локация: {data.get('location') or '-'}\n"
         f"📝 Описание: {data.get('description') or '-'}\n"
         f"👥 Макс. участников: {data.get('max_participants') or '-'}\n"
         f"💰 Цена: {data.get('price') or 'Free'}\n"
@@ -363,11 +426,18 @@ def my_profile(message):
         )
         return
 
+    username = data.get("username")
+    contact_preference = data.get("contact_preference") or "-"
+    instagram = data.get("instagram") or "-"
+
     text = (
         "👤 Профиль\n\n"
         f"Имя: {data.get('first_name') or '-'}\n"
         f"Фамилия: {data.get('last_name') or '-'}\n"
-        f"Телефон: {data.get('phone') or '-'}"
+        f"Телефон: {data.get('phone') or '-'}\n"
+        f"Способ связи: {contact_preference}\n"
+        f"Telegram: @{username if username else '-'}\n"
+        f"Instagram: {instagram}"
     )
 
     bot.send_message(
@@ -409,21 +479,28 @@ def go_profile(call):
 
 
 @bot.message_handler(
-    func=lambda m: user_state.get(m.from_user.id) in ("WAIT_FIRST_NAME", "WAIT_LAST_NAME", "WAIT_PHONE"),
+    func=lambda m: user_state.get(m.from_user.id) in (
+        "WAIT_FIRST_NAME",
+        "WAIT_LAST_NAME",
+        "WAIT_PHONE",
+        "WAIT_CONTACT_METHOD",
+        "WAIT_INSTAGRAM",
+    ),
     content_types=["text"]
 )
 def handle_profile_steps(message):
     tid = message.from_user.id
     state = user_state.get(tid)
+    text = (message.text or "").strip()
 
     if state == "WAIT_FIRST_NAME":
-        user_temp[tid]["first_name"] = message.text.strip()
+        user_temp[tid]["first_name"] = text
         user_state[tid] = "WAIT_LAST_NAME"
         bot.send_message(message.chat.id, "Теперь введи фамилию:")
         return
 
     if state == "WAIT_LAST_NAME":
-        user_temp[tid]["last_name"] = message.text.strip()
+        user_temp[tid]["last_name"] = text
         user_state[tid] = "WAIT_PHONE"
 
         kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -438,7 +515,7 @@ def handle_profile_steps(message):
         return
 
     if state == "WAIT_PHONE":
-        phone = normalize_phone(message.text)
+        phone = normalize_phone(text)
 
         if not phone:
             bot.send_message(
@@ -448,84 +525,102 @@ def handle_profile_steps(message):
             )
             return
 
-        payload = {
-            "telegram_id": tid,
-            "username": message.from_user.username,
-            "first_name": user_temp.get(tid, {}).get("first_name"),
-            "last_name": user_temp.get(tid, {}).get("last_name"),
-            "phone": phone,
-        }
+        user_temp[tid]["phone"] = phone
+        user_state[tid] = "WAIT_CONTACT_METHOD"
 
-        try:
-            resp = requests.post(f"{BACKEND_URL}/profile", json=payload, timeout=5)
-            resp.raise_for_status()
-        except Exception as e:
-            bot.send_message(
-                message.chat.id,
-                f"Ошибка сохранения профиля: {e}",
-                reply_markup=get_main_menu(message.from_user.id),
-            )
-            return
-
-        user_state.pop(tid, None)
-        user_temp.pop(tid, None)
+        kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        kb.row(
+            KeyboardButton("Telegram"),
+            KeyboardButton("Instagram"),
+        )
 
         bot.send_message(
             message.chat.id,
-            "✅ Профиль сохранён! Теперь можешь записываться через Events.",
-            reply_markup=get_main_menu(message.from_user.id),
+            "Как организаторам лучше с тобой связаться?",
+            reply_markup=kb,
         )
+        return
+
+    if state == "WAIT_CONTACT_METHOD":
+        method = text.lower()
+
+        if method not in ("telegram", "instagram"):
+            kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+            kb.row(
+                KeyboardButton("Telegram"),
+                KeyboardButton("Instagram"),
+            )
+
+            bot.send_message(
+                message.chat.id,
+                "Выбери способ связи кнопкой: Telegram или Instagram.",
+                reply_markup=kb,
+            )
+            return
+
+        user_temp[tid]["contact_preference"] = method
+
+        if method == "telegram":
+            save_profile_to_backend(message)
+            return
+
+        if method == "instagram":
+            user_state[tid] = "WAIT_INSTAGRAM"
+            bot.send_message(
+                message.chat.id,
+                "Отправь ссылку на Instagram или свой Instagram тег:",
+            )
+            return
+
+    if state == "WAIT_INSTAGRAM":
+        instagram = text
+
+        if len(instagram) < 2:
+            bot.send_message(
+                message.chat.id,
+                "Instagram тег или ссылка слишком короткие. Попробуй ещё раз:",
+            )
+            return
+
+        user_temp[tid]["instagram"] = instagram
+        save_profile_to_backend(message)
+        return
 
 
 @bot.message_handler(content_types=["contact"])
 def handle_contact(message):
     tid = message.from_user.id
 
-    # ---------- profile phone ----------
-    if user_state.get(tid) == "WAIT_PHONE":
-        phone = normalize_phone(message.contact.phone_number)
-
-        if not phone:
-            bot.send_message(
-                message.chat.id,
-                "Не удалось прочитать номер телефона. Попробуй ещё раз.",
-            )
-            return
-
-        payload = {
-            "telegram_id": tid,
-            "username": message.from_user.username,
-            "first_name": user_temp.get(tid, {}).get("first_name"),
-            "last_name": user_temp.get(tid, {}).get("last_name"),
-            "phone": phone,
-        }
-
-        try:
-            resp = requests.post(f"{BACKEND_URL}/profile", json=payload, timeout=5)
-            resp.raise_for_status()
-        except Exception as e:
-            bot.send_message(
-                message.chat.id,
-                f"Ошибка сохранения профиля: {e}",
-                reply_markup=get_main_menu(message.from_user.id),
-            )
-            return
-
-        user_state.pop(tid, None)
-        user_temp.pop(tid, None)
-
+    if user_state.get(tid) != "WAIT_PHONE":
         bot.send_message(
             message.chat.id,
-            "✅ Профиль сохранён! Теперь можешь записываться через Events.",
+            "Контакт получен, но сейчас регистрация не активна. Напиши /profile",
             reply_markup=get_main_menu(message.from_user.id),
         )
         return
 
-    # ---------- anything else ----------
+    phone = normalize_phone(message.contact.phone_number)
+
+    if not phone:
+        bot.send_message(
+            message.chat.id,
+            "Не удалось прочитать номер телефона. Попробуй ещё раз.",
+        )
+        return
+
+    user_temp[tid]["phone"] = phone
+    user_state[tid] = "WAIT_CONTACT_METHOD"
+
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    kb.row(
+        KeyboardButton("Telegram"),
+        KeyboardButton("Instagram"),
+    )
+
     bot.send_message(
         message.chat.id,
-        "Контакт получен, но сейчас регистрация не активна. Напиши /profile",
-        reply_markup=get_main_menu(message.from_user.id),
+        "Как организаторам лучше с тобой связаться?",
+        reply_markup=kb,
     )
 
 
@@ -727,17 +822,30 @@ def admin_participants(call):
         text = f"Ивент #{event_id}\n\nНикто не записан."
     else:
         lines = [f"Ивент #{event_id}\n\nУчастники:"]
+
         for u in users:
             uname = u.get("username")
             fname = u.get("first_name") or ""
             lname = u.get("last_name") or ""
+            contact_preference = u.get("contact_preference")
+            instagram = u.get("instagram")
 
             full_name = f"{fname} {lname}".strip() or "Без имени"
 
-            if uname:
-                lines.append(f"- {full_name} (@{uname})")
+            if contact_preference == "telegram":
+                if uname:
+                    lines.append(f"- {full_name} | Telegram: @{uname}")
+                else:
+                    lines.append(f"- {full_name} | Telegram: username не указан")
+
+            elif contact_preference == "instagram":
+                lines.append(f"- {full_name} | Instagram: {instagram or '-'}")
+
             else:
-                lines.append(f"- {full_name}")
+                if uname:
+                    lines.append(f"- {full_name} (@{uname})")
+                else:
+                    lines.append(f"- {full_name}")
 
         text = "\n".join(lines)
 
@@ -777,6 +885,7 @@ def admin_add_event(call):
 @bot.message_handler(func=lambda m: admin_event_state.get(m.from_user.id) in (
     "WAIT_EVENT_NAME",
     "WAIT_EVENT_ORGANIZER",
+    "WAIT_EVENT_LOCATION",
     "WAIT_EVENT_DESCRIPTION",
     "WAIT_EVENT_MAX_PARTICIPANTS",
     "WAIT_EVENT_PRICE",
@@ -816,11 +925,20 @@ def handle_admin_event_creation(message):
             )
             return
 
-        if state == "WAIT_EVENT_DESCRIPTION":
+        if state == "WAIT_EVENT_LOCATION":
             admin_event_state[tid] = "WAIT_EVENT_ORGANIZER"
             bot.send_message(
                 message.chat.id,
                 "Введите организатора:",
+                reply_markup=get_event_creation_nav_keyboard(),
+            )
+            return
+
+        if state == "WAIT_EVENT_DESCRIPTION":
+            admin_event_state[tid] = "WAIT_EVENT_LOCATION"
+            bot.send_message(
+                message.chat.id,
+                "Введите локацию ивента:",
                 reply_markup=get_event_creation_nav_keyboard(),
             )
             return
@@ -894,7 +1012,27 @@ def handle_admin_event_creation(message):
             return
 
         admin_event_temp[tid]["organizer"] = text
+        admin_event_state[tid] = "WAIT_EVENT_LOCATION"
+
+        bot.send_message(
+            message.chat.id,
+            "Введите локацию ивента:",
+            reply_markup=get_event_creation_nav_keyboard(),
+        )
+        return
+
+    if state == "WAIT_EVENT_LOCATION":
+        if not text or text in ("⬅️ Назад", "⏭️ Пропустить"):
+            bot.send_message(
+                message.chat.id,
+                "Введите корректную локацию:",
+                reply_markup=get_event_creation_nav_keyboard(),
+            )
+            return
+
+        admin_event_temp[tid]["location"] = text
         admin_event_state[tid] = "WAIT_EVENT_DESCRIPTION"
+
         bot.send_message(
             message.chat.id,
             "Введите описание:",
@@ -998,7 +1136,9 @@ def handle_admin_event_creation(message):
 
         bot.send_message(
             message.chat.id,
-            "На этом шаге нужно отправить фото,\nили нажать «⏭️ Пропустить»,\nили «⬅️ Назад».",
+            "На этом шаге нужно отправить фото,\n"
+            "или нажать «⏭️ Пропустить»,\n"
+            "или «⬅️ Назад».",
             reply_markup=get_event_creation_nav_keyboard(include_skip=True),
         )
         return
@@ -1025,11 +1165,15 @@ def handle_event_photo(message):
         return
 
 
-if __name__ == "__main__":
+print("BOT STARTED")
 
-    threading.Thread(
-        target=notification_worker,
-        daemon=True
-    ).start()
+threading.Thread(
+    target=notification_worker,
+    daemon=True
+).start()
 
-    bot.infinity_polling()
+bot.remove_webhook()
+time.sleep(1)
+
+print("STARTING POLLING")
+bot.infinity_polling(skip_pending=True)
