@@ -59,6 +59,8 @@ class EventCreate(BaseModel):
     image_url: str | None = None
     starts_at: datetime | None = None
     telegram_photo_file_id: str | None = None
+    reminder_minutes_before: int | None = None
+    reminder_text: str | None = None
 
 
 @app.post("/events")
@@ -75,25 +77,66 @@ def create_event(payload: EventCreate):
             image_url=payload.image_url,
             starts_at=payload.starts_at or datetime.utcnow(),
             telegram_photo_file_id=payload.telegram_photo_file_id,
+            reminder_minutes_before=payload.reminder_minutes_before,
+            reminder_text=payload.reminder_text,
+            reminder_sent=False,
+            is_cancelled=False,
         )
+
         db.add(event)
         db.commit()
         db.refresh(event)
 
-        return {
-            "id": event.id,
-            "title": event.title,
-            "organizer": event.organizer,
-            "description": event.description,
-            "location": event.location,
-            "max_participants": event.max_participants,
-            "price": str(event.price) if event.price is not None else None,
-            "image_url": event.image_url,
-            "starts_at": event.starts_at,
-            "telegram_photo_file_id": event.telegram_photo_file_id,
-        }
+        return event_to_dict(event)
     finally:
         db.close()
+
+class EventUpdate(BaseModel):
+    title: str | None = None
+    organizer: str | None = None
+    location: str | None = None
+    description: str | None = None
+    max_participants: int | None = None
+    price: Decimal | None = None
+    image_url: str | None = None
+    starts_at: datetime | None = None
+    telegram_photo_file_id: str | None = None
+    reminder_minutes_before: int | None = None
+    reminder_text: str | None = None
+
+
+class EventCancel(BaseModel):
+    reason: str | None = None
+
+def event_to_dict(event: Event, registered_count: int | None = None):
+    data = {
+        "id": event.id,
+        "title": event.title,
+        "organizer": event.organizer,
+        "location": event.location,
+        "description": event.description,
+        "max_participants": event.max_participants,
+        "price": str(event.price) if event.price is not None else None,
+        "image_url": event.image_url,
+        "starts_at": event.starts_at,
+        "telegram_photo_file_id": event.telegram_photo_file_id,
+        "reminder_minutes_before": event.reminder_minutes_before,
+        "reminder_text": event.reminder_text,
+        "reminder_sent": event.reminder_sent,
+        "is_cancelled": event.is_cancelled,
+        "cancellation_reason": event.cancellation_reason,
+        "cancelled_at": event.cancelled_at,
+    }
+
+    if registered_count is not None:
+        data["registered_count"] = registered_count
+
+        if event.max_participants is not None:
+            data["spots_left"] = max(event.max_participants - registered_count, 0)
+        else:
+            data["spots_left"] = None
+
+    return data
 
 class RegisterPayload(BaseModel):
     telegram_id: int
@@ -106,8 +149,15 @@ def register_to_event(event_id: int, payload: RegisterPayload):
     db = SessionLocal()
     try:
         event = db.query(Event).filter(Event.id == event_id).first()
+
         if not event:
             return {"error": "event_not_found"}
+
+        if event.is_cancelled:
+            return {"error": "event_cancelled"}
+
+        if event.starts_at and event.starts_at <= datetime.utcnow():
+            return {"error": "event_already_started"}
 
         user = db.query(User).filter(User.telegram_id == payload.telegram_id).first()
 
@@ -121,7 +171,6 @@ def register_to_event(event_id: int, payload: RegisterPayload):
             db.commit()
             db.refresh(user)
         else:
-            # обновляем username и first_name, если они пришли
             if payload.username is not None:
                 user.username = payload.username
 
@@ -133,7 +182,10 @@ def register_to_event(event_id: int, payload: RegisterPayload):
 
         existing = (
             db.query(Registration)
-            .filter(Registration.user_id == user.id, Registration.event_id == event_id)
+            .filter(
+                Registration.user_id == user.id,
+                Registration.event_id == event_id,
+            )
             .first()
         )
 
@@ -142,6 +194,15 @@ def register_to_event(event_id: int, payload: RegisterPayload):
                 "status": "already_registered",
                 "user_id": user.id,
                 "event_id": event_id,
+            }
+
+        registered_count = get_registered_count(db, event_id)
+
+        if event.max_participants is not None and registered_count >= event.max_participants:
+            return {
+                "error": "event_full",
+                "registered_count": registered_count,
+                "max_participants": event.max_participants,
             }
 
         reg = Registration(user_id=user.id, event_id=event_id)
@@ -154,7 +215,93 @@ def register_to_event(event_id: int, payload: RegisterPayload):
             "registration_id": reg.id,
             "user_id": user.id,
             "event_id": event_id,
+            "registered_count": registered_count + 1,
+            "max_participants": event.max_participants,
         }
+    finally:
+        db.close()
+
+def get_registered_count(db, event_id: int) -> int:
+    return (
+        db.query(Registration)
+        .filter(Registration.event_id == event_id)
+        .count()
+    )
+
+@app.delete("/events/{event_id}/register/{telegram_id}")
+def unregister_from_event(event_id: int, telegram_id: int):
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.telegram_id == telegram_id).first()
+
+        if not user:
+            return {"status": "not_registered"}
+
+        reg = (
+            db.query(Registration)
+            .filter(
+                Registration.user_id == user.id,
+                Registration.event_id == event_id,
+            )
+            .first()
+        )
+
+        if not reg:
+            return {"status": "not_registered"}
+
+        db.delete(reg)
+        db.commit()
+
+        return {
+            "status": "unregistered",
+            "event_id": event_id,
+            "telegram_id": telegram_id,
+        }
+    finally:
+        db.close()
+
+@app.get("/users/{telegram_id}/events")
+def get_user_events(telegram_id: int):
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.telegram_id == telegram_id).first()
+
+        if not user:
+            return []
+
+        regs = (
+            db.query(Registration)
+            .join(Event)
+            .filter(Registration.user_id == user.id)
+            .filter(Event.starts_at > datetime.utcnow())
+            .filter(Event.is_cancelled == False)
+            .order_by(Event.starts_at.asc())
+            .all()
+        )
+
+        return [event_to_dict(reg.event) for reg in regs]
+    finally:
+        db.close()
+
+@app.get("/users")
+def list_users():
+    db = SessionLocal()
+    try:
+        users = db.query(User).all()
+
+        return [
+            {
+                "telegram_id": u.telegram_id,
+                "username": u.username,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+                "phone": u.phone,
+                "contact_preference": u.contact_preference,
+                "instagram": u.instagram,
+            }
+            for u in users
+            if u.telegram_id is not None
+        ]
     finally:
         db.close()
 
@@ -165,24 +312,18 @@ def list_events():
         events = (
             db.query(Event)
             .filter(Event.starts_at > datetime.utcnow())
+            .filter(Event.is_cancelled == False)
             .order_by(Event.starts_at.asc())
             .all()
         )
-        return [
-            {
-                "id": e.id,
-                "title": e.title,
-                "organizer": e.organizer,
-                "description": e.description,
-                "location": e.location,
-                "max_participants": e.max_participants,
-                "price": str(e.price) if e.price is not None else None,
-                "image_url": e.image_url,
-                "starts_at": e.starts_at,
-                "telegram_photo_file_id": e.telegram_photo_file_id,
-            }
-            for e in events
-        ]
+
+        result = []
+
+        for event in events:
+            registered_count = get_registered_count(db, event.id)
+            result.append(event_to_dict(event, registered_count))
+
+        return result
     finally:
         db.close()
 
@@ -195,17 +336,68 @@ def get_event(event_id: int):
         if not event:
             return {"error": "event_not_found"}
 
+        registered_count = get_registered_count(db, event.id)
+
+        return event_to_dict(event, registered_count)
+    finally:
+        db.close()
+
+@app.patch("/events/{event_id}")
+def update_event(event_id: int, payload: EventUpdate):
+    db = SessionLocal()
+    try:
+        event = db.query(Event).filter(Event.id == event_id).first()
+
+        if not event:
+            return {"error": "event_not_found"}
+
+        try:
+            data = payload.model_dump(exclude_unset=True)
+        except AttributeError:
+            data = payload.dict(exclude_unset=True)
+
+        reminder_related_fields = {
+            "starts_at",
+            "reminder_minutes_before",
+            "reminder_text",
+        }
+
+        for field, value in data.items():
+            if hasattr(event, field):
+                setattr(event, field, value)
+
+        if any(field in data for field in reminder_related_fields):
+            event.reminder_sent = False
+
+        db.commit()
+        db.refresh(event)
+
         return {
-            "id": event.id,
-            "title": event.title,
-            "organizer": event.organizer,
-            "description": event.description,
-            "location": event.location,
-            "max_participants": event.max_participants,
-            "price": str(event.price) if event.price is not None else None,
-            "image_url": event.image_url,
-            "starts_at": event.starts_at,
-            "telegram_photo_file_id": event.telegram_photo_file_id,
+            "status": "updated",
+            "event": event_to_dict(event),
+        }
+    finally:
+        db.close()
+
+@app.post("/events/{event_id}/cancel")
+def cancel_event(event_id: int, payload: EventCancel):
+    db = SessionLocal()
+    try:
+        event = db.query(Event).filter(Event.id == event_id).first()
+
+        if not event:
+            return {"error": "event_not_found"}
+
+        event.is_cancelled = True
+        event.cancellation_reason = payload.reason
+        event.cancelled_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(event)
+
+        return {
+            "status": "cancelled",
+            "event": event_to_dict(event),
         }
     finally:
         db.close()
@@ -299,5 +491,21 @@ def get_profile(telegram_id: int):
             "contact_preference": user.contact_preference,
             "instagram": user.instagram,
         }
+    finally:
+        db.close()
+
+@app.post("/events/{event_id}/reminder-sent")
+def mark_reminder_sent(event_id: int):
+    db = SessionLocal()
+    try:
+        event = db.query(Event).filter(Event.id == event_id).first()
+
+        if not event:
+            return {"error": "event_not_found"}
+
+        event.reminder_sent = True
+        db.commit()
+
+        return {"status": "ok", "event_id": event_id}
     finally:
         db.close()

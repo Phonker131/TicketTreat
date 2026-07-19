@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Numeric
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Numeric, Boolean, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -33,6 +33,12 @@ class Event(Base):
     image_url = Column(String, nullable=True)
     starts_at = Column(DateTime, default=datetime.utcnow)
     telegram_photo_file_id = Column(String, nullable=True)
+    reminder_minutes_before = Column(Integer, nullable=True)
+    reminder_text = Column(String, nullable=True)
+    reminder_sent = Column(Boolean, default=False)
+    is_cancelled = Column(Boolean, default=False)
+    cancellation_reason = Column(Text, nullable=True)
+    cancelled_at = Column(DateTime, nullable=True)
 
     registrations = relationship("Registration", back_populates="event")
 
