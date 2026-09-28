@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Numeric, Boolean, Text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -30,6 +40,14 @@ class Event(Base):
     location = Column(String, nullable=True)
     max_participants = Column(Integer, nullable=True)
     price = Column(Numeric(10, 2), nullable=True)
+
+    currency = Column(
+        String(3),
+        nullable=False,
+        default="CZK",
+        server_default="CZK",
+    )
+
     image_url = Column(String, nullable=True)
     starts_at = Column(DateTime, default=datetime.utcnow)
     telegram_photo_file_id = Column(String, nullable=True)
