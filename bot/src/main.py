@@ -26,10 +26,13 @@ from telebot.types import (
 # =========================================================
 # Environment
 # =========================================================
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# Current file:
+# Crowdly/app/bot/src/main.py
+#
+# parents[3]:
+# Crowdly/
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(PROJECT_ROOT / ".env", override=False, encoding="utf-8-sig")
-# Retain support for deployments that keep .env above the repository.
-load_dotenv(PROJECT_ROOT.parent / ".env", override=False, encoding="utf-8-sig")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 BOT_USERNAME = os.getenv("BOT_USERNAME")
