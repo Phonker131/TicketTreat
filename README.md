@@ -1,5 +1,7 @@
 # TicketTreat / Crowdly
 
+> **Status: Active development — work in progress.** Features, data models, and setup may change. This is not a final release.
+
 A Telegram event registration project with a FastAPI backend and PostgreSQL storage. The repository is named TicketTreat; the current application identifies itself as Crowdly.
 
 ## Features implemented in the source
@@ -37,7 +39,9 @@ Activate the environment with `.venv\Scripts\activate` on Windows or `source .ve
 python -m pip install -r requirements.txt
 ```
 
-Set the following environment variables in the shells used to launch the processes:
+Create a PostgreSQL database and a local database user, then copy `.env.example` to `.env` in the repository root and fill in your values. Both processes load this file; existing shell environment variables take precedence.
+
+Configuration:
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL SQLAlchemy connection URL |
@@ -58,12 +62,20 @@ python bot/src/main.py
 Explore API documentation at `http://127.0.0.1:8000/docs`.
 
 ## Current limitations
-- The bot's dotenv lookup assumes an older parent-directory layout. Set environment variables explicitly for the current repository layout.
 - The backend creates missing tables on startup; this does not migrate existing columns.
 - Bot conversation state is stored in memory.
-- Several dependency lists and tracked Python cache files need consolidation.
-- End-to-end startup has not been verified as part of this documentation update. On Windows, timezone data may require installing `tzdata`.
+- Telegram/PostgreSQL end-to-end flows require your own local services and credentials.
+- Automated checks currently cover Python syntax, not complete event-registration flows.
 - Keep the API local during evaluation until authentication and authorization have been reviewed.
+
+## Development priorities
+- Add integration tests for registration limits, cancellations, and payment status changes.
+- Introduce versioned database migrations.
+- Split large handler modules as the feature set stabilizes.
+- Review backend access control before a public deployment.
+
+## Dependencies
+The root `requirements.txt` is the dependency source of truth. Files under `backend/` and `bot/` forward to it so existing install commands remain usable.
 
 ## License
 See [LICENSE](LICENSE).
