@@ -1,8 +1,8 @@
-# TicketTreat / Crowdly
+# TicketTreat
 
 > **Status: Active development — work in progress.** Features, data models, and setup may change. This is not a final release.
 
-A Telegram event registration project with a FastAPI backend and PostgreSQL storage. The repository is named TicketTreat; the current application identifies itself as Crowdly.
+A Telegram event registration project with a FastAPI backend and PostgreSQL storage. The project is called TicketTreat.
 
 ## Features implemented in the source
 - Participant profiles and profile editing.
