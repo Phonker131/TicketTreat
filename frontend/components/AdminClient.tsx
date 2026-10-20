@@ -77,7 +77,10 @@ export function AdminClient() {
         <h1>{identity?.role==="global_admin"?"Все события Crowdly":"Мои ивенты"}</h1>
         <p>{identity?.role==="global_admin"?"Полный доступ, назначение владельцев и модерация.":"Доступ только к собственным событиям."}</p>
       </div>
-      {identity&&<Link className="button button-sun" href="/admin/check-in">Scan ticket</Link>}
+      {identity&&<div className="admin-event-actions">
+        {identity.role==="global_admin"&&<Link className="button button-outline" href="/admin/accounts">Управление аккаунтами</Link>}
+        <Link className="button button-sun" href="/admin/check-in">Scan ticket</Link>
+      </div>}
     </div>
     {error&&<div className="state-card state-error" role="alert">{error} {!identity&&<Link href="/profile" className="button button-outline">Открыть профиль</Link>}</div>}
     {notice&&<div className="success-banner" role="status">{notice}</div>}

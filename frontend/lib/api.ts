@@ -288,3 +288,16 @@ export function assignManageOwner(token:string,eventId:number,ownerAccountId:num
 export function getManageAudit(token:string,eventId:number):Promise<{action:string;details:string;actor_account_id:number;at:string}[]> {
   return request(`/demo/manage/events/${eventId}/audit`,{headers:accountHeaders(token)});
 }
+
+export type ManagedAccount = {
+  account_id: number; email: string; name: string;
+  role: "participant" | "organizer" | "global_admin";
+};
+export function getManagedAccounts(token:string):Promise<ManagedAccount[]> {
+  return request("/demo/manage/accounts",{headers:accountHeaders(token)});
+}
+export function setManagedAccountRole(token:string,accountId:number,role:"participant"|"organizer"):Promise<{account_id:number;role:string}> {
+  return request(`/demo/manage/accounts/${accountId}/role`,{
+    method:"PUT",headers:accountHeaders(token),body:JSON.stringify({role})
+  });
+}
