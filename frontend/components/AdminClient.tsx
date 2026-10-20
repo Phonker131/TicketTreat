@@ -1,356 +1,123 @@
 "use client";
-
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
-import { createEvent, getEvents, verifyDemoAdminKey } from "@/lib/api";
-import type { LanguageCode } from "@/lib/types";
-import { getAdminKey, setAdminKey } from "@/lib/session";
-import type { CrowdlyEvent } from "@/lib/types";
+import { addManageEvent, getManageEvents, getManageMe } from "@/lib/api";
+import { getWebToken } from "@/lib/session";
+import type { LanguageCode, ManageEvent, ManageIdentity } from "@/lib/types";
 
-function getErrorText(error: unknown, action: "auth" | "create") {
-  const status = (error as {status?: number})?.status;
-  if (status === 401 || status === 403) {
-    return "Неверный ключ администратора (401). Проверь DEMO_ADMIN_KEY в Railway → Demo API → Variables.";
-  }
-  if (status === 422) {
-    return "Некорректные данные события или постер. Проверь обязательные поля, языки и формат JPG/PNG/WebP.";
-  }
-  if (status === 413) {
-    return "Постер слишком большой. Максимальный размер — 4 МБ.";
-  }
-  if (status === 409) {
-    return "Не удалось создать событие из-за конфликта данных. Попробуй изменить параметры.";
-  }
-  const raw = error instanceof Error ? error.message : String(error);
-  if (/Failed to fetch|NetworkError|Load failed/i.test(raw)) {
-    return "Нет соединения с Demo API. Проверь подключение к интернету и повтори попытку.";
-  }
-  return (action === "auth" ? "Ошибка проверки ключа: " : "Ошибка создания события: ") + raw;
+function errorText(e: unknown): string {
+  const raw=e instanceof Error?e.message:String(e);
+  return raw==="organizer_role_required"?"Этот аккаунт зарегистрирован как участник. Для создания ивентов нужен аккаунт организатора.":raw;
 }
-
+function readPoster(file: File): Promise<string> {
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result));
+    reader.onerror=()=>reject(new Error("Не удалось прочитать постер."));
+    reader.readAsDataURL(file);
+  });
+}
 export function AdminClient() {
-  const [adminKey, setKey] = useState("");
-  const [authenticated, setAuthenticated] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [loadingEvents, setLoadingEvents] = useState(true);
-  const [events, setEvents] = useState<CrowdlyEvent[]>([]);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
-  const [poster, setPoster] = useState<File | null>(null);
-  const [posterPreview, setPosterPreview] = useState<string | null>(null);
-  const keyInput = useRef<HTMLInputElement>(null);
+  const [identity,setIdentity]=useState<ManageIdentity|null>(null);
+  const [events,setEvents]=useState<ManageEvent[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [showForm,setShowForm]=useState(false);
+  const [error,setError]=useState("");
+  const [notice,setNotice]=useState("");
+  const [preview,setPreview]=useState("");
+  useEffect(()=>{
+    let live=true;
+    const token=getWebToken();
+    if(!token){setLoading(false);setError("Войди в аккаунт организатора, чтобы управлять событиями.");return;}
+    Promise.all([getManageMe(token),getManageEvents(token)])
+      .then(([me,data])=>{if(live){setIdentity(me);setEvents(data);}})
+      .catch(e=>{if(live)setError(errorText(e));})
+      .finally(()=>{if(live)setLoading(false);});
+    return ()=>{live=false};
+  },[]);
 
-  useEffect(() => {
-    let mounted = true;
-    const stored = getAdminKey();
-    setKey(stored);
-
-    if (stored) {
-      verifyDemoAdminKey(stored)
-        .then(() => { if (mounted) setAuthenticated(true); })
-        .catch(() => {
-          if (mounted) {
-            setAuthenticated(false);
-            setError("Сохранённый ключ админа больше не подходит. Введи действующий DEMO_ADMIN_KEY.");
-          }
-        });
-    }
-
-    getEvents(undefined, true)
-      .then((data) => { if (mounted) setEvents(data); })
-      .catch((err: unknown) => { if (mounted) setError(getErrorText(err, "create")); })
-      .finally(() => { if (mounted) setLoadingEvents(false); });
-
-    return () => { mounted = false; };
-  }, []);
-
-  useEffect(() => {
-    if (!poster) {
-      setPosterPreview(null);
-      return;
-    }
-    const objectUrl = URL.createObjectURL(poster);
-    setPosterPreview(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [poster]);
-
-  async function fileToDataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error("Не удалось прочитать файл постера."));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function saveKey(e: FormEvent<HTMLFormElement>) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const value = adminKey.trim();
-    setError("");
-    setMessage("");
-    setAuthenticated(false);
-
-    if (!value) {
-      setError("Введите ключ администратора, чтобы создавать события.");
-      keyInput.current?.focus();
-      return;
-    }
-
-    setVerifying(true);
-    try {
-      const response = await verifyDemoAdminKey(value);
-      if (!response.authenticated) throw new Error("authentication_not_confirmed");
-      setAdminKey(value);
-      setKey(value);
-      setAuthenticated(true);
-      setMessage("✓ Доступ администратора подтверждён. Теперь можно создавать ивенты.");
-    } catch (err) {
-      setAdminKey("");
-      setError(getErrorText(err, "auth"));
-    } finally {
-      setVerifying(false);
-    }
+    const token=getWebToken();
+    if(!token)return;
+    const form=e.currentTarget,data=new FormData(form);
+    setSaving(true);setError("");setNotice("");
+    try{
+      const file=data.get("poster");
+      let poster_data_url: string|null=null;
+      if(file instanceof File && file.size>0){
+        if(file.size>4*1024*1024)throw new Error("Максимальный размер постера — 4 МБ.");
+        if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw new Error("Только PNG, JPEG или WebP.");
+        poster_data_url=await readPoster(file);
+      }
+      const langs=data.getAll("languages").map(String).filter((v):v is LanguageCode=>["en","cs","ru","uk"].includes(v));
+      if(!langs.length)throw new Error("Выбери хотя бы один язык.");
+      const starts=String(data.get("starts_at")||"");
+      if(!starts)throw new Error("Введи дату и время.");
+      const event=await addManageEvent(token,{
+        title:String(data.get("title")||"").trim(),
+        organizer:String(data.get("organizer")||"Crowdly").trim(),
+        description:String(data.get("description")||"").trim(),
+        location:String(data.get("location")||"").trim(),
+        max_participants:Number(data.get("max_participants")||30),
+        price:String(data.get("price")||"0"),
+        currency:String(data.get("currency")||"CZK"),
+        starts_at:starts+":00",languages:langs,poster_data_url,
+      });
+      setEvents(current=>[event,...current]);
+      form.reset();setPreview("");setShowForm(false);setNotice("Ивент успешно создан.");
+    }catch(e){setError(errorText(e));}
+    finally{setSaving(false);}
   }
-
-  function toggleCreate() {
-    setShowCreate((value) => !value);
-    setMessage("");
-    setError("");
-    if (!authenticated) {
-      setError("Для создания ивента сначала введи и сохрани правильный ключ администратора выше.");
-      keyInput.current?.focus();
-    }
-  }
-
-  async function submitEvent(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (creating) return;
-
-    setError("");
-    setMessage("");
-    if (!authenticated || !adminKey.trim()) {
-      setError("Сначала подтверди ключ администратора.");
-      keyInput.current?.focus();
-      return;
-    }
-
-    const formElement = e.currentTarget;
-    const form = new FormData(formElement);
-    const startsRaw = String(form.get("starts_at") || "");
-    const price = Number(form.get("price") || "0");
-    const title = String(form.get("title") || "").trim();
-    const maxParticipants = Number(form.get("max_participants") || 30);
-
-    if (!title || !startsRaw || !Number.isFinite(price) || price < 0 ||
-        !Number.isInteger(maxParticipants) || maxParticipants < 1) {
-      setError("Заполни название, дату начала, допустимую цену и количество мест.");
-      return;
-    }
-
-    if (new Date(startsRaw).getTime() <= Date.now()) {
-      setError("Дата начала должна быть в будущем.");
-      return;
-    }
-
-    const selectedLanguages = form.getAll("languages")
-      .map(String)
-      .filter((code): code is LanguageCode =>
-        code === "en" || code === "cs" || code === "ru" || code === "uk"
-      );
-    if (!selectedLanguages.length) {
-      setError("Выбери хотя бы один язык ивента.");
-      return;
-    }
-
-    const posterFile = form.get("poster");
-    if (posterFile instanceof File && posterFile.size > 0) {
-      if (!["image/jpeg", "image/png", "image/webp"].includes(posterFile.type)) {
-        setError("Для постера можно использовать только JPG, PNG или WebP.");
-        return;
-      }
-      if (posterFile.size > 4 * 1024 * 1024) {
-        setError("Размер постера не должен превышать 4 МБ.");
-        return;
-      }
-    }
-
-    setCreating(true);
-    try {
-      const posterDataUrl = posterFile instanceof File && posterFile.size > 0
-        ? await fileToDataUrl(posterFile)
-        : null;
-      const result = await createEvent({
-        title,
-        organizer: String(form.get("organizer") || "Crowdly").trim(),
-        location: String(form.get("location") || "").trim(),
-        description: String(form.get("description") || "").trim(),
-        max_participants: maxParticipants,
-        price: price.toString(),
-        currency: String(form.get("currency") || "CZK"),
-        payment_instructions: price > 0 ? "DEMO PAYMENT — automatically confirmed" : null,
-        languages: selectedLanguages,
-        poster_data_url: posterDataUrl,
-        starts_at: startsRaw + ":00",
-        reminder_minutes_before: 180,
-        reminder_text: "Your Crowdly event starts soon.",
-      }, adminKey.trim());
-      if (!result || !result.id) {
-        throw new Error("The API did not return a created event.");
-      }
-      setEvents((current) => [result, ...current.filter((ev) => ev.id !== result.id)]);
-      setShowCreate(false);
-      setPoster(null);
-      setMessage("✓ Ивент успешно создан! Выбранные языки и постер сохранены.");
-      formElement.reset();
-    } catch (err) {
-      if ((err as {status?: number})?.status === 401) {
-        setAuthenticated(false);
-        setAdminKey("");
-      }
-      setError(getErrorText(err, "create"));
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  return (
-    <div className="app-shell">
-      <AppHeader />
-      <main className="page">
-        <div className="admin-heading">
-          <div>
-            <span className="status status-demo">DEMO ADMIN</span>
-            <h1>Organizer dashboard</h1>
-            <p>Events, guests, demo payments and check-in.</p>
-          </div>
-          <Link className="button button-sun" href="/admin/check-in">Scan ticket</Link>
-        </div>
-
-        <section className="panel admin-key-panel">
-          <form onSubmit={saveKey} className="inline-form">
-            <label>
-              Demo admin key
-              <input
-                ref={keyInput}
-                type="password"
-                autoComplete="off"
-                value={adminKey}
-                onChange={(ev) => {
-                  setKey(ev.target.value);
-                  setAuthenticated(false);
-                  setMessage("");
-                }}
-                placeholder="Ключ DEMO_ADMIN_KEY из Railway"
-                aria-label="Demo admin key"
-              />
-            </label>
-            <button type="submit" className="button button-outline" disabled={verifying}>
-              {verifying ? "Проверяем…" : "Проверить ключ"}
-            </button>
-          </form>
-          <small>
-            {authenticated
-              ? "✓ Admin access verified. Demo payments do not charge real money."
-              : "Чтобы создать событие, введи DEMO_ADMIN_KEY из Railway → Demo API → Variables и нажми «Проверить ключ»."}
-          </small>
-        </section>
-
-        {error && <div className="state-card state-error" role="alert">{error}</div>}
-        {message && <div className="success-banner" role="status">{message}</div>}
-
-        <div className="section-heading">
-          <div>
-            <h2>Events</h2>
-            <p>{loadingEvents ? "Загрузка…" : `${events.length} total`}</p>
-          </div>
-          <button
-            type="button"
-            className="button button-primary"
-            onClick={toggleCreate}
-            aria-expanded={showCreate}
-          >
-            {showCreate ? "Отменить" : "+ Create event"}
-          </button>
-        </div>
-
-        {showCreate && (
-          <form className="panel form-stack" onSubmit={submitEvent}>
-            <h2>New demo event</h2>
-            {!authenticated && (
-              <div className="demo-banner">
-                Сначала подтверди ключ в панели выше — без него сервер не разрешает создание событий.
-              </div>
-            )}
-            <label>Title<input name="title" required maxLength={255} placeholder="Например: Crowdly Quiz Night" /></label>
-            <label>Organizer<input name="organizer" defaultValue="Crowdly" /></label>
-            <label>Location<input name="location" required placeholder="Prague" /></label>
-            <label>Description<textarea name="description" rows={4} /></label>
-
-            <div className="event-poster-field">
-              <label htmlFor="event-poster-input">Event poster (optional)</label>
-              <input
-                id="event-poster-input"
-                name="poster"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(ev) => {
-                  setPoster(ev.target.files?.[0] || null);
-                  setError("");
-                }}
-              />
-              <small>JPG, PNG or WebP · maximum 4 MB. Uploaded posters are stored and displayed on the event page.</small>
-              {posterPreview && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className="event-poster-preview" src={posterPreview} alt="Event poster preview" />
-              )}
-            </div>
-            <fieldset className="event-language-fieldset">
-              <legend>Event languages (choose one or more)</legend>
-              <div className="event-language-options">
-                <label><input name="languages" type="checkbox" value="en" defaultChecked /> 🇬🇧 English</label>
-                <label><input name="languages" type="checkbox" value="cs" /> 🇨🇿 Čeština</label>
-                <label><input name="languages" type="checkbox" value="ru" defaultChecked /> 🇷🇺 Русский</label>
-                <label><input name="languages" type="checkbox" value="uk" /> 🇺🇦 Українська</label>
-              </div>
-            </fieldset>
-
-            <div className="two-col">
-              <label>Start<input name="starts_at" type="datetime-local" required /></label>
-              <label>Capacity<input name="max_participants" type="number" min="1" step="1" defaultValue="30" /></label>
-            </div>
-            <div className="two-col">
-              <label>Price<input name="price" type="number" min="0" step="0.01" defaultValue="350" /></label>
-              <label>Currency
-                <select name="currency" defaultValue="CZK">
-                  <option>CZK</option>
-                  <option>EUR</option>
-                  <option>USD</option>
-                </select>
-              </label>
-            </div>
-            <button type="submit" className="button button-primary" disabled={!authenticated || creating}>
-              {creating ? "Creating…" : "Create event"}
-            </button>
-          </form>
-        )}
-
-        <div className="admin-event-grid">
-          {events.map((event) => (
-            <Link href={`/admin/events/${event.id}`} className="admin-event-card" key={event.id}>
-              <small>#{event.id}</small>
-              <h3>{event.title}</h3>
-              <p>{event.location || "—"}</p>
-              <div>
-                <span>{event.registered_count ?? 0} guests</span>
-                <span>{event.spots_left ?? "∞"} left</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </main>
+  return <div className="app-shell"><AppHeader/><main className="page">
+    <div className="admin-heading">
+      <div><span className="status status-demo">{identity?.role==="global_admin"?"GLOBAL ADMIN":"ORGANIZER"}</span>
+        <h1>{identity?.role==="global_admin"?"Все события Crowdly":"Мои ивенты"}</h1>
+        <p>{identity?.role==="global_admin"?"Полный доступ, назначение владельцев и модерация.":"Доступ только к собственным событиям."}</p>
+      </div>
+      {identity&&<Link className="button button-sun" href="/admin/check-in">Scan ticket</Link>}
     </div>
-  );
+    {error&&<div className="state-card state-error" role="alert">{error} {!identity&&<Link href="/profile" className="button button-outline">Открыть профиль</Link>}</div>}
+    {notice&&<div className="success-banner" role="status">{notice}</div>}
+    {loading?<div className="state-card">Загрузка…</div>:identity&&identity.role!=="participant"&&<>
+      <div className="section-heading"><div><h2>{identity.role==="global_admin"?"Все события":"Мои события"}</h2>
+      <p>{events.length} events</p></div>
+        <button type="button" className="button button-primary" onClick={()=>setShowForm(v=>!v)}>
+        {showForm?"Закрыть":"+ Create event"}</button>
+      </div>
+      {showForm&&<form className="panel form-stack" onSubmit={submit}>
+        <h2>Новый ивент</h2>
+        <label>Название<input required name="title" maxLength={255}/></label>
+        <label>Организатор<input name="organizer" defaultValue="Crowdly" /></label>
+        <label>Место<input name="location" required /></label>
+        <label>Описание<textarea name="description" rows={4}/></label>
+        <label>Постер JPG/PNG/WebP до 4 МБ<input name="poster" type="file" accept="image/jpeg,image/png,image/webp"
+          onChange={e=>{const f=e.target.files?.[0];if(!f){setPreview("");return;}if(f.size>4*1024*1024){setError("Постер больше 4 МБ");return;}const url=URL.createObjectURL(f);setPreview(url);}}/></label>
+        {preview&&<><img className="event-poster-preview" src={preview} alt="Poster preview"/></>}
+        <fieldset className="event-language-fieldset"><legend>Языки ивента</legend><div className="event-language-options">
+          <label><input type="checkbox" name="languages" value="en" defaultChecked/>🇬🇧 English</label>
+          <label><input type="checkbox" name="languages" value="cs"/>🇨🇿 Čeština</label>
+          <label><input type="checkbox" name="languages" value="ru" defaultChecked/>🇷🇺 Русский</label>
+          <label><input type="checkbox" name="languages" value="uk"/>🇺🇦 Українська</label>
+        </div></fieldset>
+        <div className="two-col"><label>Начало<input name="starts_at" type="datetime-local" required/></label>
+        <label>Мест<input name="max_participants" type="number" min="1" defaultValue="30" required/></label></div>
+        <div className="two-col"><label>Цена<input name="price" type="number" min="0" step="0.01" defaultValue="350"/></label>
+        <label>Валюта<select name="currency" defaultValue="CZK"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option></select></label></div>
+        <button className="button button-primary" disabled={saving}>{saving?"Создаём…":"Создать ивент"}</button>
+      </form>}
+      <div className="admin-event-grid">
+        {events.map(ev=><Link key={ev.id} href={`/admin/events/${ev.id}`} className="admin-event-card">
+          <small>#{ev.id} {ev.is_cancelled?" · CANCELLED":""}</small>
+          <h3>{ev.title}</h3>
+          <p>{ev.location||"—"}</p>
+          <div><span>{ev.registered_count??0} guests</span>
+          <span>{ev.owner_account_id==null?"Unassigned":identity.role==="global_admin"?`Owner #${ev.owner_account_id}`:"Mine"}</span></div>
+        </Link>)}
+      </div>
+      {!events.length&&<div className="state-card">Пока нет ивентов. Создай первый.</div>}
+    </>}
+    </main></div>;
 }
