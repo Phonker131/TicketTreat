@@ -84,13 +84,18 @@ export function EventCard({
 
   return (
     <article className="event-card">
-      <div className="event-card-accent">
-        <span />
-        <span />
-        <span className="accent-you" />
-        <span />
-        <span />
-      </div>
+      {event.image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="event-card-poster" src={event.image_url} alt={`Poster: ${event.title}`} loading="lazy" />
+      ) : (
+        <div className="event-card-accent">
+          <span />
+          <span />
+          <span className="accent-you" />
+          <span />
+          <span />
+        </div>
+      )}
 
       <div className="event-card-body">
         <div className="event-card-meta">

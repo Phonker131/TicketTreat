@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { createEvent, getEvents, verifyDemoAdminKey } from "@/lib/api";
+import type { LanguageCode } from "@/lib/types";
 import { getAdminKey, setAdminKey } from "@/lib/session";
 import type { CrowdlyEvent } from "@/lib/types";
 
@@ -13,7 +14,10 @@ function getErrorText(error: unknown, action: "auth" | "create") {
     return "Неверный ключ администратора (401). Проверь DEMO_ADMIN_KEY в Railway → Demo API → Variables.";
   }
   if (status === 422) {
-    return "Некорректные данные события. Проверь дату, цену и обязательные поля.";
+    return "Некорректные данные события или постер. Проверь обязательные поля, языки и формат JPG/PNG/WebP.";
+  }
+  if (status === 413) {
+    return "Постер слишком большой. Максимальный размер — 4 МБ.";
   }
   if (status === 409) {
     return "Не удалось создать событие из-за конфликта данных. Попробуй изменить параметры.";
@@ -35,6 +39,8 @@ export function AdminClient() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [poster, setPoster] = useState<File | null>(null);
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const keyInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -60,6 +66,25 @@ export function AdminClient() {
 
     return () => { mounted = false; };
   }, []);
+
+  useEffect(() => {
+    if (!poster) {
+      setPosterPreview(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(poster);
+    setPosterPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [poster]);
+
+  async function fileToDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Не удалось прочитать файл постера."));
+      reader.readAsDataURL(file);
+    });
+  }
 
   async function saveKey(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -130,8 +155,33 @@ export function AdminClient() {
       return;
     }
 
+    const selectedLanguages = form.getAll("languages")
+      .map(String)
+      .filter((code): code is LanguageCode =>
+        code === "en" || code === "cs" || code === "ru" || code === "uk"
+      );
+    if (!selectedLanguages.length) {
+      setError("Выбери хотя бы один язык ивента.");
+      return;
+    }
+
+    const posterFile = form.get("poster");
+    if (posterFile instanceof File && posterFile.size > 0) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(posterFile.type)) {
+        setError("Для постера можно использовать только JPG, PNG или WebP.");
+        return;
+      }
+      if (posterFile.size > 4 * 1024 * 1024) {
+        setError("Размер постера не должен превышать 4 МБ.");
+        return;
+      }
+    }
+
     setCreating(true);
     try {
+      const posterDataUrl = posterFile instanceof File && posterFile.size > 0
+        ? await fileToDataUrl(posterFile)
+        : null;
       const result = await createEvent({
         title,
         organizer: String(form.get("organizer") || "Crowdly").trim(),
@@ -141,7 +191,8 @@ export function AdminClient() {
         price: price.toString(),
         currency: String(form.get("currency") || "CZK"),
         payment_instructions: price > 0 ? "DEMO PAYMENT — automatically confirmed" : null,
-        languages: ["en", "cs", "ru", "uk"],
+        languages: selectedLanguages,
+        poster_data_url: posterDataUrl,
         starts_at: startsRaw + ":00",
         reminder_minutes_before: 180,
         reminder_text: "Your Crowdly event starts soon.",
@@ -151,7 +202,8 @@ export function AdminClient() {
       }
       setEvents((current) => [result, ...current.filter((ev) => ev.id !== result.id)]);
       setShowCreate(false);
-      setMessage("✓ Ивент успешно создан! Он добавлен в список.");
+      setPoster(null);
+      setMessage("✓ Ивент успешно создан! Выбранные языки и постер сохранены.");
       formElement.reset();
     } catch (err) {
       if ((err as {status?: number})?.status === 401) {
@@ -236,6 +288,35 @@ export function AdminClient() {
             <label>Organizer<input name="organizer" defaultValue="Crowdly" /></label>
             <label>Location<input name="location" required placeholder="Prague" /></label>
             <label>Description<textarea name="description" rows={4} /></label>
+
+            <div className="event-poster-field">
+              <label htmlFor="event-poster-input">Event poster (optional)</label>
+              <input
+                id="event-poster-input"
+                name="poster"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(ev) => {
+                  setPoster(ev.target.files?.[0] || null);
+                  setError("");
+                }}
+              />
+              <small>JPG, PNG or WebP · maximum 4 MB. Uploaded posters are stored and displayed on the event page.</small>
+              {posterPreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="event-poster-preview" src={posterPreview} alt="Event poster preview" />
+              )}
+            </div>
+            <fieldset className="event-language-fieldset">
+              <legend>Event languages (choose one or more)</legend>
+              <div className="event-language-options">
+                <label><input name="languages" type="checkbox" value="en" defaultChecked /> 🇬🇧 English</label>
+                <label><input name="languages" type="checkbox" value="cs" /> 🇨🇿 Čeština</label>
+                <label><input name="languages" type="checkbox" value="ru" defaultChecked /> 🇷🇺 Русский</label>
+                <label><input name="languages" type="checkbox" value="uk" /> 🇺🇦 Українська</label>
+              </div>
+            </fieldset>
+
             <div className="two-col">
               <label>Start<input name="starts_at" type="datetime-local" required /></label>
               <label>Capacity<input name="max_participants" type="number" min="1" step="1" defaultValue="30" /></label>

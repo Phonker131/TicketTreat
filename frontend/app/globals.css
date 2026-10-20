@@ -773,3 +773,87 @@ input:focus, textarea:focus, select:focus {
   .ticket-row { flex-direction: column; }
   .ticket-row-right { justify-items: start; text-align: left; }
 }
+
+/* Event details: one label and its value in a clearly separated card */
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.detail-item span {
+  margin-bottom: 0;
+}
+.detail-item strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.event-card-poster {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--crowdly-lilac-2);
+}
+
+.event-poster-field {
+  display: grid;
+  gap: 9px;
+}
+.event-poster-field > label {
+  font-weight: 800;
+  font-size: 13px;
+}
+.event-poster-field small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+.event-poster-preview {
+  display: block;
+  width: 100%;
+  max-height: 340px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(30, 10, 40, .1);
+}
+.event-language-fieldset {
+  margin: 0;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(30, 10, 40, .14);
+}
+.event-language-fieldset legend {
+  font-weight: 800;
+  font-size: 13px;
+  padding: 0 6px;
+}
+.event-language-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.event-language-options label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid rgba(30, 10, 40, .08);
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.event-language-options input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  flex: none;
+  accent-color: var(--crowdly-purple);
+}
+@media (max-width: 480px) {
+  .event-language-options { grid-template-columns: 1fr; }
+}
