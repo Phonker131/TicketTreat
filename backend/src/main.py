@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import os
 import secrets
 import threading
@@ -11,9 +13,9 @@ from typing import Any
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import (
     BigInteger,
@@ -21,6 +23,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -233,6 +236,21 @@ class DemoWaitlist(Base):
     promoted_at = Column(DateTime(timezone=True), nullable=True)
 
 
+
+class DemoEventPoster(Base):
+    """Small, durable demo posters. Use object storage for larger production media."""
+    __tablename__ = "demo_event_posters"
+
+    event_id = Column(Integer, primary_key=True)
+    content_type = Column(String(32), nullable=False)
+    image_bytes = Column(LargeBinary, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
 # Creates only tables that do not already exist.
 Base.metadata.create_all(bind=engine)
 
@@ -390,6 +408,11 @@ class EventCreate(BaseModel):
         ge=1,
     )
     reminder_text: str | None = None
+
+
+
+class DemoEventCreate(EventCreate):
+    poster_data_url: str | None = Field(default=None, max_length=5700000)
 
 
 class EventUpdate(BaseModel):
@@ -2391,13 +2414,98 @@ def demo_admin_verify(
     return {"authenticated": True}
 
 
+
+DEMO_POSTER_MAX_BYTES = 4 * 1024 * 1024
+DEMO_POSTER_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+def decode_demo_poster(data_url: str) -> tuple[str, bytes]:
+    """Validate size, format and file signature, never accept active SVG content."""
+    if len(data_url) > 5_700_000:
+        raise HTTPException(status_code=413, detail="poster_too_large")
+
+    try:
+        prefix, encoded = data_url.split(",", 1)
+        content_type = prefix.removeprefix("data:").removesuffix(";base64").lower()
+        if (
+            content_type not in DEMO_POSTER_TYPES
+            or prefix.lower() != f"data:{content_type};base64"
+        ):
+            raise ValueError("unsupported_type")
+
+        image_bytes = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error):
+        raise HTTPException(status_code=422, detail="poster_invalid_image")
+
+    if len(image_bytes) > DEMO_POSTER_MAX_BYTES or not image_bytes:
+        raise HTTPException(status_code=413, detail="poster_too_large")
+
+    valid = (
+        (content_type == "image/jpeg" and image_bytes.startswith(bytes.fromhex("ffd8ff")))
+        or (content_type == "image/png" and image_bytes.startswith(bytes.fromhex("89504e470d0a1a0a")))
+        or (
+            content_type == "image/webp"
+            and image_bytes.startswith(b"RIFF")
+            and image_bytes[8:12] == b"WEBP"
+        )
+    )
+    if not valid:
+        raise HTTPException(status_code=422, detail="poster_invalid_image")
+
+    return content_type, image_bytes
+
+
+@app.get("/demo/events/{event_id}/poster")
+def get_demo_event_poster(event_id: int, db: Session = Depends(get_db)):
+    poster = db.query(DemoEventPoster).filter(DemoEventPoster.event_id == event_id).first()
+    if poster is None:
+        raise HTTPException(status_code=404, detail="poster_not_found")
+    return Response(
+        content=poster.image_bytes,
+        media_type=poster.content_type,
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
 @app.post("/demo/admin/events")
 def demo_admin_create_event(
-    payload: EventCreate,
+    payload: DemoEventCreate,
+    request: Request,
     _admin_key: str = Depends(require_demo_admin),
     db: Session = Depends(get_db),
 ):
-    return create_event(payload=payload, db=db)
+    if not payload.languages:
+        raise HTTPException(status_code=422, detail="event_languages_required")
+    if payload.poster_data_url:
+        content_type, image_bytes = decode_demo_poster(payload.poster_data_url)
+    else:
+        content_type, image_bytes = None, None
+
+    result = create_event(payload=payload, db=db)
+    if isinstance(result, dict) and result.get("error"):
+        raise HTTPException(status_code=422, detail=result["error"])
+
+    if image_bytes is not None and content_type is not None:
+        event_id = result["id"]
+        public_base = (
+            os.getenv("DEMO_PUBLIC_API_URL", "").rstrip("/")
+            or str(request.base_url).rstrip("/")
+        )
+        poster_url = f"{public_base}/demo/events/{event_id}/poster"
+
+        db.add(DemoEventPoster(
+            event_id=event_id,
+            content_type=content_type,
+            image_bytes=image_bytes,
+        ))
+        event = db.query(Event).filter(Event.id == event_id).first()
+        if event is not None:
+            event.image_url = poster_url
+        db.commit()
+        result = event_to_dict(
+            event, db=db, registered_count=get_registered_count(db, event_id)
+        )
+    return result
 
 
 @app.get("/demo/config")
