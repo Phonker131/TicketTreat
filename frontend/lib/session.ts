@@ -1,8 +1,10 @@
 import type { DemoGuest } from "@/lib/types";
-import { getDemoGuest } from "@/lib/api";
+import { getDemoGuest, getWebProfile } from "@/lib/api";
+import type { WebAuthResult, WebProfile } from "@/lib/types";
 
 const TOKEN_KEY = "crowdly_demo_guest_token";
 const ADMIN_KEY = "crowdly_demo_admin_key";
+const WEB_TOKEN_KEY = "crowdly_demo_web_auth";
 
 export function getStoredGuestToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -21,7 +23,47 @@ export function clearGuest() {
   }
 }
 
+export function getWebToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(WEB_TOKEN_KEY);
+}
+
+export function setWebAuth(auth: WebAuthResult): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(WEB_TOKEN_KEY, auth.token);
+  storeGuest(auth.profile.guest);
+  window.dispatchEvent(new Event("crowdly-auth-change"));
+}
+
+export function clearWebAuth(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(WEB_TOKEN_KEY);
+  clearGuest();
+  window.dispatchEvent(new Event("crowdly-auth-change"));
+}
+
+export async function restoreWebProfile(): Promise<WebProfile | null> {
+  const token = getWebToken();
+  if (!token) return null;
+  try {
+    const profile = await getWebProfile(token);
+    storeGuest(profile.guest);
+    return profile;
+  } catch (error) {
+    if ((error as {status?: number})?.status === 401) {
+      clearWebAuth();
+      return null;
+    }
+    throw error;
+  }
+}
+
 export async function restoreGuest(): Promise<DemoGuest | null> {
+  const webToken = getWebToken();
+  if (webToken) {
+    const profile = await restoreWebProfile();
+    return profile?.guest || null;
+  }
   const token = getStoredGuestToken();
   if (token) {
     try {

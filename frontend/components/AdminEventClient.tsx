@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
-import { adminCheckIn, getAdminEventTickets } from "@/lib/api";
+import { adminCheckIn, downloadEventParticipantsCsv, getAdminEventTickets } from "@/lib/api";
 import { getAdminKey } from "@/lib/session";
 import type { AdminEventTickets } from "@/lib/types";
 
@@ -13,6 +13,7 @@ export function AdminEventClient() {
   const eventId = Number(params?.id);
   const [data, setData] = useState<AdminEventTickets | null>(null);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   async function load() {
     try {
@@ -35,6 +36,18 @@ export function AdminEventClient() {
     }
   }
 
+  async function exportCsv() {
+    setExporting(true);
+    setError("");
+    try {
+      await downloadEventParticipantsCsv(eventId, getAdminKey());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "CSV export failed.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="app-shell">
       <AppHeader />
@@ -45,7 +58,12 @@ export function AdminEventClient() {
           <>
             <div className="admin-heading">
               <div><span className="status status-demo">EVENT #{data.event.id}</span><h1>{data.event.title}</h1><p>{data.event.location}</p></div>
-              <Link className="button button-sun" href={`/admin/check-in?event=${data.event.id}`}>Scan QR</Link>
+              <div className="admin-event-actions">
+                <button className="button button-primary" onClick={exportCsv} disabled={exporting}>
+                  {exporting ? "Generating…" : "↓ Export participants CSV"}
+                </button>
+                <Link className="button button-sun" href={`/admin/check-in?event=${data.event.id}`}>Scan QR</Link>
+              </div>
             </div>
 
             <div className="stats-grid">
@@ -56,6 +74,7 @@ export function AdminEventClient() {
 
             <section className="panel">
               <h2>Participants</h2>
+              <small>CSV includes website registrations, Telegram bot participants, payment statuses, check-in and waitlist.</small>
               <div className="participant-list">
                 {data.tickets.length === 0 && <p>No tickets yet.</p>}
                 {data.tickets.map((ticket) => (

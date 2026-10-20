@@ -68,3 +68,25 @@ export type AdminEventTickets = {
     guest: DemoGuest;
   }>;
 };
+
+export type WebAccount = {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  instagram: string | null;
+  contact_preference: "email" | "phone" | "telegram" | "instagram";
+  created_at: string;
+};
+
+export type WebProfile = {
+  account: WebAccount;
+  guest: DemoGuest;
+  email_verified: boolean;
+};
+
+export type WebAuthResult = {
+  token: string;
+  profile: WebProfile;
+};

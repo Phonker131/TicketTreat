@@ -4,6 +4,8 @@ import type {
   DemoCheckoutResponse,
   DemoGuest,
   DemoTicket,
+  WebAuthResult,
+  WebProfile,
 } from "@/lib/types";
 
 const API_URL = (
@@ -163,4 +165,72 @@ export function verifyDemoAdminKey(adminKey: string): Promise<{authenticated: bo
   return request<{authenticated: boolean}>("/demo/admin/verify", {
     headers: {"X-Demo-Admin-Key": adminKey},
   });
+}
+
+export type WebRegistration = {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  phone?: string | null;
+  instagram?: string | null;
+  contact_preference: string;
+  guest_token?: string | null;
+};
+
+export async function signupWebAccount(payload: WebRegistration): Promise<WebAuthResult> {
+  return request<WebAuthResult>("/demo/auth/signup", {
+    method: "POST", body: JSON.stringify(payload),
+  });
+}
+
+export async function loginWebAccount(email: string, password: string): Promise<WebAuthResult> {
+  return request<WebAuthResult>("/demo/auth/login", {
+    method: "POST", body: JSON.stringify({email, password}),
+  });
+}
+
+export async function getWebProfile(token: string): Promise<WebProfile> {
+  return request<WebProfile>("/demo/auth/me", {
+    headers: {Authorization: `Bearer ${token}`},
+  });
+}
+
+export async function updateWebProfile(
+  token: string, payload: Record<string, unknown>,
+): Promise<WebProfile> {
+  return request<WebProfile>("/demo/auth/me", {
+    method: "PATCH",
+    headers: {Authorization: `Bearer ${token}`},
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function logoutWebAccount(token: string): Promise<void> {
+  await request<{status: string}>("/demo/auth/logout", {
+    method: "POST",
+    headers: {Authorization: `Bearer ${token}`},
+  });
+}
+
+export async function downloadEventParticipantsCsv(eventId: number, adminKey: string): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/demo/admin/events/${encodeURIComponent(String(eventId))}/participants.csv`,
+    {headers: {"X-Demo-Admin-Key": adminKey}, cache: "no-store"},
+  );
+  if (!response.ok) {
+    throw new Error(response.status === 401 ? "Неверный ключ администратора." : `CSV export failed (HTTP ${response.status})`);
+  }
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = `crowdly-event-${eventId}-participants.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 120_000);
+  }
 }

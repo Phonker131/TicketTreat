@@ -23,6 +23,7 @@ export function AppHeader() {
         <nav className="topbar-nav">
           <Link href="/">{t(language, "home")}</Link>
           <Link href="/tickets">{t(language, "tickets")}</Link>
+          <Link href="/profile">{t(language, "profile")}</Link>
           <Link href="/admin">{t(language, "admin")}</Link>
         </nav>
 
