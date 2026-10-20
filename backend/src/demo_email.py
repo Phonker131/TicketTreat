@@ -77,6 +77,12 @@ def queue_email(
         return
     if kind not in {"welcome", "ticket", "checkin"}:
         raise ValueError("unknown_email_kind")
+    if kind in {"ticket", "checkin"}:
+        # Only mail registered website accounts during the public demo.
+        # Anonymous checkout emails are unverified and could be used for spam.
+        from demo_accounts import WebAccount
+        if guest_id is None or not db.query(WebAccount.id).filter(WebAccount.guest_id == guest_id).first():
+            return
     recipient = recipient.strip().lower()
     if not recipient or len(recipient) > 255 or "@" not in recipient:
         return
@@ -214,13 +220,10 @@ def email_shell(title: str, lead: str, details: str, link: str, button: str, cap
 
 
 def render_email(row: EmailOutbox, db: Session) -> dict | None:
-    from db import models
     from demo_accounts import WebAccount
 
     d = COPY.get(row.language) or COPY["en"]
     web_url = (os.getenv("WEB_APP_URL", "").strip() or "https://frontend-production-81ea.up.railway.app").rstrip("/")
-    user = db.query(models.User).first() if False else None  # no legacy account identity lookup
-    _ = user
     extra = ""
     subject = ""
     title = ""

@@ -23,3 +23,7 @@ Create a NEW website account with an email you control, purchase a demo ticket, 
 The PostgreSQL demo_email_outbox is automatically created if absent. Email tasks are queued within the relevant transaction and a Demo API background worker retries temporary errors with Resend idempotency keys. Sending does not block the user flow.
 
 By default notifications are disabled and no old events are queued for later sending. This demo does not verify email ownership or handle bounce webhooks, so it is not yet ready for an unrestricted public launch. The Telegram bot's existing flows are unchanged.
+
+For abuse protection, automated ticket/check-in emails are sent only to registered website accounts, not anonymous demo guests. Guests who register an account after booking receive any already-active tickets during signup.
+
+An authenticated organizer can inspect the mail queue under GET /demo/admin/email/status (X-Demo-Admin-Key header).

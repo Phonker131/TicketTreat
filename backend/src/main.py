@@ -36,7 +36,7 @@ from db import models
 from db.base import Base
 from db.session import SessionLocal, engine, get_db
 from demo_accounts import WebAccount, WebSession, install_demo_accounts
-from demo_email import EmailOutbox, queue_email, ticket_language, install_email_worker
+from demo_email import EmailOutbox, queue_email, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
 
 
 # =========================================================
@@ -2979,3 +2979,20 @@ install_demo_accounts(
 
 # Background delivery only on the isolated Demo API with configured Resend credentials.
 install_email_worker(app, SessionLocal)
+
+@app.get("/demo/admin/email/status")
+def demo_email_status(
+    _admin_key: str = Depends(require_demo_admin),
+    db: Session = Depends(get_db),
+):
+    """Inspect readiness and queue counts without exposing mail secrets."""
+    counts = dict(
+        db.query(EmailOutbox.state, func.count(EmailOutbox.id))
+        .group_by(EmailOutbox.state).all()
+    )
+    return {
+        "provider": "resend",
+        "enabled": email_enabled(),
+        "configured": email_configured(),
+        "counts": counts,
+    }

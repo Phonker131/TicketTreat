@@ -250,6 +250,19 @@ def install_demo_accounts(
                 db, kind="welcome", event_key=f"welcome:{account.id}",
                 recipient=account.email, guest_id=guest.id, language=payload.language,
             )
+            # If the person booked before creating the account, send their
+            # existing active ticket now, once ownership of this demo profile
+            # has been attached to the account.
+            for active_ticket in db.query(DemoTicket).filter(
+                DemoTicket.guest_id == guest.id,
+                DemoTicket.ticket_status == "active",
+            ).all():
+                queue_email(
+                    db, kind="ticket",
+                    event_key=f"ticket:{active_ticket.id}:issue:{hashlib.sha256(active_ticket.qr_token.encode()).hexdigest()[:20]}",
+                    recipient=account.email, guest_id=guest.id, ticket_id=active_ticket.id,
+                    language=payload.language,
+                )
             db.commit()
             db.refresh(account)
         except IntegrityError:
