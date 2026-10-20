@@ -6,6 +6,7 @@ via GLOBAL_ADMIN_ACCOUNT_IDS. Email alone is NOT proof of identity.
 from __future__ import annotations
 import csv
 import hashlib
+import hmac
 import io
 import os
 from datetime import datetime, timezone
@@ -17,13 +18,28 @@ from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Session
 from db.base import Base
-from demo_accounts import WebAccount, WebSession, token_hash, safe_csv
+from demo_accounts import WebAccount, WebSession, token_hash, safe_csv, throttle
 
 class WebAccountRole(Base):
     __tablename__ = "demo_web_account_roles"
     account_id = Column(Integer, primary_key=True)
     role = Column(String(20), nullable=False, default="participant")
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+class GlobalAdminBinding(Base):
+    """Explicit server-authorized global-admin grants tied to an account and email.
+
+    The email allowlist is permanent Railway configuration. Recreating a deleted
+    account requires proving knowledge of the separate recovery key again.
+    """
+    __tablename__ = "demo_global_admin_bindings"
+    email = Column(String(255), primary_key=True)
+    account_id = Column(Integer, nullable=False, index=True)
+    claimed_at = Column(
+        DateTime(timezone=True), nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
 
 class EventOwnership(Base):
     __tablename__ = "demo_event_ownership"
@@ -70,6 +86,10 @@ class CancelManageEvent(BaseModel):
 class AssignOwner(BaseModel):
     owner_account_id: int = Field(gt=0)
 
+
+class GlobalAdminClaim(BaseModel):
+    recovery_key: str = Field(min_length=24, max_length=256)
+
 LANGUAGES = {"en","cs","ru","uk"}
 CURRENCIES = {"CZK","EUR","USD"}
 
@@ -81,9 +101,26 @@ def global_admin_ids() -> set[int]:
             result.add(int(item))
     return result
 
+def permanent_global_admin_emails() -> set[str]:
+    """Email is an eligibility filter, NEVER sufficient authorization."""
+    return {
+        addr.strip().casefold()
+        for addr in os.getenv("GLOBAL_ADMIN_EMAILS", "").split(",")
+        if addr.strip() and "@" in addr
+    }
+
+
 def role_for(db: Session, account: WebAccount) -> str:
     if account.id in global_admin_ids():
         return "global_admin"
+    normalized_email = (account.email or "").strip().casefold()
+    if normalized_email in permanent_global_admin_emails():
+        binding = db.query(GlobalAdminBinding).filter(
+            GlobalAdminBinding.email == normalized_email,
+            GlobalAdminBinding.account_id == account.id,
+        ).first()
+        if binding is not None:
+            return "global_admin"
     record = db.query(WebAccountRole).filter(WebAccountRole.account_id == account.id).first()
     return record.role if record and record.role in {"participant", "organizer"} else "participant"
 
@@ -356,6 +393,43 @@ class AccountRoleChange(BaseModel):
 
 
 def install_account_moderation(app, get_db):
+    @app.post("/demo/auth/admin-claim")
+    def claim_global_admin(
+        payload: GlobalAdminClaim,
+        request: Request,
+        authorization: str | None = Header(default=None),
+        db: Session = Depends(get_db),
+    ):
+        """Recover privileges with a server-side email allowlist AND secret.
+
+        Never grant admin purely based on self-declared, unverified signup email.
+        """
+        account = account_lookup(db, authorization)
+        email = (account.email or "").strip().casefold()
+        throttle("admin-claim:" + str(account.id), max_attempts=6, window_seconds=3600)
+        allowed_emails = permanent_global_admin_emails()
+        configured_secret = os.getenv("GLOBAL_ADMIN_RECOVERY_SECRET", "")
+        if (
+            email not in allowed_emails
+            or len(configured_secret) < 32
+            or not hmac.compare_digest(
+                configured_secret.encode("utf-8"),
+                payload.recovery_key.encode("utf-8"),
+            )
+        ):
+            raise HTTPException(status_code=403, detail="admin_recovery_denied")
+
+        grant = db.query(GlobalAdminBinding).filter(
+            GlobalAdminBinding.email == email
+        ).first()
+        if grant is None:
+            db.add(GlobalAdminBinding(email=email, account_id=account.id))
+        else:
+            grant.account_id = account.id
+            grant.claimed_at = datetime.now(timezone.utc)
+        db.commit()
+        return {"role": "global_admin", "account_id": account.id}
+
     def admin_account(
         authorization: str | None = Header(default=None),
         db: Session = Depends(get_db),

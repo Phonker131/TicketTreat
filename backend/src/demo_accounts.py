@@ -150,7 +150,7 @@ def install_demo_accounts(
     get_db,
     require_demo_admin,
 ):
-    from demo_roles import WebAccountRole, role_for
+    from demo_roles import WebAccountRole, role_for, permanent_global_admin_emails
     def issue_session(db: Session, account: WebAccount) -> str:
         token = secrets.token_urlsafe(36)
         db.add(WebSession(
@@ -193,7 +193,12 @@ def install_demo_accounts(
             DemoTicket.ticket_status == "active",
             DemoTicket.checked_in_at.isnot(None),
         ).scalar() or 0
+        role = role_for(db, account)
         return {
+            "admin_claim_available": (
+                role != "global_admin"
+                and account.email.casefold() in permanent_global_admin_emails()
+            ),
             "account": {
                 "id": account.id, "email": account.email,
                 "first_name": account.first_name, "last_name": account.last_name,
