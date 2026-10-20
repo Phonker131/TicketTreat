@@ -26,7 +26,6 @@ from sqlalchemy.orm import Session
 
 from db.base import Base
 from demo_email import queue_email
-from demo_roles import WebAccountRole, role_for
 
 PASSWORD_ITERATIONS = 350_000
 SESSION_DAYS = 30
@@ -151,6 +150,7 @@ def install_demo_accounts(
     get_db,
     require_demo_admin,
 ):
+    from demo_roles import WebAccountRole, role_for
     def issue_session(db: Session, account: WebAccount) -> str:
         token = secrets.token_urlsafe(36)
         db.add(WebSession(
