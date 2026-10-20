@@ -36,6 +36,7 @@ from db import models
 from db.base import Base
 from db.session import SessionLocal, engine, get_db
 from demo_accounts import WebAccount, WebSession, install_demo_accounts
+from demo_roles import WebAccountRole, EventOwnership, EventModerationLog, install_demo_roles
 from demo_email import EmailOutbox, queue_email, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
 
 
@@ -318,6 +319,10 @@ async def isolate_showcase_api(request, call_next):
             or (path.startswith("/events/") and path.removeprefix("/events/").isdigit())
         )
     )
+    # The old shared admin key is unsafe for multi-tenant organizer permissions.
+    # These legacy endpoints stay unavailable on the public Demo API.
+    if path.startswith("/demo/admin/"):
+        return JSONResponse(status_code=403, content={"detail": "legacy_admin_disabled_use_account_login"})
     if path.startswith("/demo/") or safe_read:
         return await call_next(request)
 
@@ -2996,3 +3001,6 @@ def demo_email_status(
         "configured": email_configured(),
         "counts": counts,
     }
+
+# All owner/role authorization on server; no shared admin key for organizers.
+install_demo_roles(app, get_db, __import__("sys").modules[__name__])

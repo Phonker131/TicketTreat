@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from db.base import Base
 from demo_email import queue_email
+from demo_roles import WebAccountRole, role_for
 
 PASSWORD_ITERATIONS = 350_000
 SESSION_DAYS = 30
@@ -69,6 +70,7 @@ class SignupData(BaseModel):
     contact_preference: str = "email"
     guest_token: str | None = Field(default=None, max_length=128)
     language: str = Field(default="en", max_length=8)
+    account_role: str = Field(default="participant", pattern="^(participant|organizer)$")
 
 
 class LoginData(BaseModel):
@@ -198,6 +200,8 @@ def install_demo_accounts(
                 "phone": account.phone, "instagram": account.instagram,
                 "contact_preference": account.contact_preference,
                 "created_at": account.created_at,
+                "id": account.id,
+                "role": role_for(db, account),
             },
             "guest": {
                 "id": guest.id, "access_token": guest.access_token,
@@ -245,6 +249,8 @@ def install_demo_accounts(
             )
             guest.first_name, guest.last_name, guest.email = first, last, email
             db.add(account)
+            db.flush()
+            db.add(WebAccountRole(account_id=account.id, role=payload.account_role))
             db.flush()
             queue_email(
                 db, kind="welcome", event_key=f"welcome:{account.id}",
