@@ -895,3 +895,76 @@ input:focus, textarea:focus, select:focus {
 .state-card.state-error h2 {margin:0 0 12px;}
 .state-card.state-error p {font-weight:500;line-height:1.5;margin:10px 0;}
 @media (max-width:600px){.role-options{grid-template-columns:1fr;}}
+
+/* Profile layout: role and account ID have their own row, never overlap name/email. */
+.profile-overview {
+  padding: 30px 28px 28px;
+}
+.profile-overview .profile-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.profile-overview .profile-avatar {
+  flex: 0 0 68px;
+  width: 68px;
+  height: 68px;
+}
+.profile-overview .profile-identity {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.profile-overview .profile-identity h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.16;
+}
+.profile-overview .profile-identity p {
+  margin: 9px 0 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.profile-identity-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 24px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(30,10,40,.08);
+  border-bottom: 1px solid rgba(30,10,40,.08);
+}
+.profile-role-chip,.profile-id-chip {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  max-width: 100%;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.profile-role-chip { background: var(--crowdly-lilac-2); color: var(--crowdly-night); }
+.profile-id-chip { background: #f2f0f3; color: var(--muted); }
+.profile-overview .profile-facts { margin: 0 0 24px; }
+.profile-overview .form-note { margin: 18px 0; }
+.profile-overview > .button { margin-top: 5px; }
+.profile-recovery { display: grid; gap: 14px; margin-bottom: 18px; }
+.profile-recovery h2 { margin: 0; }
+.profile-recovery .form-stack { margin-top: 4px; }
+@media (max-width: 560px) {
+  .profile-overview { padding: 26px 18px 26px; }
+  .profile-overview .profile-top { gap: 14px; align-items: flex-start; }
+  .profile-overview .profile-avatar {
+    width: 56px; height: 56px; flex-basis: 56px; font-size: 24px;
+  }
+  .profile-overview .profile-identity h1 { font-size: clamp(23px, 6vw, 31px); }
+  .profile-identity-meta { margin: 20px 0 24px; padding: 16px 0; gap: 9px; }
+  .profile-role-chip,.profile-id-chip { font-size: 12px; }
+}

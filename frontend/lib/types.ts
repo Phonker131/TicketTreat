@@ -85,6 +85,7 @@ export type WebProfile = {
   account: WebAccount;
   guest: DemoGuest;
   email_verified: boolean;
+  admin_claim_available?: boolean;
 };
 
 export type WebAuthResult = {

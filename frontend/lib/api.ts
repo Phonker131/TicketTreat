@@ -301,3 +301,12 @@ export function setManagedAccountRole(token:string,accountId:number,role:"partic
     method:"PUT",headers:accountHeaders(token),body:JSON.stringify({role})
   });
 }
+
+/** Recover a configured global-admin account; server verifies the recovery secret. */
+export function claimWebGlobalAdmin(token: string, recoveryKey: string): Promise<{role:"global_admin";account_id:number}> {
+  return request("/demo/auth/admin-claim", {
+    method:"POST",
+    headers:{Authorization:`Bearer ${token}`},
+    body:JSON.stringify({recovery_key:recoveryKey}),
+  });
+}

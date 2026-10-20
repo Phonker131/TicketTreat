@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile } from "@/lib/api";
+import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile } from "@/lib/api";
 import type { LanguageCode, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -82,6 +82,9 @@ export function ProfileClient() {
   const [phone, setPhone] = useState("");
   const [instagram, setInstagram] = useState("");
   const [contact, setContact] = useState<ContactPreference>("email");
+  const [claimKey, setClaimKey] = useState("");
+  const [showClaim, setShowClaim] = useState(false);
+  const [claiming, setClaiming] = useState(false);
   const [accountRole, setAccountRole] = useState<"participant"|"organizer">("participant");
 
   useEffect(() => {
@@ -155,9 +158,42 @@ export function ProfileClient() {
     finally { setBusy(false); }
   }
 
+  async function claimAdmin(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const token = getWebToken();
+    if (!token || claiming) return;
+    setClaiming(true); setError(""); setNotice("");
+    try {
+      await claimWebGlobalAdmin(token, claimKey);
+      const updatedProfile = await getWebProfile(token);
+      loadProfile(updatedProfile);
+      setClaimKey("");
+      setShowClaim(false);
+      setNotice(
+        language === "ru" ? "Доступ глобального администратора подтверждён." :
+        language === "uk" ? "Права глобального адміністратора підтверджено." :
+        language === "cs" ? "Přístup globálního administrátora byl potvrzen." :
+        "Global administrator access confirmed."
+      );
+    } catch (err) {
+      if ((err as {status?:number})?.status === 403) {
+        setError(
+          language === "ru" ? "Неверный ключ восстановления или email не разрешён." :
+          language === "uk" ? "Невірний ключ відновлення або email не дозволений." :
+          language === "cs" ? "Neplatný obnovovací klíč nebo nepovolený e-mail." :
+          "Invalid recovery key or this email is not eligible."
+        );
+      } else {
+        setError(readableError(err));
+      }
+    } finally {
+      setClaiming(false);
+    }
+  }
+
   async function logOut() {
     const token = getWebToken();
-    clearWebAuth(); setProfile(null); setMode("login"); setNotice("");
+    clearWebAuth(); setProfile(null); setMode("login"); setNotice(""); setClaimKey(""); setShowClaim(false);
     if (token) { try { await logoutWebAccount(token); } catch { /* local logout already complete */ } }
     setPassword("");
   }
@@ -188,12 +224,20 @@ export function ProfileClient() {
         <Link href="/" className="back-link">← {tr.back}</Link>
         {loading ? <div className="state-card">{tr.loading}</div> : profile ? (
           <>
-            <section className="panel">
+            <section className="panel profile-overview">
               <div className="profile-top">
                 <div className="profile-avatar">{profile.account.first_name.charAt(0).toUpperCase()}</div>
-                <div><h1>{profile.account.first_name} {profile.account.last_name}</h1><p>{profile.account.email}</p>
-                <span className="status status-demo">{profile.account.role === "global_admin" ? "Global Admin" : profile.account.role === "organizer" ? "Organizer" : "Participant"} · ID {profile.account.id}</span>
+                <div className="profile-identity">
+                  <h1>{profile.account.first_name} {profile.account.last_name}</h1>
+                  <p>{profile.account.email}</p>
                 </div>
+              </div>
+              <div className="profile-identity-meta">
+                <span className="profile-role-chip">
+                  {profile.account.role === "global_admin" ? "Global Admin" :
+                   profile.account.role === "organizer" ? "Organizer" : "Participant"}
+                </span>
+                <span className="profile-id-chip">Account ID #{profile.account.id}</span>
               </div>
               <div className="profile-facts">
                 <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
@@ -202,6 +246,52 @@ export function ProfileClient() {
               <p className="form-note">{tr.note}</p>
               {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary">Organizer dashboard →</Link>}
             </section>
+            {profile.admin_claim_available && (
+              <section className="panel profile-recovery">
+                <h2>{
+                  language === "ru" ? "Восстановить глобальный доступ" :
+                  language === "uk" ? "Відновити глобальний доступ" :
+                  language === "cs" ? "Obnovit přístup administrátora" :
+                  "Recover global admin access"
+                }</h2>
+                <p className="form-note">{
+                  language === "ru" ? "Этот email разрешён для восстановления. Для безопасности введи секрет из Railway → Demo API → Variables (GLOBAL_ADMIN_RECOVERY_SECRET)." :
+                  language === "uk" ? "Цей email дозволено для відновлення. Введи секрет із Railway → Demo API → Variables." :
+                  language === "cs" ? "Tento e-mail je povolen. Zadej obnovovací klíč z Railway → Demo API → Variables." :
+                  "This email is eligible. Enter the recovery key from Railway → Demo API → Variables."
+                }</p>
+                {!showClaim ? (
+                  <button type="button" className="button button-outline" onClick={() => setShowClaim(true)}>
+                    {language === "ru" ? "Подтвердить админ-доступ" :
+                     language === "uk" ? "Підтвердити адмін-доступ" :
+                     language === "cs" ? "Potvrdit administrátorský přístup" :
+                     "Verify administrator access"}
+                  </button>
+                ) : (
+                  <form className="form-stack" onSubmit={claimAdmin}>
+                    <label>Recovery key
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        required
+                        minLength={24}
+                        value={claimKey}
+                        onChange={e => setClaimKey(e.target.value)}
+                        placeholder="GLOBAL_ADMIN_RECOVERY_SECRET"
+                      />
+                    </label>
+                    <div className="profile-actions">
+                      <button className="button button-primary" type="submit" disabled={claiming}>
+                        {claiming ? "Checking…" : "Confirm"}
+                      </button>
+                      <button className="button button-outline" type="button" onClick={() => {setShowClaim(false);setClaimKey("");}}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </section>
+            )}
             {error && <div className="state-card state-error" role="alert">{error}</div>}
             {notice && <div className="success-banner" role="status">{notice}</div>}
             <form className="panel form-stack" onSubmit={submitProfile}>
