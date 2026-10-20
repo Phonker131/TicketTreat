@@ -82,6 +82,7 @@ export function ProfileClient() {
   const [phone, setPhone] = useState("");
   const [instagram, setInstagram] = useState("");
   const [contact, setContact] = useState<ContactPreference>("email");
+  const [accountRole, setAccountRole] = useState<"participant"|"organizer">("participant");
 
   useEffect(() => {
     let mounted = true;
@@ -124,6 +125,7 @@ export function ProfileClient() {
             first_name: firstName.trim(), last_name: lastName.trim(),
             phone: phone.trim() || null, instagram: instagram.trim() || null,
             contact_preference: contact,
+            account_role: accountRole,
             guest_token: getStoredGuestToken(),
             language,
           })
@@ -189,13 +191,16 @@ export function ProfileClient() {
             <section className="panel">
               <div className="profile-top">
                 <div className="profile-avatar">{profile.account.first_name.charAt(0).toUpperCase()}</div>
-                <div><h1>{profile.account.first_name} {profile.account.last_name}</h1><p>{profile.account.email}</p></div>
+                <div><h1>{profile.account.first_name} {profile.account.last_name}</h1><p>{profile.account.email}</p>
+                <span className="status status-demo">{profile.account.role === "global_admin" ? "Global Admin" : profile.account.role === "organizer" ? "Organizer" : "Participant"} · ID {profile.account.id}</span>
+                </div>
               </div>
               <div className="profile-facts">
                 <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
                 <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">→ {tr.tickets}</Link></div>
               </div>
               <p className="form-note">{tr.note}</p>
+              {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary">Organizer dashboard →</Link>}
             </section>
             {error && <div className="state-card state-error" role="alert">{error}</div>}
             {notice && <div className="success-banner" role="status">{notice}</div>}
@@ -219,6 +224,18 @@ export function ProfileClient() {
             {notice && <div className="success-banner" role="status">{notice}</div>}
             <form className="panel form-stack" onSubmit={submitAuth}>
               <h2>{mode==="signup"?tr.create:tr.login}</h2>
+              {mode==="signup" && (
+                <fieldset className="event-language-fieldset">
+                  <legend>{language==="en"?"Register as":language==="cs"?"Typ účtu":language==="uk"?"Зареєструватися як":"Зарегистрироваться как"}</legend>
+                  <div className="role-options">
+                    <label><input type="radio" name="account_role" value="participant" checked={accountRole==="participant"} onChange={()=>setAccountRole("participant")} />
+                      {language==="en"?"Event participant":language==="cs"?"Účastník akcí":language==="uk"?"Учасник подій":"Участник ивентов"}</label>
+                    <label><input type="radio" name="account_role" value="organizer" checked={accountRole==="organizer"} onChange={()=>setAccountRole("organizer")} />
+                      {language==="en"?"Event organizer":language==="cs"?"Pořadatel":language==="uk"?"Організатор подій":"Организатор ивентов"}</label>
+                  </div>
+                  <small>Global administrator permissions can only be assigned by the platform owner.</small>
+                </fieldset>
+              )}
               {mode==="signup" && details}
               <label>{tr.email}<input type="email" required maxLength={255} autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} /></label>
               <label>{tr.password}<input type="password" required minLength={mode==="signup"?10:1} maxLength={128} autoComplete={mode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} /></label>

@@ -177,6 +177,7 @@ export type WebRegistration = {
   instagram?: string | null;
   contact_preference: string;
   guest_token?: string | null;
+  account_role?: "participant" | "organizer";
   language?: "en" | "cs" | "ru" | "uk";
 };
 
@@ -235,4 +236,55 @@ export async function downloadEventParticipantsCsv(eventId: number, adminKey: st
   } finally {
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 120_000);
   }
+}
+
+/** Every manage route requires a logged-in account, not the old shared key. */
+function accountHeaders(token: string): HeadersInit {
+  return {Authorization: `Bearer ${token}`};
+}
+
+export function getManageMe(token: string): Promise<import("@/lib/types").ManageIdentity> {
+  return request("/demo/manage/me", {headers:accountHeaders(token)});
+}
+export function getManageEvents(token: string): Promise<import("@/lib/types").ManageEvent[]> {
+  return request("/demo/manage/events", {headers:accountHeaders(token)});
+}
+export function getManageEvent(id: number, token: string): Promise<import("@/lib/types").ManageEvent> {
+  return request(`/demo/manage/events/${id}`, {headers:accountHeaders(token)});
+}
+export function addManageEvent(token: string, payload: Record<string, unknown>): Promise<import("@/lib/types").ManageEvent> {
+  return request("/demo/manage/events", {method:"POST",headers:accountHeaders(token),body:JSON.stringify(payload)});
+}
+export function editManageEvent(token: string, eventId: number, payload: Record<string,unknown>): Promise<import("@/lib/types").ManageEvent> {
+  return request(`/demo/manage/events/${eventId}`, {method:"PATCH",headers:accountHeaders(token),body:JSON.stringify(payload)});
+}
+export function cancelManageEvent(token: string, eventId: number, reason: string): Promise<import("@/lib/types").ManageEvent> {
+  return request(`/demo/manage/events/${eventId}/cancel`,{method:"POST",headers:accountHeaders(token),body:JSON.stringify({reason})});
+}
+export function getManageParticipants(token:string, eventId:number): Promise<AdminEventTickets> {
+  return request(`/demo/manage/events/${eventId}/participants`,{headers:accountHeaders(token)});
+}
+export function checkInManagedTicket(token:string, qrToken:string):Promise<{status:string;ticket:DemoTicket}> {
+  return request(`/demo/manage/check-in/${encodeURIComponent(qrToken)}`,{method:"POST",headers:accountHeaders(token)});
+}
+export async function exportManageParticipantsCsv(token:string,eventId:number):Promise<void> {
+  const r=await fetch(`${API_URL}/demo/manage/events/${eventId}/participants.csv`,{
+    headers:accountHeaders(token),cache:"no-store"
+  });
+  if(!r.ok) throw new Error(r.status===403?"Access denied for this event":`Export failed (HTTP ${r.status})`);
+  const data=await r.blob();
+  const url=URL.createObjectURL(data);
+  const anchor=document.createElement("a");anchor.href=url;
+  anchor.download=`crowdly-event-${eventId}-participants.csv`;
+  document.body.appendChild(anchor);anchor.click();anchor.remove();
+  window.setTimeout(()=>URL.revokeObjectURL(url),120000);
+}
+export function listManageOrganizers(token:string):Promise<import("@/lib/types").OrganizerIdentity[]> {
+  return request("/demo/manage/organizers",{headers:accountHeaders(token)});
+}
+export function assignManageOwner(token:string,eventId:number,ownerAccountId:number):Promise<import("@/lib/types").ManageEvent> {
+  return request(`/demo/manage/events/${eventId}/owner`,{method:"PUT",headers:accountHeaders(token),body:JSON.stringify({owner_account_id:ownerAccountId})});
+}
+export function getManageAudit(token:string,eventId:number):Promise<{action:string;details:string;actor_account_id:number;at:string}[]> {
+  return request(`/demo/manage/events/${eventId}/audit`,{headers:accountHeaders(token)});
 }

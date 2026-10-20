@@ -78,6 +78,7 @@ export type WebAccount = {
   instagram: string | null;
   contact_preference: "email" | "phone" | "telegram" | "instagram";
   created_at: string;
+  role: "participant" | "organizer" | "global_admin";
 };
 
 export type WebProfile = {
@@ -90,3 +91,11 @@ export type WebAuthResult = {
   token: string;
   profile: WebProfile;
 };
+
+export type ManageIdentity = {
+  account_id: number;
+  email: string;
+  role: "participant" | "organizer" | "global_admin";
+};
+export type ManageEvent = CrowdlyEvent & {owner_account_id: number | null};
+export type OrganizerIdentity = {account_id: number;name: string;email: string};
