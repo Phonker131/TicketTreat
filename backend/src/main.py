@@ -34,6 +34,7 @@ from sqlalchemy.orm import Session
 from db import models
 from db.base import Base
 from db.session import SessionLocal, engine, get_db
+from demo_accounts import WebAccount, WebSession, install_demo_accounts
 
 
 # =========================================================
@@ -2940,3 +2941,10 @@ def demo_admin_check_in(
         "status": "checked_in",
         "ticket": demo_ticket_to_dict(ticket, db),
     }
+
+
+# Registers isolated website account and CSV endpoints after helper definitions.
+install_demo_accounts(
+    app, DemoGuest, DemoTicket, DemoWaitlist, Event, User,
+    Registration, RegistrationPayment, get_db, require_demo_admin,
+)
