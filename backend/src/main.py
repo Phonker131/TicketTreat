@@ -2383,6 +2383,14 @@ def promote_demo_waitlist(
     return ticket
 
 
+@app.get("/demo/admin/verify")
+def demo_admin_verify(
+    _admin_key: str = Depends(require_demo_admin),
+):
+    """Validate the demo admin secret without changing data."""
+    return {"authenticated": True}
+
+
 @app.post("/demo/admin/events")
 def demo_admin_create_event(
     payload: EventCreate,

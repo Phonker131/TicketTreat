@@ -157,3 +157,10 @@ export function createEvent(payload: Record<string, unknown>, adminKey: string) 
     body: JSON.stringify(payload),
   });
 }
+
+/** Validate admin access on the server, not just in browser storage. */
+export function verifyDemoAdminKey(adminKey: string): Promise<{authenticated: boolean}> {
+  return request<{authenticated: boolean}>("/demo/admin/verify", {
+    headers: {"X-Demo-Admin-Key": adminKey},
+  });
+}
