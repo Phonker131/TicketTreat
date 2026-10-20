@@ -77,7 +77,7 @@ export function CheckoutClient() {
       }
 
       await new Promise((resolve) => setTimeout(resolve, 900));
-      const result = await demoCheckout(event.id, guest.access_token);
+      const result = await demoCheckout(event.id, guest.access_token, language);
       router.push(`/tickets/${result.ticket.id}?paid=1`);
     } catch (err) {
       const text = err instanceof Error ? err.message : "Error";

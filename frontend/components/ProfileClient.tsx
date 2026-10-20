@@ -125,6 +125,7 @@ export function ProfileClient() {
             phone: phone.trim() || null, instagram: instagram.trim() || null,
             contact_preference: contact,
             guest_token: getStoredGuestToken(),
+            language,
           })
         : await loginWebAccount(email.trim(), password);
       setWebAuth(result);

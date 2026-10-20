@@ -82,12 +82,13 @@ export function getDemoGuest(token: string): Promise<DemoGuest> {
 export function demoCheckout(
   eventId: number,
   guestToken: string,
+  language: "en" | "cs" | "ru" | "uk" = "en",
 ): Promise<DemoCheckoutResponse> {
   return request<DemoCheckoutResponse>(
     `/demo/events/${eventId}/checkout`,
     {
       method: "POST",
-      body: JSON.stringify({guest_token: guestToken}),
+      body: JSON.stringify({guest_token: guestToken, language}),
     },
   );
 }
@@ -176,6 +177,7 @@ export type WebRegistration = {
   instagram?: string | null;
   contact_preference: string;
   guest_token?: string | null;
+  language?: "en" | "cs" | "ru" | "uk";
 };
 
 export async function signupWebAccount(payload: WebRegistration): Promise<WebAuthResult> {
