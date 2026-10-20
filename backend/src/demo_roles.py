@@ -278,6 +278,15 @@ def install_demo_roles(app, get_db, main):
         event.is_cancelled=True
         event.cancellation_reason=reason
         event.cancelled_at=datetime.now(timezone.utc).replace(tzinfo=None)
+        # Cancel every active demo ticket: QR check-in must no longer be valid.
+        db.query(main.DemoTicket).filter(
+            main.DemoTicket.event_id==event_id,
+            main.DemoTicket.ticket_status=="active",
+        ).update({
+            main.DemoTicket.ticket_status:"cancelled",
+            main.DemoTicket.payment_status:"refunded_demo",
+            main.DemoTicket.cancelled_at:datetime.now(timezone.utc).replace(tzinfo=None),
+        }, synchronize_session=False)
         audit(db,event_id,account.id,"cancel",reason)
         db.commit()
         db.refresh(event)
@@ -341,3 +350,52 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(status_code=403,detail="global_admin_only")
         records=db.query(EventModerationLog).filter(EventModerationLog.event_id==event_id).order_by(EventModerationLog.id.desc()).limit(100).all()
         return [{"action":r.action,"details":r.details,"actor_account_id":r.actor_account_id,"at":r.created_at} for r in records]
+
+class AccountRoleChange(BaseModel):
+    role: str = Field(pattern="^(participant|organizer)$")
+
+
+def install_account_moderation(app, get_db):
+    def admin_account(
+        authorization: str | None = Header(default=None),
+        db: Session = Depends(get_db),
+    ) -> WebAccount:
+        account=account_lookup(db,authorization)
+        if role_for(db,account)!="global_admin":
+            raise HTTPException(status_code=403,detail="global_admin_only")
+        return account
+
+    @app.get("/demo/manage/accounts")
+    def accounts(
+        _admin: WebAccount=Depends(admin_account),
+        db: Session=Depends(get_db),
+    ):
+        rows=db.query(WebAccount).order_by(WebAccount.id.desc()).limit(300).all()
+        return [{
+            "account_id":a.id,"email":a.email,
+            "name":f"{a.first_name} {a.last_name}",
+            "role":role_for(db,a),
+        } for a in rows]
+
+    @app.put("/demo/manage/accounts/{account_id}/role")
+    def change_role(
+        account_id:int,payload:AccountRoleChange,
+        _admin:WebAccount=Depends(admin_account),
+        db:Session=Depends(get_db),
+    ):
+        target=db.query(WebAccount).filter(WebAccount.id==account_id).first()
+        if target is None:
+            raise HTTPException(status_code=404,detail="account_not_found")
+        if account_id in global_admin_ids():
+            raise HTTPException(status_code=403,detail="cannot_change_global_admin")
+        if payload.role=="participant":
+            owns=db.query(EventOwnership).filter(EventOwnership.owner_account_id==account_id).first()
+            if owns:
+                raise HTTPException(status_code=409,detail="organizer_still_owns_events")
+        record=db.query(WebAccountRole).filter(WebAccountRole.account_id==account_id).first()
+        if record:
+            record.role=payload.role
+        else:
+            db.add(WebAccountRole(account_id=account_id,role=payload.role))
+        db.commit()
+        return {"account_id":account_id,"role":payload.role}
