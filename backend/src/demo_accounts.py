@@ -25,6 +25,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from db.base import Base
+from demo_email import queue_email
 
 PASSWORD_ITERATIONS = 350_000
 SESSION_DAYS = 30
@@ -67,6 +68,7 @@ class SignupData(BaseModel):
     instagram: str | None = Field(default=None, max_length=100)
     contact_preference: str = "email"
     guest_token: str | None = Field(default=None, max_length=128)
+    language: str = Field(default="en", max_length=8)
 
 
 class LoginData(BaseModel):
@@ -243,6 +245,11 @@ def install_demo_accounts(
             )
             guest.first_name, guest.last_name, guest.email = first, last, email
             db.add(account)
+            db.flush()
+            queue_email(
+                db, kind="welcome", event_key=f"welcome:{account.id}",
+                recipient=account.email, guest_id=guest.id, language=payload.language,
+            )
             db.commit()
             db.refresh(account)
         except IntegrityError:

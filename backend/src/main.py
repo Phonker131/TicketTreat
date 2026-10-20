@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
 import os
 import secrets
 import threading
@@ -35,6 +36,7 @@ from db import models
 from db.base import Base
 from db.session import SessionLocal, engine, get_db
 from demo_accounts import WebAccount, WebSession, install_demo_accounts
+from demo_email import EmailOutbox, queue_email, ticket_language, install_email_worker
 
 
 # =========================================================
@@ -475,6 +477,7 @@ class DemoGuestCreate(BaseModel):
 
 class DemoCheckoutCreate(BaseModel):
     guest_token: str = Field(min_length=16, max_length=128)
+    language: str = Field(default="en", max_length=8)
 
 
 class DemoWaitlistCreate(BaseModel):
@@ -2659,6 +2662,13 @@ def demo_checkout(
         waitlist_entry.status = "promoted"
         waitlist_entry.promoted_at = utc_now()
 
+    db.flush()
+    queue_email(
+        db, kind="ticket",
+        event_key=f"ticket:{ticket.id}:issue:{hashlib.sha256(ticket.qr_token.encode()).hexdigest()[:20]}",
+        recipient=guest.email, guest_id=guest.id, ticket_id=ticket.id,
+        language=payload.language,
+    )
     db.commit()
     db.refresh(ticket)
 
@@ -2841,6 +2851,15 @@ def cancel_demo_ticket(
 
     db.flush()
     promoted = promote_demo_waitlist(db, ticket.event_id)
+    if promoted is not None:
+        db.flush()
+        promoted_guest = db.query(DemoGuest).filter(DemoGuest.id == promoted.guest_id).first()
+        queue_email(
+            db, kind="ticket",
+            event_key=f"ticket:{promoted.id}:issue:{hashlib.sha256(promoted.qr_token.encode()).hexdigest()[:20]}",
+            recipient=promoted_guest.email if promoted_guest else None,
+            guest_id=promoted.guest_id, ticket_id=promoted.id,
+        )
     db.commit()
     db.refresh(ticket)
 
@@ -2934,6 +2953,15 @@ def demo_admin_check_in(
 
     if ticket.checked_in_at is None:
         ticket.checked_in_at = utc_now()
+        guest = db.query(DemoGuest).filter(DemoGuest.id == ticket.guest_id).first()
+        queue_email(
+            db, kind="checkin",
+            event_key=f"checkin:{ticket.id}:{ticket.checked_in_at.isoformat()}",
+            recipient=guest.email if guest else None,
+            guest_id=ticket.guest_id,
+            ticket_id=ticket.id,
+            language=ticket_language(db, ticket.id),
+        )
         db.commit()
         db.refresh(ticket)
 
@@ -2948,3 +2976,6 @@ install_demo_accounts(
     app, DemoGuest, DemoTicket, DemoWaitlist, Event, User,
     Registration, RegistrationPayment, get_db, require_demo_admin,
 )
+
+# Background delivery only on the isolated Demo API with configured Resend credentials.
+install_email_worker(app, SessionLocal)
