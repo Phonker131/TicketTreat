@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
-import { adminCheckIn } from "@/lib/api";
-import { getAdminKey } from "@/lib/session";
+import { checkInManagedTicket, getManageMe } from "@/lib/api";
+import { getWebToken } from "@/lib/session";
 import type { DemoTicket } from "@/lib/types";
 
 function extractToken(value: string): string {
@@ -21,7 +21,12 @@ export function CheckInClient() {
     const token = extractToken(value);
     if (!token) return;
     try {
-      const response = await adminCheckIn(token, getAdminKey());
+      const session = getWebToken();
+      if (!session) throw new Error("Нужно войти в аккаунт организатора.");
+      await getManageMe(session).then(me => {
+        if(me.role === "participant") throw new Error("Доступ только организаторам.");
+      });
+      const response = await checkInManagedTicket(session, token);
       setResult(response.ticket);
       setMessage("Check-in successful");
     } catch (e) {
