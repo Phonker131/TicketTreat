@@ -20,6 +20,7 @@ from telebot.types import (
     InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
+    WebAppInfo,
 )
 
 
@@ -38,6 +39,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 BOT_USERNAME = os.getenv("BOT_USERNAME")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 CLIENT_SERVICE_URL = os.getenv("CLIENT_SERVICE_URL", "").strip()
+WEB_APP_URL = os.getenv("WEB_APP_URL", "").strip().rstrip("/")
 PRAGUE_TZ = ZoneInfo("Europe/Prague")
 
 ADMIN_IDS = [
@@ -174,6 +176,7 @@ UI_TRANSLATIONS = {
     "👤 My profile": _tr("👤 My profile", "👤 Můj profil", "👤 Мой профиль", "👤 Мій профіль"),
     "📝 Registration": _tr("📝 Registration", "📝 Registrace", "📝 Регистрация", "📝 Реєстрація"),
     "🆘 Client service": _tr("🆘 Client service", "🆘 Zákaznická podpora", "🆘 Поддержка", "🆘 Підтримка"),
+    "🌐 Open in app": _tr("🌐 Open in app", "🌐 Otevřít v aplikaci", "🌐 Открыть в приложении", "🌐 Відкрити в застосунку"),
     "⚙️ Admin": _tr("⚙️ Admin", "⚙️ Administrace", "⚙️ Админ", "⚙️ Адмін"),
     "⬅️ Назад": _tr("⬅️ Back", "⬅️ Zpět", "⬅️ Назад", "⬅️ Назад"),
     "⬅️ Back": _tr("⬅️ Back", "⬅️ Zpět", "⬅️ Назад", "⬅️ Назад"),
@@ -1171,6 +1174,17 @@ def build_event_link(event_id: int) -> str:
     return f"https://t.me/{BOT_USERNAME}?start=event_{event_id}"
 
 
+def build_web_event_url(
+    event_id: int,
+    user_id: int,
+) -> str | None:
+    if not WEB_APP_URL.startswith("https://"):
+        return None
+
+    language = get_interface_language(user_id)
+    return f"{WEB_APP_URL}/events/{event_id}?lang={language}"
+
+
 def format_event_datetime(value) -> str:
     if not value:
         return "-"
@@ -1567,6 +1581,19 @@ def show_event_details_by_id(
             InlineKeyboardButton(
                 "✅ Записаться",
                 callback_data=f"reg:{event_id}",
+            )
+        )
+
+    web_event_url = build_web_event_url(
+        event_id,
+        user_id,
+    )
+
+    if web_event_url:
+        keyboard.add(
+            InlineKeyboardButton(
+                "🌐 Open in app",
+                web_app=WebAppInfo(url=web_event_url),
             )
         )
 

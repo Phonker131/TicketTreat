@@ -1,17 +1,22 @@
 from __future__ import annotations
 
+import os
+import secrets
 import threading
 import time
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from enum import Enum
 from typing import Any
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Column,
     DateTime,
     Integer,
@@ -135,13 +140,145 @@ class EventLanguageSetting(Base):
     language = Column(String(2), nullable=False)
 
 
+# =========================================================
+# Demo web/PWA tables
+# =========================================================
+# These tables power the showcase MVP. No real payment provider is
+# contacted: checkout is completed immediately and a QR ticket is issued.
+class DemoGuest(Base):
+    __tablename__ = "demo_guests"
+
+    id = Column(Integer, primary_key=True)
+    access_token = Column(String(64), nullable=False, unique=True, index=True)
+    telegram_id = Column(BigInteger, nullable=True, index=True)
+    username = Column(String(255), nullable=True)
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=True)
+    email = Column(String(255), nullable=True, index=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+class DemoTicket(Base):
+    __tablename__ = "demo_tickets"
+    __table_args__ = (
+        UniqueConstraint(
+            "event_id",
+            "guest_id",
+            name="uq_demo_ticket_event_guest",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, nullable=False, index=True)
+    guest_id = Column(Integer, nullable=False, index=True)
+    qr_token = Column(String(80), nullable=False, unique=True, index=True)
+    ticket_status = Column(
+        String(20),
+        nullable=False,
+        default="active",
+        server_default="active",
+    )
+    payment_status = Column(
+        String(20),
+        nullable=False,
+        default="paid",
+        server_default="paid",
+    )
+    payment_provider = Column(
+        String(20),
+        nullable=False,
+        default="demo",
+        server_default="demo",
+    )
+    payment_amount = Column(String(32), nullable=False, default="0")
+    currency = Column(String(3), nullable=False, default="CZK")
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    checked_in_at = Column(DateTime(timezone=True), nullable=True)
+    cancelled_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class DemoWaitlist(Base):
+    __tablename__ = "demo_waitlist"
+    __table_args__ = (
+        UniqueConstraint(
+            "event_id",
+            "guest_id",
+            name="uq_demo_waitlist_event_guest",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, nullable=False, index=True)
+    guest_id = Column(Integer, nullable=False, index=True)
+    status = Column(
+        String(20),
+        nullable=False,
+        default="waiting",
+        server_default="waiting",
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    promoted_at = Column(DateTime(timezone=True), nullable=True)
+
+
 # Creates only tables that do not already exist.
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Crowdly API")
 
+
+def configured_frontend_origins() -> list[str]:
+    origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
+    raw_origins = os.getenv("FRONTEND_ORIGINS", "")
+
+    for raw_value in raw_origins.split(","):
+        origin = raw_value.strip().rstrip("/")
+        if origin and origin not in origins:
+            origins.append(origin)
+
+    web_app_url = os.getenv("WEB_APP_URL", "").strip()
+
+    if web_app_url:
+        parsed = urlsplit(web_app_url)
+
+        if parsed.scheme and parsed.netloc:
+            origin = f"{parsed.scheme}://{parsed.netloc}"
+
+            if origin not in origins:
+                origins.append(origin)
+
+    return origins
+
+
+FRONTEND_ORIGINS = configured_frontend_origins()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=FRONTEND_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+
 PRAGUE_TZ = ZoneInfo("Europe/Prague")
 PAYMENT_CONFIRMATION_HOURS = 24
+DEMO_PAYMENT_MODE = os.getenv("DEMO_PAYMENT_MODE", "true").strip().lower() in {"1", "true", "yes", "on"}
+DEMO_ADMIN_KEY = os.getenv("DEMO_ADMIN_KEY", "").strip()
 
 
 # =========================================================
@@ -279,6 +416,22 @@ class EventCancellationCreate(BaseModel):
 
 class PaymentConfirmationCreate(BaseModel):
     admin_telegram_id: int
+
+
+class DemoGuestCreate(BaseModel):
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str | None = Field(default=None, max_length=100)
+    email: str | None = Field(default=None, max_length=255)
+    telegram_id: int | None = None
+    username: str | None = Field(default=None, max_length=255)
+
+
+class DemoCheckoutCreate(BaseModel):
+    guest_token: str = Field(min_length=16, max_length=128)
+
+
+class DemoWaitlistCreate(BaseModel):
+    guest_token: str = Field(min_length=16, max_length=128)
 
 
 # =========================================================
@@ -614,12 +767,24 @@ def get_registered_count(
     db: Session,
     event_id: int,
 ) -> int:
-    return (
+    telegram_count = (
         db.query(func.count(Registration.id))
         .filter(Registration.event_id == event_id)
         .scalar()
         or 0
     )
+
+    demo_count = (
+        db.query(func.count(DemoTicket.id))
+        .filter(
+            DemoTicket.event_id == event_id,
+            DemoTicket.ticket_status == "active",
+        )
+        .scalar()
+        or 0
+    )
+
+    return int(telegram_count) + int(demo_count)
 
 
 def normalize_event_datetime(value: datetime) -> datetime:
@@ -2015,3 +2180,621 @@ def get_user_events(
         )
         for event in events
     ]
+
+
+# =========================================================
+# Demo Web/PWA showcase API
+# =========================================================
+def demo_guest_to_dict(
+    guest: DemoGuest,
+    db: Session | None = None,
+) -> dict[str, Any]:
+    visits = 0
+
+    if db is not None:
+        visits = (
+            db.query(func.count(DemoTicket.id))
+            .filter(
+                DemoTicket.guest_id == guest.id,
+                DemoTicket.checked_in_at.isnot(None),
+                DemoTicket.ticket_status == "active",
+            )
+            .scalar()
+            or 0
+        )
+
+    return {
+        "id": guest.id,
+        "access_token": guest.access_token,
+        "telegram_id": guest.telegram_id,
+        "username": guest.username,
+        "first_name": guest.first_name,
+        "last_name": guest.last_name,
+        "email": guest.email,
+        "visits": int(visits),
+    }
+
+
+def get_demo_guest_by_token(
+    db: Session,
+    access_token: str,
+) -> DemoGuest | None:
+    return (
+        db.query(DemoGuest)
+        .filter(DemoGuest.access_token == access_token)
+        .first()
+    )
+
+
+def ticket_code(ticket_id: int) -> str:
+    return f"CRD-{ticket_id:06d}"
+
+
+def demo_ticket_to_dict(
+    ticket: DemoTicket,
+    db: Session,
+) -> dict[str, Any]:
+    event = (
+        db.query(Event)
+        .filter(Event.id == ticket.event_id)
+        .first()
+    )
+    guest = (
+        db.query(DemoGuest)
+        .filter(DemoGuest.id == ticket.guest_id)
+        .first()
+    )
+
+    return {
+        "id": ticket.id,
+        "code": ticket_code(ticket.id),
+        "event_id": ticket.event_id,
+        "guest_id": ticket.guest_id,
+        "qr_token": ticket.qr_token,
+        "ticket_status": ticket.ticket_status,
+        "payment_status": ticket.payment_status,
+        "payment_provider": ticket.payment_provider,
+        "payment_amount": ticket.payment_amount,
+        "currency": ticket.currency,
+        "created_at": ticket.created_at,
+        "checked_in_at": ticket.checked_in_at,
+        "cancelled_at": ticket.cancelled_at,
+        "event": (
+            event_to_dict(
+                event,
+                db=db,
+                registered_count=get_registered_count(db, event.id),
+            )
+            if event is not None
+            else None
+        ),
+        "guest": (
+            demo_guest_to_dict(guest, db=db)
+            if guest is not None
+            else None
+        ),
+    }
+
+
+def require_demo_admin(
+    x_demo_admin_key: str | None = Header(default=None),
+) -> str:
+    if not DEMO_ADMIN_KEY or not x_demo_admin_key or not secrets.compare_digest(x_demo_admin_key, DEMO_ADMIN_KEY):
+        raise HTTPException(
+            status_code=401,
+            detail="invalid_demo_admin_key",
+        )
+
+    return x_demo_admin_key
+
+
+def promote_demo_waitlist(
+    db: Session,
+    event_id: int,
+) -> DemoTicket | None:
+    event = (
+        db.query(Event)
+        .filter(Event.id == event_id)
+        .first()
+    )
+
+    if event is None:
+        return None
+
+    if (
+        event.max_participants is not None
+        and get_registered_count(db, event_id) >= event.max_participants
+    ):
+        return None
+
+    waitlist_entry = (
+        db.query(DemoWaitlist)
+        .filter(
+            DemoWaitlist.event_id == event_id,
+            DemoWaitlist.status == "waiting",
+        )
+        .order_by(DemoWaitlist.created_at.asc(), DemoWaitlist.id.asc())
+        .first()
+    )
+
+    if waitlist_entry is None:
+        return None
+
+    existing = (
+        db.query(DemoTicket)
+        .filter(
+            DemoTicket.event_id == event_id,
+            DemoTicket.guest_id == waitlist_entry.guest_id,
+        )
+        .first()
+    )
+
+    if existing is not None:
+        ticket = existing
+        ticket.qr_token = secrets.token_urlsafe(32)
+        ticket.ticket_status = "active"
+        ticket.payment_status = "paid"
+        ticket.payment_provider = "demo"
+        ticket.payment_amount = str(price_decimal(event.price))
+        ticket.currency = getattr(event, "currency", None) or "CZK"
+        ticket.checked_in_at = None
+        ticket.cancelled_at = None
+    else:
+        ticket = DemoTicket(
+            event_id=event.id,
+            guest_id=waitlist_entry.guest_id,
+            qr_token=secrets.token_urlsafe(32),
+            ticket_status="active",
+            payment_status="paid",
+            payment_provider="demo",
+            payment_amount=str(price_decimal(event.price)),
+            currency=getattr(event, "currency", None) or "CZK",
+        )
+        db.add(ticket)
+    waitlist_entry.status = "promoted"
+    waitlist_entry.promoted_at = utc_now()
+    db.flush()
+    return ticket
+
+
+@app.post("/demo/admin/events")
+def demo_admin_create_event(
+    payload: EventCreate,
+    _admin_key: str = Depends(require_demo_admin),
+    db: Session = Depends(get_db),
+):
+    return create_event(payload=payload, db=db)
+
+
+@app.get("/demo/config")
+def demo_config():
+    return {
+        "demo_payment_mode": DEMO_PAYMENT_MODE,
+        "payment_provider": "demo",
+        "real_money_charged": False,
+    }
+
+
+@app.post("/demo/guests")
+def create_or_get_demo_guest(
+    payload: DemoGuestCreate,
+    db: Session = Depends(get_db),
+):
+    """Create an isolated demo guest. Email / Telegram ID are not verified.
+
+    Never reuse or reveal an existing bearer token based on an unverified
+    email or Telegram ID. The frontend keeps the token for this browser only.
+    """
+    email = payload.email.strip().lower() if payload.email else None
+    if not email:
+        raise HTTPException(status_code=422, detail="email_required")
+
+    guest = DemoGuest(
+        access_token=secrets.token_urlsafe(32),
+        telegram_id=None,
+        username=None,
+        first_name=payload.first_name.strip(),
+        last_name=payload.last_name.strip() if payload.last_name else None,
+        email=email,
+    )
+    db.add(guest)
+    db.commit()
+    db.refresh(guest)
+    return demo_guest_to_dict(guest, db=db)
+
+
+@app.get("/demo/guests/{guest_token}")
+def get_demo_guest(
+    guest_token: str,
+    db: Session = Depends(get_db),
+):
+    guest = get_demo_guest_by_token(db, guest_token)
+
+    if guest is None:
+        raise HTTPException(
+            status_code=404,
+            detail="demo_guest_not_found",
+        )
+
+    return demo_guest_to_dict(guest, db=db)
+
+
+@app.post("/demo/events/{event_id}/checkout")
+def demo_checkout(
+    event_id: int,
+    payload: DemoCheckoutCreate,
+    db: Session = Depends(get_db),
+):
+    if not DEMO_PAYMENT_MODE:
+        raise HTTPException(
+            status_code=503,
+            detail="demo_payment_disabled",
+        )
+
+    guest = get_demo_guest_by_token(db, payload.guest_token)
+
+    if guest is None:
+        raise HTTPException(
+            status_code=404,
+            detail="demo_guest_not_found",
+        )
+
+    event = (
+        db.query(Event)
+        .filter(Event.id == event_id)
+        .first()
+    )
+
+    if event is None:
+        raise HTTPException(status_code=404, detail="event_not_found")
+
+    if getattr(event, "is_cancelled", False):
+        raise HTTPException(status_code=409, detail="event_cancelled")
+
+    if event.starts_at is None:
+        raise HTTPException(status_code=409, detail="event_has_no_start_time")
+
+    if event_has_started(event):
+        raise HTTPException(status_code=409, detail="event_already_started")
+
+    existing = (
+        db.query(DemoTicket)
+        .filter(
+            DemoTicket.event_id == event_id,
+            DemoTicket.guest_id == guest.id,
+        )
+        .first()
+    )
+
+    if existing is not None and existing.ticket_status == "active":
+        return {
+            "status": "already_paid",
+            "ticket": demo_ticket_to_dict(existing, db),
+            "demo_payment": True,
+            "real_money_charged": False,
+        }
+
+    if (
+        event.max_participants is not None
+        and get_registered_count(db, event.id) >= event.max_participants
+    ):
+        raise HTTPException(status_code=409, detail="event_full")
+
+    if existing is not None:
+        ticket = existing
+        ticket.qr_token = secrets.token_urlsafe(32)
+        ticket.ticket_status = "active"
+        ticket.payment_status = "paid"
+        ticket.payment_provider = "demo"
+        ticket.payment_amount = str(price_decimal(event.price))
+        ticket.currency = getattr(event, "currency", None) or "CZK"
+        ticket.checked_in_at = None
+        ticket.cancelled_at = None
+    else:
+        ticket = DemoTicket(
+            event_id=event.id,
+            guest_id=guest.id,
+            qr_token=secrets.token_urlsafe(32),
+            ticket_status="active",
+            payment_status="paid",
+            payment_provider="demo",
+            payment_amount=str(price_decimal(event.price)),
+            currency=getattr(event, "currency", None) or "CZK",
+        )
+        db.add(ticket)
+
+    waitlist_entry = (
+        db.query(DemoWaitlist)
+        .filter(
+            DemoWaitlist.event_id == event.id,
+            DemoWaitlist.guest_id == guest.id,
+            DemoWaitlist.status == "waiting",
+        )
+        .first()
+    )
+    if waitlist_entry is not None:
+        waitlist_entry.status = "promoted"
+        waitlist_entry.promoted_at = utc_now()
+
+    db.commit()
+    db.refresh(ticket)
+
+    return {
+        "status": "paid",
+        "ticket": demo_ticket_to_dict(ticket, db),
+        "demo_payment": True,
+        "real_money_charged": False,
+    }
+
+
+@app.post("/demo/events/{event_id}/waitlist")
+def join_demo_waitlist(
+    event_id: int,
+    payload: DemoWaitlistCreate,
+    db: Session = Depends(get_db),
+):
+    guest = get_demo_guest_by_token(db, payload.guest_token)
+
+    if guest is None:
+        raise HTTPException(
+            status_code=404,
+            detail="demo_guest_not_found",
+        )
+
+    event = (
+        db.query(Event)
+        .filter(Event.id == event_id)
+        .first()
+    )
+
+    if event is None:
+        raise HTTPException(status_code=404, detail="event_not_found")
+
+    if event.max_participants is None:
+        raise HTTPException(status_code=409, detail="waitlist_not_needed")
+
+    if get_registered_count(db, event.id) < event.max_participants:
+        raise HTTPException(status_code=409, detail="spots_available")
+
+    existing_ticket = (
+        db.query(DemoTicket)
+        .filter(
+            DemoTicket.event_id == event_id,
+            DemoTicket.guest_id == guest.id,
+            DemoTicket.ticket_status == "active",
+        )
+        .first()
+    )
+    if existing_ticket is not None:
+        return {
+            "status": "already_registered",
+            "ticket": demo_ticket_to_dict(existing_ticket, db),
+        }
+
+    existing = (
+        db.query(DemoWaitlist)
+        .filter(
+            DemoWaitlist.event_id == event_id,
+            DemoWaitlist.guest_id == guest.id,
+        )
+        .first()
+    )
+
+    if existing is None:
+        existing = DemoWaitlist(
+            event_id=event_id,
+            guest_id=guest.id,
+            status="waiting",
+        )
+        db.add(existing)
+    else:
+        existing.status = "waiting"
+        existing.promoted_at = None
+
+    db.commit()
+    db.refresh(existing)
+
+    position = (
+        db.query(func.count(DemoWaitlist.id))
+        .filter(
+            DemoWaitlist.event_id == event_id,
+            DemoWaitlist.status == "waiting",
+            DemoWaitlist.id <= existing.id,
+        )
+        .scalar()
+        or 1
+    )
+
+    return {
+        "status": "waiting",
+        "position": int(position),
+    }
+
+
+@app.get("/demo/guests/{guest_token}/tickets")
+def get_demo_tickets(
+    guest_token: str,
+    db: Session = Depends(get_db),
+):
+    guest = get_demo_guest_by_token(db, guest_token)
+
+    if guest is None:
+        raise HTTPException(
+            status_code=404,
+            detail="demo_guest_not_found",
+        )
+
+    tickets = (
+        db.query(DemoTicket)
+        .filter(DemoTicket.guest_id == guest.id)
+        .order_by(DemoTicket.created_at.desc(), DemoTicket.id.desc())
+        .all()
+    )
+
+    return [
+        demo_ticket_to_dict(ticket, db)
+        for ticket in tickets
+    ]
+
+
+@app.get("/demo/guests/{guest_token}/tickets/{ticket_id}")
+def get_demo_ticket(
+    guest_token: str,
+    ticket_id: int,
+    db: Session = Depends(get_db),
+):
+    guest = get_demo_guest_by_token(db, guest_token)
+
+    if guest is None:
+        raise HTTPException(status_code=404, detail="demo_guest_not_found")
+
+    ticket = (
+        db.query(DemoTicket)
+        .filter(
+            DemoTicket.id == ticket_id,
+            DemoTicket.guest_id == guest.id,
+        )
+        .first()
+    )
+
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="ticket_not_found")
+
+    return demo_ticket_to_dict(ticket, db)
+
+
+@app.delete("/demo/guests/{guest_token}/tickets/{ticket_id}")
+def cancel_demo_ticket(
+    guest_token: str,
+    ticket_id: int,
+    db: Session = Depends(get_db),
+):
+    guest = get_demo_guest_by_token(db, guest_token)
+
+    if guest is None:
+        raise HTTPException(status_code=404, detail="demo_guest_not_found")
+
+    ticket = (
+        db.query(DemoTicket)
+        .filter(
+            DemoTicket.id == ticket_id,
+            DemoTicket.guest_id == guest.id,
+        )
+        .first()
+    )
+
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="ticket_not_found")
+
+    if ticket.ticket_status == "cancelled":
+        return {
+            "status": "already_cancelled",
+            "ticket": demo_ticket_to_dict(ticket, db),
+        }
+
+    ticket.ticket_status = "cancelled"
+    ticket.payment_status = "refunded_demo"
+    ticket.cancelled_at = utc_now()
+
+    db.flush()
+    promoted = promote_demo_waitlist(db, ticket.event_id)
+    db.commit()
+    db.refresh(ticket)
+
+    return {
+        "status": "cancelled",
+        "ticket": demo_ticket_to_dict(ticket, db),
+        "promoted_ticket_id": (
+            promoted.id if promoted is not None else None
+        ),
+    }
+
+
+@app.get("/demo/admin/events/{event_id}/tickets")
+def demo_admin_event_tickets(
+    event_id: int,
+    _admin_key: str = Depends(require_demo_admin),
+    db: Session = Depends(get_db),
+):
+    event = (
+        db.query(Event)
+        .filter(Event.id == event_id)
+        .first()
+    )
+
+    if event is None:
+        raise HTTPException(status_code=404, detail="event_not_found")
+
+    tickets = (
+        db.query(DemoTicket)
+        .filter(DemoTicket.event_id == event_id)
+        .order_by(DemoTicket.id.asc())
+        .all()
+    )
+
+    waitlist = (
+        db.query(DemoWaitlist)
+        .filter(DemoWaitlist.event_id == event_id)
+        .order_by(DemoWaitlist.created_at.asc(), DemoWaitlist.id.asc())
+        .all()
+    )
+
+    return {
+        "event": event_to_dict(
+            event,
+            db=db,
+            registered_count=get_registered_count(db, event.id),
+        ),
+        "tickets": [
+            demo_ticket_to_dict(ticket, db)
+            for ticket in tickets
+        ],
+        "waitlist": [
+            {
+                "id": entry.id,
+                "guest_id": entry.guest_id,
+                "status": entry.status,
+                "created_at": entry.created_at,
+                "promoted_at": entry.promoted_at,
+                "guest": demo_guest_to_dict(
+                    db.query(DemoGuest)
+                    .filter(DemoGuest.id == entry.guest_id)
+                    .first(),
+                    db=db,
+                ),
+            }
+            for entry in waitlist
+            if db.query(DemoGuest)
+            .filter(DemoGuest.id == entry.guest_id)
+            .first() is not None
+        ],
+    }
+
+
+@app.post("/demo/admin/check-in/{qr_token}")
+def demo_admin_check_in(
+    qr_token: str,
+    _admin_key: str = Depends(require_demo_admin),
+    db: Session = Depends(get_db),
+):
+    ticket = (
+        db.query(DemoTicket)
+        .filter(DemoTicket.qr_token == qr_token)
+        .first()
+    )
+
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="ticket_not_found")
+
+    if ticket.ticket_status != "active":
+        raise HTTPException(status_code=409, detail="ticket_not_active")
+
+    if ticket.checked_in_at is None:
+        ticket.checked_in_at = utc_now()
+        db.commit()
+        db.refresh(ticket)
+
+    return {
+        "status": "checked_in",
+        "ticket": demo_ticket_to_dict(ticket, db),
+    }

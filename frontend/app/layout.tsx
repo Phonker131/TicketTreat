@@ -1,0 +1,52 @@
+import type { Metadata, Viewport } from "next";
+import Script from "next/script";
+import "./globals.css";
+
+import { LanguageProvider } from "@/components/LanguageProvider";
+import { PwaBootstrap } from "@/components/PwaBootstrap";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Crowdly",
+    template: "%s · Crowdly",
+  },
+  description: "Events, tickets and reminders in one place.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Crowdly",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#C2118A",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ru">
+      <body>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+        <LanguageProvider>
+          <PwaBootstrap />
+          {children}
+        </LanguageProvider>
+      </body>
+    </html>
+  );
+}
