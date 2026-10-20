@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import (
     BigInteger,
@@ -279,6 +280,28 @@ PRAGUE_TZ = ZoneInfo("Europe/Prague")
 PAYMENT_CONFIRMATION_HOURS = 24
 DEMO_PAYMENT_MODE = os.getenv("DEMO_PAYMENT_MODE", "true").strip().lower() in {"1", "true", "yes", "on"}
 DEMO_ADMIN_KEY = os.getenv("DEMO_ADMIN_KEY", "").strip()
+DEMO_ISOLATED_API = os.getenv("DEMO_ISOLATED_API", "false").strip().lower() in {"1", "true", "yes", "on"}
+
+
+@app.middleware("http")
+async def isolate_showcase_api(request, call_next):
+    """Allow demo routes and public event discovery, not legacy private APIs."""
+    if not DEMO_ISOLATED_API or request.method == "OPTIONS":
+        return await call_next(request)
+
+    path = request.url.path
+    safe_read = (
+        request.method == "GET"
+        and (
+            path in {"/", "/events", "/docs", "/openapi.json"}
+            or (path.startswith("/events/") and path.removeprefix("/events/").isdigit())
+        )
+    )
+    if path.startswith("/demo/") or safe_read:
+        return await call_next(request)
+
+    return JSONResponse(status_code=403, content={"detail": "demo_api_restricted"})
+
 
 
 # =========================================================
@@ -980,6 +1003,9 @@ def payment_cleanup_worker():
 @app.on_event("startup")
 def start_payment_cleanup_worker():
     global _payment_cleanup_started
+
+    if DEMO_ISOLATED_API:
+        return
 
     with _payment_cleanup_lock:
         if _payment_cleanup_started:
