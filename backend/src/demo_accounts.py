@@ -215,6 +215,11 @@ def install_demo_accounts(
                 "last_name": guest.last_name, "visits": int(checkins),
             },
             "email_verified": False,
+            "admin_claim_available": bool(
+                account.email.casefold() in permanent_global_admin_emails()
+                and len(os.getenv("GLOBAL_ADMIN_RECOVERY_SECRET", "")) >= 32
+                and role_for(db, account) != "global_admin"
+            ),
         }
 
     @app.post("/demo/auth/signup", status_code=201)
