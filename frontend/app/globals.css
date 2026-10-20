@@ -887,3 +887,11 @@ input:focus, textarea:focus, select:focus {
   .topbar-nav { gap: 8px; font-size: 12px; }
   .topbar-nav a { white-space: nowrap; }
 }
+
+/* Organizer role selection and cancellation cards */
+.role-options {display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0;}
+.role-options label {display:flex;align-items:center;gap:10px;border:1px solid rgba(30,10,40,.15);border-radius:12px;padding:14px;font-weight:750;cursor:pointer;}
+.role-options input[type="radio"] {width:19px;height:19px;accent-color:#C2118A;flex:none;}
+.state-card.state-error h2 {margin:0 0 12px;}
+.state-card.state-error p {font-weight:500;line-height:1.5;margin:10px 0;}
+@media (max-width:600px){.role-options{grid-template-columns:1fr;}}

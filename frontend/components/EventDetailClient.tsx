@@ -69,17 +69,25 @@ export function EventDetailClient() {
           <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
         </section>
 
-        <section className="join-card">
-          <div>
-            <h2>{event.spots_left === 0 ? t(language, "soldOut") : t(language, "join")}</h2>
-            <p>{t(language, "demoHint")}</p>
-          </div>
-          {event.spots_left === 0 ? (
-            <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1`}>{t(language, "waitlist")}</Link>
-          ) : (
-            <Link className="button button-primary" href={`/checkout/${event.id}`}>{t(language, "join")}</Link>
-          )}
-        </section>
+        {event.is_cancelled ? (
+          <section className="state-card state-error">
+            <h2>{t(language,"cancelled")}</h2>
+            <p><strong>{language==="en"?"Cancellation reason":language==="cs"?"Důvod zrušení":language==="uk"?"Причина скасування":"Причина отмены"}:</strong> {event.cancellation_reason || "—"}</p>
+            <p>{language==="en"?"Registration is closed.":language==="cs"?"Registrace je uzavřena.":language==="uk"?"Реєстрацію закрито.":"Регистрация закрыта."}</p>
+          </section>
+        ) : (
+          <section className="join-card">
+            <div>
+              <h2>{event.spots_left === 0 ? t(language, "soldOut") : t(language, "join")}</h2>
+              <p>{t(language, "demoHint")}</p>
+            </div>
+            {event.spots_left === 0 ? (
+              <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1`}>{t(language, "waitlist")}</Link>
+            ) : (
+              <Link className="button button-primary" href={`/checkout/${event.id}`}>{t(language, "join")}</Link>
+            )}
+          </section>
+        )}
       </main>
     </div>
   );

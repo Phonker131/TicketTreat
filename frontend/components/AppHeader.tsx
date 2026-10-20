@@ -6,12 +6,30 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
 import { isTelegramWebApp } from "@/lib/telegram";
 import { t } from "@/lib/i18n";
+import { getManageMe } from "@/lib/api";
+import { getWebToken } from "@/lib/session";
 
 export function AppHeader() {
   const { language } = useLanguage();
   const [insideTelegram, setInsideTelegram] = useState(false);
+  const [canOrganize, setCanOrganize] = useState(false);
 
   useEffect(() => setInsideTelegram(isTelegramWebApp()), []);
+
+  useEffect(() => {
+    let live=true;
+    async function refresh() {
+      const token=getWebToken();
+      if(!token){if(live)setCanOrganize(false);return;}
+      try {
+        const me=await getManageMe(token);
+        if(live)setCanOrganize(me.role==="organizer"||me.role==="global_admin");
+      } catch {if(live)setCanOrganize(false);}
+    }
+    refresh();
+    window.addEventListener("crowdly-auth-change",refresh);
+    return()=>{live=false;window.removeEventListener("crowdly-auth-change",refresh)};
+  }, []);
 
   return (
     <header className="topbar">
@@ -24,7 +42,7 @@ export function AppHeader() {
           <Link href="/">{t(language, "home")}</Link>
           <Link href="/tickets">{t(language, "tickets")}</Link>
           <Link href="/profile">{t(language, "profile")}</Link>
-          <Link href="/admin">{t(language, "admin")}</Link>
+          {canOrganize && <Link href="/admin">{t(language, "admin")}</Link>}
         </nav>
 
         <div className="topbar-actions">
