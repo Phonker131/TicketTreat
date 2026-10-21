@@ -52,7 +52,7 @@ from demo_legacy import LegacyTicketClaim
 from demo_observability import install_request_logging
 from demo_principal_api import install_principal_api
 from demo_publication import EventPublication, state as event_publication_state, require_published
-from demo_waitlist_offers import WaitlistOffer, offer_count, maybe_offer_next, expire_for_event, ensure_available_offer, accept_offer
+from demo_waitlist_offers import WaitlistOffer, offer_count, maybe_offer_next, expire_for_event, ensure_available_offer, accept_offer, install_waitlist_offer_worker
 from demo_pilot_ops import EventPilotSettings, EventCheckinStaff, booking_cutoff_reached, install_pilot_ops
 
 
@@ -3342,3 +3342,6 @@ install_telegram_auth(app, get_db, __import__('sys').modules[__name__])
 install_principal_api(app, get_db, __import__('sys').modules[__name__])
 # Least-privilege event staffing, reporting and booking policy.
 install_pilot_ops(app, get_db, __import__('sys').modules[__name__])
+
+# Opt-in dedicated expiry worker. Configure on only one Railway backend instance.
+install_waitlist_offer_worker(app, SessionLocal, __import__("sys").modules[__name__])
