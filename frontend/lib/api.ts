@@ -521,6 +521,16 @@ export function decideOrganizer(accountId:number,approve:boolean):Promise<{statu
   });
 }
 
+export function requestQuickSignup(email:string,firstName:string,privacyAccepted:boolean):Promise<{status:string}>{
+  return request("/demo/auth/quick/request",{
+    method:"POST",body:JSON.stringify({email,first_name:firstName,privacy_accepted:privacyAccepted,privacy_version:"2026-10"})
+  });
+}
+export function confirmQuickSignup(email:string,code:string):Promise<WebAuthResult>{
+  return request("/demo/auth/quick/confirm",{
+    method:"POST",body:JSON.stringify({email,code})
+  });
+}
 export function requestMagicLogin(email:string):Promise<{status:string}>{
   return request("/demo/auth/magic/request",{method:"POST",body:JSON.stringify({email})});
 }
