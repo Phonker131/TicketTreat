@@ -1,6 +1,6 @@
 export type LanguageCode = "en" | "cs" | "ru" | "uk";
 
-export type CrowdlyEvent = {
+export type TicketTreatEvent = {
   id: number;
   title: string;
   organizer: string | null;
@@ -50,7 +50,7 @@ export type DemoTicket = {
   created_at: string;
   checked_in_at: string | null;
   cancelled_at: string | null;
-  event: CrowdlyEvent | null;
+  event: TicketTreatEvent | null;
   guest: DemoGuest | null;
 };
 
@@ -62,7 +62,7 @@ export type DemoCheckoutResponse = {
 };
 
 export type AdminEventTickets = {
-  event: CrowdlyEvent;
+  event: TicketTreatEvent;
   tickets: DemoTicket[];
   waitlist: Array<{
     id: number;
@@ -103,7 +103,7 @@ export type WebAuthResult = {
 export type TelegramAuthResult = {
   guest: DemoGuest;
   telegram: {id: number; first_name: string; username: string | null};
-  bot_registrations: CrowdlyEvent[];
+  bot_registrations: TicketTreatEvent[];
   accounts_linked: boolean;
 };
 
@@ -112,5 +112,5 @@ export type ManageIdentity = {
   email: string;
   role: "participant" | "organizer" | "global_admin";
 };
-export type ManageEvent = CrowdlyEvent & {owner_account_id: number | null};
+export type ManageEvent = TicketTreatEvent & {owner_account_id: number | null};
 export type OrganizerIdentity = {account_id: number;name: string;email: string};
