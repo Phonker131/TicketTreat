@@ -1,6 +1,6 @@
 import type {
   AdminEventTickets,
-  CrowdlyEvent,
+  TicketTreatEvent,
   DemoCheckoutResponse,
   DemoGuest,
   DemoTicket,
@@ -59,8 +59,8 @@ async function request<T>(
 export function getEvents(
   signal?: AbortSignal,
   includePast = false,
-): Promise<CrowdlyEvent[]> {
-  return request<CrowdlyEvent[]>(
+): Promise<TicketTreatEvent[]> {
+  return request<TicketTreatEvent[]>(
     `/events${includePast ? "?include_past=true" : ""}`,
     {signal},
   );
@@ -69,8 +69,8 @@ export function getEvents(
 export function getEvent(
   eventId: string | number,
   signal?: AbortSignal,
-): Promise<CrowdlyEvent> {
-  return request<CrowdlyEvent>(
+): Promise<TicketTreatEvent> {
+  return request<TicketTreatEvent>(
     `/events/${encodeURIComponent(String(eventId))}`,
     {signal},
   );
@@ -170,7 +170,7 @@ export function adminCheckIn(
 }
 
 export function createEvent(payload: Record<string, unknown>, adminKey: string) {
-  return request<CrowdlyEvent>("/demo/admin/events", {
+  return request<TicketTreatEvent>("/demo/admin/events", {
     method: "POST",
     headers: {"X-Demo-Admin-Key": adminKey},
     body: JSON.stringify(payload),
