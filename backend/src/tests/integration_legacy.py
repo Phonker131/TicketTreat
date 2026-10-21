@@ -47,8 +47,8 @@ class LegacyMigrationTests(unittest.TestCase):
             self.assertEqual(login.status_code,200,login.text)
             self.assertEqual(login.json()["legacy_reconciliation"]["converted"],1)
             self.assertGreaterEqual(login.json()["legacy_reconciliation"]["held_for_review"],1)
-            token=login.json()["guest"]["access_token"]
-            list_resp=client.get(f"/demo/guests/{token}/tickets",
+            self.assertEqual(login.json()["guest"]["access_token"],"")
+            list_resp=client.get("/demo/me/tickets",
                 headers={"X-Telegram-Init-Data":launch})
             self.assertEqual(list_resp.status_code,200,list_resp.text)
             tickets=list_resp.json()
