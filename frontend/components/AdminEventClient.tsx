@@ -80,6 +80,17 @@ export function AdminEventClient(){
     reload().catch(e=>{if(active)setError(formattedError(e));}).finally(()=>{if(active)setLoading(false);});
     return()=>{active=false};
   },[eventId]);
+  useEffect(()=>{
+    if(!Number.isInteger(eventId)||eventId<=0)return;
+    // Read-only live counters for teams scanning on several devices.
+    const timer=window.setInterval(()=>{
+      if(document.visibilityState!=="visible")return;
+      const token=getWebToken();if(!token)return;
+      void getPilotInsights(token,eventId).then(setPilotInsights).catch(()=>{});
+    },15000);
+    return()=>window.clearInterval(timer);
+  },[eventId]);
+
   async function saveChanges(e:FormEvent){
     e.preventDefault();const token=getWebToken();if(!token||!event)return;
     setBusy(true);setError("");setNotice("");
