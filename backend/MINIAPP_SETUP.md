@@ -18,6 +18,7 @@ This branch deliberately remains separate from the Railway-deployed
   Legacy bot registrations remain legacy entries, NOT fake QR tickets.
 - **Prevent accidental double booking:** if signed Telegram user has a bot
   registration for an event, Mini App blocks buying a second demo ticket.
+- **Telegram bot confirmations:** after a new Mini App QR ticket is issued to a verified Telegram user, Demo API sends a best-effort private confirmation with a link to the QR pass (without exposing bearer tokens in the message). A blocked/not-started bot may not deliver the message.
 - **Telegram bot entry points:** /app and /tickets, Mini App keyboard button,
   and existing WebAppInfo buttons on individual events.
 - **Website email accounts remain separate.** They are never joined to a

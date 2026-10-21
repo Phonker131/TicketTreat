@@ -46,5 +46,41 @@ class TelegramSecurityTests(unittest.TestCase):
         self.assertEqual(case.exception.status_code, 503)
 
 
+    def test_ticket_notice_is_sent_by_bot_without_exposing_qr_secret(self):
+        import os
+        import json
+        from unittest.mock import patch
+        from demo_telegram import send_miniapp_ticket_notice
+        with patch.dict(os.environ, {
+            "TELEGRAM_MINIAPP_BOT_TOKEN": "test:BOT_TOKEN",
+            "WEB_APP_URL": "https://crowdly.example",
+        }), patch("demo_telegram.urllib.request.urlopen") as post:
+            post.return_value.__enter__.return_value.status = 200
+            send_miniapp_ticket_notice(12345, "Fun <Night>", 42, True, "en")
+            self.assertEqual(post.call_count, 1)
+            request = post.call_args.args[0]
+            data = json.loads(request.data.decode("utf-8"))
+            self.assertEqual(data["chat_id"], 12345)
+            self.assertIn("Fun &lt;Night&gt;", data["text"])
+            self.assertIn("Free ticket", data["text"])
+            self.assertEqual(
+                data["reply_markup"]["inline_keyboard"][0][0]["web_app"]["url"],
+                "https://crowdly.example/tickets/42",
+            )
+            self.assertNotIn("qr_token", data["text"])
+
+    def test_ticket_notice_requires_private_server_configuration(self):
+        import os
+        from unittest.mock import patch
+        from demo_telegram import send_miniapp_ticket_notice
+        with patch.dict(os.environ, {
+            "TELEGRAM_MINIAPP_BOT_TOKEN": "",
+            "WEB_APP_URL": "https://crowdly.example",
+        }), patch("demo_telegram.urllib.request.urlopen") as post:
+            send_miniapp_ticket_notice(1, "Test", 3, False, "ru")
+            post.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()

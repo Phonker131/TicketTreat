@@ -36,6 +36,7 @@ A separate DRAFT pull request is used to protect the running Bot, original Backe
 - /tickets shows QR tickets and separate earlier bot registrations.
 - Reopening Mini App on another device retains Telegram-linked demo tickets.
 - Duplicate booking via bot and Mini App is rejected.
+- After a successful signed Mini App booking, the same Telegram bot attempts a private confirmation with a button opening the QR ticket. It is sent as a non-blocking background task; Telegram delivery is best-effort and users must have started the bot.
 - Free event issues QR without card details or money charges.
 - Paid event remains explicitly demo-only, with no charges.
 - Organizer can check in Mini App QR. Existing website login remains available.
@@ -44,5 +45,5 @@ A separate DRAFT pull request is used to protect the running Bot, original Backe
 ## Not included
 - Explicit Telegram-to-web-account linking (must verify BOTH sources).
 - Migration of legacy bot reservations to QR tickets.
-- Production real-money payments, outbound Telegram ticket notifications.
+- Production real-money payments, scheduled Mini App reminder notifications.
 - Full HttpOnly cookie migration, passwordless login and hardened session storage.
