@@ -1009,3 +1009,39 @@ input:focus, textarea:focus, select:focus {
 
 /* Event photography collection */
 .event-media-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:15px}.event-media-gallery a{display:block;aspect-ratio:4/3;overflow:hidden;border-radius:13px}.event-media-gallery img{width:100%;height:100%;object-fit:cover}
+
+
+/* Free-pilot management: accessible controls and compact mobile reporting. */
+.pilot-event-filters {
+  display:grid;
+  grid-template-columns:minmax(220px,2fr) minmax(140px,1fr) minmax(160px,1fr);
+  align-items:end;
+  gap:14px;
+  margin:20px 0;
+}
+.pilot-event-filters label {display:flex; flex-direction:column; gap:7px; font-weight:700;}
+.pilot-analytics-bars {
+  display:grid; gap:9px;
+  max-height:420px; overflow:auto;
+}
+.pilot-bar-row {
+  display:grid; grid-template-columns:100px minmax(70px,1fr) 36px;
+  gap:12px; align-items:center; font-size:13px;
+}
+.pilot-bar-track {
+  background:var(--surface, #f5f0f8);
+  height:12px; min-width:0;
+  overflow:hidden; border-radius:8px;
+}
+.pilot-bar-track > div {
+  background:var(--accent, #C2118A);
+  height:100%; min-width:3px; border-radius:8px;
+}
+.pilot-bar-row strong {text-align:end; font-variant-numeric:tabular-nums;}
+@media(max-width:760px){
+  .pilot-event-filters {grid-template-columns:1fr;}
+  .pilot-bar-row {grid-template-columns:92px minmax(80px,1fr) 30px;gap:8px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .pilot-bar-track > div {transition:none!important;}
+}
