@@ -1,27 +1,15 @@
-# Recovering a Crowdly global administrator
+# Global administrator access
 
-Use Railway project **stunning-spontaneity** → **Demo API** → **Variables**.
+Global administrator permissions are granted server-side. Knowing or registering an allowlisted email address **does not grant access**.
 
-- GLOBAL_ADMIN_EMAILS: comma-separated eligible email addresses.
-- GLOBAL_ADMIN_RECOVERY_SECRET: strong randomly generated key (minimum 32 characters).
-- GLOBAL_ADMIN_ACCOUNT_IDS: optional legacy direct account IDs; prefer claims.
+## Recovery prerequisites
 
-A configured email is **only an allowlist**, not sufficient to become an admin, because
-this demo does not yet verify the email address at website signup.
+1. The account must control and verify its email address with TicketTreat.
+2. The account email must be included in the server-side `GLOBAL_ADMIN_EMAILS` allowlist.
+3. The server must have a strong, private `GLOBAL_ADMIN_RECOVERY_SECRET` (32+ characters).
+4. The applicant signs in and enters the recovery secret through the Profile recovery flow. The backend checks the proof and binds the grant to that account ID.
+5. Account roles and ownership must be rechecked on staging after upgrades.
 
-1. Sign up / log in with one of the configured emails using the website.
-2. Open /profile and find the "Recover global admin access" panel.
-3. Paste GLOBAL_ADMIN_RECOVERY_SECRET from your private Railway Variables.
-4. Confirm. The server stores a verified admin grant bound to the current account ID.
-5. Your role changes to Global Admin immediately.
+Do **not** share or commit the secret; configure it in the Railway API service's **Variables**. Restrict who can view/edit production variables and rotate the secret after any suspected disclosure.
 
-If that account is later deleted and recreated, the stored grant will not
-authorize the new account automatically: repeat step 3 with the recovery secret.
-That prevents someone from registering your email and silently becoming admin.
-
-**Security:** Never expose the recovery secret in frontend NEXT_PUBLIC_ variables,
-GitHub, logs, screenshots or a chat. Rotate the secret if disclosed. Once a proper
-email ownership verification flow is implemented, recovery can be migrated to a
-one-time expiring email link with rate limits.
-
-Current production Bot and Backend are not involved.
+This process is a temporary recovery control, **not MFA**. Privileged phishing-resistant MFA and audited administrator enrollment remain release blockers. See [security status](SECURITY_STATUS.md).
