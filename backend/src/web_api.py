@@ -163,7 +163,7 @@ def verify_signup(payload: VerifySignup, db: Session = Depends(get_db)):
         raise HTTPException(400, "Invalid or expired verification code")
     if db.query(EmailIdentity).filter_by(email=email).first():
         raise HTTPException(409, "Email already registered")
-    user = models.User()
+    user = models.User(telegram_id=None)
     db.add(user)
     db.flush()
     db.add(EmailIdentity(user_id=user.id, email=email, password_hash=pending.password_hash))
@@ -197,6 +197,27 @@ def telegram_login(authorization: str | None = Header(None), db: Session = Depen
         db.commit()
         db.refresh(user)
     return create_session(db, user.id)
+
+
+@router.post("/auth/telegram/link")
+def link_telegram(authorization: str | None = Header(None),
+                  x_telegram_init_data: str | None = Header(None),
+                  user=Depends(current_user), db: Session = Depends(get_db)):
+    if not x_telegram_init_data:
+        raise HTTPException(401, "Signed Telegram login is required")
+    try:
+        telegram = validate_init_data(x_telegram_init_data, os.environ["BOT_TOKEN"])
+    except (MiniAppAuthError, KeyError):
+        raise HTTPException(401, "Invalid Telegram launch data")
+    existing = db.query(models.User).filter_by(telegram_id=telegram["id"]).first()
+    if existing is not None and existing.id != user.id:
+        raise HTTPException(409, "Telegram identity belongs to another account")
+    if user.telegram_id is not None and user.telegram_id != telegram["id"]:
+        raise HTTPException(409, "Another Telegram identity is already linked")
+    user.telegram_id = telegram["id"]
+    user.username = telegram.get("username")
+    db.commit()
+    return {"telegram_connected": True}
 
 
 @router.get("/me")
@@ -298,4 +319,8 @@ def logout(authorization: str | None = Header(None), user=Depends(current_user),
 
 
 def install(app):
+    # Importing the models before this call allows create_all to create the new tables.
+    # Existing users.telegram_id still requires the explicit SQL migration.
+    from db.session import engine
+    Base.metadata.create_all(bind=engine)
     app.include_router(router)
