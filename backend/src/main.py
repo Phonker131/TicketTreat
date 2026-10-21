@@ -44,7 +44,7 @@ from demo_account_recovery import VerifiedEmail, EmailChallenge, install_email_a
 from demo_site_content import SiteLanding, install_site_content
 from demo_telegram import DemoTelegramIdentity, install_telegram_auth, verified_telegram_id_for_guest, verified_telegram_user, send_miniapp_ticket_notice
 from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
-from demo_roles import WebAccountRole, OrganizerApplication, GlobalAdminDelegation, EventOwnership, EventModerationLog, AccountAdminAudit, install_demo_roles, install_account_moderation
+from demo_roles import WebAccountRole, OrganizerApplication, GlobalAdminDelegation, EventGalleryImage, EventOwnership, EventModerationLog, AccountAdminAudit, install_demo_roles, install_account_moderation
 from demo_email import EmailOutbox, queue_email, queue_event_reminder, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
 from demo_privacy import PrivacyRequest, install_privacy_routes
 from demo_mfa import MFAFactor, MFASession, install_mfa
@@ -989,7 +989,16 @@ def event_to_dict(
         data.update(place_dict(db, DemoEventPlace, "event_id", event.id))
         from demo_roles import EventMedia
         media = db.query(EventMedia).filter(EventMedia.event_id == event.id).first()
-        data["gallery_urls"] = json.loads(media.gallery_json or "[]") if media else []
+        external_gallery = json.loads(media.gallery_json or "[]") if media else []
+        images = db.query(EventGalleryImage).filter(
+            EventGalleryImage.event_id == event.id,
+        ).order_by(EventGalleryImage.id).all()
+        data["external_gallery_urls"] = external_gallery
+        data["uploaded_gallery"] = [
+            {"id":image.id, "url":f"/api/gateway/demo/events/{event.id}/gallery/{image.id}"}
+            for image in images
+        ]
+        data["gallery_urls"] = external_gallery + [image["url"] for image in data["uploaded_gallery"]]
         data["video_url"] = media.video_url if media else None
     else:
         data.update({"country_code": None, "city": None})
