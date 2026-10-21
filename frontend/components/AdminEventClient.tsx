@@ -11,7 +11,7 @@ import {
   editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,
   setManagePublication,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
-  getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,
+  getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
@@ -149,6 +149,14 @@ export function AdminEventClient(){
       await reload();setNotice("Фотография удалена.");
     }catch(e){setError(formattedError(e))}
     finally{setBusy(false)}
+  }
+  async function manualCheckIn(ticketId:number){
+    const token=getWebToken();if(!token)return;
+    if(!window.confirm("Отметить участника как прошедшего без сканирования QR? Действие попадёт в журнал."))return;
+    setBusy(true);setError("");setNotice("");
+    try{const result=await checkInByList(token,eventId,ticketId);await reload();
+      setNotice(result.status==="already_checked_in"?"Этот билет уже отмечен.":"Участник отмечен на входе.");}
+    catch(e){setError(formattedError(e));}finally{setBusy(false);}
   }
   async function sendOperationalNotice(){
     const token=getWebToken();if(!token||!event||announcementText.trim().length<20)return;
@@ -425,8 +433,11 @@ export function AdminEventClient(){
             <div className="participant-actions">
               <span className={ticket.checked_in_at?"status status-success":"status status-demo"}>
                 {ticket.ticket_status==="cancelled"?"Cancelled":ticket.checked_in_at?"Checked in":"Paid"}</span>
-              {ticket.ticket_status==="active"&&!ticket.checked_in_at&&
-                <span className="status status-muted">Awaiting QR scan</span>}
+              {ticket.ticket_status==="active"&&!ticket.checked_in_at&&<>
+                <span className="status status-muted">Awaiting QR scan</span>
+                <button className="button button-outline" type="button" disabled={busy}
+                  onClick={()=>manualCheckIn(ticket.id)}>Отметить вручную</button>
+              </>}
             </div>
           </div>)}
         </div></section>
