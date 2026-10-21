@@ -78,6 +78,10 @@ class LoginData(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class MagicRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=255)
+
+
 class MagicLogin(BaseModel):
     email: str = Field(min_length=5, max_length=255)
     code: str = Field(pattern=r"^\\d{8}$")
@@ -317,7 +321,7 @@ def install_demo_accounts(
         return {"token": token, "profile": profile_dict(account, db)}
 
     @app.post("/demo/auth/magic/request")
-    def request_magic_login(payload: LoginData | dict, request: Request,
+    def request_magic_login(payload: MagicRequest, request: Request,
                             db: Session = Depends(get_db)):
         """Email one-time code for an existing verified account only.
 
@@ -326,8 +330,7 @@ def install_demo_accounts(
         """
         from demo_account_recovery import create_challenge, email_is_verified
         # Accept email only; never log passwords/other supplied fields.
-        provided = payload.email if isinstance(payload, LoginData) else payload.get("email", "")
-        email = normalize_email(str(provided))
+        email = normalize_email(payload.email)
         ip = request.client.host if request.client else "unknown"
         guard_rate(db, "magic_request_ip", ip, 12, 3600)
         guard_rate(db, "magic_request_email", email, 4, 3600)
