@@ -60,6 +60,15 @@ export function EventDetailClient() {
           </div>
         </section>
 
+        {Boolean(event.gallery_urls?.length) && <section className="panel" style={{marginBottom:20}}>
+          <h2>{language==="ru"?"Фотографии":language==="uk"?"Світлини":language==="cs"?"Fotogalerie":"Photo gallery"}</h2>
+          <div className="event-media-gallery">{event.gallery_urls?.map((url,index)=><a key={url+index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Event gallery photo ${index+1}`} loading="lazy" referrerPolicy="no-referrer"/></a>)}</div>
+        </section>}
+        {event.video_url && <section className="panel" style={{marginBottom:20}}>
+          <h2>{language==="ru"?"Видео мероприятия":language==="uk"?"Відео події":language==="cs"?"Video z akce":"Event video"}</h2>
+          <a className="button button-outline" href={event.video_url} target="_blank" rel="noopener noreferrer">
+          {language==="ru"?"Смотреть видео ↗":language==="uk"?"Дивитися відео ↗":language==="cs"?"Zobrazit video ↗":"Watch video ↗"}</a>
+        </section>}
         <section className="detail-grid">
           <div className="detail-item"><span>{t(language, "startsAt")}</span><strong>{formatDate(event.starts_at, language)}</strong></div>
           <div className="detail-item"><span>{t(language, "location")}</span><strong>{event.location || "—"}</strong></div>
