@@ -36,4 +36,15 @@ CREATE TABLE IF NOT EXISTS demo_privacy_requests (
 );
 CREATE INDEX IF NOT EXISTS ix_demo_privacy_requests_account_id
   ON demo_privacy_requests(account_id);
+CREATE TABLE IF NOT EXISTS demo_account_admin_audit (
+    id SERIAL PRIMARY KEY,
+    actor_account_id INTEGER NOT NULL,
+    target_account_id INTEGER NOT NULL,
+    action VARCHAR(48) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_demo_account_admin_audit_actor_account_id
+  ON demo_account_admin_audit(actor_account_id);
+CREATE INDEX IF NOT EXISTS ix_demo_account_admin_audit_target_account_id
+  ON demo_account_admin_audit(target_account_id);
 COMMIT;
