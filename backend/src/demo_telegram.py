@@ -29,7 +29,7 @@ from sqlalchemy.orm import Session
 
 from db.base import Base
 
-LOGGER = logging.getLogger("crowdly.telegram_auth")
+LOGGER = logging.getLogger("tickettreat.telegram_auth")
 INIT_DATA_MAX_AGE_SECONDS = 24 * 3600
 INIT_DATA_CLOCK_SKEW_SECONDS = 60
 
