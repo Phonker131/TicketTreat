@@ -22,6 +22,9 @@ type LanguageContextValue = {
 const LanguageContext =
   createContext<LanguageContextValue | null>(null);
 
+const LANGUAGE_KEY = "tickettreat_interface_language";
+const LEGACY_LANGUAGE_KEY = "crowdly_interface_language";
+
 function getInitialLanguage(): LanguageCode {
   if (typeof window === "undefined") {
     return "ru";
@@ -38,12 +41,13 @@ function getInitialLanguage(): LanguageCode {
   }
 
   const stored = normalizeLanguage(
-    window.localStorage.getItem(
-      "crowdly_interface_language",
-    ),
+    window.localStorage.getItem(LANGUAGE_KEY) ||
+    window.localStorage.getItem(LEGACY_LANGUAGE_KEY),
   );
 
   if (stored) {
+    window.localStorage.setItem(LANGUAGE_KEY, stored);
+    window.localStorage.removeItem(LEGACY_LANGUAGE_KEY);
     return stored;
   }
 
@@ -82,10 +86,8 @@ export function LanguageProvider({
     setLanguageState(nextLanguage);
 
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        "crowdly_interface_language",
-        nextLanguage,
-      );
+      window.localStorage.setItem(LANGUAGE_KEY,nextLanguage);
+      window.localStorage.removeItem(LEGACY_LANGUAGE_KEY);
     }
   };
 
