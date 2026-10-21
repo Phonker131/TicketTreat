@@ -8,7 +8,7 @@ import { getVerifiedTelegramSession } from "@/lib/session";
 import {CountryCityFields} from "@/components/CountryCityFields";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, exportAccountData, linkTelegramToWebsite } from "@/lib/api";
+import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, requestMagicLogin, confirmMagicLogin, exportAccountData, linkTelegramToWebsite } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -95,6 +95,9 @@ export function ProfileClient() {
   const [claimKey, setClaimKey] = useState("");
   const [verificationCode,setVerificationCode]=useState("");
   const [resetOpen,setResetOpen]=useState(false);
+  const [magicOpen,setMagicOpen]=useState(false);
+  const [magicCode,setMagicCode]=useState("");
+  const [magicSent,setMagicSent]=useState(false);
   const [resetCode,setResetCode]=useState("");
   const [resetPassword,setResetPassword]=useState("");
   const [showClaim, setShowClaim] = useState(false);
@@ -486,6 +489,36 @@ export function ProfileClient() {
               <p className="form-note">{mode==="signup"?tr.passwordHint:tr.note}</p>
               <button className="button button-primary" type="submit" disabled={busy}>{busy?tr.loading:mode==="signup"?tr.create:tr.login}</button>
             </form>
+            {mode==="login"&&<section className="panel form-stack">
+              <button type="button" className="button button-outline"
+                onClick={()=>setMagicOpen(v=>!v)}>
+                {language==="ru"?"Войти по коду из email":language==="cs"?"Přihlásit se e-mailovým kódem":language==="uk"?"Увійти за кодом із пошти":"Sign in with an email code"}
+              </button>
+              {magicOpen&&<>
+                <p className="form-note">{language==="ru"?
+                  "Доступно для ранее подтверждённых аккаунтов. Код действует 10 минут и используется только один раз.":
+                  "For existing verified accounts. The one-time code expires after 10 minutes."}</p>
+                <label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
+                <button className="button button-outline" type="button" disabled={busy||!email.includes("@")}
+                  onClick={async()=>{setBusy(true);setError("");try{
+                    await requestMagicLogin(email);setMagicSent(true);
+                    setNotice(language==="ru"?"Если аккаунт подтверждён, код отправлен.":"A code was sent if the account exists.");
+                  }catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
+                  {language==="ru"?"Отправить код входа":"Send sign-in code"}
+                </button>
+                {magicSent&&<form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setError("");
+                  try{const result=await confirmMagicLogin(email,magicCode);setWebAuth(result);loadProfile(result.profile);
+                    setMagicCode("");setMagicOpen(false);setMagicSent(false);setNotice(tr.welcome);
+                  }catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
+                  <label>{language==="ru"?"Код из письма":"Email code"}
+                    <input required inputMode="numeric" pattern="[0-9]{8}" maxLength={8} value={magicCode} onChange={e=>setMagicCode(e.target.value)}/>
+                  </label>
+                  <button className="button button-primary" type="submit" disabled={busy||magicCode.length!==8}>
+                    {tr.login}
+                  </button>
+                </form>}
+              </>}
+            </section>}
             <button type="button" className="button button-outline" onClick={()=>setResetOpen(v=>!v)}>
               {language==="ru"?"Забыли пароль?":language==="uk"?"Забули пароль?":language==="cs"?"Zapomenuté heslo?":"Forgot password?"}
             </button>
