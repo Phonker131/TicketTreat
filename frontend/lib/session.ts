@@ -1,10 +1,35 @@
 import type { DemoGuest } from "@/lib/types";
-import { getDemoGuest, getWebProfile } from "@/lib/api";
-import type { WebAuthResult, WebProfile } from "@/lib/types";
+import { getDemoGuest, getWebProfile, authenticateTelegram } from "@/lib/api";
+import { getTelegramWebApp } from "@/lib/telegram";
+import type { TelegramAuthResult, WebAuthResult, WebProfile } from "@/lib/types";
 
 const TOKEN_KEY = "crowdly_demo_guest_token";
 const ADMIN_KEY = "crowdly_demo_admin_key";
 const WEB_TOKEN_KEY = "crowdly_demo_web_auth";
+let telegramAuthPromise: Promise<TelegramAuthResult | null> | null = null;
+
+/** Web app user identity is verified by FastAPI using bot-token HMAC.
+ * Do not merge verified Telegram identity with website email accounts.
+ */
+export function getVerifiedTelegramSession(): Promise<TelegramAuthResult | null> {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  const initData = getTelegramWebApp()?.initData;
+  if (!initData) return Promise.resolve(null);
+  if (!telegramAuthPromise) {
+    telegramAuthPromise = authenticateTelegram(initData).then(result => {
+      if (!getWebToken()) {
+        storeGuest(result.guest);
+        window.dispatchEvent(new Event("crowdly-auth-change"));
+      }
+      return result;
+    }).catch(error => {
+      telegramAuthPromise = null;
+      throw error;
+    });
+  }
+  return telegramAuthPromise;
+}
+
 
 export function getStoredGuestToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -63,6 +88,11 @@ export async function restoreGuest(): Promise<DemoGuest | null> {
   if (webToken) {
     const profile = await restoreWebProfile();
     return profile?.guest || null;
+  }
+  if (getTelegramWebApp()?.initData) {
+    const result = await getVerifiedTelegramSession();
+    if (result) return result.guest;
+    return null;
   }
   const token = getStoredGuestToken();
   if (token) {

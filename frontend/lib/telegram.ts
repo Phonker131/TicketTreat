@@ -1,4 +1,5 @@
 export type TelegramWebApp = {
+  initData?: string;
   ready: () => void;
   expand: () => void;
   setHeaderColor?: (color: string) => void;

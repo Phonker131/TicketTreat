@@ -97,6 +97,13 @@ export type WebAuthResult = {
   profile: WebProfile;
 };
 
+export type TelegramAuthResult = {
+  guest: DemoGuest;
+  telegram: {id: number; first_name: string; username: string | null};
+  bot_registrations: CrowdlyEvent[];
+  accounts_linked: false;
+};
+
 export type ManageIdentity = {
   account_id: number;
   email: string;

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { getTelegramWebApp } from "@/lib/telegram";
+import { getVerifiedTelegramSession } from "@/lib/session";
 
 export function PwaBootstrap() {
   useEffect(() => {
@@ -27,6 +28,12 @@ export function PwaBootstrap() {
       webApp.expand();
       webApp.setHeaderColor?.("#F6EEFA");
       webApp.setBackgroundColor?.("#F6EEFA");
+      if (webApp.initData) {
+        void getVerifiedTelegramSession().catch(() => {
+          // Do not expose Telegram initData or server details in browser logs.
+          console.warn("Crowdly: Telegram Mini App authentication unavailable.");
+        });
+      }
     }
   }, []);
 

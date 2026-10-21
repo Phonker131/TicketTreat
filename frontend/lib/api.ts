@@ -6,6 +6,7 @@ import type {
   DemoTicket,
   WebAuthResult,
   WebProfile,
+  TelegramAuthResult,
 } from "@/lib/types";
 
 const API_URL = (
@@ -329,4 +330,12 @@ export async function logoutAllWebSessions(token: string): Promise<void> {
 
 export async function getWebSessions(token: string): Promise<{sessions: {id: number; created_at: string; expires_at: string}[]}> {
   return request("/demo/auth/sessions", {headers: {Authorization: `Bearer ${token}`}});
+}
+
+/** Only signed Telegram WebApp.initData is accepted; never send initDataUnsafe.user. */
+export function authenticateTelegram(initData: string): Promise<TelegramAuthResult> {
+  return request<TelegramAuthResult>("/demo/telegram/auth", {
+    method: "POST",
+    body: JSON.stringify({init_data: initData}),
+  });
 }
