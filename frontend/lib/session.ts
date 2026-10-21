@@ -8,6 +8,14 @@ const ADMIN_KEY = "crowdly_demo_admin_key";
 const WEB_TOKEN_KEY = "crowdly_demo_web_auth";
 const SESSION_MARKER = "browser-session";
 let telegramAuthPromise: Promise<TelegramAuthResult | null> | null = null;
+let activeGuest: DemoGuest | null = null;
+// Old persistent guest tokens are deliberately never rehydrated. Current
+// verified accounts restore identity from the HttpOnly session / signed TG.
+function clearLegacyGuestStorage(){
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(ADMIN_KEY);
+}
 
 /** Web app user identity is verified by FastAPI using bot-token HMAC.
  * Do not merge verified Telegram identity with website email accounts.
@@ -34,19 +42,29 @@ export function getVerifiedTelegramSession(): Promise<TelegramAuthResult | null>
 
 export function getStoredGuestToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  clearLegacyGuestStorage();
+  // Demo-only anonymous reservations may persist for this browser tab.
+  // Public production sessions rehydrate from server, never browser storage.
+  if (process.env.NODE_ENV !== "production") {
+    return activeGuest?.access_token || sessionStorage.getItem(TOKEN_KEY);
+  }
+  return activeGuest?.access_token || null;
 }
 
 export function storeGuest(guest: DemoGuest) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(TOKEN_KEY, guest.access_token);
+  activeGuest=guest;
+  if (typeof window === "undefined") return;
+  clearLegacyGuestStorage();
+  if (process.env.NODE_ENV !== "production") {
+    sessionStorage.setItem(TOKEN_KEY,guest.access_token);
   }
 }
 
 export function clearGuest() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(TOKEN_KEY);
-  }
+  activeGuest=null;
+  if (typeof window === "undefined") return;
+  clearLegacyGuestStorage();
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
 export function getWebToken(): string | null {
@@ -116,12 +134,12 @@ export async function restoreGuest(): Promise<DemoGuest | null> {
 }
 
 export function getAdminKey(): string {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem(ADMIN_KEY) || "";
+  if (typeof window === "undefined" || process.env.NODE_ENV === "production") return "";
+  return sessionStorage.getItem(ADMIN_KEY) || "";
 }
 
 export function setAdminKey(value: string) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(ADMIN_KEY, value);
-  }
+  if (typeof window === "undefined") return;
+  clearLegacyGuestStorage();
+  if (process.env.NODE_ENV !== "production") sessionStorage.setItem(ADMIN_KEY,value);
 }
