@@ -30,6 +30,16 @@ class WebAccountRole(Base):
     role = Column(String(20), nullable=False, default="participant")
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
+class OrganizerApplication(Base):
+    __tablename__ = "demo_organizer_applications"
+    account_id = Column(Integer, primary_key=True)
+    status = Column(String(24), nullable=False, default="pending")
+    created_at = Column(DateTime(timezone=True), nullable=False,
+                        default=lambda: datetime.now(timezone.utc))
+    decided_at = Column(DateTime(timezone=True), nullable=True)
+    decided_by = Column(Integer, nullable=True)
+
+
 class GlobalAdminBinding(Base):
     """Explicit server-authorized global-admin grants tied to an account and email.
 
@@ -531,6 +541,68 @@ def install_account_moderation(app, get_db):
         if role_for(db,account)!="global_admin":
             raise HTTPException(status_code=403,detail="global_admin_only")
         return account
+
+
+    @app.post("/demo/auth/organizer-application",status_code=202)
+    def request_organizer(authorization:str|None=Header(default=None),
+                          db:Session=Depends(get_db)):
+        from demo_account_recovery import email_is_verified
+        account=account_lookup(db,authorization)
+        if role_for(db,account)!="participant":
+            raise HTTPException(409,"already_privileged")
+        if not email_is_verified(db,account.id):
+            raise HTTPException(403,"email_verification_required")
+        row=db.get(OrganizerApplication,account.id)
+        if row is None:
+            db.add(OrganizerApplication(account_id=account.id,status="pending"))
+        elif row.status=="rejected":
+            row.status="pending";row.decided_at=None;row.decided_by=None
+        db.commit()
+        return {"status":"pending"}
+
+    @app.get("/demo/auth/organizer-application")
+    def organizer_status(authorization:str|None=Header(default=None),
+                         db:Session=Depends(get_db)):
+        account=account_lookup(db,authorization)
+        row=db.get(OrganizerApplication,account.id)
+        return {"status":row.status if row else "none",
+                "role":role_for(db,account)}
+
+    @app.get("/demo/manage/organizer-applications")
+    def pending_organizers(admin:WebAccount=Depends(admin_account),
+                           db:Session=Depends(get_db)):
+        results=db.query(OrganizerApplication,WebAccount).join(
+            WebAccount,WebAccount.id==OrganizerApplication.account_id
+        ).filter(OrganizerApplication.status=="pending").order_by(
+            OrganizerApplication.created_at.asc()).limit(100).all()
+        return [{"account_id":a.id,"email":a.email,"created_at":req.created_at}
+                for req,a in results]
+
+    class DecisionPayload(BaseModel):
+        approve: bool
+
+    @app.post("/demo/manage/organizer-applications/{account_id}/decision")
+    def decide_organizer(account_id:int,payload:DecisionPayload,
+                         admin:WebAccount=Depends(admin_account),
+                         db:Session=Depends(get_db)):
+        from demo_account_recovery import email_is_verified
+        application=db.query(OrganizerApplication).filter(
+            OrganizerApplication.account_id==account_id).with_for_update().first()
+        if application is None or application.status!="pending":
+            raise HTTPException(404,"pending_application_not_found")
+        target=db.query(WebAccount).filter(WebAccount.id==account_id).first()
+        if target is None or (payload.approve and not email_is_verified(db,target.id)):
+            raise HTTPException(409,"account_or_verification_missing")
+        application.status="approved" if payload.approve else "rejected"
+        application.decided_at=datetime.now(timezone.utc);application.decided_by=admin.id
+        if payload.approve:
+            role=db.get(WebAccountRole,target.id)
+            if role is None:db.add(WebAccountRole(account_id=target.id,role="organizer"))
+            else:role.role="organizer"
+        db.add(AccountAdminAudit(actor_account_id=admin.id,
+            target_account_id=account_id,action="organizer_approved" if payload.approve else "organizer_rejected"))
+        db.commit()
+        return {"status":application.status,"account_id":account_id}
 
     @app.get("/demo/manage/account-audit")
     def account_audit(
