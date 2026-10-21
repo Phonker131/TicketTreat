@@ -47,4 +47,17 @@ CREATE INDEX IF NOT EXISTS ix_demo_account_admin_audit_actor_account_id
   ON demo_account_admin_audit(actor_account_id);
 CREATE INDEX IF NOT EXISTS ix_demo_account_admin_audit_target_account_id
   ON demo_account_admin_audit(target_account_id);
+CREATE TABLE IF NOT EXISTS demo_mfa_factors (
+    account_id INTEGER PRIMARY KEY,
+    encrypted_secret BYTEA NOT NULL,
+    enabled_at TIMESTAMPTZ,
+    last_counter INTEGER,
+    created_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS demo_mfa_sessions (
+    session_hash VARCHAR(64) PRIMARY KEY,
+    account_id INTEGER NOT NULL,
+    verified_until TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_demo_mfa_sessions_account_id ON demo_mfa_sessions(account_id);
 COMMIT;
