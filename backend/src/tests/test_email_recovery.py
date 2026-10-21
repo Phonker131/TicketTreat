@@ -7,6 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 os.environ.setdefault("DATABASE_URL", "postgresql://unused:unused@127.0.0.1:5432/unused")
+os.environ["AUTH_CODE_SECRET"] = "unit-test-only-hmac-secret-more-than-32-characters"
 from demo_account_recovery import aware, code_digest
 
 
