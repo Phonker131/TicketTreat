@@ -8,7 +8,7 @@ import {
   localeForLanguage,
   t,
 } from "@/lib/i18n";
-import type { CrowdlyEvent } from "@/lib/types";
+import type { TicketTreatEvent } from "@/lib/types";
 
 function formatDate(
   value: string | null,
@@ -37,7 +37,7 @@ function formatDate(
 }
 
 function formatPrice(
-  event: CrowdlyEvent,
+  event: TicketTreatEvent,
   language: "en" | "cs" | "ru" | "uk",
 ): string {
   const numeric = Number(event.price || 0);
@@ -68,7 +68,7 @@ function formatPrice(
 export function EventCard({
   event,
 }: {
-  event: CrowdlyEvent;
+  event: TicketTreatEvent;
 }) {
   const { language } = useLanguage();
 
