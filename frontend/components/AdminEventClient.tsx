@@ -33,7 +33,7 @@ export function AdminEventClient(){
   const [data,setData]=useState<AdminEventTickets|null>(null);
   const [emailStatus,setEmailStatus]=useState<EventEmailStatus|null>(null);
   const [pilotInsights,setPilotInsights]=useState<PilotInsights|null>(null);
-  const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180]});
+  const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180],waitlist_offer_minutes:0});
   const [pilotStaff,setPilotStaff]=useState<CheckinStaff[]>([]);
   const [staffEmail,setStaffEmail]=useState("");
   const [announcementCategory,setAnnouncementCategory]=useState<"access"|"logistics"|"schedule">("logistics");
@@ -371,6 +371,18 @@ export function AdminEventClient(){
               {label}
             </label>)}
         </fieldset>
+        <label>Предложение места из waitlist
+          <select value={pilotSettings.waitlist_offer_minutes||0}
+            onChange={e=>setPilotSettings(s=>({...s,waitlist_offer_minutes:Number(e.target.value)}))}>
+            <option value={0}>Автоматически выдавать билет (совместимый режим)</option>
+            <option value={15}>Предложение на 15 минут</option>
+            <option value={30}>Предложение на 30 минут</option>
+            <option value={60}>Предложение на 1 час</option>
+            <option value={120}>Предложение на 2 часа</option>
+            <option value={1440}>Предложение на сутки</option>
+          </select>
+        </label>
+        <p className="form-note">В режиме предложения место удерживается для следующего участника до принятия или истечения срока. Требуется включённый воркер истечения сроков в Railway.</p>
         <p className="form-note">Письма отправляются только подтверждённым владельцам билетов, после включения Resend. Пропущенные интервалы не рассылаются задним числом.</p>
         <button className="button button-primary" type="button" disabled={busy||!pilotSettings.reminder_minutes.length}
           onClick={savePilotPolicy}>Сохранить правила</button>
