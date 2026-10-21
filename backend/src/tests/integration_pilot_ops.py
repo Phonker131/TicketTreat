@@ -85,10 +85,15 @@ class PilotScopedOperationsTests(unittest.TestCase):
                 headers=attendee_headers,json={"language":"en"})
             self.assertEqual(booking.status_code,409,booking.text)
             self.assertEqual(booking.json()["detail"],"event_registration_closed")
+            # Demo API isolates legacy bot routes (403). Test the same
+            # server-side registration handler without weakening that boundary.
             legacy=client.post(f"/events/{event_id}/register",
                 json={"telegram_id":12345678901234})
-            self.assertEqual(legacy.status_code,200,legacy.text)
-            self.assertEqual(legacy.json()["error"],"event_registration_closed")
+            self.assertEqual(legacy.status_code,403,legacy.text)
+            with SessionLocal() as db:
+                handler_result=main.register_to_event(
+                    event_id,main.EventRegistrationCreate(telegram_id=12345678901234),db=db)
+            self.assertEqual(handler_result["error"],"event_registration_closed")
             bad=client.put(f"/demo/manage/events/{event_id}/pilot-settings",
                 headers=owner_headers,json={"signup_cutoff_minutes":0,
                                             "reminder_minutes":[1440,1440]})
