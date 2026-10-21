@@ -19,7 +19,8 @@ from sqlalchemy import Column, DateTime, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Session
 from db.base import Base
 from demo_geography import DemoEventPlace, place_dict, save_place
-from demo_accounts import WebAccount, WebSession, token_hash, safe_csv, throttle
+from demo_accounts import WebAccount, WebSession, token_hash, safe_csv
+from demo_auth_security import guard_rate, record_rate
 
 class WebAccountRole(Base):
     __tablename__ = "demo_web_account_roles"
@@ -419,7 +420,11 @@ def install_account_moderation(app, get_db):
         """
         account = account_lookup(db, authorization)
         email = (account.email or "").strip().casefold()
-        throttle("admin-claim:" + str(account.id), max_attempts=6, window_seconds=3600)
+        claim_ip = request.client.host if request.client else "unknown"
+        guard_rate(db, "admin_claim_ip", claim_ip, 15, 3600)
+        guard_rate(db, "admin_claim_account", str(account.id), 6, 3600)
+        record_rate(db, "admin_claim_ip", claim_ip, 3600)
+        record_rate(db, "admin_claim_account", str(account.id), 3600)
         allowed_emails = permanent_global_admin_emails()
         configured_secret = os.getenv("GLOBAL_ADMIN_RECOVERY_SECRET", "")
         if (

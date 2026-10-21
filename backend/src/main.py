@@ -3012,3 +3012,18 @@ def demo_email_status(
 install_demo_roles(app, get_db, __import__("sys").modules[__name__])
 
 install_account_moderation(app, get_db)
+
+# Privacy defaults for all user-specific responses, including errors.
+@app.middleware("http")
+async def crowdly_security_response_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), payment=()"
+    # No intermediary, browser or PWA cache may store personal profile, ticket,
+    # registration or organizer data. Public poster images keep their cache policy.
+    path = request.url.path
+    if path.startswith("/demo/") and "/poster" not in path:
+        response.headers["Cache-Control"] = "no-store, private"
+        response.headers["Pragma"] = "no-cache"
+    return response
