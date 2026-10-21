@@ -509,6 +509,14 @@ export function decideOrganizer(accountId:number,approve:boolean):Promise<{statu
   });
 }
 
+export function requestMagicLogin(email:string):Promise<{status:string}>{
+  return request("/demo/auth/magic/request",{method:"POST",body:JSON.stringify({email})});
+}
+export function confirmMagicLogin(email:string,code:string):Promise<WebAuthResult>{
+  return request("/demo/auth/magic/confirm",
+    {method:"POST",body:JSON.stringify({email,code})});
+}
+
 /** Organizer-owned read-only performance metrics. */
 export type PilotInsights = {
   event_id:number; capacity:number|null; registered:number;
