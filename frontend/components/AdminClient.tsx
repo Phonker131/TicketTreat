@@ -63,6 +63,8 @@ export function AdminClient() {
         title:String(data.get("title")||"").trim(),
         organizer:String(data.get("organizer")||"Crowdly").trim(),
         description:String(data.get("description")||"").trim(),
+        gallery_urls:String(data.get("gallery_urls")||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean),
+        video_url:String(data.get("video_url")||"").trim(),
         location:String(data.get("location")||"").trim(),
         country_code:countryCode,city:city.trim(),
         max_participants:Number(data.get("max_participants")||30),
@@ -102,6 +104,8 @@ export function AdminClient() {
           onCityChange={setCity} language="ru" />
         <label>Адрес или место проведения<input name="location" required /></label>
         <label>Описание<textarea name="description" rows={4}/></label>
+        <label>Ссылки на фото (HTTPS, не более 8, каждая с новой строки)<textarea name="gallery_urls" rows={4} placeholder="https://example.com/event-photo.jpg"/></label>
+        <label>Видео мероприятия (YouTube или Vimeo)<input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=…"/></label>
         <label>Постер JPG/PNG/WebP до 4 МБ<input name="poster" type="file" accept="image/jpeg,image/png,image/webp"
           onChange={e=>{const f=e.target.files?.[0];if(!f){setPreview("");return;}if(f.size>4*1024*1024){setError("Постер больше 4 МБ");return;}const url=URL.createObjectURL(f);setPreview(url);}}/></label>
         {preview&&<><img className="event-poster-preview" src={preview} alt="Poster preview"/></>}
