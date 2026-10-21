@@ -998,3 +998,15 @@ input:focus, textarea:focus, select:focus {
 }
 .location-fields { align-items: start; }
 .location-fields label { min-width: 0; }
+
+.location-reminder {background:var(--white);border:1px solid rgba(30,10,40,.08);
+  border-radius:16px;padding:16px 18px;display:flex;gap:14px;
+  align-items:center;justify-content:space-between;margin-bottom:16px;}
+.location-reminder p {margin:0;color:var(--muted);font-size:14px;line-height:1.5;}
+.location-reminder .button {flex-shrink:0;}
+.other-cities-section {padding-top:24px;}
+.other-cities-section > .button {width:100%;}
+@media(max-width:600px){
+  .location-reminder {align-items:stretch;flex-direction:column;}
+  .location-reminder .button {width:100%;}
+}

@@ -113,7 +113,7 @@ export function EventCard({
         <h2>{event.title}</h2>
 
         <p className="event-card-location">
-          {event.location || "—"}
+          {event.city ? `${event.city}${event.location && event.location.trim().toLocaleLowerCase() !== event.city.trim().toLocaleLowerCase() ? ` · ${event.location}` : ""}` : event.location || "—"}
         </p>
 
         <p className="event-card-languages">
