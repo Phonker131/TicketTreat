@@ -60,6 +60,7 @@ class PilotScopedOperationsTests(unittest.TestCase):
             event_id=event.id
             qr=ticket.qr_token
             worker_id=worker.id
+            ticket_id=ticket.id
 
         with TestClient(main.app) as client:
             owner=client.get(f"/demo/manage/events/{event_id}/insights",headers=owner_headers)
@@ -107,6 +108,15 @@ class PilotScopedOperationsTests(unittest.TestCase):
                                   json={"qr_token":qr})
             self.assertEqual(duplicate.status_code,200,duplicate.text)
             self.assertEqual(duplicate.json()["status"],"already_checked_in")
+            forbidden_manual=client.post(
+                f"/demo/manage/events/{event_id}/check-in-by-list/{ticket_id}",
+                headers=worker_headers)
+            self.assertEqual(forbidden_manual.status_code,403,forbidden_manual.text)
+            manual=client.post(
+                f"/demo/manage/events/{event_id}/check-in-by-list/{ticket_id}",
+                headers=owner_headers)
+            self.assertEqual(manual.status_code,200,manual.text)
+            self.assertEqual(manual.json()["status"],"already_checked_in")
             history=client.get("/demo/me/attendance",headers=attendee_headers)
             self.assertEqual(history.status_code,200,history.text)
             self.assertEqual(history.json()["visit_count"],1)
