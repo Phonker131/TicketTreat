@@ -24,3 +24,13 @@
 - No real payment provider, settlement, verified webhooks or refunds: **do not accept real paid ticket sales.**
 
 See [release gates](../docs/UNIFIED_RELEASE_GATE.md) for deployment checks. Never commit live credentials or personal data.
+
+## Incremental hardening: 2026-10-21
+
+- Ticket, checkout, cancellation, waitlist and guest profile routes require **current verified website credentials or signed Telegram launch data** matching the guest when `APP_ENV=production`. A previously copied `guest_token` is not sufficient by itself.
+- Production disables anonymous demo guest creation and legacy shared-key admin operations; organizer management remains account-scoped.
+- Event capacity changes use the Event row as the shared PostgreSQL lock across web checkout, bot registrations and waitlist promotion. Concurrent last-seat test is run in CI.
+- Website data-erasure request/withdrawal supports password confirmation; it is a tracked request, not automated deletion. Actual data erasure, retention/legal holds and privacy operations are not completed.
+- Global-admin recovery and participant/organizer role changes write a non-secret audit record. MFA/passkeys are **not** implemented.
+- Browser CSP is report-only for compatibility testing with Telegram and dynamic images. Do not misrepresent this as a fully enforced, audited CSP.
+- Database readiness is available under `/demo/health/ready`; a checksum-tracked SQL migration runner is under `backend/migrations/apply.py`.
