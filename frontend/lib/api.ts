@@ -10,9 +10,16 @@ import type {
 } from "@/lib/types";
 
 const API_URL = "/api/gateway";
+function browserWebSession():boolean{
+  if(typeof window==="undefined")return false;
+  // The old marker remains readable for one-time migration to TicketTreat keys.
+  const storage=window.localStorage;
+  return storage.getItem("tickettreat_web_auth")==="browser-session" ||
+    storage.getItem("crowdly_demo_web_auth")==="browser-session";
+}
 function signedIdentityAvailable():boolean {
   if(typeof window==="undefined")return false;
-  const browser=window.localStorage.getItem("crowdly_demo_web_auth")==="browser-session";
+  const browser=browserWebSession();
   const telegram=Boolean((window as Window & {Telegram?:{WebApp?:{initData?:string}}}).Telegram?.WebApp?.initData);
   return browser||telegram;
 }
@@ -22,9 +29,7 @@ async function request<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const websiteSession =
-    typeof window !== "undefined" &&
-    window.localStorage.getItem("crowdly_demo_web_auth") === "browser-session";
+  const websiteSession = browserWebSession();
   const telegramInitData =
     typeof window !== "undefined"
       ? (window as Window & {Telegram?: {WebApp?: {initData?: string}}}).Telegram?.WebApp?.initData
@@ -34,7 +39,7 @@ async function request<T>(
     ...init,
     headers: {
       Accept: "application/json",
-      "X-Crowdly-Client": "1",
+      "X-TicketTreat-Client": "1",
       ...(websiteSession ? {Authorization: "Bearer browser-session"} : {}),
       ...(telegramInitData ? {"X-Telegram-Init-Data": telegramInitData} : {}),
       ...(init?.body ? {"Content-Type": "application/json"} : {}),
