@@ -171,8 +171,10 @@ class QRWaitlistE2E(unittest.TestCase):
                 messages=db.query(EmailOutbox).filter(EmailOutbox.notice_id.in_([n.id for n in notices])).all()
                 self.assertEqual(len(messages),2)
                 reminders=db.query(EmailOutbox).filter(EmailOutbox.kind=="reminder",EmailOutbox.ticket_id==promoted.json()[0]["id"]).all()
-                self.assertEqual(len(reminders),1)
-                self.assertEqual(reminders[0].state,"pending")
+                # At five days to go, 7d is correctly skipped: only 24h and 3h.
+                self.assertEqual(len(reminders),2)
+                self.assertEqual({r.state for r in reminders},{"pending"})
+                self.assertEqual({int(r.event_key.rsplit(":",1)[-1]) for r in reminders},{1440,180})
                 with patch.dict(os.environ,{"EMAIL_FROM":"tickets@example.invalid"}):
                     for mail in messages:
                         payload=render_email(mail,db)
