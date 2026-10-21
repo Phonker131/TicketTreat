@@ -92,10 +92,13 @@ def maybe_offer_next(db, event, registered_count):
     entry.promoted_at=now
     db.flush()
     guest = db.get(DemoGuest,entry.guest_id)
-    if guest is not None:
+    from demo_accounts import WebAccount
+    from demo_account_recovery import email_is_verified
+    account = db.query(WebAccount).filter(WebAccount.guest_id==entry.guest_id).first()
+    if guest is not None and account is not None and email_is_verified(db,account.id):
         queue_email(db,kind="waitlist_offer",
             event_key=f"waitlist-offer:{entry.id}:{int(now.timestamp())}",
-            recipient=guest.email,guest_id=guest.id,language="en")
+            recipient=account.email,guest_id=guest.id,language="en")
     return offer
 
 
