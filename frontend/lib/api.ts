@@ -409,3 +409,18 @@ export function submitPrivacyRequest(password: string): Promise<{status:string;m
 export function withdrawPrivacyRequest(): Promise<{status:string}> {
   return request("/demo/auth/privacy-request",{method:"DELETE"});
 }
+
+export type MFAStatus = {enabled:boolean;elevated:boolean;needs_setup:boolean};
+export type MFAStart = {secret:string;otpauth_url:string};
+export function getMFAStatus():Promise<MFAStatus> {
+  return request("/demo/auth/mfa/status");
+}
+export function startMFA(password:string):Promise<MFAStart> {
+  return request("/demo/auth/mfa/start",{method:"POST",body:JSON.stringify({current_password:password})});
+}
+export function confirmMFA(code:string):Promise<MFAStatus> {
+  return request("/demo/auth/mfa/confirm",{method:"POST",body:JSON.stringify({code})});
+}
+export function elevateMFA(code:string):Promise<MFAStatus> {
+  return request("/demo/auth/mfa/elevate",{method:"POST",body:JSON.stringify({code})});
+}
