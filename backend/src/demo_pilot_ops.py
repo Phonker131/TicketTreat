@@ -126,6 +126,10 @@ def install_pilot_ops(app, get_db, main):
             main.DemoWaitlist.event_id == event_id,
             main.DemoWaitlist.status == "waiting").scalar() or 0
         total = main.get_registered_count(db, event_id)
+        source_counts=(db.query(main.DemoTicket.acquisition_source,func.count(main.DemoTicket.id))
+            .filter(main.DemoTicket.event_id==event_id,
+                    main.DemoTicket.ticket_status=="active")
+            .group_by(main.DemoTicket.acquisition_source).all())
         day = func.date(main.DemoTicket.created_at)
         daily = (db.query(day.label("day"), func.count(main.DemoTicket.id))
                  .filter(main.DemoTicket.event_id == event_id)
@@ -148,6 +152,7 @@ def install_pilot_ops(app, get_db, main):
                 if event.max_participants else None,
             "attendance_percent": round(100 * checked / active, 1)
                 if active and finished else None,
+            "channels": [{"source": source or "direct", "registrations": int(count)} for source,count in source_counts],
             "daily_bookings": [{"date": str(date), "count": count}
                                for date, count in reversed(daily)],
             "limitations": ["Legacy bot registrations count towards capacity but do not "
