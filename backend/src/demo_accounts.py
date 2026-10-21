@@ -84,7 +84,7 @@ class MagicRequest(BaseModel):
 
 class MagicLogin(BaseModel):
     email: str = Field(min_length=5, max_length=255)
-    code: str = Field(pattern=r"^\\d{8}$")
+    code: str = Field(pattern=r"^\d{8}$")
 
 
 class ChangePasswordData(BaseModel):
