@@ -14,9 +14,9 @@
 | Photo poster and event description | existing | Retain |
 | Event photo gallery + external video | added in this branch | External HTTPS links only; no video/file upload |
 | Transactional email | Resend outbox for welcome/ticket/check-in | Disabled until sender and credentials verified |
-| Scheduled email event reminders | **not implemented** | Separate feature; do not advertise as active |
+| Scheduled email event reminders | Code added: durable Resend outbox 24h before event; verified email accounts only | Requires real provider + staging confirmation; no marketing email |
 | Argon2id, PBKDF2 migration, login rate limits | present | Test with legacy accounts |
-| Email verification, password reset | **not implemented** | Production blocker |
+| Email verification, password reset | Code + frontend UI added with hashed 8-digit codes and session revocation | Requires Resend configuration and end-to-end tests; production blocker until verified |
 | HttpOnly session cookies/BFF | **not implemented**; bearer token in browser storage | Production blocker, review all auth/CSRF semantics |
 | MFA/passkeys for admin | **not implemented** | Production blocker for privileged production accounts |
 | GDPR export/deletion and retention policies | **not complete** | Production blocker |
@@ -47,9 +47,17 @@
 - [ ] Free ticket / capacity / waitlist / QR / check-in
 - [ ] Telegram bot fallback commands + Mini App signed login
 - [ ] Session revocation, password upgrade, brute force resistance
-- [ ] Email verification/reset and cookies before public rollout
-- [ ] Email sending consent, sender verification and reminders before claiming these features
+- [ ] Test email verification/password reset using real Resend sender; migrate to HttpOnly cookies before public rollout
+- [ ] Verify transactional reminders, opt-in for any marketing mail and sender configuration
 - [ ] Privacy export/deletion policy and data retention reviewed
 - [ ] Rollback and backup restore rehearsed
 
 **Until the unchecked gates pass, keep the PR in draft and do not deploy a public production service.**
+
+## Email verification / reminder behavior on this branch
+
+- New account: can request an 8-digit email verification code from Profile. Existing accounts can use the same flow. Codes expire after 10 minutes and are limited to five attempts. Resend must be enabled/configured; production email deliverability is untested.
+- Verified account: may request password reset; a new Argon2id password revokes every previous browser session. An unknown or unverified address receives a generic response.
+- New QR booking: if website email is verified and the event is more than one hour away, queue one reminder approximately 24h before the start; an email provider must be configured. The worker skips cancelled events and inactive tickets. Verifying email also queues reminders for upcoming existing bookings.
+- Transactional reminders are **not** marketing newsletters. Consent for promotional email and address export requires separate policy/features.
+- `demo_verified_emails`, `demo_email_challenges`, and `demo_event_media` are additive SQLAlchemy tables; confirm database privileges and migration outcomes in staging. Do not assume `create_all` changes existing columns.
