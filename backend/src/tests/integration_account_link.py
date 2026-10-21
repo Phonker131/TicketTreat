@@ -66,7 +66,7 @@ class AccountLinkTests(unittest.TestCase):
             blocked=client.post("/demo/events/999999/checkout",json={
                 "guest_token":anonymous_token,"language":"en"
             })
-            self.assertEqual(blocked.status_code,403,blocked.text)
+            self.assertEqual(blocked.status_code,401,blocked.text)
             linked = client.post("/demo/telegram/link", json={"init_data": launch},
                                  headers={"Authorization": "Bearer "+raw_token})
             self.assertEqual(linked.status_code, 200, linked.text)
@@ -91,15 +91,26 @@ class AccountLinkTests(unittest.TestCase):
             guest_token=again.json()["guest"]["access_token"]
             ticket=client.post(f"/demo/events/{event_id}/checkout",json={
                 "guest_token":guest_token,"language":"en"
-            })
+            },headers={"X-Telegram-Init-Data":launch})
             self.assertEqual(ticket.status_code,200,ticket.text)
             self.assertEqual(ticket.json()["ticket"]["payment_status"],"not_required")
             self.assertFalse(ticket.json()["demo_payment"])
             again_ticket=client.post(f"/demo/events/{event_id}/checkout",json={
                 "guest_token":guest_token,"language":"en"
-            })
+            },headers={"X-Telegram-Init-Data":launch})
             self.assertEqual(again_ticket.json()["status"],"already_registered")
-            cancelled=client.delete(f"/demo/guests/{guest_token}/tickets/{ticket.json()['ticket']['id']}")
+            # A leaked guest token alone is insufficient for ticket access.
+            leaked=client.get(f"/demo/guests/{guest_token}/tickets")
+            self.assertEqual(leaked.status_code,401,leaked.text)
+            wrong_guest=client.get(f"/demo/guests/{anonymous_token}/tickets",
+                headers={"X-Telegram-Init-Data":launch})
+            self.assertEqual(wrong_guest.status_code,403,wrong_guest.text)
+            mine=client.get(f"/demo/guests/{guest_token}/tickets",
+                headers={"Authorization":"Bearer "+raw_token})
+            self.assertEqual(mine.status_code,200,mine.text)
+            self.assertGreaterEqual(len(mine.json()),1)
+            cancelled=client.delete(f"/demo/guests/{guest_token}/tickets/{ticket.json()['ticket']['id']}",
+                headers={"Authorization":"Bearer "+raw_token})
             self.assertEqual(cancelled.status_code,200,cancelled.text)
 
 
