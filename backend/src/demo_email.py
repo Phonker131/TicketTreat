@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 
 from db.base import Base
 
-LOGGER = logging.getLogger("crowdly.demo_email")
+LOGGER = logging.getLogger("tickettreat.demo_email")
 PRAGUE = ZoneInfo("Europe/Prague")
 MAX_ATTEMPTS = 8
 MAX_EMAILS_PER_WORKER_CYCLE = 10
@@ -431,4 +431,4 @@ def install_email_worker(app, session_factory) -> None:
                     LOGGER.exception("Email worker cycle error")
                 time.sleep(8)
 
-        threading.Thread(target=run, name="crowdly-email-outbox", daemon=True).start()
+        threading.Thread(target=run, name="tickettreat-email-outbox", daemon=True).start()
