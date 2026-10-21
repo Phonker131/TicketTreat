@@ -36,6 +36,7 @@ from db import models
 from db.base import Base
 from db.session import SessionLocal, engine, get_db
 from demo_accounts import WebAccount, WebSession, install_demo_accounts
+from demo_telegram import DemoTelegramIdentity, install_telegram_auth
 from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
 from demo_roles import WebAccountRole, EventOwnership, EventModerationLog, install_demo_roles, install_account_moderation
 from demo_email import EmailOutbox, queue_email, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
@@ -3027,3 +3028,6 @@ async def crowdly_security_response_headers(request: Request, call_next):
         response.headers["Cache-Control"] = "no-store, private"
         response.headers["Pragma"] = "no-cache"
     return response
+
+# Telegram Mini App authorization: initData is validated with the BOT token on the server.
+install_telegram_auth(app, get_db, __import__('sys').modules[__name__])
