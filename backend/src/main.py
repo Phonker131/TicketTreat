@@ -1785,9 +1785,11 @@ def register_to_event(
     payload: EventRegistrationCreate,
     db: Session = Depends(get_db),
 ):
+    # Serialize capacity-changing operations on the same event row.
     event = (
         db.query(Event)
         .filter(Event.id == event_id)
+        .with_for_update()
         .first()
     )
 
@@ -2354,6 +2356,9 @@ def demo_ticket_to_dict(
 def require_demo_admin(
     x_demo_admin_key: str | None = Header(default=None),
 ) -> str:
+    if os.getenv("APP_ENV", "development").strip().lower() == "production":
+        # Use ownership-scoped /demo/manage/* endpoints instead of shared keys.
+        raise HTTPException(status_code=403, detail="legacy_admin_api_disabled")
     if not DEMO_ADMIN_KEY or not x_demo_admin_key or not secrets.compare_digest(x_demo_admin_key, DEMO_ADMIN_KEY):
         raise HTTPException(
             status_code=401,
@@ -2367,13 +2372,18 @@ def promote_demo_waitlist(
     db: Session,
     event_id: int,
 ) -> DemoTicket | None:
+    # Serialize capacity-changing operations on the same event row.
     event = (
         db.query(Event)
         .filter(Event.id == event_id)
+        .with_for_update()
         .first()
     )
 
-    if event is None:
+    if event is None or getattr(event, "is_cancelled", False) or event_has_started(event):
+        return None
+    if price_decimal(event.price) > 0 and not DEMO_PAYMENT_MODE:
+        # Never silently create an unpaid "paid" ticket.
         return None
 
     if (
@@ -2644,9 +2654,11 @@ def demo_checkout(
 
     require_verified_booking_identity(db, guest)
 
+    # Serialize capacity-changing operations on the same event row.
     event = (
         db.query(Event)
         .filter(Event.id == event_id)
+        .with_for_update()
         .first()
     )
 
@@ -2771,9 +2783,11 @@ def join_demo_waitlist(
 
     require_verified_booking_identity(db, guest)
 
+    # Serialize capacity-changing operations on the same event row.
     event = (
         db.query(Event)
         .filter(Event.id == event_id)
+        .with_for_update()
         .first()
     )
 
@@ -2906,6 +2920,14 @@ def cancel_demo_ticket(
 
     if guest is None:
         raise HTTPException(status_code=404, detail="demo_guest_not_found")
+
+    # Serialize cancellation and waitlist promotion with concurrent bookings.
+    target = db.query(DemoTicket.event_id).filter(
+        DemoTicket.id == ticket_id, DemoTicket.guest_id == guest.id,
+    ).first()
+    if target is None:
+        raise HTTPException(status_code=404, detail="ticket_not_found")
+    db.query(Event).filter(Event.id == target.event_id).with_for_update().first()
 
     ticket = (
         db.query(DemoTicket)
