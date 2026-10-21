@@ -30,6 +30,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    or_,
     text as sql_text,
 )
 from sqlalchemy.orm import Session
@@ -1927,6 +1928,14 @@ def register_to_event(
         return {"status": "already_registered", "registration_source": "ticket"}
 
     if existing_registration is not None:
+        # After canonical QR cancellation the original legacy Registration
+        # stays as historical evidence, but it is no longer a valid pass.
+        # Do not tell the Bot that a cancelled ticket is still registered.
+        claim=db.get(LegacyTicketClaim,existing_registration.id)
+        if claim is not None:
+            claimed_ticket=db.get(DemoTicket,claim.ticket_id)
+            if claimed_ticket is None or claimed_ticket.ticket_status!="active":
+                return {"error":"registration_cancelled_use_website"}
         return registration_response(
             status="already_registered",
             db=db,
@@ -2289,8 +2298,20 @@ def get_user_events(
             Registration,
             Registration.event_id == Event.id,
         )
+        .outerjoin(
+            LegacyTicketClaim,
+            LegacyTicketClaim.registration_id == Registration.id,
+        )
+        .outerjoin(
+            DemoTicket,
+            DemoTicket.id == LegacyTicketClaim.ticket_id,
+        )
         .filter(
-            Registration.user_id == user.id
+            Registration.user_id == user.id,
+            or_(
+                LegacyTicketClaim.registration_id.is_(None),
+                DemoTicket.ticket_status == "active",
+            ),
         )
         .order_by(
             Event.starts_at.asc().nullslast(),
