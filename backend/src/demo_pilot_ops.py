@@ -23,6 +23,7 @@ class EventPilotSettings(Base):
     signup_cutoff_minutes = Column(Integer, nullable=False, default=0)
     reminder_minutes_json = Column(String(100), nullable=False, default="[10080,1440,180]")
     waitlist_offer_minutes = Column(Integer, nullable=False, default=0)
+    event_duration_minutes = Column(Integer, nullable=False, default=180)
 
 
 class EventCheckinStaff(Base):
@@ -40,6 +41,7 @@ class PilotSettingsUpdate(BaseModel):
     signup_cutoff_minutes: int = Field(ge=0, le=10080)
     reminder_minutes: list[int] = Field(min_length=1, max_length=4)
     waitlist_offer_minutes: int = Field(default=0, ge=0, le=1440)
+    event_duration_minutes: int = Field(default=180, ge=15, le=1440)
 
 
 class EventAnnouncementRequest(BaseModel):
@@ -58,13 +60,14 @@ class StaffScanRequest(BaseModel):
 def effective_settings(db: Session, event_id: int) -> dict:
     row = db.get(EventPilotSettings, event_id)
     if row is None:
-        return {"signup_cutoff_minutes": 0, "reminder_minutes": list(DEFAULT_REMINDERS), "waitlist_offer_minutes": 0}
+        return {"signup_cutoff_minutes": 0, "reminder_minutes": list(DEFAULT_REMINDERS), "waitlist_offer_minutes": 0, "event_duration_minutes": 180}
     try:
         offsets = json.loads(row.reminder_minutes_json)
     except (ValueError, TypeError):
         offsets = list(DEFAULT_REMINDERS)
     return {"signup_cutoff_minutes": int(row.signup_cutoff_minutes),
-            "reminder_minutes": offsets, "waitlist_offer_minutes": int(row.waitlist_offer_minutes or 0)}
+            "reminder_minutes": offsets, "waitlist_offer_minutes": int(row.waitlist_offer_minutes or 0),
+            "event_duration_minutes": int(row.event_duration_minutes or 180)}
 
 
 def validate_reminders(values: list[int]) -> list[int]:
@@ -127,7 +130,9 @@ def install_pilot_ops(app, get_db, main):
         daily = (db.query(day.label("day"), func.count(main.DemoTicket.id))
                  .filter(main.DemoTicket.event_id == event_id)
                  .group_by(day).order_by(day.desc()).limit(90).all())
-        started = main.event_has_started(event)
+        end_time = (main.normalize_event_datetime(event.starts_at) +
+                    timedelta(minutes=effective_settings(db,event_id)["event_duration_minutes"])) if event.starts_at else None
+        finished = end_time is not None and datetime.now(timezone.utc) >= end_time.astimezone(timezone.utc)
         return {
             "event_id": event_id,
             "capacity": event.max_participants,
@@ -137,11 +142,12 @@ def install_pilot_ops(app, get_db, main):
             "awaiting_checkin": active - checked,
             "waitlist": waiting,
             "cancelled_tickets": cancelled,
-            "no_show": (active - checked) if started else None,
+            "no_show": (active - checked) if finished else None,
+            "event_finished": finished,
             "occupancy_percent": round(100 * total / event.max_participants, 1)
                 if event.max_participants else None,
             "attendance_percent": round(100 * checked / active, 1)
-                if active and started else None,
+                if active and finished else None,
             "daily_bookings": [{"date": str(date), "count": count}
                                for date, count in reversed(daily)],
             "limitations": ["Legacy bot registrations count towards capacity but do not "
@@ -168,6 +174,7 @@ def install_pilot_ops(app, get_db, main):
             db.add(row)
         row.signup_cutoff_minutes = payload.signup_cutoff_minutes
         row.waitlist_offer_minutes = payload.waitlist_offer_minutes
+        row.event_duration_minutes = payload.event_duration_minutes
         row.reminder_minutes_json = json.dumps(intervals)
         # Existing pending reminders belong to the old policy. Rebuild using
         # the same event/ticket transactional boundaries as other edits.
