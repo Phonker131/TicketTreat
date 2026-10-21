@@ -128,7 +128,7 @@ class QRWaitlistE2E(unittest.TestCase):
 
             with patch("demo_email.configured",return_value=True):
                 changed=client.patch(f"/demo/manage/events/{event_id}",
-                    headers=headers,json={"location":"New address for checked-in attendees"})
+                    headers=headers,json={"location":"New address for checked-in attendees","starts_at":(datetime.now(timezone.utc)+timedelta(days=5)).isoformat()})
                 self.assertEqual(changed.status_code,200,changed.text)
                 stopped=client.post(f"/demo/manage/events/{event_id}/cancel",headers=headers,
                     json={"reason":"Organizer has cancelled this event for technical reasons."})
