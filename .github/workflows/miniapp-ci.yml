@@ -72,6 +72,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install -r backend/src/requirements.txt
+      - run: python -m pip install httpx==0.28.1
       - name: Initialize and smoke-test PostgreSQL schema and FastAPI
         run: python -m unittest discover -s backend/src/tests -p 'integration_*.py' -v
       - name: Apply additive migration twice to validate idempotency
