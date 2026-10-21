@@ -39,6 +39,7 @@ class EmailOutbox(Base):
     recipient = Column(String(255), nullable=False)
     guest_id = Column(Integer, nullable=True)
     ticket_id = Column(Integer, nullable=True)
+    notice_id = Column(Integer, nullable=True)
     language = Column(String(2), nullable=False, default="en")
     state = Column(String(20), nullable=False, default="pending", index=True)
     attempts = Column(Integer, nullable=False, default=0)
@@ -47,6 +48,17 @@ class EmailOutbox(Base):
     provider_email_id = Column(String(150), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     sent_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class EventNotice(Base):
+    """Operational event change/cancellation notice, not marketing outreach."""
+    __tablename__ = "demo_event_notices"
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, nullable=False, index=True)
+    kind = Column(String(20), nullable=False)
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False,
+                        default=lambda: datetime.now(timezone.utc))
 
 
 def enabled() -> bool:
@@ -66,6 +78,7 @@ def language_code(value: str | None) -> str:
 def queue_email(
     db: Session, *, kind: str, event_key: str, recipient: str | None,
     guest_id: int | None = None, ticket_id: int | None = None,
+    notice_id: int | None = None,
     language: str = "en", scheduled_at: datetime | None = None,
 ) -> None:
     """Add to the caller's transaction: do NOT commit here.
@@ -75,9 +88,9 @@ def queue_email(
     """
     if not configured() or not recipient:
         return
-    if kind not in {"welcome", "ticket", "checkin", "reminder"}:
+    if kind not in {"welcome", "ticket", "checkin", "reminder", "event_notice"}:
         raise ValueError("unknown_email_kind")
-    if kind in {"ticket", "checkin", "reminder"}:
+    if kind in {"ticket", "checkin", "reminder", "event_notice"}:
         # Only mail registered website accounts during the public demo.
         # Anonymous checkout emails are unverified and could be used for spam.
         from demo_accounts import WebAccount
@@ -90,7 +103,7 @@ def queue_email(
         return
     db.add(EmailOutbox(
         event_key=event_key, recipient=recipient,
-        guest_id=guest_id, ticket_id=ticket_id, kind=kind,
+        guest_id=guest_id, ticket_id=ticket_id, notice_id=notice_id, kind=kind,
         language=language_code(language), state="pending",
         next_attempt_at=scheduled_at or datetime.now(timezone.utc),
     ))
@@ -121,6 +134,42 @@ def queue_event_reminder(db: Session, *, event, guest, ticket, language: str = "
         language=language, scheduled_at=scheduled)
 
 
+def queue_event_notice(db:Session, *, event, kind:str, message:str) -> int:
+    """Queue event-critical changes only for verified account holders with tickets.
+
+    Called inside the organizer's same transaction before tickets are cancelled.
+    Never emails legacy guest addresses or unverified user-provided emails.
+    """
+    if kind not in {"change","cancel"}:
+        raise ValueError("unsupported_operational_notice")
+    if not configured():
+        return 0
+    from demo_accounts import WebAccount
+    from demo_account_recovery import email_is_verified
+    from importlib import import_module
+    main=import_module("main")
+    tickets=db.query(main.DemoTicket).filter(
+        main.DemoTicket.event_id==event.id,
+        main.DemoTicket.ticket_status=="active",
+    ).all()
+    recipients=[]
+    for ticket in tickets:
+        account=db.query(WebAccount).filter(WebAccount.guest_id==ticket.guest_id).first()
+        if account and email_is_verified(db,account.id):
+            recipients.append((ticket,account))
+    if not recipients:
+        return 0
+    notice=EventNotice(event_id=event.id,kind=kind,message=message[:1500])
+    db.add(notice);db.flush()
+    for ticket,account in recipients:
+        queue_email(db,kind="event_notice",
+                    event_key=f"notice:{notice.id}:ticket:{ticket.id}",
+                    recipient=account.email,guest_id=ticket.guest_id,
+                    ticket_id=ticket.id,notice_id=notice.id,
+                    language=ticket_language(db,ticket.id))
+    return len(recipients)
+
+
 def ticket_language(db: Session, ticket_id: int) -> str:
     recent = (
         db.query(EmailOutbox.language)
@@ -133,6 +182,8 @@ def ticket_language(db: Session, ticket_id: int) -> str:
 
 COPY = {
     "en": {
+        "change_subject": "Event updated: {event}", "change_body": "Important update for your TicketTreat event.",
+        "cancel_subject": "Event cancelled: {event}", "cancel_body": "Your event has been cancelled.",
         "welcome_subject": "Welcome to TicketTreat!",
         "welcome_title": "Welcome to TicketTreat",
         "welcome_body": "Your TicketTreat account is ready. Find events and keep your tickets in one place.",
@@ -151,6 +202,8 @@ COPY = {
         "qr_fallback": "If you can't see the QR image, open your ticket using the button.",
     },
     "ru": {
+        "change_subject": "Изменения в мероприятии: {event}", "change_body": "Важное изменение в мероприятии TicketTreat.",
+        "cancel_subject": "Мероприятие отменено: {event}", "cancel_body": "Мероприятие отменено организатором.",
         "welcome_subject": "Добро пожаловать в TicketTreat!",
         "welcome_title": "Добро пожаловать в TicketTreat",
         "welcome_body": "Твой аккаунт создан. Теперь можно выбирать мероприятия и хранить билеты в одном месте.",
@@ -169,6 +222,8 @@ COPY = {
         "qr_fallback": "Если QR-код не отображается, открой билет по кнопке.",
     },
     "cs": {
+        "change_subject": "Změna akce: {event}", "change_body": "Důležitá změna akce v TicketTreat.",
+        "cancel_subject": "Akce zrušena: {event}", "cancel_body": "Pořadatel akci zrušil.",
         "welcome_subject": "Vítej v TicketTreat!",
         "welcome_title": "Vítej v TicketTreat",
         "welcome_body": "Tvůj účet je připraven. Vyber si akci a měj všechny vstupenky na jednom místě.",
@@ -187,6 +242,8 @@ COPY = {
         "qr_fallback": "Pokud QR kód nevidíš, otevři si vstupenku pomocí tlačítka.",
     },
     "uk": {
+        "change_subject": "Зміна події: {event}", "change_body": "Важлива зміна події TicketTreat.",
+        "cancel_subject": "Подію скасовано: {event}", "cancel_body": "Організатор скасував подію.",
         "welcome_subject": "Ласкаво просимо до TicketTreat!",
         "welcome_title": "Ласкаво просимо до TicketTreat",
         "welcome_body": "Твій акаунт створено. Тепер можна обирати події та зберігати квитки в одному місці.",
@@ -288,9 +345,17 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
         if row.kind == "reminder" and (ticket.ticket_status != "active" or event.is_cancelled or event.starts_at is None):
             return None
         name = str(event.title or "Event")[:180]
-        subject = d[f"{row.kind}_subject"].format(event=name)
-        title = d[f"{row.kind}_title"].format(event=name)
-        lead = d[f"{row.kind}_body"]
+        if row.kind == "event_notice":
+            notice = db.get(EventNotice, row.notice_id)
+            if notice is None or notice.event_id != event.id or notice.kind not in {"change","cancel"}:
+                return None
+            subject=d[f"{notice.kind}_subject"].format(event=name)
+            title=subject
+            lead=d[f"{notice.kind}_body"]+"\n"+notice.message
+        else:
+            subject = d[f"{row.kind}_subject"].format(event=name)
+            title = d[f"{row.kind}_title"].format(event=name)
+            lead = d[f"{row.kind}_body"]
         link = f"{web_url}/tickets/{ticket.id}"
         button = d["button_ticket"]
         extra = (
