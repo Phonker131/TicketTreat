@@ -4,7 +4,7 @@ import type {LanguageCode} from "@/lib/types";
  * Missing entries are intentionally exposed in Russian for QA, not
  * silently translated using a browser/plugin with uncertain meaning.
  */
-const translations:Record<string,Partial<Record<LanguageCode,string>>> = {
+const translations:Record<string,Partial<Record<LanguageCode,string>>> =  {
   "Все события TicketTreat": {
     "en": "All TicketTreat events",
     "cs": "Všechny akce TicketTreat",
@@ -439,6 +439,226 @@ const translations:Record<string,Partial<Record<LanguageCode,string>>> = {
     "en": "Newest first",
     "cs": "Nejnovější první",
     "uk": "Найновіші першими"
+  },
+  "Главные администраторы": {
+    "en": "Global administrators",
+    "cs": "Hlavní administrátoři",
+    "uk": "Головні адміністратори"
+  },
+  "Назначить главного администратора": {
+    "en": "Assign global administrator",
+    "cs": "Přidělit hlavního administrátora",
+    "uk": "Призначити головного адміністратора"
+  },
+  "Загрузка…": {
+    "en": "Loading…",
+    "cs": "Načítání…",
+    "uk": "Завантаження…"
+  },
+  "Контент главной страницы": {
+    "en": "Homepage content",
+    "cs": "Obsah úvodní stránky",
+    "uk": "Контент головної сторінки"
+  },
+  "Заголовок": {
+    "en": "Heading",
+    "cs": "Nadpis",
+    "uk": "Заголовок"
+  },
+  "Новое изображение (JPG/PNG/WebP до 4 МБ)": {
+    "en": "New image (JPG/PNG/WebP up to 4 MB)",
+    "cs": "Nový obrázek (JPG/PNG/WebP do 4 MB)",
+    "uk": "Нове зображення (JPG/PNG/WebP до 4 МБ)"
+  },
+  "Удалить изображение баннера": {
+    "en": "Remove banner image",
+    "cs": "Odebrat obrázek banneru",
+    "uk": "Видалити банер"
+  },
+  "← Админ-панель": {
+    "en": "← Admin dashboard",
+    "cs": "← Správa",
+    "uk": "← Адмін-панель"
+  },
+  "Изменения появятся на сайте и в Telegram Mini App. Доступ — только глобальному администратору.": {
+    "en": "Changes appear on the website and Telegram Mini App. Only global admins may edit.",
+    "cs": "Změny se zobrazí na webu i v Telegram Mini App. Upravovat mohou pouze hlavní administrátoři.",
+    "uk": "Зміни з'являться на сайті та в Telegram Mini App. Доступ — лише головному адміністратору."
+  },
+  "Organizer applications": {
+    "en": "Organizer applications",
+    "cs": "Žádosti pořadatelů",
+    "uk": "Заявки організаторів"
+  },
+  "Applicants must verify their email. Global admin MFA is required to approve new event organizers.": {
+    "en": "Applicants must verify their email. Global admin MFA is required.",
+    "cs": "Uchazeči musí ověřit e-mail. Schválení vyžaduje dvoufaktorové ověření správce.",
+    "uk": "Заявники повинні підтвердити email. Для схвалення потрібна MFA адміністратора."
+  },
+  "No pending applications.": {
+    "en": "No pending applications.",
+    "cs": "Žádné nevyřízené žádosti.",
+    "uk": "Немає заявок в очікуванні."
+  },
+  "Approve": {
+    "en": "Approve",
+    "cs": "Schválit",
+    "uk": "Схвалити"
+  },
+  "Reject": {
+    "en": "Reject",
+    "cs": "Zamítnout",
+    "uk": "Відхилити"
+  },
+  "← Admin": {
+    "en": "← Admin",
+    "cs": "← Administrace",
+    "uk": "← Адмін"
+  },
+  "← Admin dashboard": {
+    "en": "← Admin dashboard",
+    "cs": "← Správa",
+    "uk": "← Адмін-панель"
+  },
+  "Data erasure requests": {
+    "en": "Data erasure requests",
+    "cs": "Žádosti o výmaz údajů",
+    "uk": "Запити на видалення даних"
+  },
+  "No pending requests.": {
+    "en": "No pending requests.",
+    "cs": "Žádné čekající žádosti.",
+    "uk": "Немає запитів в очікуванні."
+  },
+  "Fulfill eligible erasure": {
+    "en": "Process eligible erasure",
+    "cs": "Provést oprávněný výmaz",
+    "uk": "Виконати підтверджене видалення"
+  },
+  "Scan TicketTreat ticket": {
+    "en": "Scan TicketTreat ticket",
+    "cs": "Skenování vstupenky TicketTreat",
+    "uk": "Сканування квитка TicketTreat"
+  },
+  "Camera scanner + manual fallback.": {
+    "en": "Camera scanning and manual entry.",
+    "cs": "Skenování kamerou i ruční zadání.",
+    "uk": "Сканування камерою та ручне введення."
+  },
+  "Check in": {
+    "en": "Check in",
+    "cs": "Odbavit",
+    "uk": "Відмітити вхід"
+  },
+  "← Organizer dashboard": {
+    "en": "← Organizer dashboard",
+    "cs": "← Správa akcí",
+    "uk": "← Панель організатора"
+  },
+  "← Back to profile": {
+    "en": "← Back to profile",
+    "cs": "← Zpět na profil",
+    "uk": "← Назад до профілю"
+  },
+  "Two-factor authentication": {
+    "en": "Two-factor authentication",
+    "cs": "Dvoufaktorové ověření",
+    "uk": "Двофакторна автентифікація"
+  },
+  "Connect authenticator app": {
+    "en": "Connect authenticator app",
+    "cs": "Připojit ověřovací aplikaci",
+    "uk": "Підключити застосунок автентифікації"
+  },
+  "Start MFA enrollment": {
+    "en": "Start MFA enrollment",
+    "cs": "Nastavit MFA",
+    "uk": "Налаштувати MFA"
+  },
+  "Add TicketTreat to your authenticator": {
+    "en": "Add TicketTreat to your authenticator",
+    "cs": "Přidat TicketTreat do autentizační aplikace",
+    "uk": "Додати TicketTreat до застосунку"
+  },
+  "Enter this setup key manually in your authenticator app. Keep this secret private.": {
+    "en": "Enter this setup key manually. Keep it private.",
+    "cs": "Zadejte tento nastavovací klíč ručně. Uchovejte jej v tajnosti.",
+    "uk": "Введіть цей ключ вручну. Зберігайте його в таємниці."
+  },
+  "Open authenticator app": {
+    "en": "Open authenticator app",
+    "cs": "Otevřít ověřovací aplikaci",
+    "uk": "Відкрити застосунок автентифікації"
+  },
+  "Six-digit code": {
+    "en": "Six-digit code",
+    "cs": "Šestimístný kód",
+    "uk": "Шестизначний код"
+  },
+  "Enable two-factor authentication": {
+    "en": "Enable two-factor authentication",
+    "cs": "Zapnout dvoufaktorové ověření",
+    "uk": "Увімкнути двофакторну автентифікацію"
+  },
+  "MFA enabled.": {
+    "en": "MFA enabled.",
+    "cs": "MFA zapnuto.",
+    "uk": "MFA увімкнено."
+  },
+  "Authenticator code": {
+    "en": "Authenticator code",
+    "cs": "Ověřovací kód",
+    "uk": "Код автентифікатора"
+  },
+  "Verify session": {
+    "en": "Verify session",
+    "cs": "Ověřit relaci",
+    "uk": "Підтвердити сесію"
+  },
+  "Open organizer dashboard": {
+    "en": "Open organizer dashboard",
+    "cs": "Otevřít správu akcí",
+    "uk": "Відкрити панель організатора"
+  },
+  "← Profile": {
+    "en": "← Profile",
+    "cs": "← Profil",
+    "uk": "← Профіль"
+  },
+  "Become an organizer": {
+    "en": "Become an organizer",
+    "cs": "Stát se pořadatelem",
+    "uk": "Стати організатором"
+  },
+  "Account role:": {
+    "en": "Account role:",
+    "cs": "Role účtu:",
+    "uk": "Роль акаунта:"
+  },
+  "Application status:": {
+    "en": "Application status:",
+    "cs": "Stav žádosti:",
+    "uk": "Статус заявки:"
+  },
+  "Submit application": {
+    "en": "Submit application",
+    "cs": "Odeslat žádost",
+    "uk": "Подати заявку"
+  },
+  "Configure MFA": {
+    "en": "Configure MFA",
+    "cs": "Nastavit MFA",
+    "uk": "Налаштувати MFA"
+  },
+  "Participant": {
+    "en": "Participant",
+    "cs": "Účastník",
+    "uk": "Учасник"
+  },
+  "Organizer": {
+    "en": "Organizer",
+    "cs": "Pořadatel",
+    "uk": "Організатор"
   }
 };
 
