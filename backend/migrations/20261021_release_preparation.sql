@@ -88,4 +88,11 @@ ALTER TABLE demo_privacy_requests
     ADD COLUMN IF NOT EXISTS resolution_note VARCHAR(500),
     ADD COLUMN IF NOT EXISTS resolved_by INTEGER,
     ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
+CREATE TABLE IF NOT EXISTS demo_organizer_applications (
+    account_id INTEGER PRIMARY KEY,
+    status VARCHAR(24) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ NOT NULL,
+    decided_at TIMESTAMPTZ,
+    decided_by INTEGER
+);
 COMMIT;
