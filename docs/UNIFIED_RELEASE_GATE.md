@@ -66,3 +66,13 @@
 ## Global-admin homepage content
 
 The new `/admin/content` page allows a verified global administrator (with properly granted privileges) to edit homepage title, subtitle and a small JPG/PNG/WebP hero banner. Content is stored in the `demo_site_landing` table and served to the standalone browser site and Telegram Mini App. Larger production media should use object storage. Existing organizer CRUD, role permissions and QR check-in remain unchanged.
+
+## Production hardening changes (2026-10-21)
+
+- Work continues ONLY in `feature/crowdly-release-preparation`; do not use the alternate Vite PR #4 as release source.
+- Production configuration now *fails startup* if `DEMO_PAYMENT_MODE=true`; the default has been changed to `false`. Free events are usable; paid events are unavailable until a genuine payment integration exists.
+- No unverified website signup may reuse an anonymous guest profile by supplying an email and an old bearer token: this prevents misattribution of QR tickets. A fully verified account-linking flow is still needed for existing guests.
+- Production organizer access requires verified email, including participant exports. Setting an organizer role in the signup form does not grant access to participant information before verification.
+- Email OTP hashes now use HMAC-SHA256 with required `AUTH_CODE_SECRET` (a strong independent server variable); never publish the key. No OTP features work without it.
+- The additive migration is `backend/migrations/20261021_release_preparation.sql`. Apply it to a backed-up staging database before deployment. The GitHub Actions integration job boots a disposable PostgreSQL 16, inspects schema/routes, and executes the migration twice to confirm idempotency.
+- **Still blocking a full public release:** cookie/BFF transition for browser bearer tokens; completed verified identity/account merge; systematic security review (especially public guest tokens, anonymous booking limits), privacy retention/export/deletion, actual payment processor with webhook verification, organizer MFA, and real-world SMTP/Telegram/staging tests.
