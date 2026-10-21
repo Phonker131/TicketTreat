@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
-import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig, getWaitlistOfferStatus,claimWaitlistOffer,declineWaitlistOffer } from "@/lib/api";
+import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig, getWaitlistOfferStatus,claimWaitlistOffer,declineWaitlistOffer,requestQuickSignup,confirmQuickSignup } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
-import { getStoredGuestToken, restoreGuest, storeGuest } from "@/lib/session";
+import { getStoredGuestToken, restoreGuest, storeGuest,setWebAuth } from "@/lib/session";
 import type { TicketTreatEvent, DemoGuest, } from "@/lib/types";
 
 type PaymentMethod = "card" | "apple" | "google";
@@ -36,6 +36,9 @@ export function CheckoutClient() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [quickCode,setQuickCode]=useState("");
+  const [quickSent,setQuickSent]=useState(false);
+  const [privacyAccepted,setPrivacyAccepted]=useState(false);
 
   useEffect(() => {
     if (!Number.isFinite(eventId)) return;
@@ -159,6 +162,41 @@ export function CheckoutClient() {
                   {language === "en" ? "Sign up / Log in" : language === "cs" ? "Registrovat / Přihlásit se" : language === "uk" ? "Реєстрація / Вхід" : "Регистрация / Вход"}
                 </Link>
               </section>
+              {bookingConfig?.verified_accounts_required&&<section className="panel form-stack">
+                <h3>{language==="ru"?"Быстрая регистрация":language==="cs"?"Rychlá registrace":language==="uk"?"Швидка реєстрація":"Quick signup"}</h3>
+                <p className="form-note">{language==="ru"?"Без пароля: имя, email и подтверждение кода. Доступ к билету появится после проверки адреса.":"No password needed: enter your name and email, then confirm a one-time code."}</p>
+                <label>{t(language,"firstName")}<input required value={firstName} maxLength={100}
+                  autoComplete="given-name" onChange={e=>setFirstName(e.target.value)}/></label>
+                <label>Email<input type="email" required value={email} autoComplete="email"
+                  onChange={e=>{setEmail(e.target.value);setQuickSent(false);}}/></label>
+                <label style={{display:"flex",alignItems:"start",gap:10}}>
+                  <input type="checkbox" checked={privacyAccepted} onChange={e=>setPrivacyAccepted(e.target.checked)}/>
+                  <span>{language==="ru"?"Я ознакомился с условиями и политикой конфиденциальности.":"I have reviewed the terms and privacy notice."}{" "}
+                    <Link href="/privacy">{language==="ru"?"Политика конфиденциальности":"Privacy notice"}</Link>
+                  </span>
+                </label>
+                <button className="button button-outline" type="button"
+                  disabled={busy||!email.includes("@")||!firstName.trim()||!privacyAccepted}
+                  onClick={async()=>{setBusy(true);setMessage(null);try{
+                    await requestQuickSignup(email,firstName,privacyAccepted);
+                    setQuickSent(true);setMessage("Если адрес подходит для новой регистрации, код отправлен.");
+                  }catch(e){setMessage(e instanceof Error?e.message:"Error");}finally{setBusy(false);}}}>
+                  {language==="ru"?"Получить код на email":"Send sign-up code"}
+                </button>
+                {quickSent&&<form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage(null);
+                  try{const auth=await confirmQuickSignup(email,quickCode);setWebAuth(auth);
+                    setGuest(auth.profile.guest);setQuickCode("");setQuickSent(false);
+                    setMessage("Email подтверждён. Можете получить бесплатный билет.");
+                  }catch(err){setMessage(err instanceof Error?err.message:"Error");}finally{setBusy(false);}}}>
+                  <label>{language==="ru"?"Одноразовый код (8 цифр)":"One-time 8-digit code"}
+                    <input inputMode="numeric" pattern="[0-9]{8}" maxLength={8}
+                      required value={quickCode} onChange={e=>setQuickCode(e.target.value)}/>
+                  </label>
+                  <button className="button button-primary" disabled={busy||quickCode.length!==8}>
+                    {language==="ru"?"Подтвердить email":"Verify and continue"}
+                  </button>
+                </form>}
+              </section>}
               {!bookingConfig?.verified_accounts_required && <form className="panel form-stack" onSubmit={submitGuest}>
                 <h2>{language === "en" ? "Or continue as a demo guest" : language === "cs" ? "Nebo pokračuj jako demo host" : language === "uk" ? "Або продовж як демо-гість" : "Или продолжить как демо-гость"}</h2>
                 <h2>{t(language, "yourDetails")}</h2>
