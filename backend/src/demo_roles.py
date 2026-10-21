@@ -448,8 +448,10 @@ def install_demo_roles(app, get_db, main):
         # Directly delegate ONLY after server-side ownership authorization.
         return route.endpoint(event_id=event_id,_admin_key="",db=db)
 
-    @app.post("/demo/manage/check-in/{qr_token}")
-    def check_in(qr_token:str,account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
+    class ScanTicketPayload(BaseModel):
+        qr_token: str = Field(min_length=24,max_length=80)
+
+    def _secure_checkin(qr_token: str, account: WebAccount, db: Session):
         ticket=db.query(main.DemoTicket).filter(main.DemoTicket.qr_token==qr_token).first()
         if ticket is None:
             raise HTTPException(status_code=404,detail="ticket_not_found")
@@ -460,6 +462,21 @@ def install_demo_roles(app, get_db, main):
             audit(db,ticket.event_id,account.id,"checkin",f"ticket:{ticket.id}")
             db.commit()
         return {**result,"ticket":redact_organizer_ticket(result["ticket"])}
+
+    @app.post("/demo/manage/check-in")
+    def secure_check_in(payload: ScanTicketPayload,account:WebAccount=Depends(managing),
+                        db:Session=Depends(get_db)):
+        # QR proof is in the POST body so edge/router access logs do not
+        # persist ticket bearer credentials as part of the URL.
+        return _secure_checkin(payload.qr_token,account,db)
+
+    @app.post("/demo/manage/check-in/{qr_token}")
+    def check_in(qr_token:str,account:WebAccount=Depends(managing),
+                 db:Session=Depends(get_db)):
+        # Existing link shape remains available in development only.
+        if os.getenv("APP_ENV","development").strip().lower()=="production":
+            raise HTTPException(status_code=410,detail="use_body_based_checkin")
+        return _secure_checkin(qr_token,account,db)
 
     @app.get("/demo/manage/organizers")
     def list_organizers(account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
