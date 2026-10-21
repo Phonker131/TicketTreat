@@ -10,6 +10,13 @@ import type {
 } from "@/lib/types";
 
 const API_URL = "/api/gateway";
+function signedIdentityAvailable():boolean {
+  if(typeof window==="undefined")return false;
+  const browser=window.localStorage.getItem("crowdly_demo_web_auth")==="browser-session";
+  const telegram=Boolean((window as Window & {Telegram?:{WebApp?:{initData?:string}}}).Telegram?.WebApp?.initData);
+  return browser||telegram;
+}
+
 
 async function request<T>(
   path: string,
@@ -94,10 +101,10 @@ export function demoCheckout(
   language: "en" | "cs" | "ru" | "uk" = "en",
 ): Promise<DemoCheckoutResponse> {
   return request<DemoCheckoutResponse>(
-    `/demo/events/${eventId}/checkout`,
+    signedIdentityAvailable()? `/demo/me/events/${eventId}/checkout` : `/demo/events/${eventId}/checkout`,
     {
       method: "POST",
-      body: JSON.stringify({guest_token: guestToken, language}),
+      body: JSON.stringify(signedIdentityAvailable()?{language}:{guest_token:guestToken,language}),
     },
   );
 }
@@ -106,9 +113,9 @@ export function joinWaitlist(
   eventId: number,
   guestToken: string,
 ): Promise<{status: string; position?: number}> {
-  return request(`/demo/events/${eventId}/waitlist`, {
+  return request(signedIdentityAvailable()? `/demo/me/events/${eventId}/waitlist` : `/demo/events/${eventId}/waitlist`, {
     method: "POST",
-    body: JSON.stringify({guest_token: guestToken}),
+    body: JSON.stringify(signedIdentityAvailable()?{}:{guest_token:guestToken}),
   });
 }
 
@@ -116,7 +123,7 @@ export function getDemoTickets(
   guestToken: string,
 ): Promise<DemoTicket[]> {
   return request<DemoTicket[]>(
-    `/demo/guests/${encodeURIComponent(guestToken)}/tickets`,
+    signedIdentityAvailable()?"/demo/me/tickets":`/demo/guests/${encodeURIComponent(guestToken)}/tickets`,
   );
 }
 
@@ -125,7 +132,7 @@ export function getDemoTicket(
   ticketId: string | number,
 ): Promise<DemoTicket> {
   return request<DemoTicket>(
-    `/demo/guests/${encodeURIComponent(guestToken)}/tickets/${ticketId}`,
+    signedIdentityAvailable()?`/demo/me/tickets/${ticketId}`:`/demo/guests/${encodeURIComponent(guestToken)}/tickets/${ticketId}`,
   );
 }
 
@@ -134,7 +141,7 @@ export function cancelDemoTicket(
   ticketId: number,
 ): Promise<{status: string; ticket: DemoTicket}> {
   return request(
-    `/demo/guests/${encodeURIComponent(guestToken)}/tickets/${ticketId}`,
+    signedIdentityAvailable()?`/demo/me/tickets/${ticketId}`:`/demo/guests/${encodeURIComponent(guestToken)}/tickets/${ticketId}`,
     {method: "DELETE"},
   );
 }
