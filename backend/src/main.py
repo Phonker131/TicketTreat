@@ -2606,6 +2606,23 @@ def telegram_guest_has_bot_registration(db: Session, guest: DemoGuest, event_id:
     ).first() is not None
 
 
+def require_verified_booking_identity(db: Session, guest: DemoGuest) -> None:
+    """In real operation never sell/issue tickets from self-declared guest email.
+
+    Verified website users and signed Telegram users are accepted; anonymous
+    demonstration guests remain usable only outside the production environment.
+    """
+    if os.getenv("APP_ENV", "development").strip().lower() != "production":
+        return
+    from demo_account_recovery import email_is_verified
+    website_account = db.query(WebAccount).filter(WebAccount.guest_id == guest.id).first()
+    if website_account and email_is_verified(db, website_account.id):
+        return
+    if db.query(DemoTelegramIdentity).filter(DemoTelegramIdentity.guest_id == guest.id).first():
+        return
+    raise HTTPException(status_code=403, detail="verified_account_required_for_booking")
+
+
 @app.post("/demo/events/{event_id}/checkout")
 def demo_checkout(
     event_id: int,
@@ -2623,6 +2640,8 @@ def demo_checkout(
             status_code=404,
             detail="demo_guest_not_found",
         )
+
+    require_verified_booking_identity(db, guest)
 
     event = (
         db.query(Event)
@@ -2748,6 +2767,8 @@ def join_demo_waitlist(
             status_code=404,
             detail="demo_guest_not_found",
         )
+
+    require_verified_booking_identity(db, guest)
 
     event = (
         db.query(Event)
