@@ -66,7 +66,7 @@ def language_code(value: str | None) -> str:
 def queue_email(
     db: Session, *, kind: str, event_key: str, recipient: str | None,
     guest_id: int | None = None, ticket_id: int | None = None,
-    language: str = "en",
+    language: str = "en", scheduled_at: datetime | None = None,
 ) -> None:
     """Add to the caller's transaction: do NOT commit here.
 
@@ -75,9 +75,9 @@ def queue_email(
     """
     if not configured() or not recipient:
         return
-    if kind not in {"welcome", "ticket", "checkin"}:
+    if kind not in {"welcome", "ticket", "checkin", "reminder"}:
         raise ValueError("unknown_email_kind")
-    if kind in {"ticket", "checkin"}:
+    if kind in {"ticket", "checkin", "reminder"}:
         # Only mail registered website accounts during the public demo.
         # Anonymous checkout emails are unverified and could be used for spam.
         from demo_accounts import WebAccount
@@ -92,8 +92,33 @@ def queue_email(
         event_key=event_key, recipient=recipient,
         guest_id=guest_id, ticket_id=ticket_id, kind=kind,
         language=language_code(language), state="pending",
-        next_attempt_at=datetime.now(timezone.utc),
+        next_attempt_at=scheduled_at or datetime.now(timezone.utc),
     ))
+
+
+def queue_event_reminder(db: Session, *, event, guest, ticket, language: str = "en") -> None:
+    """Queue one service reminder per ticket for 24 hours before the event.
+
+    Only verified website accounts receive this; anonymous emails are never
+    eligible, and old bookings do not trigger catch-up email blasts.
+    """
+    if not configured() or event.starts_at is None:
+        return
+    from demo_accounts import WebAccount
+    from demo_account_recovery import email_is_verified
+    account = db.query(WebAccount).filter(WebAccount.guest_id == guest.id).first()
+    if not account or not email_is_verified(db, account.id):
+        return
+    start = event.starts_at
+    start = start.replace(tzinfo=timezone.utc) if start.tzinfo is None else start.astimezone(timezone.utc)
+    current = datetime.now(timezone.utc)
+    if start <= current + timedelta(hours=1):
+        return
+    scheduled = max(current + timedelta(minutes=15), start - timedelta(hours=24))
+    queue_email(db, kind="reminder",
+        event_key=f"reminder:{ticket.id}:{int(start.timestamp())}",
+        recipient=account.email, guest_id=guest.id, ticket_id=ticket.id,
+        language=language, scheduled_at=scheduled)
 
 
 def ticket_language(db: Session, ticket_id: int) -> str:
@@ -114,6 +139,9 @@ COPY = {
         "ticket_subject": "Your Crowdly ticket: {event}",
         "ticket_title": "You're going to {event}!",
         "ticket_body": "Your demo booking is confirmed. Show this QR code at the entrance.",
+        "reminder_subject": "Reminder: {event} is coming up",
+        "reminder_title": "Your event is soon!",
+        "reminder_body": "Your registration is active. Remember the start time and bring your ticket.",
         "checkin_subject": "Check-in confirmed: {event}",
         "checkin_title": "Check-in successful!",
         "checkin_body": "You've checked in successfully. Enjoy the event!",
@@ -129,6 +157,9 @@ COPY = {
         "ticket_subject": "Твой билет Crowdly: {event}",
         "ticket_title": "Ты записан на {event}!",
         "ticket_body": "Запись подтверждена. Покажи этот QR-код на входе.",
+        "reminder_subject": "Напоминание о мероприятии: {event}",
+        "reminder_title": "Скоро мероприятие!",
+        "reminder_body": "Ты записан на мероприятие. Проверь время начала и не забудь билет.",
         "checkin_subject": "Check-in подтверждён: {event}",
         "checkin_title": "Check-in выполнен!",
         "checkin_body": "Отметка о посещении сохранена. Хорошего мероприятия!",
@@ -144,6 +175,9 @@ COPY = {
         "ticket_subject": "Tvoje vstupenka Crowdly: {event}",
         "ticket_title": "Jsi přihlášen/a na {event}!",
         "ticket_body": "Registrace je potvrzena. U vstupu ukaž tento QR kód.",
+        "reminder_subject": "Připomínka akce: {event}",
+        "reminder_title": "Akce se blíží!",
+        "reminder_body": "Tvá registrace platí. Zkontroluj čas začátku a vezmi si vstupenku.",
         "checkin_subject": "Check-in potvrzen: {event}",
         "checkin_title": "Check-in proběhl úspěšně!",
         "checkin_body": "Tvá účast je zaznamenána. Užij si akci!",
@@ -159,6 +193,9 @@ COPY = {
         "ticket_subject": "Твій квиток Crowdly: {event}",
         "ticket_title": "Ти записався на {event}!",
         "ticket_body": "Реєстрацію підтверджено. Покажи цей QR-код на вході.",
+        "reminder_subject": "Нагадування про подію: {event}",
+        "reminder_title": "Подія незабаром!",
+        "reminder_body": "Ти зареєстрований на подію. Перевір час початку й не забудь квиток.",
         "checkin_subject": "Check-in підтверджено: {event}",
         "checkin_title": "Check-in виконано!",
         "checkin_body": "Твою присутність зафіксовано. Приємної події!",
@@ -247,6 +284,8 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             return None
         event = db.query(module.Event).filter(module.Event.id == ticket.event_id).first()
         if event is None:
+            return None
+        if row.kind == "reminder" and (ticket.ticket_status != "active" or event.is_cancelled or event.starts_at is None):
             return None
         name = str(event.title or "Event")[:180]
         subject = d[f"{row.kind}_subject"].format(event=name)
