@@ -9,7 +9,7 @@ import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig
 import { formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { getStoredGuestToken, restoreGuest, storeGuest } from "@/lib/session";
-import type { CrowdlyEvent, DemoGuest, } from "@/lib/types";
+import type { TicketTreatEvent, DemoGuest, } from "@/lib/types";
 
 type PaymentMethod = "card" | "apple" | "google";
 
@@ -22,7 +22,7 @@ export function CheckoutClient() {
   const eventId = Number(params?.id);
   const wantsWaitlist = search.get("waitlist") === "1";
 
-  const [event, setEvent] = useState<CrowdlyEvent | null>(null);
+  const [event, setEvent] = useState<TicketTreatEvent | null>(null);
   const [guest, setGuest] = useState<DemoGuest | null>(null);
   const [loadingGuest, setLoadingGuest] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -125,7 +125,7 @@ export function CheckoutClient() {
           <>
             <section className="checkout-summary">
               <div>
-                <small>{event.organizer || "Crowdly"}</small>
+                <small>{event.organizer || "TicketTreat"}</small>
                 <h2>{event.title}</h2>
               </div>
               <strong>{isFree ? freeLabel : price}</strong>
@@ -134,7 +134,7 @@ export function CheckoutClient() {
             {!guest ? (
               <>
               <section className="panel account-signup-banner">
-                <h2>{language === "en" ? "Create your Crowdly profile" : language === "cs" ? "Vytvoř si profil Crowdly" : language === "uk" ? "Створи профіль Crowdly" : "Создай профиль Crowdly"}</h2>
+                <h2>{language === "en" ? "Create your TicketTreat profile" : language === "cs" ? "Vytvoř si profil TicketTreat" : language === "uk" ? "Створи профіль TicketTreat" : "Создай профиль TicketTreat"}</h2>
                 <p>{language === "en" ? "Sign up or log in to save your tickets and access them from any device." : language === "cs" ? "Přihlas se nebo zaregistruj, abys měl vstupenky na všech zařízeních." : language === "uk" ? "Зареєструйся або увійди, щоб квитки були доступні з будь-якого пристрою." : "Зарегистрируйся или войди, чтобы билеты сохранялись в профиле и были доступны с любого устройства."}</p>
                 <Link href="/profile" className="button button-primary">
                   {language === "en" ? "Sign up / Log in" : language === "cs" ? "Registrovat / Přihlásit se" : language === "uk" ? "Реєстрація / Вхід" : "Регистрация / Вход"}
