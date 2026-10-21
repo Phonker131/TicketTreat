@@ -153,7 +153,7 @@ def queue_event_notice(db:Session, *, event, kind:str, message:str) -> int:
     Called inside the organizer's same transaction before tickets are cancelled.
     Never emails legacy guest addresses or unverified user-provided emails.
     """
-    if kind not in {"change","cancel"}:
+    if kind not in {"change","cancel","announcement"}:
         raise ValueError("unsupported_operational_notice")
     if not configured():
         return 0
@@ -360,11 +360,21 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
         name = str(event.title or "Event")[:180]
         if row.kind == "event_notice":
             notice = db.get(EventNotice, row.notice_id)
-            if notice is None or notice.event_id != event.id or notice.kind not in {"change","cancel"}:
+            if notice is None or notice.event_id != event.id or notice.kind not in {"change","cancel","announcement"}:
                 return None
-            subject=d[f"{notice.kind}_subject"].format(event=name)
-            title=subject
-            lead=d[f"{notice.kind}_body"]+"\n"+notice.message
+            if notice.kind == "announcement":
+                subject = {
+                    "ru":"Важная информация: {event}",
+                    "cs":"Důležité informace: {event}",
+                    "uk":"Важлива інформація: {event}",
+                    "en":"Important event information: {event}",
+                }[row.language if row.language in {"ru","cs","uk","en"} else "en"].format(event=name)
+                title=subject
+                lead=notice.message
+            else:
+                subject=d[f"{notice.kind}_subject"].format(event=name)
+                title=subject
+                lead=d[f"{notice.kind}_body"]+"\n"+notice.message
         else:
             subject = d[f"{row.kind}_subject"].format(event=name)
             title = d[f"{row.kind}_title"].format(event=name)
