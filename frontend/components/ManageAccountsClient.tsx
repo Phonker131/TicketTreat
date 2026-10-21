@@ -2,18 +2,22 @@
 import Link from "next/link";
 import {useEffect,useState} from "react";
 import {AppHeader} from "@/components/AppHeader";
-import {getManagedAccounts,setManagedAccountRole} from "@/lib/api";
-import type {ManagedAccount} from "@/lib/api";
+import {getManagedAccounts,setManagedAccountRole,getGlobalAdminDelegations,grantGlobalAdmin,revokeGlobalAdmin} from "@/lib/api";
+import type {ManagedAccount,GlobalAdminDelegation} from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 
 export function ManageAccountsClient() {
   const [accounts,setAccounts]=useState<ManagedAccount[]>([]);
+  const [delegations,setDelegations]=useState<GlobalAdminDelegation[]>([]);
+  const [inviteEmail,setInviteEmail]=useState("");
   const [error,setError]=useState(""),[notice,setNotice]=useState("");
   const [busy,setBusy]=useState<number|null>(null),[loading,setLoading]=useState(true);
   useEffect(()=>{
     const token=getWebToken();
     if(!token){setError("Для просмотра аккаунтов необходимо войти.");setLoading(false);return;}
-    getManagedAccounts(token).then(setAccounts).catch(e=>setError(e instanceof Error?e.message:String(e))).finally(()=>setLoading(false));
+    Promise.all([getManagedAccounts(token),getGlobalAdminDelegations(token)])
+      .then(([users,grants])=>{setAccounts(users);setDelegations(grants);})
+      .catch(e=>setError(e instanceof Error?e.message:String(e))).finally(()=>setLoading(false));
   },[]);
   async function changeRole(account:ManagedAccount,role:"participant"|"organizer"){
     const token=getWebToken();if(!token)return;
@@ -26,12 +30,47 @@ export function ManageAccountsClient() {
     }catch(e){setError(e instanceof Error?e.message:String(e))}
     finally{setBusy(null)}
   }
+  async function grant() {
+    const token=getWebToken();if(!token||!inviteEmail.trim())return;
+    if(!window.confirm("Предоставить этому подтверждённому аккаунту полный доступ к управлению TicketTreat?"))return;
+    setBusy(-1);setError("");setNotice("");
+    try {
+      await grantGlobalAdmin(token,inviteEmail.trim());
+      const [users,grants]=await Promise.all([getManagedAccounts(token),getGlobalAdminDelegations(token)]);
+      setAccounts(users);setDelegations(grants);setInviteEmail("");
+      setNotice("Права назначены. Новому администратору необходимо завершить MFA и заново войти.");
+    } catch(e){setError(e instanceof Error?e.message:String(e));}
+    finally{setBusy(null);}
+  }
+  async function revoke(accountId:number) {
+    const token=getWebToken();if(!token)return;
+    if(!window.confirm("Отозвать доступ этого главного администратора?"))return;
+    setBusy(accountId);setError("");setNotice("");
+    try{
+      await revokeGlobalAdmin(token,accountId);
+      const [users,grants]=await Promise.all([getManagedAccounts(token),getGlobalAdminDelegations(token)]);
+      setAccounts(users);setDelegations(grants);setNotice("Администратор отозван.");
+    }catch(e){setError(e instanceof Error?e.message:String(e));}
+    finally{setBusy(null);}
+  }
   return <div className="app-shell"><AppHeader/><main className="page">
     <Link href="/admin" className="back-link">← Organizer dashboard</Link>
     <div className="admin-heading"><div><span className="status status-demo">GLOBAL ADMIN</span><h1>Управление аккаунтами</h1>
-      <p>Разрешение ролей участников и организаторов. Глобальных администраторов можно назначить только в Railway.</p></div></div>
+      <p>Разрешение ролей участников и организаторов. Главного администратора можно безопасно назначить существующему аккаунту с подтверждённой почтой. Требуется ваша двухфакторная авторизация.</p></div></div>
     {error&&<div className="state-card state-error">{error}</div>}
     {notice&&<div className="success-banner">{notice}</div>}
+    <section className="panel form-stack">
+      <h2>Главные администраторы</h2>
+      <p className="form-note">Оба администратора имеют одинаковые права: события, главная страница, участники и роли. Нельзя назначить права до создания аккаунта и подтверждения email. После назначения получатель должен настроить двухфакторную аутентификацию.</p>
+      <label>Email нового главного администратора
+        <input type="email" autoComplete="off" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="Имейл подтверждённого аккаунта"/>
+      </label>
+      <button type="button" className="button button-primary" disabled={busy!==null||!inviteEmail.includes("@")} onClick={grant}>Назначить главного администратора</button>
+      {delegations.map(d=><div className="account-management-row" key={d.account_id}>
+        <div className="account-management-info"><strong>{d.email}</strong><small>Account #{d.account_id}</small></div>
+        <button type="button" className="button button-outline" disabled={busy!==null} onClick={()=>revoke(d.account_id)}>Отозвать</button>
+      </div>)}
+    </section>
     {loading?<div className="state-card">Загрузка…</div>:<div className="panel">
       <h2>Аккаунты ({accounts.length})</h2>
       {accounts.map(a=><div className="account-management-row" key={a.account_id}>
