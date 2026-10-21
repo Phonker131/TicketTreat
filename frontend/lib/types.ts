@@ -5,6 +5,8 @@ export type CrowdlyEvent = {
   title: string;
   organizer: string | null;
   location: string | null;
+  country_code: string | null;
+  city: string | null;
   description: string | null;
   max_participants: number | null;
   registered_count?: number;
@@ -77,6 +79,8 @@ export type WebAccount = {
   phone: string | null;
   instagram: string | null;
   contact_preference: "email" | "phone" | "telegram" | "instagram";
+  country_code: string | null;
+  city: string | null;
   created_at: string;
   role: "participant" | "organizer" | "global_admin";
 };

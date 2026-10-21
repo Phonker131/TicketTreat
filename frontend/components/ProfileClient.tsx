@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import {CountryCityFields} from "@/components/CountryCityFields";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
 import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile } from "@/lib/api";
@@ -82,6 +83,8 @@ export function ProfileClient() {
   const [phone, setPhone] = useState("");
   const [instagram, setInstagram] = useState("");
   const [contact, setContact] = useState<ContactPreference>("email");
+  const [countryCode,setCountryCode]=useState("");
+  const [city,setCity]=useState("");
   const [claimKey, setClaimKey] = useState("");
   const [showClaim, setShowClaim] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -105,6 +108,8 @@ export function ProfileClient() {
     setPhone(p.account.phone || "");
     setInstagram(p.account.instagram || "");
     setContact(p.account.contact_preference);
+    setCountryCode(p.account.country_code||"");
+    setCity(p.account.city||"");
   }
 
   function readableError(err: unknown): string {
@@ -129,6 +134,7 @@ export function ProfileClient() {
             phone: phone.trim() || null, instagram: instagram.trim() || null,
             contact_preference: contact,
             account_role: accountRole,
+            country_code:countryCode,city:city.trim(),
             guest_token: getStoredGuestToken(),
             language,
           })
@@ -151,6 +157,7 @@ export function ProfileClient() {
         first_name:firstName.trim(), last_name:lastName.trim(),
         phone:phone.trim()||null, instagram:instagram.trim()||null,
         contact_preference:contact,
+        country_code:countryCode,city:city.trim(),
       });
       loadProfile(result);
       setNotice(tr.updated);
@@ -207,6 +214,8 @@ export function ProfileClient() {
       </div>
       <label>{tr.phone}<input type="tel" maxLength={40} autoComplete="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+420 ..." /></label>
       <label>{tr.instagram}<input maxLength={100} value={instagram} onChange={e=>setInstagram(e.target.value)} placeholder="@username" /></label>
+      <CountryCityFields countryCode={countryCode} city={city} onCountryChange={setCountryCode}
+        onCityChange={setCity} language={language} />
       <label>{tr.contact}
         <select value={contact} onChange={e=>setContact(e.target.value as ContactPreference)}>
           <option value="email">Email</option>

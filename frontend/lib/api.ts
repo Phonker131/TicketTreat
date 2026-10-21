@@ -178,6 +178,8 @@ export type WebRegistration = {
   contact_preference: string;
   guest_token?: string | null;
   account_role?: "participant" | "organizer";
+  country_code: string;
+  city: string;
   language?: "en" | "cs" | "ru" | "uk";
 };
 
