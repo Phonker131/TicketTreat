@@ -1,10 +1,10 @@
 :root {
-  --crowdly-purple: #c2118a;
-  --crowdly-purple-dark: #99106f;
-  --crowdly-sun: #ffc82e;
-  --crowdly-night: #1e0a28;
-  --crowdly-lilac: #f6eefa;
-  --crowdly-lilac-2: #e9d7f1;
+  --tickettreat-purple: #c2118a;
+  --tickettreat-purple-dark: #99106f;
+  --tickettreat-sun: #ffc82e;
+  --tickettreat-night: #1e0a28;
+  --tickettreat-lilac: #f6eefa;
+  --tickettreat-lilac-2: #e9d7f1;
   --white: #ffffff;
   --muted: #705c78;
   --danger: #b5233a;
@@ -18,8 +18,8 @@
 }
 
 html {
-  background: var(--crowdly-lilac);
-  color: var(--crowdly-night);
+  background: var(--tickettreat-lilac);
+  color: var(--tickettreat-night);
   -webkit-text-size-adjust: 100%;
 }
 
@@ -28,8 +28,8 @@ body {
   min-height: 100vh;
   background:
     radial-gradient(circle at 12% 4%, rgba(194, 17, 138, 0.07), transparent 24rem),
-    var(--crowdly-lilac);
-  color: var(--crowdly-night);
+    var(--tickettreat-lilac);
+  color: var(--tickettreat-night);
   font-family:
     Inter,
     Onest,
@@ -86,18 +86,10 @@ button {
   line-height: 1;
   letter-spacing: -1.6px;
   font-weight: 900;
-  color: var(--crowdly-night);
+  color: var(--tickettreat-night);
 }
 
-.wordmark-dot {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--crowdly-purple);
-  top: -3px;
-  left: 69%;
-}
+.wordmark-icon { width: 36px; height: 36px; flex-shrink: 0; margin-right: 9px; border-radius: 9px; }
 
 .topbar-actions {
   display: flex;
@@ -109,7 +101,7 @@ button {
   display: none;
   padding: 8px 12px;
   border-radius: var(--radius-pill);
-  background: var(--crowdly-lilac-2);
+  background: var(--tickettreat-lilac-2);
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
@@ -121,7 +113,7 @@ button {
   border: 1px solid rgba(30, 10, 40, 0.12);
   border-radius: var(--radius-pill);
   background: var(--white);
-  color: var(--crowdly-night);
+  color: var(--tickettreat-night);
   padding: 0 34px 0 12px;
   outline: none;
 }
@@ -137,7 +129,7 @@ button {
   overflow: hidden;
   min-height: 250px;
   border-radius: 22px;
-  background: var(--crowdly-purple);
+  background: var(--tickettreat-purple);
   color: white;
   display: flex;
   align-items: flex-end;
@@ -160,7 +152,7 @@ button {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--crowdly-sun);
+  background: var(--tickettreat-sun);
   top: 62px;
   right: 26%;
 }
@@ -234,7 +226,7 @@ button {
 .event-card-accent {
   height: 56px;
   padding: 14px 18px;
-  background: var(--crowdly-night);
+  background: var(--tickettreat-night);
   display: flex;
   align-items: center;
   gap: 9px;
@@ -248,7 +240,7 @@ button {
 }
 
 .event-card-accent .accent-you {
-  background: var(--crowdly-sun);
+  background: var(--tickettreat-sun);
   width: 19px;
   height: 19px;
 }
@@ -261,7 +253,7 @@ button {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: var(--crowdly-purple);
+  color: var(--tickettreat-purple);
   font-size: 13px;
   font-weight: 800;
 }
@@ -295,8 +287,8 @@ button {
   align-items: center;
   padding: 0 11px;
   border-radius: var(--radius-pill);
-  background: var(--crowdly-lilac-2);
-  color: var(--crowdly-night);
+  background: var(--tickettreat-lilac-2);
+  color: var(--tickettreat-night);
   font-size: 12px;
   font-weight: 800;
 }
@@ -331,12 +323,12 @@ button {
 }
 
 .button-primary {
-  background: var(--crowdly-purple);
+  background: var(--tickettreat-purple);
   color: white;
 }
 
 .button-primary:hover:not(:disabled) {
-  background: var(--crowdly-purple-dark);
+  background: var(--tickettreat-purple-dark);
 }
 
 .button-secondary {
@@ -398,8 +390,8 @@ button {
 .event-image-placeholder {
   min-height: 220px;
   background:
-    radial-gradient(circle at 70% 22%, var(--crowdly-sun) 0 18px, transparent 19px),
-    var(--crowdly-purple);
+    radial-gradient(circle at 70% 22%, var(--tickettreat-sun) 0 18px, transparent 19px),
+    var(--tickettreat-purple);
   display: grid;
   place-items: center;
 }
@@ -421,7 +413,7 @@ button {
 .mini-crowd .mini-you {
   width: 34px;
   height: 34px;
-  background: var(--crowdly-sun);
+  background: var(--tickettreat-sun);
 }
 
 .event-hero-copy {
@@ -475,7 +467,7 @@ button {
   margin-top: 14px;
   padding: 22px;
   border-radius: var(--radius-card);
-  background: var(--crowdly-sun);
+  background: var(--tickettreat-sun);
 }
 
 .join-card p {
@@ -548,8 +540,8 @@ button {
 .demo-pill {
   padding: 7px 10px;
   border-radius: var(--radius-pill);
-  background: var(--crowdly-sun);
-  color: var(--crowdly-night);
+  background: var(--tickettreat-sun);
+  color: var(--tickettreat-night);
   font-size: 11px;
   font-weight: 900;
   letter-spacing: .08em;
@@ -599,12 +591,12 @@ input, textarea, select {
   background: white;
   border-radius: 12px;
   padding: 13px 14px;
-  color: var(--crowdly-night);
+  color: var(--tickettreat-night);
   font: inherit;
   outline: none;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: var(--crowdly-purple);
+  border-color: var(--tickettreat-purple);
   box-shadow: 0 0 0 3px rgba(194,17,138,.10);
 }
 
@@ -624,7 +616,7 @@ input:focus, textarea:focus, select:focus {
 .avatar {
   width: 46px; height: 46px; border-radius: 50%;
   display: grid; place-items: center;
-  background: var(--crowdly-purple);
+  background: var(--tickettreat-purple);
   color: white; font-weight: 900; font-size: 20px;
 }
 
@@ -656,7 +648,7 @@ input:focus, textarea:focus, select:focus {
   cursor: pointer;
 }
 .payment-method.selected {
-  border-color: var(--crowdly-purple);
+  border-color: var(--tickettreat-purple);
   box-shadow: 0 0 0 3px rgba(194,17,138,.10);
 }
 .payment-method span { font-size: 24px; }
@@ -667,11 +659,11 @@ input:focus, textarea:focus, select:focus {
 .button-outline {
   border: 1px solid rgba(30,10,40,.18);
   background: white;
-  color: var(--crowdly-night);
+  color: var(--tickettreat-night);
 }
 .button-sun {
-  background: var(--crowdly-sun);
-  color: var(--crowdly-night);
+  background: var(--tickettreat-sun);
+  color: var(--tickettreat-night);
 }
 
 .ticket-list { display: grid; gap: 12px; }
@@ -690,7 +682,7 @@ input:focus, textarea:focus, select:focus {
 .ticket-card {
   overflow: hidden;
   border-radius: 22px;
-  background: var(--crowdly-purple);
+  background: var(--tickettreat-purple);
   color: white;
   box-shadow: 0 20px 60px rgba(30,10,40,.18);
 }
@@ -700,12 +692,12 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--crowdly-night);
+  background: var(--tickettreat-night);
 }
 .ticket-main {
   padding: 26px;
   background: white;
-  color: var(--crowdly-night);
+  color: var(--tickettreat-night);
 }
 .ticket-main h1 { margin: 0 0 20px; font-size: clamp(30px, 8vw, 48px); line-height: 1; }
 .ticket-facts { display: grid; gap: 12px; }
@@ -714,7 +706,7 @@ input:focus, textarea:focus, select:focus {
 .qr-wrap {
   display: grid;
   justify-items: center;
-  background: var(--crowdly-lilac);
+  background: var(--tickettreat-lilac);
   border-radius: 16px;
   padding: 18px;
   margin: 24px 0;
@@ -750,7 +742,7 @@ input:focus, textarea:focus, select:focus {
 }
 .participant-row:last-child { border-bottom: 0; }
 .participant-actions { display: flex; gap: 8px; align-items: center; }
-.scanner-box { width: 100%; overflow: hidden; border-radius: 14px; background: var(--crowdly-night); min-height: 260px; }
+.scanner-box { width: 100%; overflow: hidden; border-radius: 14px; background: var(--tickettreat-night); min-height: 260px; }
 .manual-checkin { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 14px; }
 .checkin-result { text-align: center; }
 
@@ -794,7 +786,7 @@ input:focus, textarea:focus, select:focus {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  background: var(--crowdly-lilac-2);
+  background: var(--tickettreat-lilac-2);
 }
 
 .event-poster-field {
@@ -852,7 +844,7 @@ input:focus, textarea:focus, select:focus {
   border: 0;
   box-shadow: none;
   flex: none;
-  accent-color: var(--crowdly-purple);
+  accent-color: var(--tickettreat-purple);
 }
 @media (max-width: 480px) {
   .event-language-options { grid-template-columns: 1fr; }
@@ -862,15 +854,15 @@ input:focus, textarea:focus, select:focus {
 .admin-event-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .auth-container { max-width: 650px; margin: 0 auto; }
 .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 18px 0; }
-.auth-tabs button { border-radius: 12px; padding: 13px; background: white; border: 1px solid rgba(30,10,40,.15); font: inherit; font-weight: 800; color: var(--crowdly-night); }
-.auth-tabs button.active { background: var(--crowdly-purple); color: white; border-color: var(--crowdly-purple); }
+.auth-tabs button { border-radius: 12px; padding: 13px; background: white; border: 1px solid rgba(30,10,40,.15); font: inherit; font-weight: 800; color: var(--tickettreat-night); }
+.auth-tabs button.active { background: var(--tickettreat-purple); color: white; border-color: var(--tickettreat-purple); }
 .form-note { color: var(--muted); line-height: 1.5; font-size: 13px; }
 .profile-top { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
-.profile-avatar { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--crowdly-purple); color: white; font-size: 28px; font-weight: 900; }
+.profile-avatar { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--tickettreat-purple); color: white; font-size: 28px; font-weight: 900; }
 .profile-top h1 { margin: 0; font-size: clamp(25px,5vw,37px); }
 .profile-top p { margin: 6px 0 0; color: var(--muted); overflow-wrap: anywhere; }
 .profile-facts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 18px 0; }
-.profile-fact { padding: 16px; background: var(--crowdly-lilac); border-radius: 12px; }
+.profile-fact { padding: 16px; background: var(--tickettreat-lilac); border-radius: 12px; }
 .profile-fact span { display: block; font-size: 12px; color: var(--muted); font-weight: 750; }
 .profile-fact strong { display: block; font-size: 23px; margin-top: 4px; }
 .profile-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
@@ -950,7 +942,7 @@ input:focus, textarea:focus, select:focus {
   overflow-wrap: anywhere;
   white-space: normal;
 }
-.profile-role-chip { background: var(--crowdly-lilac-2); color: var(--crowdly-night); }
+.profile-role-chip { background: var(--tickettreat-lilac-2); color: var(--tickettreat-night); }
 .profile-id-chip { background: #f2f0f3; color: var(--muted); }
 .profile-overview .profile-facts { margin: 0 0 24px; }
 .profile-overview .form-note { margin: 18px 0; }
@@ -984,8 +976,8 @@ input:focus, textarea:focus, select:focus {
 .account-management-title strong { overflow-wrap: anywhere; font-size: 17px; }
 .account-management-meta { margin: 0; color: var(--muted); overflow-wrap: anywhere; font-size: 13px; }
 .account-management-role { display: inline-flex; align-items: center; width: fit-content;
-  padding: 6px 11px; border-radius: 999px; background: var(--crowdly-lilac-2);
-  color: var(--crowdly-night); line-height: 1.2; font-size: 12px; font-weight: 800; }
+  padding: 6px 11px; border-radius: 999px; background: var(--tickettreat-lilac-2);
+  color: var(--tickettreat-night); line-height: 1.2; font-size: 12px; font-weight: 800; }
 .account-management-role[data-role="global_admin"] { background: #fff3c0; color: #6c4c00; }
 .account-management-role[data-role="organizer"] { background: #f7e1f0; color: #99106f; }
 .account-management-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
