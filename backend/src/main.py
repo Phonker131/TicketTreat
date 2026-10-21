@@ -3186,6 +3186,9 @@ def demo_admin_check_in(
 
     if ticket.ticket_status != "active":
         raise HTTPException(status_code=409, detail="ticket_not_active")
+    event=db.query(Event).filter(Event.id==ticket.event_id).first()
+    if event is None or getattr(event,"is_cancelled",False):
+        raise HTTPException(status_code=409, detail="event_cancelled")
 
     if ticket.checked_in_at is None:
         ticket.checked_in_at = utc_now()
