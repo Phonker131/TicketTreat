@@ -28,10 +28,10 @@ from telebot.types import (
 # Environment
 # =========================================================
 # Current file:
-# Crowdly/app/bot/src/main.py
+# TicketTreat/app/bot/src/main.py
 #
 # parents[3]:
-# Crowdly/
+# TicketTreat/
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(PROJECT_ROOT / ".env", override=False, encoding="utf-8-sig")
 
@@ -170,7 +170,7 @@ def _tr(en: str, cs: str, ru: str, uk: str) -> dict[str, str]:
     return {"en": en, "cs": cs, "ru": ru, "uk": uk}
 
 
-# Only Crowdly-owned UI fragments are translated here. Event titles,
+# Only TicketTreat-owned UI fragments are translated here. Event titles,
 # descriptions, organizer payment instructions, organizer reminder text,
 # cancellation reasons and broadcast content are left unchanged.
 UI_TRANSLATIONS = {
@@ -230,11 +230,11 @@ UI_TRANSLATIONS = {
     "Не требуется": _tr("Not required", "Není vyžadováno", "Не требуется", "Не потрібна"),
 
     # General user flow
-    "Привет! Я бот Crowdly для записи на ивенты.": _tr(
-        "Hi! I'm the Crowdly bot for joining events.",
-        "Ahoj! Jsem Crowdly bot pro registraci na události.",
-        "Привет! Я бот Crowdly для записи на ивенты.",
-        "Привіт! Я бот Crowdly для реєстрації на події.",
+    "Привет! Я бот TicketTreat для записи на ивенты.": _tr(
+        "Hi! I'm the TicketTreat bot for joining events.",
+        "Ahoj! Jsem TicketTreat bot pro registraci na události.",
+        "Привет! Я бот TicketTreat для записи на ивенты.",
+        "Привіт! Я бот TicketTreat для реєстрації на події.",
     ),
     "Твой Telegram ID: ": _tr("Your Telegram ID: ", "Tvoje Telegram ID: ", "Твой Telegram ID: ", "Твій Telegram ID: "),
     "✅ Пройти регистрацию": _tr("✅ Register", "✅ Zaregistrovat se", "✅ Пройти регистрацию", "✅ Зареєструватися"),
@@ -1071,7 +1071,7 @@ def get_main_menu(user_id: int):
     if WEB_APP_URL.startswith("https://"):
         keyboard.row(
             KeyboardButton(
-                "🌐 Crowdly Mini App",
+                "🌐 TicketTreat Mini App",
                 web_app=WebAppInfo(url=WEB_APP_URL),
             )
         )
@@ -1740,7 +1740,7 @@ def start(message):
 
     bot.send_message(
         message.chat.id,
-        "Привет! Я бот Crowdly для записи на ивенты.",
+        "Привет! Я бот TicketTreat для записи на ивенты.",
         reply_markup=get_main_menu(message.from_user.id),
     )
 
@@ -1751,7 +1751,7 @@ def open_crowdly_mini_app(message):
     if not WEB_APP_URL.startswith("https://"):
         bot.send_message(
             message.chat.id,
-            "Crowdly Mini App пока не настроен.",
+            "TicketTreat Mini App пока не настроен.",
             reply_markup=get_main_menu(message.from_user.id),
         )
         return
@@ -1762,7 +1762,7 @@ def open_crowdly_mini_app(message):
     keyboard = InlineKeyboardMarkup()
     keyboard.add(
         InlineKeyboardButton(
-            "🎟 Мои билеты в Crowdly" if command == "/tickets" else "🌐 Открыть Crowdly",
+            "🎟 Мои билеты в TicketTreat" if command == "/tickets" else "🌐 Открыть TicketTreat",
             web_app=WebAppInfo(url=url),
         )
     )
