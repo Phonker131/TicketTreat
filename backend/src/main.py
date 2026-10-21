@@ -1132,7 +1132,7 @@ def readiness_health():
 def root():
     return {
         "status": "ok",
-        "service": "Crowdly API",
+        "service": "TicketTreat API",
     }
 
 
