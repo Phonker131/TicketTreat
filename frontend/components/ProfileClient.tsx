@@ -6,7 +6,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { getVerifiedTelegramSession } from "@/lib/session";
 import {CountryCityFields} from "@/components/CountryCityFields";
 import { useLanguage } from "@/components/LanguageProvider";
-import { clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
+import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
 import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
