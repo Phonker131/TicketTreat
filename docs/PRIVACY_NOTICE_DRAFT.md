@@ -48,3 +48,10 @@ TicketTreat uses access-controlled endpoints, role ownership, MFA for privileged
 ## Change control
 
 Legal approval: **[name/date]**. Publication owner: **[name]**. Version: **[version]**. Keep amendments and the current effective notice available to users.
+
+
+## Timely data-subject request handling
+
+As a general rule, GDPR requests require a response without undue delay and within **one calendar month**, with a possible two-month extension where justified by complexity/volume. The controller must notify the person about the extension and reasons within the initial month. The application's `response_due_at` is a queue reminder, not automatic legal fulfillment or an automatically approved extension. A refused request still requires an explanation and information about supervisory-authority/court remedies.
+
+Official guidance: [ÚOOÚ: Práva subjektu údajů](https://uoou.gov.cz/poradna/poradna-gdpr/prava-subjektu-udaju) and [European Commission: requests from individuals](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/dealing-requests-individuals_en).
