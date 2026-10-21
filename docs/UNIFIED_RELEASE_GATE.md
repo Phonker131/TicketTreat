@@ -76,3 +76,15 @@ The new `/admin/content` page allows a verified global administrator (with prope
 - Email OTP hashes now use HMAC-SHA256 with required `AUTH_CODE_SECRET` (a strong independent server variable); never publish the key. No OTP features work without it.
 - The additive migration is `backend/migrations/20261021_release_preparation.sql`. Apply it to a backed-up staging database before deployment. The GitHub Actions integration job boots a disposable PostgreSQL 16, inspects schema/routes, and executes the migration twice to confirm idempotency.
 - **Still blocking a full public release:** cookie/BFF transition for browser bearer tokens; completed verified identity/account merge; systematic security review (especially public guest tokens, anonymous booking limits), privacy retention/export/deletion, actual payment processor with webhook verification, organizer MFA, and real-world SMTP/Telegram/staging tests.
+
+
+## Single-branch production preparation
+- Continue exclusively on feature/crowdly-release-preparation (PR #5); do not modify main until staged checks pass.
+- Browser website account sessions now use a server-managed Secure/HttpOnly/SameSite=Strict cookie on the Next.js API gateway. Browser localStorage holds only a non-secret login marker; old tokens require re-login. Anonymous guest/ticket bearer tokens are not yet migrated.
+- Configure BACKEND_API_URL on the Next.js service to reach the trusted internal FastAPI Demo API. WEB_APP_URL should eventually point to https://TicketTreat.eu. Do not expose private tokens in NEXT_PUBLIC_* environment variables.
+- The gateway enforces same-origin protections for mutations. Telegram signed initData is still verified by the FastAPI backend.
+- The signed /demo/telegram/link route explicitly links a verified website account and Telegram session, migrates non-conflicting tickets and waitlist entries, refuses duplicate-event conflicts for manual review, and revokes the former Telegram guest token.
+- Email verification and password recovery require AUTH_CODE_SECRET (32+ random characters), as well as verified Resend credentials and provider setup.
+- Authenticated /demo/auth/export and a profile JSON download button provide personal-data export; deletion and retention compliance remains unfinished.
+- PostgreSQL 16 GitHub Actions exercise startup, table/schema availability, signature-based account linking and repeatable release SQL migration.
+- Real money payments and refund workflows, privileged MFA, GDPR deletion and retention, full staging E2E tests and deployment/secrets must be completed before public ticket sales.
