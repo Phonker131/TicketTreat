@@ -998,13 +998,15 @@ def event_to_dict(
         external_gallery = json.loads(media.gallery_json or "[]") if media else []
         images = db.query(EventGalleryImage).filter(
             EventGalleryImage.event_id == event.id,
-        ).order_by(EventGalleryImage.id).all()
+        ).order_by(EventGalleryImage.position, EventGalleryImage.id).all()
         data["external_gallery_urls"] = external_gallery
         data["uploaded_gallery"] = [
-            {"id":image.id, "url":f"/api/gateway/demo/events/{event.id}/gallery/{image.id}"}
+            {"id":image.id, "url":f"/api/gateway/demo/events/{event.id}/gallery/{image.id}", "position":image.position, "is_cover":bool(image.is_cover)}
             for image in images
         ]
         data["gallery_urls"] = external_gallery + [image["url"] for image in data["uploaded_gallery"]]
+        cover=next((item["url"] for item in data["uploaded_gallery"] if item["is_cover"]),None)
+        data["gallery_cover_url"]=cover
         data["video_url"] = media.video_url if media else None
     else:
         data.update({"country_code": None, "city": None})
