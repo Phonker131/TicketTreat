@@ -403,6 +403,7 @@ export type PrivacyRequestStatus = {
   status: "none" | "pending" | "withdrawn" | "completed";
   requested_at: string | null;
   updated_at: string | null;
+  response_due_at: string | null;
   note: string;
 };
 export function getPrivacyRequest(): Promise<PrivacyRequestStatus> {
