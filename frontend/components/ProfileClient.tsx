@@ -7,7 +7,7 @@ import { getVerifiedTelegramSession } from "@/lib/session";
 import {CountryCityFields} from "@/components/CountryCityFields";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset } from "@/lib/api";
+import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, exportAccountData } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -396,6 +396,22 @@ export function ProfileClient() {
                 <button type="submit" className="button button-primary" disabled={busy}>
                   {language === "ru" ? "Сменить пароль" : "Change password"}</button>
               </form>
+              <button type="button" className="button button-outline" disabled={busy}
+                onClick={async()=>{
+                  const token=getWebToken();if(!token)return;
+                  setBusy(true);setError("");
+                  try{
+                    const data=await exportAccountData(token);
+                    const file=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+                    const url=URL.createObjectURL(file);
+                    const link=document.createElement("a");
+                    link.href=url;link.download="tickettreat-my-data.json";link.click();
+                    setTimeout(()=>URL.revokeObjectURL(url),1000);
+                  }catch(e){setError(readableError(e));}
+                  finally{setBusy(false);}
+                }}>
+                {language==="ru"?"Скачать мои данные (JSON)":language==="uk"?"Завантажити мої дані (JSON)":language==="cs"?"Stáhnout moje údaje (JSON)":"Download my data (JSON)"}
+              </button>
               <div className="security-session-row">
                 <p>{language === "ru" ? "Активных сессий" : "Active sessions"}: <strong>{sessionCount ?? "—"}</strong></p>
                 <button type="button" className="button button-outline" onClick={signOutAllDevices}
