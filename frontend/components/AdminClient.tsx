@@ -30,6 +30,9 @@ export function AdminClient() {
   const [preview,setPreview]=useState("");
   const [countryCode,setCountryCode]=useState("");
   const [city,setCity]=useState("");
+  const [eventSearch,setEventSearch]=useState("");
+  const [eventStatus,setEventStatus]=useState("all");
+  const [sortMode,setSortMode]=useState("newest");
   useEffect(()=>{
     let live=true;
     const token=getWebToken();
@@ -121,8 +124,27 @@ export function AdminClient() {
         <label>Валюта<select name="currency" defaultValue="CZK"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option></select></label></div>
         <button className="button button-primary" disabled={saving}>{saving?"Сохраняем…":"Создать черновик"}</button>
       </form>}
+      <section className="panel pilot-event-filters" aria-label="Фильтрация мероприятий">
+        <label>Поиск мероприятий<input type="search" placeholder="Название, город или организатор"
+          value={eventSearch} onChange={e=>setEventSearch(e.target.value)}/></label>
+        <label>Статус<select value={eventStatus} onChange={e=>setEventStatus(e.target.value)}>
+          <option value="all">Все</option><option value="draft">Черновик</option>
+          <option value="scheduled">Запланировано</option><option value="published">Опубликовано</option>
+          <option value="cancelled">Отменено</option>
+        </select></label>
+        <label>Сортировка<select value={sortMode} onChange={e=>setSortMode(e.target.value)}>
+          <option value="newest">Новые первыми</option><option value="soonest">Ближайшие по дате</option>
+          <option value="title">По названию</option>
+        </select></label>
+      </section>
       <div className="admin-event-grid">
-        {events.map(ev=><Link key={ev.id} href={`/admin/events/${ev.id}`} className="admin-event-card">
+        {events.filter(ev=>{
+          const status=ev.is_cancelled?"cancelled":ev.publication?.status||"published";
+          const term=eventSearch.trim().toLocaleLowerCase();
+          return (eventStatus==="all"||status===eventStatus)&&(!term||
+            [ev.title,ev.city,ev.organizer,ev.location].some(v=>String(v||"").toLocaleLowerCase().includes(term)));
+        }).sort((a,b)=>sortMode==="title"?a.title.localeCompare(b.title):sortMode==="soonest"?
+          (Date.parse(a.starts_at||"")||Infinity)-(Date.parse(b.starts_at||"")||Infinity):b.id-a.id).map(ev=><Link key={ev.id} href={`/admin/events/${ev.id}`} className="admin-event-card">
           <small>#{ev.id} · {ev.is_cancelled?"Отменён":ev.publication?.status==="draft"?"Черновик":ev.publication?.status==="scheduled"?"Запланирован":"Опубликован"}</small>
           <h3>{ev.title}</h3>
           <p>{ev.location||"—"}</p>
