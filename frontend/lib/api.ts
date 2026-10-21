@@ -377,3 +377,8 @@ export function linkTelegramToWebsite(token:string,initData:string):Promise<{lin
     body:JSON.stringify({init_data:initData})
   });
 }
+
+export type BookingConfig = {demo_payment_mode:boolean;real_money_charged:boolean;verified_accounts_required:boolean};
+export function getBookingConfig():Promise<BookingConfig> {
+  return request("/demo/config");
+}
