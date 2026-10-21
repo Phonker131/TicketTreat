@@ -84,7 +84,7 @@ export function AdminClient() {
         <p>{identity?.role==="global_admin"?"Полный доступ, назначение владельцев и модерация.":"Доступ только к собственным событиям."}</p>
       </div>
       {identity&&<div className="admin-event-actions">
-        {identity.role==="global_admin"&&<><Link className="button button-outline" href="/admin/accounts">Управление аккаунтами</Link><Link className="button button-outline" href="/admin/content">Контент сайта</Link><Link className="button button-outline" href="/admin/privacy">Запросы на удаление</Link></>}
+        {identity.role==="global_admin"&&<><Link className="button button-outline" href="/admin/accounts">Управление аккаунтами</Link><Link className="button button-outline" href="/admin/content">Контент сайта</Link><Link className="button button-outline" href="/admin/privacy">Запросы на удаление</Link><Link className="button button-outline" href="/admin/organizers">Заявки организаторов</Link></>}
         <Link className="button button-sun" href="/admin/check-in">Scan ticket</Link>
       </div>}
     </div>
