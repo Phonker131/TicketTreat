@@ -16,7 +16,15 @@ test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({
   await page.locator('form input[type="password"]').first().fill("Browser-only-testing-passphrase-2026");
   await page.locator('form button[type="submit"]').first().click();
 
-  await expect.poll(async()=>page.evaluate(()=>localStorage.getItem("crowdly_demo_web_auth"))).toBe("browser-session");
+  await expect.poll(async()=>page.evaluate(()=>localStorage.getItem("tickettreat_web_auth"))).toBe("browser-session");
+  // A user with the pre-rename browser marker retains the HttpOnly session.
+  await page.evaluate(()=>{
+    localStorage.setItem("crowdly_demo_web_auth","browser-session");
+    localStorage.removeItem("tickettreat_web_auth");
+  });
+  await page.reload();
+  await expect.poll(async()=>page.evaluate(()=>localStorage.getItem("tickettreat_web_auth"))).toBe("browser-session");
+  expect(await page.evaluate(()=>localStorage.getItem("crowdly_demo_web_auth"))).toBeNull();
   const cookies=await page.context().cookies();
   const session=cookies.find(c=>c.name==="tt_web_session");
   expect(session).toBeTruthy();
