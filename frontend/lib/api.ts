@@ -283,7 +283,7 @@ export function getManageParticipants(token:string, eventId:number): Promise<Adm
   return request(`/demo/manage/events/${eventId}/participants`,{headers:accountHeaders(token)});
 }
 export function checkInManagedTicket(token:string, qrToken:string):Promise<{status:string;ticket:DemoTicket}> {
-  return request(`/demo/manage/check-in/${encodeURIComponent(qrToken)}`,{method:"POST",headers:accountHeaders(token)});
+  return request(`/demo/manage/check-in`,{method:"POST",headers:accountHeaders(token),body:JSON.stringify({qr_token:qrToken})});
 }
 export async function exportManageParticipantsCsv(token:string,eventId:number):Promise<void> {
   const r=await fetch(`${API_URL}/demo/manage/events/${eventId}/participants.csv`,{
