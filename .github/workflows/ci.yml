@@ -103,3 +103,57 @@ jobs:
             restored="$(psql -h 127.0.0.1 -U tickettreat -d tickettreat_restore_ci -tAc "SELECT count(*) FROM $table")"
             test "$original" = "$restored"
           done
+
+  browser-e2e:
+    name: Chromium browser end-to-end
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tickettreat
+          POSTGRES_PASSWORD: test_only_password
+          POSTGRES_DB: tickettreat_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tickettreat -d tickettreat_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgresql://tickettreat:test_only_password@127.0.0.1:5432/tickettreat_ci
+      DEMO_ISOLATED_API: "true"
+      DEMO_PAYMENT_MODE: "false"
+      APP_ENV: production
+      AUTH_CODE_SECRET: "ci-browser-only-hmac-secret-123456789012345"
+      BACKEND_API_URL: http://127.0.0.1:8000
+      PYTHONPATH: backend/src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install backend and browser dependencies
+        run: |
+          python -m pip install -r backend/src/requirements.txt
+          cd frontend && npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Initialize browser-only fixture and start APIs
+        run: |
+          python backend/src/tests/e2e_seed.py
+          python -m uvicorn main:app --app-dir backend/src --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/backend-e2e.log" 2>&1 &
+          curl --retry 30 --retry-delay 2 --retry-connrefused --fail --silent http://127.0.0.1:8000/demo/health/ready
+          (cd frontend && npm run dev -- --hostname 127.0.0.1 --port 3000 > "$RUNNER_TEMP/frontend-e2e.log" 2>&1 &)
+          curl --retry 40 --retry-delay 2 --retry-connrefused --fail --silent http://127.0.0.1:3000/ > /dev/null
+      - name: Browser registration, session and CSRF smoke tests
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Print only failure diagnostics
+        if: failure()
+        run: |
+          tail -n 40 "$RUNNER_TEMP/backend-e2e.log" || true
+          tail -n 40 "$RUNNER_TEMP/frontend-e2e.log" || true
