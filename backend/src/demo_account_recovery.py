@@ -6,6 +6,7 @@ sessions. Enable Resend only after configuring and verifying the sender domain.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -66,7 +67,12 @@ def email_is_verified(db: Session, account_id: int) -> bool:
 
 
 def code_digest(account_id: int, purpose: str, code: str) -> str:
-    return hashlib.sha256(f"{account_id}:{purpose}:{code}".encode()).hexdigest()
+    # Eight-digit OTPs have low entropy: a plain SHA-256 hash can be
+    # bruteforced offline from a leaked DB. Use a separate server-side key.
+    secret = os.getenv("AUTH_CODE_SECRET", "")
+    if len(secret) < 32:
+        raise HTTPException(status_code=503, detail="auth_code_secret_not_configured")
+    return hmac.new(secret.encode("utf-8"), f"{account_id}:{purpose}:{code}".encode(), hashlib.sha256).hexdigest()
 
 
 def send_code(email: str, purpose: str, code: str):
