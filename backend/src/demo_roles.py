@@ -5,6 +5,8 @@ via GLOBAL_ADMIN_ACCOUNT_IDS. Email alone is NOT proof of identity.
 """
 from __future__ import annotations
 import csv
+import json
+from urllib.parse import urlsplit
 import hashlib
 import hmac
 import io
@@ -58,6 +60,41 @@ class EventModerationLog(Base):
     details = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
+class EventMedia(Base):
+    """Curated external photo/video links; use object storage for actual uploads."""
+    __tablename__ = "demo_event_media"
+    event_id = Column(Integer, primary_key=True)
+    gallery_json = Column(Text, nullable=False, default="[]")
+    video_url = Column(String(2048), nullable=True)
+
+
+def validate_media_urls(gallery_urls, video_url):
+    if gallery_urls is not None:
+        if len(gallery_urls) > 8:
+            raise HTTPException(status_code=422, detail="maximum_eight_gallery_images")
+        for url in gallery_urls:
+            if len(url) > 2048 or urlsplit(url).scheme != "https" or not urlsplit(url).netloc or "@" in urlsplit(url).netloc:
+                raise HTTPException(status_code=422, detail="invalid_gallery_url")
+    if video_url is not None and video_url:
+        parsed = urlsplit(video_url)
+        if len(video_url) > 2048 or parsed.scheme != "https" or not parsed.hostname or parsed.hostname.lower() not in {"youtube.com","www.youtube.com","youtu.be","www.youtu.be","vimeo.com","www.vimeo.com"}:
+            raise HTTPException(status_code=422, detail="invalid_video_url")
+
+
+def save_media(db, event_id, gallery_urls=None, video_url=None):
+    if gallery_urls is None and video_url is None:
+        return
+    validate_media_urls(gallery_urls, video_url)
+    media = db.query(EventMedia).filter(EventMedia.event_id == event_id).first()
+    if media is None:
+        media = EventMedia(event_id=event_id)
+        db.add(media)
+    if gallery_urls is not None:
+        media.gallery_json = json.dumps(gallery_urls, ensure_ascii=False)
+    if video_url is not None:
+        media.video_url = video_url or None
+
+
 class CreateManageEvent(BaseModel):
     country_code: str = Field(min_length=2, max_length=2)
     city: str = Field(min_length=1, max_length=100)
@@ -71,6 +108,8 @@ class CreateManageEvent(BaseModel):
     starts_at: datetime
     languages: list[str] = Field(min_length=1)
     poster_data_url: str | None = Field(default=None, max_length=5700000)
+    gallery_urls: list[str] = Field(default_factory=list)
+    video_url: str | None = None
 
 class UpdateManageEvent(BaseModel):
     country_code: str | None = Field(default=None, max_length=2)
@@ -85,6 +124,8 @@ class UpdateManageEvent(BaseModel):
     starts_at: datetime | None = None
     languages: list[str] | None = None
     poster_data_url: str | None = Field(default=None, max_length=5700000)
+    gallery_urls: list[str] | None = None
+    video_url: str | None = None
 
 class CancelManageEvent(BaseModel):
     reason: str = Field(min_length=8, max_length=1000)
@@ -249,7 +290,8 @@ def install_demo_roles(app, get_db, main):
         if payload.starts_at is None:
             raise HTTPException(status_code=422,detail="date_required")
         # Existing bot event-creation logic remains the source of truth.
-        values=payload.model_dump(exclude={"poster_data_url","country_code","city"})
+        values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url"})
+        validate_media_urls(payload.gallery_urls,payload.video_url)
         from main import EventCreate
         values["payment_instructions"]="DEMO PAYMENT — automatically confirmed"
         values["reminder_minutes_before"]=180
@@ -263,6 +305,7 @@ def install_demo_roles(app, get_db, main):
         save_place(db, DemoEventPlace, "event_id", eid, payload.country_code, payload.city)
         if payload.poster_data_url:
             poster_setup(db,main,request,event,payload.poster_data_url)
+        save_media(db,eid,payload.gallery_urls,payload.video_url)
         audit(db,eid,account.id,"create")
         db.commit()
         db.refresh(event)
@@ -281,9 +324,11 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(status_code=409,detail="event_is_cancelled")
         values=payload.model_dump(exclude_unset=True)
         poster=values.pop("poster_data_url",None)
+        gallery=values.pop("gallery_urls",None)
+        video=values.pop("video_url",None)
         geo_country=values.pop("country_code",None)
         geo_city=values.pop("city",None)
-        if not values and poster is None and geo_country is None and geo_city is None:
+        if not values and poster is None and gallery is None and video is None and geo_country is None and geo_city is None:
             raise HTTPException(status_code=422,detail="no_changes")
         validate_payload(values.get("languages"),values.get("currency"))
         cap=values.get("max_participants",event.max_participants)
@@ -293,6 +338,7 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(status_code=422,detail="date_required")
         if "price" in values and values["price"] is None:
             raise HTTPException(status_code=422,detail="invalid_price")
+        validate_media_urls(gallery, video)
         if poster:
             main.decode_demo_poster(poster)  # fail before updating event
         if values:
@@ -307,6 +353,7 @@ def install_demo_roles(app, get_db, main):
             save_place(db, DemoEventPlace, "event_id", event_id, country, city)
         if poster:
             poster_setup(db,main,request,event,poster)
+        save_media(db,event_id,gallery,video)
         audit(db,event_id,account.id,"edit",",".join(values.keys())+(",poster" if poster else "")+(",geography" if geo_country is not None or geo_city is not None else ""))
         db.commit()
         db.refresh(event)
