@@ -366,9 +366,9 @@ def install_demo_roles(app, get_db, main):
         values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url"})
         validate_media_urls(payload.gallery_urls,payload.video_url)
         from main import EventCreate
-        values["payment_instructions"]="DEMO PAYMENT — automatically confirmed"
+        values["payment_instructions"]="DEMO PAYMENT — automatically confirmed" if payload.price > 0 else ""
         values["reminder_minutes_before"]=180
-        values["reminder_text"]="Your Crowdly event starts soon."
+        values["reminder_text"]="Your TicketTreat event starts soon."
         created=main.create_event(EventCreate(**values),db=db)
         if not isinstance(created,dict) or "id" not in created:
             raise HTTPException(status_code=422,detail=created.get("error","create_failed") if isinstance(created,dict) else "create_failed")
@@ -414,6 +414,8 @@ def install_demo_roles(app, get_db, main):
         validate_media_urls(gallery, video)
         if poster:
             main.decode_demo_poster(poster)  # fail before updating event
+        original_start=event.starts_at
+        original_location=event.location
         if values:
             from main import EventUpdate
             outcome=main.update_event(event_id,EventUpdate(**values),db=db)
@@ -427,6 +429,15 @@ def install_demo_roles(app, get_db, main):
         if poster:
             poster_setup(db,main,request,event,poster)
         save_media(db,event_id,gallery,video)
+        # Transactional service messages for material changes only.
+        changes=[]
+        if event.starts_at != original_start:
+            changes.append("Date/time: "+str(event.starts_at))
+        if event.location != original_location:
+            changes.append("Location: "+str(event.location or "Not specified"))
+        if changes:
+            from demo_email import queue_event_notice
+            queue_event_notice(db,event=event,kind="change",message="; ".join(changes))
         audit(db,event_id,account.id,"edit",",".join(values.keys())+(",poster" if poster else "")+(",geography" if geo_country is not None or geo_city is not None else ""))
         db.commit()
         db.refresh(event)
@@ -449,15 +460,18 @@ def install_demo_roles(app, get_db, main):
         event.is_cancelled=True
         event.cancellation_reason=reason
         event.cancelled_at=datetime.now(timezone.utc).replace(tzinfo=None)
-        # Cancel every active demo ticket: QR check-in must no longer be valid.
-        db.query(main.DemoTicket).filter(
+        # The notice is queued BEFORE entries become invalid; no unverified
+        # addresses are contacted. Delivery awaits a configured mail provider.
+        from demo_email import queue_event_notice
+        queue_event_notice(db,event=event,kind="cancel",message=reason)
+        for ticket in db.query(main.DemoTicket).filter(
             main.DemoTicket.event_id==event_id,
             main.DemoTicket.ticket_status=="active",
-        ).update({
-            main.DemoTicket.ticket_status:"cancelled",
-            main.DemoTicket.payment_status:"refunded_demo",
-            main.DemoTicket.cancelled_at:datetime.now(timezone.utc).replace(tzinfo=None),
-        }, synchronize_session=False)
+        ).all():
+            ticket.ticket_status="cancelled"
+            ticket.payment_status=("not_required" if ticket.payment_provider in {"free","legacy_free"}
+                                   else "cancelled_demo")
+            ticket.cancelled_at=event.cancelled_at
         audit(db,event_id,account.id,"cancel",reason)
         db.commit()
         db.refresh(event)
