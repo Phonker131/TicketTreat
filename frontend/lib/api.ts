@@ -434,3 +434,20 @@ export function fulfillErasureRequest(requestId:number,justification:string):Pro
     method:"POST",body:JSON.stringify({confirmation:"ERASE",justification}),
   });
 }
+
+export type OrganizerApplicationStatus = {status:string;role:string};
+export type PendingOrganizer = {account_id:number;email:string;created_at:string};
+export function getOrganizerApplication():Promise<OrganizerApplicationStatus>{
+  return request("/demo/auth/organizer-application");
+}
+export function applyAsOrganizer():Promise<{status:string}>{
+  return request("/demo/auth/organizer-application",{method:"POST"});
+}
+export function listOrganizerApplications():Promise<PendingOrganizer[]>{
+  return request("/demo/manage/organizer-applications");
+}
+export function decideOrganizer(accountId:number,approve:boolean):Promise<{status:string}>{
+  return request(`/demo/manage/organizer-applications/${accountId}/decision`,{
+    method:"POST",body:JSON.stringify({approve}),
+  });
+}
