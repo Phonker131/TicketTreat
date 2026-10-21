@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams,useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -14,6 +14,9 @@ import type { TicketTreatEvent } from "@/lib/types";
 
 export function EventDetailClient({preview=false}:{preview?:boolean}) {
   const params = useParams<{id: string}>();
+  const query=useSearchParams();
+  const source=(query.get("utm_source")||query.get("ref")||"").toLowerCase();
+  const attributed=/^[a-z0-9_-]{1,40}$/.test(source)?`&utm_source=${encodeURIComponent(source)}`:"";
   const {language} = useLanguage();
   const [event, setEvent] = useState<TicketTreatEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -118,9 +121,9 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
               <p>{Number(event.price||0)<=0 ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.") : demoPayments?t(language,"demoHint"):(language==="ru"?"Продажа платных билетов пока недоступна.":language==="cs"?"Prodej placených vstupenek zatím není dostupný.":language==="uk"?"Продаж платних квитків поки недоступний.":"Paid ticket sales are not available yet.")}</p>
             </div>
             {event.spots_left === 0 ? (
-              <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1`}>{t(language, "waitlist")}</Link>
+              <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}`}>{t(language, "waitlist")}</Link>
             ) : (
-              <Link className="button button-primary" href={`/checkout/${event.id}`}>{t(language, "join")}</Link>
+              <Link className="button button-primary" href={`/checkout/${event.id}${attributed?`?utm_source=${encodeURIComponent(source)}`:""}`}>{t(language, "join")}</Link>
             )}
           </section>
         )}
