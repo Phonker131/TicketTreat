@@ -5,7 +5,7 @@ import {useCallback, useEffect, useMemo, useState} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {EventCard} from "@/components/EventCard";
 import {useLanguage} from "@/components/LanguageProvider";
-import {getEvents,getWebProfile} from "@/lib/api";
+import {getEvents,getWebProfile,getSiteLanding,type SiteLanding} from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 import {isInUsersCity} from "@/lib/location";
 import {t} from "@/lib/i18n";
@@ -45,6 +45,7 @@ export function HomeClient(){
   const [error,setError]=useState<string|null>(null);
   const [location,setLocation]=useState<{country:string;city:string}|null>(null);
   const [showOther,setShowOther]=useState(false);
+  const [landing,setLanding]=useState<SiteLanding|null>(null);
 
   const refreshProfile=useCallback(async()=>{
     const token=getWebToken();
@@ -68,6 +69,7 @@ export function HomeClient(){
         if(e instanceof DOMException&&e.name==="AbortError")return;
         setError(e instanceof Error?e.message:"Unknown error");
       }).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
+    void getSiteLanding().then(setLanding).catch(()=>{});
     void refreshProfile();
     const onStorage=()=>{void refreshProfile();};
     window.addEventListener("storage",onStorage);
@@ -87,12 +89,12 @@ export function HomeClient(){
   return <div className="app-shell">
     <AppHeader/>
     <main className="page">
-      <section className="hero">
+      <section className="hero" style={landing?.hero_image_url?{backgroundImage:`linear-gradient(105deg,rgba(15,12,35,.88),rgba(15,12,35,.62)),url(${landing.hero_image_url})`,backgroundSize:"cover",backgroundPosition:"center"}:undefined}>
         <div className="hero-pattern"><span className="hero-you"/></div>
         <div className="hero-copy">
           <p className="eyebrow">CROWDLY</p>
-          <h1>{t(language,"upcoming")}</h1>
-          <p>{t(language,"tagline")}</p>
+          <h1>{landing?.headline||t(language,"upcoming")}</h1>
+          <p>{landing?.subtitle||t(language,"tagline")}</p>
         </div>
       </section>
       <section className="section">
