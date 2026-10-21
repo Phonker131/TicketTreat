@@ -160,10 +160,18 @@ def install_email_account_security(app, get_db):
         guard_rate(db, "password_reset_email", email, 4, 3600)
         record_rate(db, "password_reset_ip", ip, 3600)
         record_rate(db, "password_reset_email", email, 3600)
+        if not configured():
+            raise HTTPException(503, "email_provider_unavailable")
         account = db.query(WebAccount).filter(WebAccount.email == email).first()
         # Never send a reset code for an account whose email is unverified.
         if account and email_is_verified(db, account.id):
-            create_challenge(db, account, "reset")
+            try:
+                create_challenge(db, account, "reset")
+            except HTTPException as exc:
+                if exc.status_code != 503:
+                    raise
+                # Avoid distinguishing accounts through the provider error.
+                pass
         # Identical response for unknown and known addresses.
         return {"status": "if_account_exists_email_sent"}
 
