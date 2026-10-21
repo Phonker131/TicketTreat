@@ -78,6 +78,11 @@ class LoginData(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class MagicLogin(BaseModel):
+    email: str = Field(min_length=5, max_length=255)
+    code: str = Field(pattern=r"^\\d{8}$")
+
+
 class ChangePasswordData(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(min_length=12, max_length=128)
@@ -308,6 +313,50 @@ def install_demo_accounts(
             account.password_hash = hash_password(payload.password)
             db.flush()
         clear_rate(db, "login_email", email)
+        token = issue_session(db, account)
+        return {"token": token, "profile": profile_dict(account, db)}
+
+    @app.post("/demo/auth/magic/request")
+    def request_magic_login(payload: LoginData | dict, request: Request,
+                            db: Session = Depends(get_db)):
+        """Email one-time code for an existing verified account only.
+
+        Account existence is not exposed in the response. This never grants
+        organizer MFA elevation and does not accept unverified addresses.
+        """
+        from demo_account_recovery import create_challenge, email_is_verified
+        # Accept email only; never log passwords/other supplied fields.
+        provided = payload.email if isinstance(payload, LoginData) else payload.get("email", "")
+        email = normalize_email(str(provided))
+        ip = request.client.host if request.client else "unknown"
+        guard_rate(db, "magic_request_ip", ip, 12, 3600)
+        guard_rate(db, "magic_request_email", email, 4, 3600)
+        record_rate(db, "magic_request_ip", ip, 3600)
+        record_rate(db, "magic_request_email", email, 3600)
+        from demo_email import configured
+        if not configured():
+            raise HTTPException(503, "email_provider_unavailable")
+        account = db.query(WebAccount).filter(WebAccount.email == email).first()
+        if account and email_is_verified(db, account.id):
+            try:
+                create_challenge(db, account, "login")
+            except HTTPException as exc:
+                if exc.status_code != 503:
+                    raise
+        return {"status": "if_account_exists_email_sent"}
+
+    @app.post("/demo/auth/magic/confirm")
+    def confirm_magic_login(payload: MagicLogin, request: Request,
+                            db: Session = Depends(get_db)):
+        from demo_account_recovery import consume_challenge, email_is_verified
+        ip = request.client.host if request.client else "unknown"
+        guard_rate(db, "magic_confirm_ip", ip, 25, 3600)
+        record_rate(db, "magic_confirm_ip", ip, 3600)
+        email = normalize_email(payload.email)
+        account = db.query(WebAccount).filter(WebAccount.email == email).first()
+        if not account or not email_is_verified(db, account.id):
+            raise HTTPException(400, "invalid_or_expired_code")
+        consume_challenge(db, account, "login", payload.code)
         token = issue_session(db, account)
         return {"token": token, "profile": profile_dict(account, db)}
 
