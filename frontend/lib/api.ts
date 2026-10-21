@@ -530,12 +530,12 @@ export function sendEventAnnouncement(token:string,id:number,payload:{category:"
 /** Organizer-owned read-only performance metrics. */
 export type PilotInsights = {
   event_id:number; capacity:number|null; registered:number;
-  active_qr_tickets:number; checked_in:number; awaiting_checkin:number;
+  active_qr_tickets:number; checked_in:number; awaiting_checkin:number;event_finished:boolean;
   waitlist:number; cancelled_tickets:number; no_show:number|null;
   occupancy_percent:number|null; attendance_percent:number|null;
   daily_bookings:{date:string;count:number}[];limitations:string[];
 };
-export type PilotSettings = {signup_cutoff_minutes:number;reminder_minutes:number[];waitlist_offer_minutes:number};
+export type PilotSettings = {signup_cutoff_minutes:number;reminder_minutes:number[];waitlist_offer_minutes:number;event_duration_minutes:number};
 export type CheckinStaff = {account_id:number;email:string;granted_at:string};
 export function getPilotInsights(token:string,id:number):Promise<PilotInsights>{
   return request(`/demo/manage/events/${id}/insights`,{headers:accountHeaders(token)});
