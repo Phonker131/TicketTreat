@@ -48,6 +48,7 @@ from demo_privacy import PrivacyRequest, install_privacy_routes
 from demo_mfa import MFAFactor, MFASession, install_mfa
 from demo_legacy import LegacyTicketClaim
 from demo_observability import install_request_logging
+from demo_principal_api import install_principal_api
 
 
 # =========================================================
@@ -3262,3 +3263,4 @@ async def crowdly_security_response_headers(request: Request, call_next):
 
 # Telegram Mini App authorization: initData is validated with the BOT token on the server.
 install_telegram_auth(app, get_db, __import__('sys').modules[__name__])
+install_principal_api(app, get_db, __import__('sys').modules[__name__])
