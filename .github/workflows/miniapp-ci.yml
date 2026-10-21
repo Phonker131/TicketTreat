@@ -1,9 +1,9 @@
 name: Mini App integration checks
 on:
   push:
-    branches: ["crowdly-miniapp-integration"]
+    branches: ["crowdly-miniapp-integration", "feature/crowdly-release-preparation"]
   pull_request:
-    branches: ["crowdly-demo-mvp-20261020"]
+    branches: ["crowdly-demo-mvp-20261020", "crowdly-miniapp-integration", "main"]
 permissions:
   contents: read
 jobs:
