@@ -25,6 +25,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from db.base import Base
+from demo_geography import DemoAccountPlace, clean_location, place_dict, save_place
 from demo_email import queue_email
 
 PASSWORD_ITERATIONS = 350_000
@@ -70,6 +71,8 @@ class SignupData(BaseModel):
     guest_token: str | None = Field(default=None, max_length=128)
     language: str = Field(default="en", max_length=8)
     account_role: str = Field(default="participant", pattern="^(participant|organizer)$")
+    country_code: str = Field(min_length=2, max_length=2)
+    city: str = Field(min_length=1, max_length=100)
 
 
 class LoginData(BaseModel):
@@ -78,6 +81,8 @@ class LoginData(BaseModel):
 
 
 class ProfileUpdateData(BaseModel):
+    country_code: str | None = Field(default=None, max_length=2)
+    city: str | None = Field(default=None, max_length=100)
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     phone: str | None = Field(default=None, max_length=40)
@@ -207,6 +212,7 @@ def install_demo_accounts(
                 "created_at": account.created_at,
                 "id": account.id,
                 "role": role_for(db, account),
+                **place_dict(db, DemoAccountPlace, "account_id", account.id),
             },
             "guest": {
                 "id": guest.id, "access_token": guest.access_token,
@@ -229,6 +235,7 @@ def install_demo_accounts(
         if db.query(WebAccount.id).filter(WebAccount.email == email).first():
             raise HTTPException(status_code=409, detail="email_already_registered")
         contact = normal_contact(payload.contact_preference)
+        country_code, city = clean_location(payload.country_code, payload.city)
         first = payload.first_name.strip()
         last = payload.last_name.strip()
         if not first or not last:
@@ -261,6 +268,7 @@ def install_demo_accounts(
             db.add(account)
             db.flush()
             db.add(WebAccountRole(account_id=account.id, role=payload.account_role))
+            save_place(db, DemoAccountPlace, "account_id", account.id, country_code, city)
             db.flush()
             queue_email(
                 db, kind="welcome", event_key=f"welcome:{account.id}",
@@ -314,6 +322,11 @@ def install_demo_accounts(
         account.phone = payload.phone.strip() if payload.phone else None
         account.instagram = payload.instagram.strip() if payload.instagram else None
         account.contact_preference = normal_contact(payload.contact_preference)
+        existing_place = db.query(DemoAccountPlace).filter(DemoAccountPlace.account_id == account.id).first()
+        if payload.country_code is not None or payload.city is not None:
+            country = payload.country_code if payload.country_code is not None else (existing_place.country_code if existing_place else None)
+            city = payload.city if payload.city is not None else (existing_place.city if existing_place else None)
+            save_place(db, DemoAccountPlace, "account_id", account.id, country, city)
         guest = db.query(DemoGuest).filter(DemoGuest.id == account.guest_id).first()
         if guest:
             guest.first_name, guest.last_name = first, last
