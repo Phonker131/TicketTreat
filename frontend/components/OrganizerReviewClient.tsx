@@ -2,10 +2,14 @@
 import {useEffect,useState} from "react";
 import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
+import {useLanguage} from "@/components/LanguageProvider";
+import {adminTranslate} from "@/lib/admin-i18n";
 import {listOrganizerApplications,decideOrganizer,type PendingOrganizer} from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 
 export function OrganizerReviewClient(){
+  const {language}=useLanguage();
+  const tr=(phrase:string)=>adminTranslate(language,phrase);
   const [rows,setRows]=useState<PendingOrganizer[]>([]);
   const [message,setMessage]=useState("");
   const [busy,setBusy]=useState(false);
@@ -19,17 +23,17 @@ export function OrganizerReviewClient(){
     finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
-    <Link href="/admin" className="back-link">← Admin</Link>
-    <h1>Organizer applications</h1>
-    <p className="form-note">Applicants must verify their email. Global admin MFA is required to approve new event organizers.</p>
+    <Link href="/admin" className="back-link">{tr("← Admin")}</Link>
+    <h1>{tr("Organizer applications")}</h1>
+    <p className="form-note">{tr("Applicants must verify their email. Global admin MFA is required to approve new event organizers.")}</p>
     {message&&<p className="state-card state-error" role="alert">{message}</p>}
-    {rows.length===0?<p className="state-card">No pending applications.</p>:
+    {rows.length===0?<p className="state-card">{tr("No pending applications.")}</p>:
     rows.map(x=><section className="panel form-stack" key={x.account_id}>
       <h3>Account #{x.account_id}</h3><p>{x.email}</p>
       <small>{new Date(x.created_at).toLocaleString()}</small>
       <div className="profile-actions">
-        <button className="button button-primary" disabled={busy} onClick={()=>decide(x.account_id,true)}>Approve</button>
-        <button className="button button-outline" disabled={busy} onClick={()=>decide(x.account_id,false)}>Reject</button>
+        <button className="button button-primary" disabled={busy} onClick={()=>decide(x.account_id,true)}>{tr("Approve")}</button>
+        <button className="button button-outline" disabled={busy} onClick={()=>decide(x.account_id,false)}>{tr("Reject")}</button>
       </div>
     </section>)}
   </main></div>;
