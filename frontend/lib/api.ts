@@ -313,6 +313,12 @@ export function uploadManageGalleryPhoto(token:string,eventId:number,dataUrl:str
     method:"POST",headers:accountHeaders(token),body:JSON.stringify({data_url:dataUrl})
   });
 }
+export function orderManageGallery(token:string,eventId:number,orderedIds:number[],coverId:number|null):Promise<{ordered_ids:number[];cover_id:number|null}>{
+  return request(`/demo/manage/events/${eventId}/gallery/order`,{
+    method:"PUT",headers:accountHeaders(token),
+    body:JSON.stringify({ordered_ids:orderedIds,cover_id:coverId})
+  });
+}
 export function deleteManageGalleryPhoto(token:string,eventId:number,imageId:number):
   Promise<{status:string}> {
   return request(`/demo/manage/events/${eventId}/gallery/${imageId}`,{
