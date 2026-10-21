@@ -72,14 +72,7 @@ CREATE INDEX IF NOT EXISTS ix_demo_legacy_ticket_claims_event_id
 
 -- On an existing deployment this index may expose duplicate historical bot
 -- registrations. Inspect and reconcile those rows on staging before applying.
-DO $
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM registrations GROUP BY user_id,event_id HAVING COUNT(*)>1
-    ) THEN
-        RAISE EXCEPTION 'Duplicate bot registrations: reconcile before applying unique index';
-    END IF;
-END $;
+-- Unique index itself rejects duplicate legacy registrations. Preflight first.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_registrations_user_event
     ON registrations(user_id,event_id);
 -- Telegram IDs can exceed the signed PostgreSQL INTEGER range.
