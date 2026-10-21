@@ -76,7 +76,7 @@ class QRWaitlistE2E(unittest.TestCase):
             self.assertEqual(main.get_registered_count(SessionLocal(),event_id),1)
 
             headers={"Authorization":"Bearer "+access}
-            self.assertEqual(client.post(f"/demo/manage/check-in/{qr}",headers=headers).status_code,403)
+            self.assertEqual(client.post("/demo/manage/check-in",headers=headers,json={"qr_token":qr}).status_code,403)
             setup=client.post("/demo/auth/mfa/start",headers=headers,json={"current_password":pw})
             self.assertEqual(setup.status_code,200,setup.text)
             raw=setup.json()["secret"]
@@ -84,13 +84,20 @@ class QRWaitlistE2E(unittest.TestCase):
             code=_code(secret,int(time.time())//30)
             ready=client.post("/demo/auth/mfa/confirm",headers=headers,json={"code":code})
             self.assertEqual(ready.status_code,200,ready.text)
-            scan=client.post(f"/demo/manage/check-in/{qr}",headers=headers)
+            scan=client.post("/demo/manage/check-in",headers=headers,json={"qr_token":qr})
             self.assertEqual(scan.status_code,200,scan.text)
             self.assertEqual(scan.json()["status"],"checked_in")
+            self.assertNotIn("qr_token",scan.json()["ticket"])
+            self.assertNotIn("access_token",scan.json()["ticket"].get("guest",{}))
+            attendees=client.get(f"/demo/manage/events/{event_id}/participants",headers=headers)
+            self.assertEqual(attendees.status_code,200,attendees.text)
+            for entry in attendees.json()["tickets"]:
+                self.assertNotIn("qr_token",entry)
+                self.assertNotIn("access_token",entry.get("guest",{}))
             self.assertIsNotNone(scan.json()["ticket"]["checked_in_at"])
-            replay=client.post(f"/demo/manage/check-in/{qr}",headers=headers)
+            replay=client.post("/demo/manage/check-in",headers=headers,json={"qr_token":qr})
             self.assertEqual(replay.status_code,200,replay.text)
-            invalid=client.post("/demo/manage/check-in/not-a-real-qr",headers=headers)
+            invalid=client.post("/demo/manage/check-in",headers=headers,json={"qr_token":"not-a-real-qr"+("x"*14)})
             self.assertEqual(invalid.status_code,404,invalid.text)
 
 
