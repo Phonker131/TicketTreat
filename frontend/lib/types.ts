@@ -23,6 +23,7 @@ export type TicketTreatEvent = {
   uploaded_gallery?: {id:number;url:string}[];
   video_url?: string | null;
   starts_at: string | null;
+  publication?: {status:"draft"|"scheduled"|"published";publish_at:string|null;visible:boolean};
   is_cancelled: boolean;
   cancellation_reason?: string | null;
 };
