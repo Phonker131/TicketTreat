@@ -3210,7 +3210,7 @@ install_demo_roles(app, get_db, __import__("sys").modules[__name__])
 
 install_account_moderation(app, get_db)
 install_email_account_security(app, get_db)
-install_privacy_routes(app, get_db)
+install_privacy_routes(app, get_db, __import__("sys").modules[__name__])
 install_mfa(app, get_db)
 install_site_content(app, get_db, __import__("sys").modules[__name__])
 
