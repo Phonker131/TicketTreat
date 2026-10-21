@@ -27,9 +27,11 @@ from sqlalchemy.orm import Session
 from db.base import Base
 from demo_geography import DemoAccountPlace, clean_location, place_dict, save_place
 from demo_email import queue_email
+from demo_auth_security import AuthRateBucket, hash_password, verify_password, needs_rehash, validate_new_password, guard_rate, record_rate, clear_rate
 
 PASSWORD_ITERATIONS = 350_000
-SESSION_DAYS = 30
+SESSION_DAYS = 7
+MAX_ACTIVE_SESSIONS = 5
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 _ATTEMPTS: dict[str, list[float]] = {}
 _ATTEMPT_LOCK = threading.Lock()
@@ -62,7 +64,7 @@ class WebSession(Base):
 
 class SignupData(BaseModel):
     email: str = Field(min_length=5, max_length=255)
-    password: str = Field(min_length=10, max_length=128)
+    password: str = Field(min_length=12, max_length=128)
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     phone: str | None = Field(default=None, max_length=40)
@@ -76,8 +78,13 @@ class SignupData(BaseModel):
 
 
 class LoginData(BaseModel):
-    email: str
-    password: str
+    email: str = Field(min_length=5, max_length=255)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class ChangePasswordData(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
 
 
 class ProfileUpdateData(BaseModel):
@@ -95,23 +102,6 @@ def normalize_email(email: str) -> str:
     if len(value) > 255 or not EMAIL_RE.fullmatch(value):
         raise HTTPException(status_code=422, detail="invalid_email")
     return value
-
-
-def hash_password(password: str) -> str:
-    salt = secrets.token_bytes(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PASSWORD_ITERATIONS)
-    return f"pbkdf2_sha256${PASSWORD_ITERATIONS}${salt.hex()}${digest.hex()}"
-
-
-def verify_password(password: str, stored: str) -> bool:
-    try:
-        name, iterations, salt, expected = stored.split("$", 3)
-        if name != "pbkdf2_sha256":
-            return False
-        actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt), int(iterations))
-        return hmac.compare_digest(actual, bytes.fromhex(expected))
-    except (ValueError, TypeError):
-        return False
 
 
 def token_hash(token: str) -> str:
@@ -157,11 +147,23 @@ def install_demo_accounts(
 ):
     from demo_roles import WebAccountRole, role_for, permanent_global_admin_emails
     def issue_session(db: Session, account: WebAccount) -> str:
+        # New sessions last 7 days. Old sessions retain their original expiry;
+        # no existing account is logged out by this deployment.
+        now = datetime.now(timezone.utc)
+        db.query(WebSession).filter(
+            WebSession.account_id == account.id,
+            WebSession.expires_at <= now,
+        ).delete(synchronize_session=False)
+        existing = db.query(WebSession).filter(
+            WebSession.account_id == account.id,
+        ).order_by(WebSession.created_at.desc(), WebSession.id.desc()).all()
+        for expired_extra in existing[MAX_ACTIVE_SESSIONS - 1:]:
+            db.delete(expired_extra)
         token = secrets.token_urlsafe(36)
         db.add(WebSession(
             account_id=account.id,
             token_hash=token_hash(token),
-            expires_at=datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS),
+            expires_at=now + timedelta(days=SESSION_DAYS),
         ))
         db.commit()
         return token
@@ -230,7 +232,10 @@ def install_demo_accounts(
 
     @app.post("/demo/auth/signup", status_code=201)
     def signup(payload: SignupData, request: Request, db: Session = Depends(get_db)):
-        throttle("signup:" + (request.client.host if request.client else "unknown"), 8)
+        source_ip = request.client.host if request.client else "unknown"
+        guard_rate(db, "signup_ip", source_ip, 8, 600)
+        record_rate(db, "signup_ip", source_ip, 600)
+        validate_new_password(payload.password)
         email = normalize_email(payload.email)
         if db.query(WebAccount.id).filter(WebAccount.email == email).first():
             raise HTTPException(status_code=409, detail="email_already_registered")
@@ -297,11 +302,20 @@ def install_demo_accounts(
 
     @app.post("/demo/auth/login")
     def login(payload: LoginData, request: Request, db: Session = Depends(get_db)):
-        throttle("login:" + (request.client.host if request.client else "unknown"), 20)
         email = normalize_email(payload.email)
+        source_ip = request.client.host if request.client else "unknown"
+        guard_rate(db, "login_ip", source_ip, 40, 900)
+        guard_rate(db, "login_email", email, 12, 900)
         account = db.query(WebAccount).filter(WebAccount.email == email).first()
         if account is None or not verify_password(payload.password, account.password_hash):
+            record_rate(db, "login_ip", source_ip, 900)
+            record_rate(db, "login_email", email, 900)
             raise HTTPException(status_code=401, detail="invalid_credentials")
+        # Rehash the stored PBKDF2 password only after a successful login.
+        if needs_rehash(account.password_hash):
+            account.password_hash = hash_password(payload.password)
+            db.flush()
+        clear_rate(db, "login_email", email)
         token = issue_session(db, account)
         return {"token": token, "profile": profile_dict(account, db)}
 
@@ -333,6 +347,52 @@ def install_demo_accounts(
         db.commit()
         db.refresh(account)
         return profile_dict(account, db)
+
+    @app.post("/demo/auth/change-password")
+    def change_password(
+        payload: ChangePasswordData,
+        account: WebAccount = Depends(get_current_account),
+        db: Session = Depends(get_db),
+    ):
+        """Change password and revoke every session on every device."""
+        validate_new_password(payload.new_password)
+        if not verify_password(payload.current_password, account.password_hash):
+            raise HTTPException(status_code=401, detail="invalid_current_password")
+        if payload.current_password == payload.new_password:
+            raise HTTPException(status_code=422, detail="password_must_change")
+        account.password_hash = hash_password(payload.new_password)
+        db.query(WebSession).filter(
+            WebSession.account_id == account.id,
+        ).delete(synchronize_session=False)
+        db.flush()
+        new_token = issue_session(db, account)
+        return {"token": new_token, "profile": profile_dict(account, db)}
+
+    @app.post("/demo/auth/logout-all")
+    def logout_everywhere(
+        account: WebAccount = Depends(get_current_account),
+        db: Session = Depends(get_db),
+    ):
+        revoked = db.query(WebSession).filter(
+            WebSession.account_id == account.id,
+        ).delete(synchronize_session=False)
+        db.commit()
+        return {"status": "logged_out_everywhere", "sessions_revoked": revoked}
+
+    @app.get("/demo/auth/sessions")
+    def active_sessions(
+        account: WebAccount = Depends(get_current_account),
+        db: Session = Depends(get_db),
+    ):
+        now = datetime.now(timezone.utc)
+        rows = db.query(WebSession).filter(
+            WebSession.account_id == account.id,
+            WebSession.expires_at > now,
+        ).order_by(WebSession.created_at.desc()).limit(MAX_ACTIVE_SESSIONS + 5).all()
+        return {
+            "sessions": [{"id": s.id, "created_at": s.created_at,
+                          "expires_at": s.expires_at} for s in rows],
+        }
 
     @app.post("/demo/auth/logout")
     def logout(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
