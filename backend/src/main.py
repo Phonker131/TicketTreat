@@ -305,7 +305,10 @@ app.add_middleware(
 
 PRAGUE_TZ = ZoneInfo("Europe/Prague")
 PAYMENT_CONFIRMATION_HOURS = 24
-DEMO_PAYMENT_MODE = os.getenv("DEMO_PAYMENT_MODE", "true").strip().lower() in {"1", "true", "yes", "on"}
+DEMO_PAYMENT_MODE = os.getenv("DEMO_PAYMENT_MODE", "false").strip().lower() in {"1", "true", "yes", "on"}
+# A live public environment must never masquerade a simulated payment as real.
+if os.getenv("APP_ENV", "development").strip().lower() == "production" and DEMO_PAYMENT_MODE:
+    raise RuntimeError("Unsafe production configuration: DEMO_PAYMENT_MODE must be false")
 DEMO_ADMIN_KEY = os.getenv("DEMO_ADMIN_KEY", "").strip()
 DEMO_ISOLATED_API = os.getenv("DEMO_ISOLATED_API", "false").strip().lower() in {"1", "true", "yes", "on"}
 
