@@ -62,7 +62,7 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
       return NextResponse.json({detail:"malformed_session_response"},{status:502});
     const token=data.token;
     const response=NextResponse.json({...data,token:MARKER},{status:upstream.status,headers:{"Cache-Control":"private, no-store"}});
-    response.cookies.set(COOKIE,token,{httpOnly:true,sameSite:"strict",secure:req.nextUrl.protocol==="https:",path:"/api/gateway",maxAge:7*24*3600});
+    response.cookies.set(COOKIE,token,{httpOnly:true,sameSite:"strict",secure:process.env.NODE_ENV==="production" || req.nextUrl.protocol==="https:",path:"/api/gateway",maxAge:7*24*3600});
     return response;
   }
   const bytes=await upstream.arrayBuffer();
