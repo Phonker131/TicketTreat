@@ -2577,6 +2577,25 @@ def get_demo_guest(
     return demo_guest_to_dict(guest, db=db)
 
 
+def telegram_guest_has_bot_registration(db: Session, guest: DemoGuest, event_id: int) -> bool:
+    # A Telegram ID is trusted ONLY when linked through verified initData.
+    if guest.telegram_id is None:
+        return False
+    link = db.query(DemoTelegramIdentity).filter(
+        DemoTelegramIdentity.telegram_id == guest.telegram_id,
+        DemoTelegramIdentity.guest_id == guest.id,
+    ).first()
+    if link is None:
+        return False
+    bot_user = db.query(User).filter(User.telegram_id == guest.telegram_id).first()
+    if bot_user is None:
+        return False
+    return db.query(Registration.id).filter(
+        Registration.event_id == event_id,
+        Registration.user_id == bot_user.id,
+    ).first() is not None
+
+
 @app.post("/demo/events/{event_id}/checkout")
 def demo_checkout(
     event_id: int,
@@ -2631,6 +2650,9 @@ def demo_checkout(
             "demo_payment": True,
             "real_money_charged": False,
         }
+
+    if telegram_guest_has_bot_registration(db, guest, event_id):
+        raise HTTPException(status_code=409, detail="already_registered_via_bot")
 
     if (
         event.max_participants is not None
@@ -2714,6 +2736,9 @@ def join_demo_waitlist(
 
     if event is None:
         raise HTTPException(status_code=404, detail="event_not_found")
+
+    if telegram_guest_has_bot_registration(db, guest, event_id):
+        raise HTTPException(status_code=409, detail="already_registered_via_bot")
 
     if event.max_participants is None:
         raise HTTPException(status_code=409, detail="waitlist_not_needed")
