@@ -339,3 +339,19 @@ export function authenticateTelegram(initData: string): Promise<TelegramAuthResu
     body: JSON.stringify({init_data: initData}),
   });
 }
+
+
+/** Confirmation of an already authenticated website account. */
+export function requestEmailVerification(token:string):Promise<{status:string}> {
+  return request("/demo/auth/email/request-verification",{method:"POST",headers:{Authorization:`Bearer ${token}`}});
+}
+export function confirmAccountEmail(token:string,email:string,code:string):Promise<{email_verified:boolean}> {
+  return request("/demo/auth/email/confirm",{method:"POST",headers:{Authorization:`Bearer ${token}`},body:JSON.stringify({email,code})});
+}
+/** Returns generic response, never leaks whether an address exists. */
+export function requestPasswordReset(email:string):Promise<{status:string}> {
+  return request("/demo/auth/password/forgot",{method:"POST",body:JSON.stringify({email})});
+}
+export function confirmPasswordReset(email:string,code:string,newPassword:string):Promise<{status:string}> {
+  return request("/demo/auth/password/reset",{method:"POST",body:JSON.stringify({email,code,new_password:newPassword})});
+}
