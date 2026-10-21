@@ -82,8 +82,9 @@ def verified_telegram_user(init_data: str, bot_token: str, now: int | None = Non
 
 
 def bot_user_registrations(db: Session, telegram_id: int, main) -> list[dict]:
-    """Only expose bot reservations after Telegram verified this exact user ID."""
-    return main.get_user_events(telegram_id, include_past=True, db=db)
+    """Old reservations stay visible until securely converted into QR tickets."""
+    from demo_legacy import unresolved_bot_registrations
+    return unresolved_bot_registrations(db,telegram_id,main)
 
 
 def install_telegram_auth(app, get_db, main) -> None:
@@ -151,8 +152,12 @@ def install_telegram_auth(app, get_db, main) -> None:
         except IntegrityError:
             db.rollback()
             raise HTTPException(409, "telegram_link_conflict") from None
+        from demo_legacy import reconcile_free_legacy
+        legacy = reconcile_free_legacy(db,main,telegram_id,guest.id)
         return {"linked": True, "already_linked": False,
-                "migrated_tickets": len(tg_tickets), "migrated_waitlists": len(tg_waitlists)}
+                "migrated_tickets": len(tg_tickets)+legacy["converted"],
+                "migrated_waitlists": len(tg_waitlists),
+                "legacy_unresolved": legacy["held_for_review"]}
 
     @app.post("/demo/telegram/auth")
     def telegram_auth(payload: TelegramAuthRequest, db: Session = Depends(get_db)):
@@ -201,7 +206,10 @@ def install_telegram_auth(app, get_db, main) -> None:
             db.commit()
             db.refresh(guest)
 
+        from demo_legacy import reconcile_free_legacy
+        legacy = reconcile_free_legacy(db,main,telegram_id,guest.id)
         return {
+            "legacy_reconciliation": legacy,
             "guest": main.demo_guest_to_dict(guest, db),
             "telegram": {
                 "id": telegram_id,
