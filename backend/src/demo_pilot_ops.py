@@ -104,36 +104,42 @@ def install_pilot_ops(app, get_db, main):
     @app.get("/demo/manage/events/{event_id}/insights")
     def insights(event_id: int, account=Depends(current), db: Session=Depends(get_db)):
         event = owner_event(db, event_id, account)
-        tickets = db.query(main.DemoTicket).filter(main.DemoTicket.event_id == event_id).all()
-        active = [t for t in tickets if t.ticket_status == "active"]
-        checked = sum(t.checked_in_at is not None for t in active)
+        # Aggregate on PostgreSQL, never hydrate every attendee into app RAM.
+        active = db.query(func.count(main.DemoTicket.id)).filter(
+            main.DemoTicket.event_id == event_id,
+            main.DemoTicket.ticket_status == "active").scalar() or 0
+        checked = db.query(func.count(main.DemoTicket.id)).filter(
+            main.DemoTicket.event_id == event_id,
+            main.DemoTicket.ticket_status == "active",
+            main.DemoTicket.checked_in_at.is_not(None)).scalar() or 0
+        cancelled = db.query(func.count(main.DemoTicket.id)).filter(
+            main.DemoTicket.event_id == event_id,
+            main.DemoTicket.ticket_status == "cancelled").scalar() or 0
         waiting = db.query(func.count(main.DemoWaitlist.id)).filter(
             main.DemoWaitlist.event_id == event_id,
             main.DemoWaitlist.status == "waiting").scalar() or 0
         total = main.get_registered_count(db, event_id)
-        by_date: dict[str, int] = {}
-        for t in tickets:
-            if t.created_at is None:
-                continue
-            key = t.created_at.date().isoformat()
-            by_date[key] = by_date.get(key, 0) + 1
+        day = func.date(main.DemoTicket.created_at)
+        daily = (db.query(day.label("day"), func.count(main.DemoTicket.id))
+                 .filter(main.DemoTicket.event_id == event_id)
+                 .group_by(day).order_by(day.desc()).limit(90).all())
         started = main.event_has_started(event)
         return {
             "event_id": event_id,
             "capacity": event.max_participants,
             "registered": total,
-            "active_qr_tickets": len(active),
+            "active_qr_tickets": active,
             "checked_in": checked,
-            "awaiting_checkin": len(active) - checked,
+            "awaiting_checkin": active - checked,
             "waitlist": waiting,
-            "cancelled_tickets": sum(t.ticket_status == "cancelled" for t in tickets),
-            "no_show": (len(active) - checked) if started else None,
+            "cancelled_tickets": cancelled,
+            "no_show": (active - checked) if started else None,
             "occupancy_percent": round(100 * total / event.max_participants, 1)
                 if event.max_participants else None,
-            "attendance_percent": round(100 * checked / len(active), 1)
+            "attendance_percent": round(100 * checked / active, 1)
                 if active and started else None,
-            "daily_bookings": [{"date": date, "count": count}
-                               for date, count in sorted(by_date.items())[-90:]],
+            "daily_bookings": [{"date": str(date), "count": count}
+                               for date, count in reversed(daily)],
             "limitations": ["Legacy bot registrations count towards capacity but do not "
                             "automatically appear as QR tickets or check-in attendance."],
         }
