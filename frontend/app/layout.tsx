@@ -7,15 +7,15 @@ import { PwaBootstrap } from "@/components/PwaBootstrap";
 
 export const metadata: Metadata = {
   title: {
-    default: "Crowdly",
-    template: "%s · Crowdly",
+    default: "TicketTreat",
+    template: "%s · TicketTreat",
   },
   description: "Events, tickets and reminders in one place.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Crowdly",
+    title: "TicketTreat",
   },
   icons: {
     apple: "/apple-touch-icon.png",
