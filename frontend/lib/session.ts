@@ -6,6 +6,7 @@ import type { TelegramAuthResult, WebAuthResult, WebProfile } from "@/lib/types"
 const TOKEN_KEY = "crowdly_demo_guest_token";
 const ADMIN_KEY = "crowdly_demo_admin_key";
 const WEB_TOKEN_KEY = "crowdly_demo_web_auth";
+const SESSION_MARKER = "browser-session";
 let telegramAuthPromise: Promise<TelegramAuthResult | null> | null = null;
 
 /** Web app user identity is verified by FastAPI using bot-token HMAC.
@@ -50,12 +51,15 @@ export function clearGuest() {
 
 export function getWebToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(WEB_TOKEN_KEY);
+  const marker = localStorage.getItem(WEB_TOKEN_KEY);
+  if(marker && marker!==SESSION_MARKER){localStorage.removeItem(WEB_TOKEN_KEY);return null;}
+  return marker;
 }
 
 export function setWebAuth(auth: WebAuthResult): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(WEB_TOKEN_KEY, auth.token);
+  // Real tokens are in HttpOnly cookies managed by the server gateway.
+  localStorage.setItem(WEB_TOKEN_KEY, SESSION_MARKER);
   storeGuest(auth.profile.guest);
   window.dispatchEvent(new Event("crowdly-auth-change"));
 }
