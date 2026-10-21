@@ -448,9 +448,6 @@ def install_demo_roles(app, get_db, main):
         # Directly delegate ONLY after server-side ownership authorization.
         return route.endpoint(event_id=event_id,_admin_key="",db=db)
 
-    class ScanTicketPayload(BaseModel):
-        qr_token: str = Field(min_length=24,max_length=80)
-
     def _secure_checkin(qr_token: str, account: WebAccount, db: Session):
         ticket=db.query(main.DemoTicket).filter(main.DemoTicket.qr_token==qr_token).first()
         if ticket is None:
@@ -526,6 +523,10 @@ class AccountAdminAudit(Base):
 
 class OrganizerDecision(BaseModel):
     approve: bool
+
+
+class ScanTicketPayload(BaseModel):
+    qr_token: str = Field(min_length=24,max_length=80)
 
 
 class AccountRoleChange(BaseModel):
