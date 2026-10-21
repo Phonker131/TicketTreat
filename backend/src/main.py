@@ -43,6 +43,7 @@ from demo_telegram import DemoTelegramIdentity, install_telegram_auth, verified_
 from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
 from demo_roles import WebAccountRole, EventOwnership, EventModerationLog, install_demo_roles, install_account_moderation
 from demo_email import EmailOutbox, queue_email, queue_event_reminder, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
+from demo_privacy import PrivacyRequest, install_privacy_routes
 
 
 # =========================================================
@@ -3171,6 +3172,7 @@ install_demo_roles(app, get_db, __import__("sys").modules[__name__])
 
 install_account_moderation(app, get_db)
 install_email_account_security(app, get_db)
+install_privacy_routes(app, get_db)
 install_site_content(app, get_db, __import__("sys").modules[__name__])
 
 # Privacy defaults for all user-specific responses, including errors.
