@@ -3,9 +3,15 @@ import { getDemoGuest, getWebProfile, authenticateTelegram } from "@/lib/api";
 import { getTelegramWebApp } from "@/lib/telegram";
 import type { TelegramAuthResult, WebAuthResult, WebProfile } from "@/lib/types";
 
-const TOKEN_KEY = "crowdly_demo_guest_token";
-const ADMIN_KEY = "crowdly_demo_admin_key";
-const WEB_TOKEN_KEY = "crowdly_demo_web_auth";
+const TOKEN_KEY = "tickettreat_demo_guest_token";
+const ADMIN_KEY = "tickettreat_demo_admin_key";
+const WEB_TOKEN_KEY = "tickettreat_web_auth";
+// Read and clean up pre-rename browser state; existing sessions use the same
+// HttpOnly cookie and must not be unexpectedly logged out by rebranding.
+const LEGACY_TOKEN_KEY = "crowdly_demo_guest_token";
+const LEGACY_ADMIN_KEY = "crowdly_demo_admin_key";
+const LEGACY_WEB_TOKEN_KEY = "crowdly_demo_web_auth";
+const AUTH_CHANGE_EVENT = "tickettreat-auth-change";
 const SESSION_MARKER = "browser-session";
 let telegramAuthPromise: Promise<TelegramAuthResult | null> | null = null;
 let activeGuest: DemoGuest | null = null;
@@ -15,6 +21,18 @@ function clearLegacyGuestStorage(){
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(ADMIN_KEY);
+  window.localStorage.removeItem(LEGACY_TOKEN_KEY);
+  window.localStorage.removeItem(LEGACY_ADMIN_KEY);
+  window.sessionStorage.removeItem(LEGACY_TOKEN_KEY);
+  window.sessionStorage.removeItem(LEGACY_ADMIN_KEY);
+}
+function migrateLegacySessionMarker(){
+  if (typeof window === "undefined") return;
+  const old = window.localStorage.getItem(LEGACY_WEB_TOKEN_KEY);
+  if (old === SESSION_MARKER && window.localStorage.getItem(WEB_TOKEN_KEY) === null){
+    window.localStorage.setItem(WEB_TOKEN_KEY, SESSION_MARKER);
+  }
+  window.localStorage.removeItem(LEGACY_WEB_TOKEN_KEY);
 }
 
 /** Web app user identity is verified by FastAPI using bot-token HMAC.
@@ -28,7 +46,7 @@ export function getVerifiedTelegramSession(): Promise<TelegramAuthResult | null>
     telegramAuthPromise = authenticateTelegram(initData).then(result => {
       if (!getWebToken()) {
         storeGuest(result.guest);
-        window.dispatchEvent(new Event("crowdly-auth-change"));
+        window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
       }
       return result;
     }).catch(error => {
@@ -69,6 +87,7 @@ export function clearGuest() {
 
 export function getWebToken(): string | null {
   if (typeof window === "undefined") return null;
+  migrateLegacySessionMarker();
   const marker = localStorage.getItem(WEB_TOKEN_KEY);
   if(marker && marker!==SESSION_MARKER){localStorage.removeItem(WEB_TOKEN_KEY);return null;}
   return marker;
@@ -77,16 +96,18 @@ export function getWebToken(): string | null {
 export function setWebAuth(auth: WebAuthResult): void {
   if (typeof window === "undefined") return;
   // Real tokens are in HttpOnly cookies managed by the server gateway.
+  migrateLegacySessionMarker();
   localStorage.setItem(WEB_TOKEN_KEY, SESSION_MARKER);
   storeGuest(auth.profile.guest);
-  window.dispatchEvent(new Event("crowdly-auth-change"));
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
 export function clearWebAuth(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(WEB_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_WEB_TOKEN_KEY);
   clearGuest();
-  window.dispatchEvent(new Event("crowdly-auth-change"));
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
 export async function restoreWebProfile(): Promise<WebProfile | null> {
