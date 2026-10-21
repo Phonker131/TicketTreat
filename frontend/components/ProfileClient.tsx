@@ -6,13 +6,13 @@ import { AppHeader } from "@/components/AppHeader";
 import {CountryCityFields} from "@/components/CountryCityFields";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile } from "@/lib/api";
+import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions } from "@/lib/api";
 import type { LanguageCode, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
   ru: {
     title:"Мой профиль", login:"Войти",signup:"Регистрация",first:"Имя",last:"Фамилия",
-    email:"Электронная почта",password:"Пароль (не менее 10 символов)",phone:"Телефон",
+    email:"Электронная почта",password:"Пароль (не менее 12 символов)",phone:"Телефон",
     instagram:"Instagram (необязательно)",contact:"Предпочтительный способ связи",
     save:"Сохранить изменения",saving:"Сохраняем…",loading:"Загрузка…",
     logout:"Выйти",welcome:"С возвращением!",create:"Создать аккаунт",need:"Зарегистрируйся, чтобы иметь доступ к билетам с любого устройства.",
@@ -25,7 +25,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
   },
   en: {
     title:"My profile",login:"Log in",signup:"Sign up",first:"First name",last:"Last name",
-    email:"Email",password:"Password (at least 10 characters)",phone:"Phone",
+    email:"Email",password:"Password (at least 12 characters)",phone:"Phone",
     instagram:"Instagram (optional)",contact:"Preferred contact method",save:"Save changes",
     saving:"Saving…",loading:"Loading…",logout:"Log out",welcome:"Welcome back!",
     create:"Create account",need:"Register to access your tickets from any device.",
@@ -38,7 +38,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
   },
   cs: {
     title:"Můj profil",login:"Přihlásit se",signup:"Registrace",first:"Jméno",last:"Příjmení",
-    email:"E-mail",password:"Heslo (alespoň 10 znaků)",phone:"Telefon",
+    email:"E-mail",password:"Heslo (alespoň 12 znaků)",phone:"Telefon",
     instagram:"Instagram (nepovinné)",contact:"Preferovaný kontakt",save:"Uložit změny",
     saving:"Ukládání…",loading:"Načítání…",logout:"Odhlásit se",welcome:"Vítej zpět!",
     create:"Vytvořit účet",need:"Zaregistruj se a měj vstupenky dostupné na každém zařízení.",
@@ -51,7 +51,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
   },
   uk: {
     title:"Мій профіль",login:"Увійти",signup:"Реєстрація",first:"Ім’я",last:"Прізвище",
-    email:"Електронна пошта",password:"Пароль (не менше 10 символів)",phone:"Телефон",
+    email:"Електронна пошта",password:"Пароль (не менше 12 символів)",phone:"Телефон",
     instagram:"Instagram (необов’язково)",contact:"Бажаний спосіб зв’язку",
     save:"Зберегти зміни",saving:"Зберігаємо…",loading:"Завантаження…",
     logout:"Вийти",welcome:"З поверненням!",create:"Створити акаунт",
@@ -78,6 +78,10 @@ export function ProfileClient() {
   const [notice, setNotice] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [sessionCount, setSessionCount] = useState<number | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
@@ -108,6 +112,8 @@ export function ProfileClient() {
     setPhone(p.account.phone || "");
     setInstagram(p.account.instagram || "");
     setContact(p.account.contact_preference);
+    const token = getWebToken();
+    if (token) void getWebSessions(token).then(result => setSessionCount(result.sessions.length)).catch(() => setSessionCount(null));
     setCountryCode(p.account.country_code||"");
     setCity(p.account.city||"");
   }
@@ -197,6 +203,45 @@ export function ProfileClient() {
     } finally {
       setClaiming(false);
     }
+  }
+
+  async function updatePassword(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const token = getWebToken();
+    if (!token) {setError(tr.authExpired);return;}
+    if(newPassword.length < 12 || newPassword.length > 128) {
+      setError(language === "ru" ? "Новый пароль должен содержать 12–128 символов." : "New password must be 12–128 characters.");
+      return;
+    }
+    if(newPassword !== confirmPassword) {
+      setError(language === "ru" ? "Пароли не совпадают." : "Passwords do not match.");
+      return;
+    }
+    setBusy(true);setError("");setNotice("");
+    try {
+      const auth = await changeWebPassword(token,oldPassword,newPassword);
+      setWebAuth(auth);
+      loadProfile(auth.profile);
+      setOldPassword("");setNewPassword("");setConfirmPassword("");
+      setNotice(language === "ru" ? "Пароль изменён. Все другие устройства вышли из аккаунта." :
+        language === "cs" ? "Heslo bylo změněno. Ostatní zařízení byla odhlášena." :
+        language === "uk" ? "Пароль змінено. Інші пристрої вийшли з акаунта." :
+        "Password updated. All other devices were signed out.");
+    }catch(err){setError(readableError(err));}
+    finally{setBusy(false);}
+  }
+
+  async function signOutAllDevices() {
+    const token=getWebToken();
+    if(!token)return;
+    if(!window.confirm(language === "ru" ? "Завершить все сессии?" : "Sign out of all devices?"))return;
+    setBusy(true);setError("");setNotice("");
+    try{
+      await logoutAllWebSessions(token);
+      clearWebAuth();setProfile(null);setSessionCount(null);setMode("login");
+      setOldPassword("");setNewPassword("");setConfirmPassword("");
+    }catch(err){setError(readableError(err));}
+    finally{setBusy(false);}
   }
 
   async function logOut() {
@@ -310,6 +355,32 @@ export function ProfileClient() {
               {details}
               <button type="submit" className="button button-primary" disabled={busy}>{busy ? tr.saving : tr.save}</button>
             </form>
+            <section className="panel form-stack">
+              <h2>{language === "ru" ? "Безопасность аккаунта" :
+                language === "cs" ? "Zabezpečení účtu" :
+                language === "uk" ? "Безпека акаунта" : "Account security"}</h2>
+              <p className="form-note">{language === "ru" ?
+                "После смены пароля все другие устройства будут разлогинены." :
+                "Changing your password signs out all other devices."}</p>
+              <form className="form-stack" onSubmit={updatePassword}>
+                <label>{language === "ru" ? "Текущий пароль" : "Current password"}
+                  <input required type="password" autoComplete="current-password" value={oldPassword}
+                    onChange={e=>setOldPassword(e.target.value)}/></label>
+                <label>{language === "ru" ? "Новый пароль (минимум 12 символов)" : "New password (12+ characters)"}
+                  <input required type="password" autoComplete="new-password" minLength={12} maxLength={128}
+                    value={newPassword} onChange={e=>setNewPassword(e.target.value)}/></label>
+                <label>{language === "ru" ? "Повтори новый пароль" : "Confirm new password"}
+                  <input required type="password" autoComplete="new-password" minLength={12} maxLength={128}
+                    value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)}/></label>
+                <button type="submit" className="button button-primary" disabled={busy}>
+                  {language === "ru" ? "Сменить пароль" : "Change password"}</button>
+              </form>
+              <div className="security-session-row">
+                <p>{language === "ru" ? "Активных сессий" : "Active sessions"}: <strong>{sessionCount ?? "—"}</strong></p>
+                <button type="button" className="button button-outline" onClick={signOutAllDevices}
+                  disabled={busy}>{language === "ru" ? "Выйти на всех устройствах" : "Sign out everywhere"}</button>
+              </div>
+            </section>
             <div className="profile-actions"><button type="button" className="button button-outline" onClick={logOut}>{tr.logout}</button></div>
           </>
         ) : (
@@ -338,7 +409,7 @@ export function ProfileClient() {
               )}
               {mode==="signup" && details}
               <label>{tr.email}<input type="email" required maxLength={255} autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} /></label>
-              <label>{tr.password}<input type="password" required minLength={mode==="signup"?10:1} maxLength={128} autoComplete={mode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} /></label>
+              <label>{tr.password}<input type="password" required minLength={mode==="signup"?12:1} maxLength={128} autoComplete={mode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} /></label>
               <p className="form-note">{mode==="signup"?tr.passwordHint:tr.note}</p>
               <button className="button button-primary" type="submit" disabled={busy}>{busy?tr.loading:mode==="signup"?tr.create:tr.login}</button>
             </form>
