@@ -92,7 +92,8 @@ jobs:
         env:
           PGPASSWORD: test_only_password
         run: |
-          psql -h 127.0.0.1 -U tickettreat -d tickettreat_ci -tAc "SELECT count(*) FROM tickettreat_schema_migrations" | grep -qx 2
+          expected="$(find backend/migrations -maxdepth 1 -name '20*.sql' -type f | wc -l | tr -d '[:space:]')"
+          psql -h 127.0.0.1 -U tickettreat -d tickettreat_ci -tAc "SELECT count(*) FROM tickettreat_schema_migrations" | grep -qx "$expected"
       - name: Backup and restore rehearsal on disposable PostgreSQL
         env:
           PGPASSWORD: test_only_password
