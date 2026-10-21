@@ -140,6 +140,9 @@ def install_telegram_auth(app, get_db, main) -> None:
             row.guest_id = guest.id
         for row in tg_waitlists:
             row.guest_id = guest.id
+        # Invalidate the former Telegram-only guest bearer credential.
+        old.access_token = secrets.token_urlsafe(32)
+        old.telegram_id = None
         guest.telegram_id = telegram_id
         guest.username = str(user.get("username") or "")[:255] or None
         link.guest_id = guest.id
