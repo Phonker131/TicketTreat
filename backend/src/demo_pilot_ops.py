@@ -22,6 +22,7 @@ class EventPilotSettings(Base):
     event_id = Column(Integer, primary_key=True)
     signup_cutoff_minutes = Column(Integer, nullable=False, default=0)
     reminder_minutes_json = Column(String(100), nullable=False, default="[10080,1440,180]")
+    waitlist_offer_minutes = Column(Integer, nullable=False, default=0)
 
 
 class EventCheckinStaff(Base):
@@ -38,6 +39,7 @@ class EventCheckinStaff(Base):
 class PilotSettingsUpdate(BaseModel):
     signup_cutoff_minutes: int = Field(ge=0, le=10080)
     reminder_minutes: list[int] = Field(min_length=1, max_length=4)
+    waitlist_offer_minutes: int = Field(default=0, ge=0, le=1440)
 
 
 class EventAnnouncementRequest(BaseModel):
@@ -56,13 +58,13 @@ class StaffScanRequest(BaseModel):
 def effective_settings(db: Session, event_id: int) -> dict:
     row = db.get(EventPilotSettings, event_id)
     if row is None:
-        return {"signup_cutoff_minutes": 0, "reminder_minutes": list(DEFAULT_REMINDERS)}
+        return {"signup_cutoff_minutes": 0, "reminder_minutes": list(DEFAULT_REMINDERS), "waitlist_offer_minutes": 0}
     try:
         offsets = json.loads(row.reminder_minutes_json)
     except (ValueError, TypeError):
         offsets = list(DEFAULT_REMINDERS)
     return {"signup_cutoff_minutes": int(row.signup_cutoff_minutes),
-            "reminder_minutes": offsets}
+            "reminder_minutes": offsets, "waitlist_offer_minutes": int(row.waitlist_offer_minutes or 0)}
 
 
 def validate_reminders(values: list[int]) -> list[int]:
@@ -158,11 +160,14 @@ def install_pilot_ops(app, get_db, main):
         if event.is_cancelled:
             raise HTTPException(409, "event_is_cancelled")
         intervals = validate_reminders(payload.reminder_minutes)
+        if 0 < payload.waitlist_offer_minutes < 15:
+            raise HTTPException(422,"waitlist_offer_must_be_at_least_15_minutes")
         row = db.get(EventPilotSettings, event_id)
         if row is None:
             row = EventPilotSettings(event_id=event_id)
             db.add(row)
         row.signup_cutoff_minutes = payload.signup_cutoff_minutes
+        row.waitlist_offer_minutes = payload.waitlist_offer_minutes
         row.reminder_minutes_json = json.dumps(intervals)
         # Existing pending reminders belong to the old policy. Rebuild using
         # the same event/ticket transactional boundaries as other edits.
