@@ -2,10 +2,14 @@
 import Link from "next/link";
 import {FormEvent,useEffect,useState} from "react";
 import {AppHeader} from "@/components/AppHeader";
+import {useLanguage} from "@/components/LanguageProvider";
+import {adminTranslate} from "@/lib/admin-i18n";
 import {getManageMe,getSiteLanding,updateSiteLanding,type SiteLanding} from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 
 export function SiteContentClient(){
+  const {language}=useLanguage();
+  const tr=(phrase:string)=>adminTranslate(language,phrase);
   const [landing,setLanding]=useState<SiteLanding|null>(null);
   const [headline,setHeadline]=useState(""),[subtitle,setSubtitle]=useState("");
   const [file,setFile]=useState<File|null>(null),[removeImage,setRemoveImage]=useState(false);
@@ -45,17 +49,17 @@ export function SiteContentClient(){
   }
 
   return <div className="app-shell"><AppHeader/><main className="page">
-    <Link href="/admin" className="back-link">← Админ-панель</Link>
-    <h1>Контент главной страницы</h1>
-    <p className="form-note">Изменения появятся на сайте и в Telegram Mini App. Доступ — только глобальному администратору.</p>
-    {loading&&<div className="state-card">Загрузка…</div>}
+    <Link href="/admin" className="back-link">{tr("← Админ-панель")}</Link>
+    <h1>{tr("Контент главной страницы")}</h1>
+    <p className="form-note">{tr("Изменения появятся на сайте и в Telegram Mini App. Доступ — только глобальному администратору.")}</p>
+    {loading&&<div className="state-card">{tr("Загрузка…")}</div>}
     {error&&<div className="state-card state-error" role="alert">{error}</div>}
     {notice&&<div className="success-banner">{notice}</div>}
     {allowed&&<form className="panel form-stack" onSubmit={submit}>
-      <label>Заголовок<input required minLength={3} maxLength={140} value={headline} onChange={e=>setHeadline(e.target.value)}/></label>
-      <label>Описание<textarea required minLength={3} maxLength={750} rows={4} value={subtitle} onChange={e=>setSubtitle(e.target.value)}/></label>
+      <label>{tr("Заголовок")}<input required minLength={3} maxLength={140} value={headline} onChange={e=>setHeadline(e.target.value)}/></label>
+      <label>{tr("Описание")}<textarea required minLength={3} maxLength={750} rows={4} value={subtitle} onChange={e=>setSubtitle(e.target.value)}/></label>
       {landing?.hero_image_url&&!removeImage&&<img src={landing.hero_image_url+"?t="+Date.now()} className="event-poster-preview" alt="Баннер сайта"/>}
-      <label>Новое изображение (JPG/PNG/WebP до 4 МБ)<input type="file" accept="image/png,image/jpeg,image/webp"
+      <label>{tr("Новое изображение (JPG/PNG/WebP до 4 МБ)")}<input type="file" accept="image/png,image/jpeg,image/webp"
         onChange={e=>{setFile(e.target.files?.[0]||null);setRemoveImage(false);}}/></label>
       <label><input type="checkbox" checked={removeImage} onChange={e=>{setRemoveImage(e.target.checked);if(e.target.checked)setFile(null);}}/> Удалить изображение баннера</label>
       <button type="submit" className="button button-primary" disabled={busy}>{busy?"Сохранение…":"Сохранить"}</button>
