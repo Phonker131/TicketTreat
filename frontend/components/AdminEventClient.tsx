@@ -35,6 +35,7 @@ export function AdminEventClient(){
   const [title,setTitle]=useState(""),[location,setLocation]=useState("");
   const [countryCode,setCountryCode]=useState(""),[city,setCity]=useState("");
   const [organizer,setOrganizer]=useState(""),[description,setDescription]=useState("");
+  const [gallery,setGallery]=useState(""),[video,setVideo]=useState("");
   const [startsAt,setStartsAt]=useState(""),[capacity,setCapacity]=useState("30");
   const [price,setPrice]=useState("0"),[currency,setCurrency]=useState("CZK");
   const [languages,setLanguages]=useState<LanguageCode[]>(["en","ru"]);
@@ -46,7 +47,7 @@ export function AdminEventClient(){
     setIdentity(me);setEvent(ev);setData(tickets);
     setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"Crowdly");
     setCountryCode(ev.country_code||"");setCity(ev.city||"");
-    setDescription(ev.description||"");setStartsAt(asLocal(ev.starts_at));
+    setDescription(ev.description||"");setGallery((ev.gallery_urls||[]).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
     setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
     setOwner(ev.owner_account_id==null?"":String(ev.owner_account_id));
@@ -74,6 +75,7 @@ export function AdminEventClient(){
       if(!languages.length)throw new Error("Выбери язык.");
       const payload:Record<string,unknown>={
         title:title.trim(),organizer:organizer.trim(),description,location,
+        gallery_urls:gallery.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),video_url:video.trim(),
         country_code:countryCode,city:city.trim(),
         max_participants:Number(capacity),price:String(price),
         currency,starts_at:startsAt+":00",languages,
@@ -143,6 +145,8 @@ export function AdminEventClient(){
           onCityChange={setCity} language="ru" />
         <label>Адрес или место проведения<input value={location} onChange={e=>setLocation(e.target.value)}/></label>
         <label>Описание<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>
+        <label>Фото мероприятия (HTTPS, по одной ссылке на строку, до 8)<textarea rows={4} value={gallery} onChange={e=>setGallery(e.target.value)}/></label>
+        <label>Видео (YouTube/Vimeo)<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
         <div className="two-col"><label>Дата и время<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
           <label>Количество мест<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
         <div className="two-col"><label>Цена<input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}/></label>
