@@ -84,6 +84,11 @@ export function CheckoutClient() {
       const text = err instanceof Error ? err.message : "Error";
       if (text === "event_full") {
         setMessage(t(language, "soldOut"));
+      } else if (text === "already_registered_via_bot") {
+        setMessage(language === "ru" ?
+          "Ты уже записан на этот ивент через Telegram-бота. Запись видна в разделе «Мои билеты»." :
+          language === "cs" ? "Už jsi zaregistrován přes Telegram bota. Registraci najdeš v sekci Moje vstupenky." :
+          "You are already registered through the Telegram bot. See your bot registration in My tickets.");
       } else {
         setMessage(text);
       }

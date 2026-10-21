@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import { getVerifiedTelegramSession } from "@/lib/session";
 import {CountryCityFields} from "@/components/CountryCityFields";
 import { useLanguage } from "@/components/LanguageProvider";
-import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
+import { clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
 import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions } from "@/lib/api";
-import type { LanguageCode, WebProfile } from "@/lib/types";
+import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
   ru: {
@@ -71,6 +72,7 @@ export function ProfileClient() {
   const {language} = useLanguage();
   const tr = COPY[language];
   const [mode, setMode] = useState<"login"|"signup">("signup");
+  const [telegramProfile, setTelegramProfile] = useState<TelegramAuthResult|null>(null);
   const [profile, setProfile] = useState<WebProfile|null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -96,6 +98,9 @@ export function ProfileClient() {
 
   useEffect(() => {
     let mounted = true;
+    void getVerifiedTelegramSession().then(tg => {
+      if (mounted) setTelegramProfile(tg);
+    }).catch(() => { /* Signed Telegram login is optional for browser users. */ });
     restoreWebProfile()
       .then((p) => { if(mounted && p) loadProfile(p); })
       .catch(() => { if (mounted) setError("Connection to the profile service failed."); })
@@ -386,6 +391,17 @@ export function ProfileClient() {
         ) : (
           <>
             <h1>{tr.title}</h1>
+            {telegramProfile && <section className="panel telegram-verified-profile">
+              <span className="status status-success">✓ Telegram verified</span>
+              <h2>{telegramProfile.telegram.first_name}</h2>
+              <p>{language === "ru" ?
+                "Ты уже авторизован через Telegram и можешь записываться на ивенты в Mini App. Твои записи через бота доступны в разделе билетов." :
+                "You are signed in through Telegram and can book events in Mini App. Existing bot registrations appear in My tickets."}</p>
+              <Link href="/tickets" className="button button-outline">{language === "ru" ? "Мои билеты" : language === "cs" ? "Moje vstupenky" : language === "uk" ? "Мої квитки" : "My tickets"}</Link>
+              <small>{language === "ru" ?
+                "Веб-аккаунт с email существует отдельно. Для доступа с компьютера используй регистрацию или вход ниже; автоматического объединения аккаунтов пока нет." :
+                "Email accounts are separate. To use Crowdly on the web, sign up or log in below; accounts are not automatically merged."}</small>
+            </section>}
             <p className="form-note">{tr.need}</p>
             <div className="auth-tabs" role="tablist">
               <button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setError("");}}>{tr.signup}</button>
