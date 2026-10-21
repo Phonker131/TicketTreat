@@ -136,7 +136,7 @@ def install_privacy_routes(app, get_db, main):
     def fulfill(request_id:int,payload:FulfillErasure,
                 admin:WebAccount=Depends(global_admin),
                 db:Session=Depends(get_db)):
-        from demo_roles import EventOwnership,WebAccountRole,GlobalAdminBinding,AccountAdminAudit,role_for
+        from demo_roles import EventOwnership,WebAccountRole,GlobalAdminBinding,GlobalAdminDelegation,AccountAdminAudit,role_for
         from demo_accounts import WebSession
         from demo_account_recovery import VerifiedEmail,EmailChallenge
         from demo_auth_security import hash_password
@@ -204,6 +204,7 @@ def install_privacy_routes(app, get_db, main):
         db.query(DemoAccountPlace).filter(DemoAccountPlace.account_id==account.id).delete(synchronize_session=False)
         db.query(WebAccountRole).filter(WebAccountRole.account_id==account.id).delete(synchronize_session=False)
         db.query(GlobalAdminBinding).filter(GlobalAdminBinding.account_id==account.id).delete(synchronize_session=False)
+        db.query(GlobalAdminDelegation).filter(GlobalAdminDelegation.account_id==account.id).delete(synchronize_session=False)
         from demo_google import GoogleIdentity, GoogleFlow
         db.query(GoogleIdentity).filter(GoogleIdentity.account_id==account.id).delete(synchronize_session=False)
         db.query(GoogleFlow).filter(GoogleFlow.account_id==account.id).delete(synchronize_session=False)
