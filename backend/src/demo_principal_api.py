@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 class FreeBooking(BaseModel):
     language: str = Field(default="en",max_length=8)
+    source: str = Field(default="direct",pattern=r"^[a-z0-9_-]{1,40}$")
 
 
 def install_principal_api(app,get_db,main):
@@ -95,7 +96,7 @@ def install_principal_api(app,get_db,main):
                  guest=Depends(guest_for),db:Session=Depends(get_db)):
         return main.demo_checkout(
             event_id=event_id,
-            payload=main.DemoCheckoutCreate(guest_token=guest.access_token,language=payload.language),
+            payload=main.DemoCheckoutCreate(guest_token=guest.access_token,language=payload.language,source=payload.source),
             background_tasks=background_tasks,
             db=db,authorization=authorization,
             x_telegram_init_data=x_telegram_init_data)
