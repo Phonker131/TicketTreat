@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
-import { getDemoTickets } from "@/lib/api";
+import { getDemoTickets, getMyAttendance } from "@/lib/api";
+import type {AttendanceHistory} from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { getVerifiedTelegramSession, restoreGuest } from "@/lib/session";
@@ -14,6 +15,7 @@ export function TicketsClient() {
   const {language} = useLanguage();
   const [guest, setGuest] = useState<DemoGuest | null>(null);
   const [tickets, setTickets] = useState<DemoTicket[]>([]);
+  const [attendance,setAttendance]=useState<AttendanceHistory|null>(null);
   const [loading, setLoading] = useState(true);
   const [botEvents, setBotEvents] = useState<TicketTreatEvent[]>([]);
   const [error, setError] = useState("");
@@ -31,6 +33,7 @@ export function TicketsClient() {
         if (guest) {
           const items = await getDemoTickets(guest.access_token);
           if (live) setTickets(items);
+          void getMyAttendance().then(history=>{if(live)setAttendance(history)}).catch(()=>{});
         }
       } catch (err) {
         if (live) setError(err instanceof Error ? err.message : "Authentication error");
@@ -73,6 +76,14 @@ export function TicketsClient() {
               </Link>
             ))}
           </div>}
+          {attendance&&<section className="panel" style={{marginTop:20}}>
+            <h2>{language==="ru"?"История посещений":language==="cs"?"Historie návštěv":language==="uk"?"Історія відвідувань":"Attendance history"}</h2>
+            <p>{attendance.visit_count} check-ins {attendance.visit_count>=attendance.limited_to?"(последние 100)":""}</p>
+            {attendance.history.map((item,i)=><div key={`${item.event_id}-${i}`} className="participant-row">
+              <div><strong>{item.title}</strong><small>{item.location||""}</small></div>
+              <small>{new Date(item.checked_in_at).toLocaleString(language==="cs"?"cs-CZ":language==="uk"?"uk-UA":language==="ru"?"ru-RU":"en-GB")}</small>
+            </div>)}
+          </section>}
           {botEvents.length > 0 && <section className="section telegram-bot-events">
             <div className="section-heading">
               <div><h2>{language==="ru"?"Записи через Telegram-бота":language==="uk"?"Записи через Telegram-бота":language==="cs"?"Registrace přes Telegram bota":"Telegram bot registrations"}</h2>
