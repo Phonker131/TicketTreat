@@ -1,0 +1,40 @@
+import {test,expect} from "@playwright/test";
+
+test("catalogue renders upcoming events through the live FastAPI gateway",async({page})=>{
+  await page.goto("/");
+  await expect(page.getByText("CI browser free event").first()).toBeVisible();
+});
+
+test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({page})=>{
+  await page.goto("/profile");
+  await page.locator(".auth-tabs button").last().click();
+  await page.locator('form input[type="email"]').first().fill("browser-e2e@example.invalid");
+  await page.locator('form input[type="password"]').first().fill("Browser-only-testing-passphrase-2026");
+  await page.locator('form button[type="submit"]').first().click();
+
+  await expect.poll(async()=>page.evaluate(()=>localStorage.getItem("crowdly_demo_web_auth"))).toBe("browser-session");
+  const cookies=await page.context().cookies();
+  const session=cookies.find(c=>c.name==="tt_web_session");
+  expect(session).toBeTruthy();
+  expect(session?.httpOnly).toBe(true);
+  expect(session?.sameSite).toBe("Strict");
+  expect(session?.value).not.toBe("browser-session");
+  const result=await page.evaluate(async()=>{
+    const response=await fetch("/api/gateway/demo/auth/me",{
+      headers:{Authorization:"Bearer browser-session"},
+    });
+    return response.status;
+  });
+  expect(result).toBe(200);
+  await page.goto("/tickets");
+  await expect(page.locator("body")).toBeVisible();
+});
+
+test("mutating API requires a genuine browser Origin and app header",async({request})=>{
+  const login=await request.post("/api/gateway/demo/auth/login",{
+    data:{email:"browser-e2e@example.invalid",password:"Browser-only-testing-passphrase-2026"},
+  });
+  expect(login.status()).toBe(403);
+  const catalogue=await request.get("/api/gateway/demo/config");
+  expect(catalogue.status()).toBe(200);
+});
