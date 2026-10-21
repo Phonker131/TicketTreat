@@ -428,6 +428,7 @@ export function ProfileClient() {
                 }}>
                 {language==="ru"?"Скачать мои данные (JSON)":language==="uk"?"Завантажити мої дані (JSON)":language==="cs"?"Stáhnout moje údaje (JSON)":"Download my data (JSON)"}
               </button>
+              <Link href="/security/mfa" className="button button-outline">Two-factor authentication</Link>
               <Link href="/privacy" className="button button-outline">
                 {language==="ru"?"Мои данные и запрос на удаление":language==="uk"?"Мої дані та запит на видалення":language==="cs"?"Moje údaje a žádost o výmaz":"My data and erasure request"}
               </Link>
