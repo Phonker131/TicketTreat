@@ -69,6 +69,7 @@ jobs:
       DATABASE_URL: postgresql://tickettreat:test_only_password@127.0.0.1:5432/tickettreat_ci
       DEMO_ISOLATED_API: "true"
       AUTH_CODE_SECRET: "ci-only-test-secret-not-used-outside-ci-1234"
+      MFA_ENCRYPTION_KEY: "VGlja2V0VHJlYXQgQ0kgb25seSBNRkEga2V5IDEyMzQ="
       DEMO_PAYMENT_MODE: "false"
       APP_ENV: production
       PYTHONPATH: backend/src
