@@ -194,6 +194,8 @@ def account_lookup(db: Session, authorization: str | None) -> WebAccount:
     account = db.query(WebAccount).filter(WebAccount.id == row.account_id).first()
     if account is None:
         raise HTTPException(status_code=401, detail="invalid_session")
+    from demo_mfa import require_privileged_mfa
+    require_privileged_mfa(db,account,row)
     return account
 
 def ensure_manage(db: Session, account: WebAccount) -> str:
