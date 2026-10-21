@@ -412,13 +412,19 @@ def install_demo_roles(app, get_db, main):
         if "price" in values and values["price"] is None:
             raise HTTPException(status_code=422,detail="invalid_price")
         validate_media_urls(gallery, video)
+        if gallery is not None:
+            uploaded = db.query(EventGalleryImage).filter(
+                EventGalleryImage.event_id == event_id
+            ).count()
+            if len(gallery)+uploaded > 8:
+                raise HTTPException(409,"gallery_limit_reached")
         if poster:
             main.decode_demo_poster(poster)  # fail before updating event
         original_start=event.starts_at
         original_location=event.location
         if values:
             from main import EventUpdate
-            outcome=main.update_event(event_id,EventUpdate(**values),db=db)
+            outcome=main.update_event(event_id,EventUpdate(**values),db=db,commit=False)
             if isinstance(outcome,dict) and outcome.get("error"):
                 raise HTTPException(status_code=422,detail=outcome["error"])
         if geo_country is not None or geo_city is not None:
