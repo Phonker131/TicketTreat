@@ -55,7 +55,7 @@ def backup(outdir: Path, database_url: str) -> Path:
         checksum=archive.with_suffix(".sha256")
         checksum.write_text(f"{sha}  {archive.name}\n")
         os.chmod(checksum,0o600)
-        print(f"Created encrypted-storage-ready backup: {archive.name} ({archive.stat().st_size} bytes)")
+        print(f"Created UNENCRYPTED archive for transfer to encrypted offsite storage: {archive.name} ({archive.stat().st_size} bytes)")
         return archive
     finally:
         if temp.exists():temp.unlink()
