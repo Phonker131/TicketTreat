@@ -45,7 +45,7 @@ export function AdminEventClient(){
       getManageMe(token),getManageEvent(eventId,token),getManageParticipants(token,eventId)
     ]);
     setIdentity(me);setEvent(ev);setData(tickets);
-    setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"Crowdly");
+    setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"TicketTreat");
     setCountryCode(ev.country_code||"");setCity(ev.city||"");
     setDescription(ev.description||"");setGallery((ev.gallery_urls||[]).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
