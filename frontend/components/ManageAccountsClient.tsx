@@ -34,10 +34,17 @@ export function ManageAccountsClient() {
     {notice&&<div className="success-banner">{notice}</div>}
     {loading?<div className="state-card">Загрузка…</div>:<div className="panel">
       <h2>Аккаунты ({accounts.length})</h2>
-      {accounts.map(a=><div className="participant-row" key={a.account_id}>
-        <div><strong>{a.name}</strong><small>#{a.account_id} · {a.email}</small>
-          <span className="status status-demo">{a.role}</span></div>
-        {a.role!=="global_admin"&&<div className="participant-actions">
+      {accounts.map(a=><div className="account-management-row" key={a.account_id}>
+        <div className="account-management-info">
+          <div className="account-management-title">
+            <strong>{a.name}</strong>
+            <span className="account-management-role" data-role={a.role}>
+              {a.role==="global_admin" ? "Global admin" : a.role==="organizer" ? "Organizer" : "Participant"}
+            </span>
+          </div>
+          <p className="account-management-meta">Account #{a.account_id} · {a.email}</p>
+        </div>
+        {a.role!=="global_admin"&&<div className="account-management-actions">
           <button className="button button-outline" disabled={busy===a.account_id||a.role==="participant"}
             onClick={()=>changeRole(a,"participant")}>Participant</button>
           <button className="button button-primary" disabled={busy===a.account_id||a.role==="organizer"}
