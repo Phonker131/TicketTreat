@@ -26,4 +26,14 @@ CREATE TABLE IF NOT EXISTS demo_site_landing (
     hero_image_type VARCHAR(40),
     hero_image_bytes BYTEA
 );
+CREATE TABLE IF NOT EXISTS demo_privacy_requests (
+    id SERIAL PRIMARY KEY,
+    account_id INTEGER NOT NULL REFERENCES demo_web_accounts(id),
+    request_type VARCHAR(24) NOT NULL DEFAULT 'erasure',
+    status VARCHAR(24) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_demo_privacy_requests_account_id
+  ON demo_privacy_requests(account_id);
 COMMIT;
