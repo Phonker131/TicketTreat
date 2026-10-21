@@ -312,3 +312,21 @@ export function claimWebGlobalAdmin(token: string, recoveryKey: string): Promise
     body:JSON.stringify({recovery_key:recoveryKey}),
   });
 }
+
+/** Password rotation returns a new session and revokes every old one. */
+export async function changeWebPassword(token: string, current_password: string, new_password: string): Promise<WebAuthResult> {
+  return request<WebAuthResult>("/demo/auth/change-password", {
+    method: "POST", headers: {Authorization: `Bearer ${token}`},
+    body: JSON.stringify({current_password, new_password}),
+  });
+}
+
+export async function logoutAllWebSessions(token: string): Promise<void> {
+  await request<{status: string}>("/demo/auth/logout-all", {
+    method: "POST", headers: {Authorization: `Bearer ${token}`},
+  });
+}
+
+export async function getWebSessions(token: string): Promise<{sessions: {id: number; created_at: string; expires_at: string}[]}> {
+  return request("/demo/auth/sessions", {headers: {Authorization: `Bearer ${token}`}});
+}
