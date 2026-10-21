@@ -472,6 +472,9 @@ def install_account_moderation(app, get_db):
         guard_rate(db, "admin_claim_account", str(account.id), 6, 3600)
         record_rate(db, "admin_claim_ip", claim_ip, 3600)
         record_rate(db, "admin_claim_account", str(account.id), 3600)
+        from demo_account_recovery import email_is_verified
+        if not email_is_verified(db, account.id):
+            raise HTTPException(status_code=403, detail="email_verification_required")
         allowed_emails = permanent_global_admin_emails()
         configured_secret = os.getenv("GLOBAL_ADMIN_RECOVERY_SECRET", "")
         if (
