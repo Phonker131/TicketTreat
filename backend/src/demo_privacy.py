@@ -6,7 +6,9 @@ records are retained only for subsequent controlled fulfillment.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import os
+import secrets
+from datetime import datetime, timezone, timedelta
 from fastapi import Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
@@ -26,13 +28,21 @@ class PrivacyRequest(Base):
     status = Column(String(24), nullable=False, default="pending")
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True), nullable=False)
+    resolution_note = Column(String(500), nullable=True)
+    resolved_by = Column(Integer, nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class RequestErasure(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
 
 
-def install_privacy_routes(app, get_db):
+class FulfillErasure(BaseModel):
+    confirmation: str = Field(pattern="^ERASE$")
+    justification: str = Field(min_length=12, max_length=500)
+
+
+def install_privacy_routes(app, get_db, main):
     def current(
         authorization: str | None = Header(default=None),
         db: Session = Depends(get_db),
@@ -86,3 +96,111 @@ def install_privacy_routes(app, get_db):
             item.updated_at=now
         db.commit()
         return {"status": "withdrawn" if items else "none"}
+
+    def global_admin(
+        authorization: str | None = Header(default=None),
+        db: Session = Depends(get_db),
+    ) -> WebAccount:
+        from demo_roles import role_for
+        admin=account_lookup(db,authorization)
+        if role_for(db,admin)!="global_admin":
+            raise HTTPException(403,"global_admin_only")
+        return admin
+
+    @app.get("/demo/manage/privacy-requests")
+    def pending_requests(admin:WebAccount=Depends(global_admin),
+                         db:Session=Depends(get_db)):
+        records=(db.query(PrivacyRequest,WebAccount)
+            .join(WebAccount,WebAccount.id==PrivacyRequest.account_id)
+            .filter(PrivacyRequest.status=="pending")
+            .order_by(PrivacyRequest.created_at).limit(100).all())
+        return [{"request_id":r.id,"account_id":r.account_id,
+                 "email":a.email,"created_at":r.created_at} for r,a in records]
+
+    @app.post("/demo/manage/privacy-requests/{request_id}/fulfill")
+    def fulfill(request_id:int,payload:FulfillErasure,
+                admin:WebAccount=Depends(global_admin),
+                db:Session=Depends(get_db)):
+        from demo_roles import EventOwnership,WebAccountRole,GlobalAdminBinding,AccountAdminAudit,role_for
+        from demo_accounts import WebSession
+        from demo_account_recovery import VerifiedEmail,EmailChallenge
+        from demo_auth_security import hash_password
+        from demo_mfa import MFAFactor,MFASession
+        from demo_email import EmailOutbox
+        from demo_geography import DemoAccountPlace
+        from demo_telegram import DemoTelegramIdentity
+        from demo_legacy import LegacyTicketClaim
+
+        item=db.query(PrivacyRequest).filter(
+            PrivacyRequest.id==request_id).with_for_update().first()
+        if item is None or item.status!="pending":
+            raise HTTPException(404,"pending_request_not_found")
+        account=db.query(WebAccount).filter(
+            WebAccount.id==item.account_id).with_for_update().first()
+        if account is None: raise HTTPException(409,"account_missing")
+        guest=db.query(main.DemoGuest).filter(
+            main.DemoGuest.id==account.guest_id).with_for_update().first()
+        if guest is None: raise HTTPException(409,"guest_missing")
+
+        blockers=[]
+        if account.id==admin.id or role_for(db,account)=="global_admin":
+            blockers.append("privileged_account")
+        if db.query(EventOwnership).filter(EventOwnership.owner_account_id==account.id).first():
+            blockers.append("organizer_owns_events")
+        if db.query(DemoTelegramIdentity).filter(DemoTelegramIdentity.guest_id==guest.id).first():
+            blockers.append("linked_telegram_requires_review")
+        tickets=db.query(main.DemoTicket).filter(main.DemoTicket.guest_id==guest.id).all()
+        waits=db.query(main.DemoWaitlist).filter(main.DemoWaitlist.guest_id==guest.id).all()
+        if tickets:
+            days=os.getenv("PRIVACY_FREE_TICKET_RETENTION_DAYS","")
+            if not days.isdecimal():
+                blockers.append("retention_policy_not_configured")
+            else:
+                cutoff=datetime.now(timezone.utc)-timedelta(days=int(days))
+                for ticket in tickets:
+                    event=db.query(main.Event).filter(main.Event.id==ticket.event_id).first()
+                    if ticket.payment_provider not in {"free","legacy_free"}:
+                        blockers.append("financial_records")
+                    elif event is None or event.starts_at is None or main.normalize_event_datetime(event.starts_at).astimezone(timezone.utc)>cutoff:
+                        blockers.append("ticket_retention_window")
+                    elif db.query(LegacyTicketClaim).filter(LegacyTicketClaim.ticket_id==ticket.id).first():
+                        blockers.append("legacy_record_requires_review")
+        for waiting in waits:
+            event=db.query(main.Event).filter(main.Event.id==waiting.event_id).first()
+            if event is None or not main.event_is_past(event):
+                blockers.append("active_waitlist")
+                break
+        if blockers:
+            raise HTTPException(409,{"code":"manual_review_required",
+                                     "blockers":sorted(set(blockers))})
+
+        # Transactional pseudonymization and deletion of eligible personal data.
+        db.query(EmailOutbox).filter(EmailOutbox.guest_id==guest.id).delete(synchronize_session=False)
+        db.query(main.DemoTicket).filter(main.DemoTicket.guest_id==guest.id).delete(synchronize_session=False)
+        db.query(main.DemoWaitlist).filter(main.DemoWaitlist.guest_id==guest.id).delete(synchronize_session=False)
+        session_hashes=[x[0] for x in db.query(WebSession.token_hash).filter(
+            WebSession.account_id==account.id).all()]
+        if session_hashes:
+            db.query(MFASession).filter(MFASession.session_hash.in_(session_hashes)).delete(synchronize_session=False)
+        db.query(WebSession).filter(WebSession.account_id==account.id).delete(synchronize_session=False)
+        db.query(MFAFactor).filter(MFAFactor.account_id==account.id).delete(synchronize_session=False)
+        db.query(VerifiedEmail).filter(VerifiedEmail.account_id==account.id).delete(synchronize_session=False)
+        db.query(EmailChallenge).filter(EmailChallenge.account_id==account.id).delete(synchronize_session=False)
+        db.query(DemoAccountPlace).filter(DemoAccountPlace.account_id==account.id).delete(synchronize_session=False)
+        db.query(WebAccountRole).filter(WebAccountRole.account_id==account.id).delete(synchronize_session=False)
+        db.query(GlobalAdminBinding).filter(GlobalAdminBinding.account_id==account.id).delete(synchronize_session=False)
+        guest.access_token=secrets.token_urlsafe(32)
+        guest.telegram_id=None;guest.username=None;guest.email=None
+        guest.first_name="Erased";guest.last_name=None
+        account.email=f"erased-{account.id}@users.invalid"
+        account.password_hash=hash_password(secrets.token_urlsafe(48))
+        account.first_name="Erased";account.last_name="Account"
+        account.phone=None;account.instagram=None;account.contact_preference="email"
+        item.status="fulfilled";item.resolved_by=admin.id
+        item.resolution_note=payload.justification.strip()
+        item.resolved_at=datetime.now(timezone.utc)
+        item.updated_at=item.resolved_at
+        db.add(AccountAdminAudit(actor_account_id=admin.id,
+                 target_account_id=account.id,action="privacy_erasure_fulfilled"))
+        db.commit()
+        return {"status":"fulfilled","account_id":account.id}
