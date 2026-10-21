@@ -75,7 +75,7 @@ export function EventDetailClient() {
         <section className="detail-grid">
           <div className="detail-item"><span>{t(language, "startsAt")}</span><strong>{formatDate(event.starts_at, language)}</strong></div>
           <div className="detail-item"><span>{t(language, "location")}</span><strong>{event.location || "—"}</strong></div>
-          <div className="detail-item"><span>{t(language, "organizer")}</span><strong>{event.organizer || "Crowdly"}</strong></div>
+          <div className="detail-item"><span>{t(language, "organizer")}</span><strong>{event.organizer === "Crowdly" ? "TicketTreat" : (event.organizer || "TicketTreat")}</strong></div>
           <div className="detail-item"><span>{t(language, "price")}</span><strong>{formatPrice(event, language)}</strong></div>
           <div className="detail-item"><span>{t(language, "spots")}</span><strong>{event.spots_left ?? "∞"}</strong></div>
           <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
