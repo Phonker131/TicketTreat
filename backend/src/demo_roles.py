@@ -238,6 +238,22 @@ def audit(db: Session, event_id: int, actor: int, action: str, details: str = ""
         details=details[:3000],
     ))
 
+def redact_organizer_ticket(ticket: dict[str,Any]) -> dict[str,Any]:
+    """Never expose attendance bearer credentials to organizer dashboards.
+
+    The check-in endpoint accepts a QR scanned from the attendee, not a list
+    of all ticket secrets. Keep public ticket code and nonsecret status.
+    """
+    safe=dict(ticket)
+    safe.pop("qr_token",None)
+    guest=safe.get("guest")
+    if isinstance(guest,dict):
+        identity=dict(guest)
+        identity.pop("access_token",None)
+        safe["guest"]=identity
+    return safe
+
+
 def event_data(event, db, main) -> dict[str,Any]:
     data=main.event_to_dict(event,db=db,registered_count=main.get_registered_count(db,event.id))
     owner=db.query(EventOwnership).filter(EventOwnership.event_id==event.id).first()
@@ -412,7 +428,16 @@ def install_demo_roles(app, get_db, main):
     def event_participants(event_id:int,account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
         ensure_owner(db,event_id,account)
         # Existing ticket serialization preserved and scoped.
-        return main.demo_admin_event_tickets(event_id,_admin_key="",db=db)
+        result=main.demo_admin_event_tickets(event_id,_admin_key="",db=db)
+        return {
+            **result,
+            "tickets":[redact_organizer_ticket(t) for t in result["tickets"]],
+            "waitlist":[{
+                **w,
+                "guest":{k:v for k,v in w.get("guest",{}).items()
+                         if k!="access_token"},
+            } for w in result["waitlist"]],
+        }
 
     @app.get("/demo/manage/events/{event_id}/participants.csv")
     def participant_export(event_id:int,account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
@@ -434,7 +459,7 @@ def install_demo_roles(app, get_db, main):
         if first_checkin and result.get("status")=="checked_in":
             audit(db,ticket.event_id,account.id,"checkin",f"ticket:{ticket.id}")
             db.commit()
-        return result
+        return {**result,"ticket":redact_organizer_ticket(result["ticket"])}
 
     @app.get("/demo/manage/organizers")
     def list_organizers(account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
