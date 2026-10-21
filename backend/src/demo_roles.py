@@ -17,7 +17,7 @@ from typing import Any
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, UniqueConstraint
+from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Session
 from db.base import Base
 from demo_geography import DemoEventPlace, place_dict, save_place
@@ -527,6 +527,26 @@ def install_demo_roles(app, get_db, main):
         audit(db,event_id,account.id,"gallery_delete",f"image:{image_id}")
         db.commit()
         return {"status":"deleted","id":image_id}
+
+    @app.get("/demo/manage/events/{event_id}/email-status")
+    def email_status(event_id:int,account:WebAccount=Depends(managing),
+                     db:Session=Depends(get_db)):
+        ensure_owner(db,event_id,account)
+        from demo_accounts import WebAccount
+        from demo_account_recovery import VerifiedEmail
+        from demo_email import EmailOutbox, configured
+        verified=db.query(func.count(func.distinct(WebAccount.id))).select_from(
+            main.DemoTicket
+        ).join(WebAccount,WebAccount.guest_id==main.DemoTicket.guest_id).join(
+            VerifiedEmail,VerifiedEmail.account_id==WebAccount.id
+        ).filter(main.DemoTicket.event_id==event_id,
+                 main.DemoTicket.ticket_status=="active").scalar() or 0
+        states=db.query(EmailOutbox.state,func.count(EmailOutbox.id)).join(
+            main.DemoTicket,main.DemoTicket.id==EmailOutbox.ticket_id
+        ).filter(main.DemoTicket.event_id==event_id).group_by(EmailOutbox.state).all()
+        return {"email_enabled":configured(),"verified_ticket_holders":verified,
+                "message_states":{state:count for state,count in states},
+                "scope":"operational event notifications only; marketing requires consent"}
 
     @app.get("/demo/manage/events/{event_id}/participants")
     def event_participants(event_id:int,account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
