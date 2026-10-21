@@ -448,7 +448,7 @@ export function ProfileClient() {
               <Link href="/tickets" className="button button-outline">{language === "ru" ? "Мои билеты" : language === "cs" ? "Moje vstupenky" : language === "uk" ? "Мої квитки" : "My tickets"}</Link>
               <small>{language === "ru" ?
                 "Веб-аккаунт с email существует отдельно. Для доступа с компьютера используй регистрацию или вход ниже; автоматического объединения аккаунтов пока нет." :
-                "Email accounts are separate. To use Crowdly on the web, sign up or log in below; accounts are not automatically merged."}</small>
+                "Email accounts are separate. To use TicketTreat on the web, sign up or log in below; accounts are not automatically merged."}</small>
             </section>}
             <p className="form-note">{tr.need}</p>
             <div className="auth-tabs" role="tablist">
