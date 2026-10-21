@@ -52,6 +52,7 @@ from demo_legacy import LegacyTicketClaim
 from demo_observability import install_request_logging
 from demo_principal_api import install_principal_api
 from demo_publication import EventPublication, state as event_publication_state, require_published
+from demo_pilot_ops import EventPilotSettings, EventCheckinStaff, booking_cutoff_reached, install_pilot_ops
 
 
 # =========================================================
@@ -2848,6 +2849,8 @@ def demo_checkout(
 
     if event_has_started(event):
         raise HTTPException(status_code=409, detail="event_already_started")
+    if booking_cutoff_reached(db, event):
+        raise HTTPException(status_code=409, detail="event_registration_closed")
 
     existing = (
         db.query(DemoTicket)
@@ -2972,6 +2975,8 @@ def join_demo_waitlist(
     if telegram_guest_has_bot_registration(db, guest, event_id):
         raise HTTPException(status_code=409, detail="already_registered_via_bot")
 
+    if event_has_started(event) or booking_cutoff_reached(db, event):
+        raise HTTPException(status_code=409, detail="event_registration_closed")
     if event.max_participants is None:
         raise HTTPException(status_code=409, detail="waitlist_not_needed")
 
@@ -3318,3 +3323,5 @@ async def tickettreat_security_response_headers(request: Request, call_next):
 # Telegram Mini App authorization: initData is validated with the BOT token on the server.
 install_telegram_auth(app, get_db, __import__('sys').modules[__name__])
 install_principal_api(app, get_db, __import__('sys').modules[__name__])
+# Least-privilege event staffing, reporting and booking policy.
+install_pilot_ops(app, get_db, __import__('sys').modules[__name__])
