@@ -27,7 +27,7 @@ export function TicketClient() {
     if (!guest || !params?.id) return;
     const data = await getDemoTicket(guest.access_token, params.id);
     setTicket(data);
-    setQr(await QRCode.toDataURL(`CROWDLY:TICKET:${data.qr_token}`, {width: 360, margin: 1}));
+    setQr(await QRCode.toDataURL(`TICKETTREAT:TICKET:${data.qr_token}`, {width: 360, margin: 1}));
   }
 
   useEffect(() => { load().catch(() => setMessage(t(language, "loadError"))); }, [params?.id]);
@@ -55,7 +55,7 @@ export function TicketClient() {
               <strong>{ticket.code}</strong>
             </div>
             <div className="ticket-main">
-              <p className="eyebrow">CROWDLY PASS</p>
+              <p className="eyebrow">TICKETTREAT PASS</p>
               <h1>{ticket.event?.title}</h1>
               <div className="ticket-facts">
                 <div><span>{t(language, "startsAt")}</span><strong>{formatDate(ticket.event?.starts_at || null, language)}</strong></div>
@@ -65,7 +65,7 @@ export function TicketClient() {
               {qr && ticket.ticket_status === "active" && (
                 <div className="qr-wrap">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qr} alt="Crowdly ticket QR" />
+                  <img src={qr} alt="TicketTreat ticket QR" />
                   <p>{t(language, "qrHint")}</p>
                 </div>
               )}
