@@ -148,7 +148,7 @@ class QRWaitlistE2E(unittest.TestCase):
                 self.assertEqual(active.payment_status,"not_required")
             self.assertIsNotNone(scan.json()["ticket"]["checked_in_at"])
             replay=client.post("/demo/manage/check-in",headers=headers,json={"qr_token":qr})
-            self.assertEqual(replay.status_code,200,replay.text)
+            self.assertEqual(replay.status_code,409,replay.text)
             invalid=client.post("/demo/manage/check-in",headers=headers,json={"qr_token":"not-a-real-qr"+("x"*14)})
             self.assertEqual(invalid.status_code,404,invalid.text)
 
