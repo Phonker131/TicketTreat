@@ -39,7 +39,8 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
     if (!validOrigin || (fetchSite && fetchSite !== "same-origin")) {
       return NextResponse.json({detail:"cross_origin_denied"},{status:403});
     }
-    if (req.headers.get("x-crowdly-client") !== "1") return NextResponse.json({detail:"client_header_required"},{status:403});
+    // Prefer the TicketTreat header; accept the legacy header for already-open clients.
+    if (req.headers.get("x-tickettreat-client") !== "1" && req.headers.get("x-crowdly-client") !== "1") return NextResponse.json({detail:"client_header_required"},{status:403});
   }
   const headers = new Headers();
   headers.set("Accept","application/json");
