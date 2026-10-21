@@ -11,7 +11,7 @@ import {
   editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,
   setManagePublication,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
-  getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,
+  getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
@@ -36,6 +36,8 @@ export function AdminEventClient(){
   const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180]});
   const [pilotStaff,setPilotStaff]=useState<CheckinStaff[]>([]);
   const [staffEmail,setStaffEmail]=useState("");
+  const [announcementCategory,setAnnouncementCategory]=useState<"access"|"logistics"|"schedule">("logistics");
+  const [announcementText,setAnnouncementText]=useState("");
   const [organizers,setOrganizers]=useState<OrganizerIdentity[]>([]);
   const [audit,setAudit]=useState<{action:string;details:string;actor_account_id:number;at:string}[]>([]);
   const [error,setError]=useState(""),[notice,setNotice]=useState("");
@@ -147,6 +149,17 @@ export function AdminEventClient(){
       await reload();setNotice("Фотография удалена.");
     }catch(e){setError(formattedError(e))}
     finally{setBusy(false)}
+  }
+  async function sendOperationalNotice(){
+    const token=getWebToken();if(!token||!event||announcementText.trim().length<20)return;
+    if(!window.confirm("Отправить важное сообщение всем подтверждённым владельцам действующих билетов?"))return;
+    setBusy(true);setError("");setNotice("");
+    try{const result=await sendEventAnnouncement(token,eventId,{
+      category:announcementCategory,message:announcementText.trim()});
+      setAnnouncementText("");await reload();
+      setNotice(`Сообщение добавлено в очередь для ${result.eligible_verified_ticket_holders} участников.`);
+    }catch(e){setError(formattedError(e));}
+    finally{setBusy(false);}
   }
   async function savePilotPolicy(){
     const token=getWebToken();if(!token)return;
@@ -361,6 +374,24 @@ export function AdminEventClient(){
           "Отправка подключена. Зарегистрированные пользователи получают письма с билетами, напоминаниями и важными изменениями.":
           "Отправка отключена до подтверждения домена и настройки Resend. Новые письма пока не отправляются."}</p>
         {emailStatus&&<p className="form-note">Доставлено: {emailStatus.message_states.sent||0} · В очереди: {emailStatus.message_states.pending||0} · Ошибок: {emailStatus.message_states.failed||0}</p>}
+        {!event.is_cancelled&&event.publication?.visible&&<section className="form-stack">
+          <h3>Служебное сообщение по мероприятию</h3>
+          <label>Тип уведомления<select value={announcementCategory} onChange={e=>
+            setAnnouncementCategory(e.target.value as "access"|"logistics"|"schedule")}>
+            <option value="access">Инструкция по входу</option>
+            <option value="logistics">Как добраться / организационная информация</option>
+            <option value="schedule">Уточнение программы</option>
+          </select></label>
+          <label>Текст для подтверждённых участников
+            <textarea rows={4} maxLength={1000} minLength={20} value={announcementText}
+              onChange={e=>setAnnouncementText(e.target.value)}
+              placeholder="Например: Вход с боковой стороны здания. Покажите QR-билет на входе."/>
+          </label>
+          <button className="button button-outline" type="button"
+            disabled={busy||announcementText.trim().length<20||!emailStatus?.email_enabled}
+            onClick={sendOperationalNotice}>Отправить служебное сообщение</button>
+          <small>Не более двух сообщений в сутки на ивент. Только действующие подтверждённые билеты, не маркетинговая рассылка.</small>
+        </section>}
         <p className="form-note">Список адресов участников доступен через Export CSV. Рекламные массовые письма не отправляются без отдельного согласия.</p>
       </section>
       {identity.role==="global_admin"&&<section className="panel form-stack">
