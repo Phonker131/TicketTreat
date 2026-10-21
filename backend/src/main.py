@@ -928,7 +928,9 @@ def event_to_dict(
     data: dict[str, Any] = {
         "id": event.id,
         "title": event.title,
-        "organizer": event.organizer,
+        # Old platform-owned events retain their original DB data, but render
+        # the current product brand across the website, bot and ticket emails.
+        "organizer": ("TicketTreat" if event.organizer == "Crowdly" else event.organizer),
         "location": event.location,
         "description": event.description,
         "max_participants": event.max_participants,
