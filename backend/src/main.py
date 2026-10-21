@@ -220,6 +220,7 @@ class DemoTicket(Base):
     )
     payment_amount = Column(String(32), nullable=False, default="0")
     currency = Column(String(3), nullable=False, default="CZK")
+    acquisition_source = Column(String(40), nullable=False, default="direct", server_default="direct")
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -531,6 +532,7 @@ class DemoGuestCreate(BaseModel):
 class DemoCheckoutCreate(BaseModel):
     guest_token: str = Field(min_length=16, max_length=128)
     language: str = Field(default="en", max_length=8)
+    source: str = Field(default="direct", pattern=r"^[a-z0-9_-]{1,40}$")
 
 
 class DemoWaitlistCreate(BaseModel):
@@ -2846,6 +2848,7 @@ def demo_checkout(
     require_published(db,event_id)
 
     free_event = price_decimal(event.price) <= 0
+    acquisition_source = "telegram" if x_telegram_init_data else payload.source
     if not free_event and not DEMO_PAYMENT_MODE:
         raise HTTPException(status_code=503, detail="demo_payment_disabled")
 
@@ -2896,12 +2899,14 @@ def demo_checkout(
         ticket.currency = getattr(event, "currency", None) or "CZK"
         ticket.checked_in_at = None
         ticket.cancelled_at = None
+        ticket.acquisition_source = acquisition_source
     else:
         ticket = DemoTicket(
             event_id=event.id,
             guest_id=guest.id,
             qr_token=secrets.token_urlsafe(32),
             ticket_status="active",
+            acquisition_source=acquisition_source,
             payment_status="not_required" if free_event else "paid",
             payment_provider="free" if free_event else "demo",
             payment_amount=str(price_decimal(event.price)),
