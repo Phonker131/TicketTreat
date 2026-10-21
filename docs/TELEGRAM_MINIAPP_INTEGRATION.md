@@ -1,49 +1,42 @@
-# Crowdly — Telegram Mini App integration
+# Telegram Mini App integration
 
-A separate DRAFT pull request is used to protect the running Bot, original Backend and PostgreSQL.
+The **same Next.js application** supports normal browsers and Telegram Mini App. Telegram is an optional distribution and notification channel; the bot's commands remain a fallback.
 
-## Implemented
-- One Next.js PWA works in browser and Telegram Mini App.
-- The bot adds Mini App entry in the keyboard, /app, /tickets and event-specific Open in app.
-- Isolated Demo API validates signed Telegram WebApp.initData via HMAC-SHA256
-  with the WebAppData key derivation; auth_date is checked against expiry.
-- demo_telegram_identities maps a signed Telegram ID to a stable demo guest.
-  No implicit merging with email/password accounts.
-- Mini App shows its QR tickets alongside separate pre-existing bot registrations,
-  without inventing legacy QR tickets.
-- Duplicate registrations by the same Telegram identity across both surfaces are rejected.
-- For zero-priced events, QR tickets are issued immediately without a payment screen;
-  paid events still use demo simulation and charge no real money.
-- Inside Telegram the signed identity takes priority over stored website sessions for
-  booking and ticket retrieval. Website accounts remain separate.
+## Authentication and account linking
 
-## Private Railway configuration (NOT APPLIED)
+- Browser users authenticate by email. Website sessions run through the Next.js gateway with an HttpOnly cookie.
+- Mini App login sends the unmodified `Telegram.WebApp.initData` to FastAPI, which checks the signature, timestamp and Telegram ID.
+- Website and Telegram identities are **not** inferred from matching names or email addresses.
+- Account linking requires a logged-in, email-verified website account **and** fresh Telegram-signed launch data. Existing tickets and waitlist entries are moved only if there is no duplicate-event conflict. A conflict returns HTTP 409 for manual resolution.
+- Old bot registrations remain separate from new website QR tickets; the app must not fabricate QR codes for legacy registrations.
 
-1. Backend Demo API variable TELEGRAM_MINIAPP_BOT_TOKEN must be set privately
-   to the same token that powers the Telegram Bot. Prefer a Railway variable
-   reference to Bot.BOT_TOKEN when available.
-2. Confirm Demo API DEMO_ISOLATED_API=true and retain existing DATABASE_URL.
-3. Confirm frontend NEXT_PUBLIC_API_URL points to the Demo API.
-4. Ensure API FRONTEND_ORIGINS allows the exact HTTPS frontend origin.
-5. Set WEB_APP_URL on Bot to the existing HTTPS frontend base URL.
-6. Deploy Demo API and Frontend first; validate using Telegram real initData.
-   Deploy the updated Bot only after validation. No database wiping.
-7. Optional: configure the BotFather menu button and Mini App launch URL.
-8. Never put bot tokens into frontend NEXT_PUBLIC variables, chat or GitHub.
+## Bot and Mini App
 
-## Test scenarios
-- /app opens Mini App; signed identity is accepted, forged data is rejected.
-- /tickets shows QR tickets and separate earlier bot registrations.
-- Reopening Mini App on another device retains Telegram-linked demo tickets.
-- Duplicate booking via bot and Mini App is rejected.
-- After a successful signed Mini App booking, the same Telegram bot attempts a private confirmation with a button opening the QR ticket. It is sent as a non-blocking background task; Telegram delivery is best-effort and users must have started the bot.
-- Free event issues QR without card details or money charges.
-- Paid event remains explicitly demo-only, with no charges.
-- Organizer can check in Mini App QR. Existing website login remains available.
-- New CI build/tests pass; staged deployment does not affect running services.
+The bot supports `/app`, `/tickets`, event deep links and existing commands. Ticket notifications use the same bot on a best-effort basis and may fail if a user has blocked it or never started a chat.
 
-## Not included
-- Explicit Telegram-to-web-account linking (must verify BOTH sources).
-- Migration of legacy bot reservations to QR tickets.
-- Production real-money payments, scheduled Mini App reminder notifications.
-- Full HttpOnly cookie migration, passwordless login and hardened session storage.
+Mini App access requires an HTTPS website and the BotFather Web App/menu URL configured for the same frontend.
+
+## Configuration
+
+| Service | Variable | Purpose |
+| --- | --- | --- |
+| FastAPI | `TELEGRAM_MINIAPP_BOT_TOKEN` | Private secret matching the actual Telegram bot token |
+| FastAPI | `DEMO_ISOLATED_API=true` | Maintain existing Bot/Backend deployment isolation |
+| FastAPI | `DATABASE_URL` | Shared PostgreSQL source of truth for the web API |
+| Next.js | `BACKEND_API_URL` | Server-only upstream API URL for the same-origin gateway |
+| FastAPI + bot | `WEB_APP_URL` | HTTPS public URL of the frontend |
+| FastAPI | `FRONTEND_ORIGINS` | Only trusted origins |
+
+Never expose Telegram tokens through `NEXT_PUBLIC_*` or commit Railway secrets.
+
+## Acceptance tests before release
+
+1. Browser login works without Telegram installed.
+2. Signed Telegram login is accepted and forged/expired `initData` is rejected.
+3. A Telegram user can link an existing verified web account; duplicate-ticket conflicts cannot silently overwrite records.
+4. Historical bot registrations are visible without being misrepresented as QR tickets.
+5. Free event registration issues a valid QR pass; repeated registration cannot create a duplicate.
+6. The bot can still handle `/start`, `/events` and other original commands after the change.
+7. Cross-device ticket retrieval, check-in, notification failures and rollback work against a staging PostgreSQL copy.
+
+See [release gates](UNIFIED_RELEASE_GATE.md). Successful source-level CI alone is not proof of an operational Telegram/Railway deployment.
