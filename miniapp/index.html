@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>TicketTreat — Events</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root { font-family: system-ui,-apple-system,sans-serif; color:var(--tg-theme-text-color,#f8fafc); background:var(--tg-theme-bg-color,#111827); }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:18px 16px 40px; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; }
+    h1 { font-size:25px; margin:0; }
+    .muted { color:var(--tg-theme-hint-color,#9ca3af); font-size:14px; }
+    #events { display:grid; gap:14px; }
+    article { padding:17px; border:1px solid var(--tg-theme-section-separator-color,#374151); border-radius:16px; background:var(--tg-theme-secondary-bg-color,#1f2937); }
+    article h2 { margin:0 0 9px; font-size:19px; overflow-wrap:anywhere; }
+    article p { margin:6px 0; overflow-wrap:anywhere; }
+    .price { font-weight:700; margin-top:12px; }
+    button { border:0; background:var(--tg-theme-button-color,#2aabee); color:var(--tg-theme-button-text-color,#fff); padding:10px 14px; border-radius:10px; }
+    .note { margin-top:20px; }
+  </style>
+</head>
+<body>
+  <header><h1>🎟 TicketTreat</h1><span class="muted">Mini App · Preview</span></header>
+  <p id="intro" class="muted">Предстоящие мероприятия</p>
+  <main id="events" aria-live="polite"><p class="muted">Загрузка мероприятий…</p></main>
+  <p class="muted note">Это предварительная версия каталога. Запись и профиль будут включены после подключения защищённых маршрутов API.</p>
+  <script>
+    const tg = window.Telegram?.WebApp;
+    tg?.ready();
+    tg?.expand();
+    // Same-origin /events: host this page behind the API's HTTPS origin or proxy.
+    // Do not trust tg.initDataUnsafe for authorization.
+    const eventsRoot = document.getElementById("events");
+    const make = (tag, text, className) => {
+      const element = document.createElement(tag);
+      if (text !== undefined && text !== null) element.textContent = String(text);
+      if (className) element.className = className;
+      return element;
+    };
+    async function loadEvents() {
+      try {
+        const response = await fetch("/events", {headers:{"Accept":"application/json"}});
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const events = await response.json();
+        if (!Array.isArray(events)) throw new Error("Invalid API response");
+        eventsRoot.replaceChildren();
+        if (!events.length) {
+          eventsRoot.append(make("p","Пока нет предстоящих мероприятий.","muted"));
+          return;
+        }
+        for (const event of events) {
+          const card = make("article");
+          card.append(make("h2",event.title || "Мероприятие"));
+          if (event.starts_at) {
+            const time = new Date(event.starts_at);
+            if (!isNaN(time.getTime())) card.append(make("p",time.toLocaleString(tg?.initDataUnsafe?.user?.language_code || "ru-RU")));
+          }
+          if (event.location) card.append(make("p","📍 " + event.location));
+          if (event.description) card.append(make("p",event.description,"muted"));
+          const price = Number(event.price || 0);
+          card.append(make("p",price > 0 ? price + " " + (event.currency || "CZK") : "Бесплатно","price"));
+          eventsRoot.append(card);
+        }
+      } catch (error) {
+        eventsRoot.replaceChildren(make("p","Не удалось загрузить мероприятия. Проверьте подключение к API.","muted"));
+      }
+    }
+    loadEvents();
+  </script>
+</body>
+</html>
