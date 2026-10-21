@@ -10,7 +10,8 @@ export function calendarICS(event:TicketTreatEvent, publicUrl:string):string {
   // Floating DTSTART avoids silently shifting a Prague event to the visitor's zone.
   const match=(event.starts_at||"").match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
   if(!match)throw new Error("Date unavailable");
-  const start=match.slice(1,6).join("")+(match[6]||"00");
+  // RFC 5545 DATE-TIME requires the literal T between date and time.
+  const start=`${match[1]}${match[2]}${match[3]}T${match[4]}${match[5]}${match[6]||"00"}`;
   const now=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
   return [
     "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//TicketTreat//Events//EN",
