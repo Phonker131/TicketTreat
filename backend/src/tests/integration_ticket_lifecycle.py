@@ -65,6 +65,7 @@ class QRWaitlistE2E(unittest.TestCase):
                 f"/demo/me/tickets/{booked.json()['ticket']['id']}",
                 headers={"X-Telegram-Init-Data":launch_a})
             self.assertEqual(cancelled.status_code,200,cancelled.text)
+            self.assertEqual(cancelled.json()["ticket"]["payment_status"],"not_required")
             self.assertIsNotNone(cancelled.json()["promoted_ticket_id"])
             without_auth=client.get("/demo/me/tickets")
             self.assertEqual(without_auth.status_code,401,without_auth.text)
