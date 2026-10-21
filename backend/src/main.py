@@ -2586,6 +2586,8 @@ def create_or_get_demo_guest(
 def get_demo_guest(
     guest_token: str,
     db: Session = Depends(get_db),
+    authorization: str | None = Header(default=None),
+    x_telegram_init_data: str | None = Header(default=None),
 ):
     guest = get_demo_guest_by_token(db, guest_token)
 
@@ -2594,6 +2596,7 @@ def get_demo_guest(
             status_code=404,
             detail="demo_guest_not_found",
         )
+    authorize_guest_request(db, guest, authorization, x_telegram_init_data)
 
     return demo_guest_to_dict(guest, db=db)
 
@@ -2615,6 +2618,55 @@ def telegram_guest_has_bot_registration(db: Session, guest: DemoGuest, event_id:
         Registration.event_id == event_id,
         Registration.user_id == bot_user.id,
     ).first() is not None
+
+
+def authorize_guest_request(
+    db: Session,
+    guest: DemoGuest,
+    authorization: str | None,
+    telegram_init_data: str | None,
+) -> None:
+    """Proof-of-possession for guest endpoints in production.
+
+    A leaked or previously stored guest_token by itself cannot read tickets,
+    register an event or cancel registrations. Both authentication methods
+    resolve to the exact same underlying guest_id.
+    """
+    if os.getenv("APP_ENV", "development").strip().lower() != "production":
+        return
+
+    if telegram_init_data:
+        user = verified_telegram_user(
+            telegram_init_data,
+            os.getenv("TELEGRAM_MINIAPP_BOT_TOKEN", "").strip(),
+        )
+        link = db.query(DemoTelegramIdentity).filter(
+            DemoTelegramIdentity.telegram_id == user["id"],
+            DemoTelegramIdentity.guest_id == guest.id,
+        ).first()
+        if link is None:
+            raise HTTPException(status_code=403, detail="guest_identity_mismatch")
+        return
+
+    if authorization and authorization.startswith("Bearer "):
+        from demo_accounts import WebSession, token_hash
+        from demo_account_recovery import email_is_verified
+        raw_token = authorization[7:].strip()
+        if 30 <= len(raw_token) <= 160:
+            session = db.query(WebSession).filter(
+                WebSession.token_hash == token_hash(raw_token),
+            ).first()
+            if session is not None:
+                expiry = normalize_aware_utc(session.expires_at)
+                account = db.query(WebAccount).filter(
+                    WebAccount.id == session.account_id,
+                    WebAccount.guest_id == guest.id,
+                ).first()
+                if account and expiry and expiry > utc_now() and email_is_verified(db, account.id):
+                    return
+        raise HTTPException(status_code=403, detail="guest_identity_mismatch")
+
+    raise HTTPException(status_code=401, detail="authenticated_guest_required")
 
 
 def require_verified_booking_identity(db: Session, guest: DemoGuest) -> None:
@@ -2640,6 +2692,8 @@ def demo_checkout(
     payload: DemoCheckoutCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    authorization: str | None = Header(default=None),
+    x_telegram_init_data: str | None = Header(default=None),
 ):
     # A genuinely free event never needs a payment provider.
     # Paid events still require explicit DEMO_PAYMENT_MODE until a real
@@ -2651,6 +2705,7 @@ def demo_checkout(
             status_code=404,
             detail="demo_guest_not_found",
         )
+    authorize_guest_request(db, guest, authorization, x_telegram_init_data)
 
     require_verified_booking_identity(db, guest)
 
@@ -2772,6 +2827,8 @@ def join_demo_waitlist(
     event_id: int,
     payload: DemoWaitlistCreate,
     db: Session = Depends(get_db),
+    authorization: str | None = Header(default=None),
+    x_telegram_init_data: str | None = Header(default=None),
 ):
     guest = get_demo_guest_by_token(db, payload.guest_token)
 
@@ -2780,6 +2837,7 @@ def join_demo_waitlist(
             status_code=404,
             detail="demo_guest_not_found",
         )
+    authorize_guest_request(db, guest, authorization, x_telegram_init_data)
 
     require_verified_booking_identity(db, guest)
 
@@ -2862,6 +2920,8 @@ def join_demo_waitlist(
 def get_demo_tickets(
     guest_token: str,
     db: Session = Depends(get_db),
+    authorization: str | None = Header(default=None),
+    x_telegram_init_data: str | None = Header(default=None),
 ):
     guest = get_demo_guest_by_token(db, guest_token)
 
@@ -2870,6 +2930,7 @@ def get_demo_tickets(
             status_code=404,
             detail="demo_guest_not_found",
         )
+    authorize_guest_request(db, guest, authorization, x_telegram_init_data)
 
     tickets = (
         db.query(DemoTicket)
@@ -2889,11 +2950,14 @@ def get_demo_ticket(
     guest_token: str,
     ticket_id: int,
     db: Session = Depends(get_db),
+    authorization: str | None = Header(default=None),
+    x_telegram_init_data: str | None = Header(default=None),
 ):
     guest = get_demo_guest_by_token(db, guest_token)
 
     if guest is None:
         raise HTTPException(status_code=404, detail="demo_guest_not_found")
+    authorize_guest_request(db, guest, authorization, x_telegram_init_data)
 
     ticket = (
         db.query(DemoTicket)
@@ -2915,11 +2979,14 @@ def cancel_demo_ticket(
     guest_token: str,
     ticket_id: int,
     db: Session = Depends(get_db),
+    authorization: str | None = Header(default=None),
+    x_telegram_init_data: str | None = Header(default=None),
 ):
     guest = get_demo_guest_by_token(db, guest_token)
 
     if guest is None:
         raise HTTPException(status_code=404, detail="demo_guest_not_found")
+    authorize_guest_request(db, guest, authorization, x_telegram_init_data)
 
     # Serialize cancellation and waitlist promotion with concurrent bookings.
     target = db.query(DemoTicket.event_id).filter(
