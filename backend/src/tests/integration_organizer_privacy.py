@@ -69,6 +69,23 @@ class ApprovalAndPrivacyTests(unittest.TestCase):
                 privileged=client.get("/demo/manage/me",headers=applicant)
                 self.assertEqual(privileged.status_code,403,privileged.text)
                 self.assertEqual(privileged.json()["detail"],"mfa_enrollment_required")
+                # An existing verified account may be explicitly delegated
+                # global-admin privileges by another MFA-verified admin.
+                granted=client.post("/demo/manage/global-admins/grant",headers=admin,
+                    json={"email":unique})
+                self.assertEqual(granted.status_code,200,granted.text)
+                self.assertEqual(granted.json()["role"],"global_admin")
+                from demo_roles import role_for
+                with SessionLocal() as db:
+                    target=db.get(WebAccount,app_id)
+                    self.assertEqual(role_for(db,target),"global_admin")
+                delegated=client.get("/demo/manage/me",headers=applicant)
+                self.assertEqual(delegated.status_code,403,delegated.text)
+                self.assertEqual(delegated.json()["detail"],"mfa_enrollment_required")
+                taken=client.delete(f"/demo/manage/global-admins/{app_id}",headers=admin)
+                self.assertEqual(taken.status_code,200,taken.text)
+                with SessionLocal() as db:
+                    self.assertEqual(role_for(db,db.get(WebAccount,app_id)),"organizer")
 
                 # A ticket-free participant can request and receive an
                 # audited erasure after manual approval, without affecting
