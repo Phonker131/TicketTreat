@@ -9,7 +9,7 @@ import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig
 import { formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { getStoredGuestToken, restoreGuest, storeGuest } from "@/lib/session";
-import type { TicketTreatEvent, DemoGuest, } from "@/lib/types";
+import type { CrowdlyEvent, DemoGuest, } from "@/lib/types";
 
 type PaymentMethod = "card" | "apple" | "google";
 
@@ -22,7 +22,7 @@ export function CheckoutClient() {
   const eventId = Number(params?.id);
   const wantsWaitlist = search.get("waitlist") === "1";
 
-  const [event, setEvent] = useState<TicketTreatEvent | null>(null);
+  const [event, setEvent] = useState<CrowdlyEvent | null>(null);
   const [guest, setGuest] = useState<DemoGuest | null>(null);
   const [loadingGuest, setLoadingGuest] = useState(true);
   const [busy, setBusy] = useState(false);
