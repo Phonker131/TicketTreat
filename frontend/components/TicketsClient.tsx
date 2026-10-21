@@ -8,14 +8,14 @@ import { getDemoTickets } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { getVerifiedTelegramSession, restoreGuest } from "@/lib/session";
-import type { CrowdlyEvent, DemoGuest, DemoTicket } from "@/lib/types";
+import type { TicketTreatEvent, DemoGuest, DemoTicket } from "@/lib/types";
 
 export function TicketsClient() {
   const {language} = useLanguage();
   const [guest, setGuest] = useState<DemoGuest | null>(null);
   const [tickets, setTickets] = useState<DemoTicket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [botEvents, setBotEvents] = useState<CrowdlyEvent[]>([]);
+  const [botEvents, setBotEvents] = useState<TicketTreatEvent[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
