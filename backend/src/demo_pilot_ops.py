@@ -82,7 +82,8 @@ def booking_cutoff_reached(db: Session, event) -> bool:
         return False
     start = event.starts_at
     if start.tzinfo is None:
-        start = start.replace(tzinfo=timezone.utc)
+        # Legacy Event timestamps are Prague venue-local wall clock times.
+        start = start.replace(tzinfo=ZoneInfo("Europe/Prague"))
     return datetime.now(timezone.utc) >= start.astimezone(timezone.utc) - timedelta(minutes=minutes)
 
 
