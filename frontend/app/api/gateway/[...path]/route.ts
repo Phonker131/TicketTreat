@@ -27,7 +27,15 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   if (!["GET"].includes(method)){
     const origin = req.headers.get("origin");
     const fetchSite = req.headers.get("sec-fetch-site");
-    if (origin !== req.nextUrl.origin || (fetchSite && fetchSite !== "same-origin")) {
+    // A trusted edge proxy may forward HTTPS as internal HTTP. Validate the
+    // origin against the externally requested host, not the proxy's scheme.
+    let validOrigin = false;
+    try {
+      const parsed = new URL(origin || "");
+      validOrigin = parsed.host === req.headers.get("host") &&
+        (process.env.NODE_ENV !== "production" || parsed.protocol === "https:");
+    } catch { /* Missing or malformed Origin is rejected. */ }
+    if (!validOrigin || (fetchSite && fetchSite !== "same-origin")) {
       return NextResponse.json({detail:"cross_origin_denied"},{status:403});
     }
     if (req.headers.get("x-crowdly-client") !== "1") return NextResponse.json({detail:"client_header_required"},{status:403});
