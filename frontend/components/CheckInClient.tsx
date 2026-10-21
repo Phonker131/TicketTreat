@@ -46,7 +46,7 @@ export function CheckInClient() {
     let mounted = true;
     import("html5-qrcode").then(async ({Html5Qrcode}) => {
       if (!mounted) return;
-      const scanner = new Html5Qrcode("crowdly-reader");
+      const scanner = new Html5Qrcode("tickettreat-qr-reader");
       scannerRef.current = scanner;
       try {
         await scanner.start(
@@ -80,7 +80,7 @@ export function CheckInClient() {
       <main className="page narrow-page">
         <div className="admin-heading"><div><span className="status status-demo">CHECK-IN</span><h1>Scan TicketTreat ticket</h1><p>Camera scanner + manual fallback.</p></div></div>
         <section className="panel">
-          <div id="crowdly-reader" className="scanner-box" />
+          <div id="tickettreat-qr-reader" className="scanner-box" />
           <div className="manual-checkin">
             <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Paste QR token" />
             <button className="button button-primary" disabled={!manual.trim()} onClick={() => submit(manual)}>Check in</button>
