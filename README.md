@@ -69,6 +69,7 @@ cd frontend && npm run build
 
 - `main`: current deployment baseline; not changed by experimental features.
 - `feature/crowdly-release-preparation`: single active integration branch and [release PR #5](https://github.com/Phonker131/TicketTreat/pull/5).
+- The old `crowdly-demo-mvp-20261020` branch remains **temporarily required** by Railway Production's Frontend, Bot and Demo API services. Do not delete it until their deployment sources are switched after staging validation.
 - Keep each change reviewable as a commit; verify CI and staging before merging or deploying.
 
 ## License
