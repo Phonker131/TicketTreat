@@ -88,9 +88,9 @@ def queue_email(
     """
     if not configured() or not recipient:
         return
-    if kind not in {"welcome", "ticket", "checkin", "reminder", "event_notice"}:
+    if kind not in {"welcome", "ticket", "checkin", "reminder", "event_notice", "waitlist_offer"}:
         raise ValueError("unknown_email_kind")
-    if kind in {"ticket", "checkin", "reminder", "event_notice"}:
+    if kind in {"ticket", "checkin", "reminder", "event_notice", "waitlist_offer"}:
         # Only mail registered website accounts during the public demo.
         # Anonymous checkout emails are unverified and could be used for spam.
         from demo_accounts import WebAccount
@@ -348,6 +348,36 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             return None
         subject, title, lead = d["welcome_subject"], d["welcome_title"], d["welcome_body"]
         link, button = f"{web_url}/profile", d["button_profile"]
+    elif row.kind == "waitlist_offer":
+        from demo_waitlist_offers import WaitlistOffer, utc
+        from importlib import import_module
+        module = import_module("main")
+        try:
+            waitlist_id = int(row.event_key.split(":")[1])
+        except (IndexError,ValueError):
+            return None
+        offer = db.query(WaitlistOffer).filter(
+            WaitlistOffer.waitlist_id == waitlist_id).first()
+        if not offer or offer.status != "offered" or utc(offer.expires_at) <= datetime.now(timezone.utc):
+            return None
+        event = db.get(module.Event,offer.event_id)
+        if not event or event.is_cancelled:
+            return None
+        labels = {
+            "en": ("A place opened up: {event}", "A place is reserved for you",
+                   "Claim your free ticket before the offer expires.", "Claim free ticket"),
+            "ru": ("Освободилось место: {event}", "Для вас зарезервировано место",
+                   "Подтвердите бесплатный билет до истечения срока предложения.", "Получить билет"),
+            "cs": ("Uvolnilo se místo: {event}", "Místo je pro vás rezervováno",
+                   "Potvrďte bezplatnou vstupenku před vypršením nabídky.", "Potvrdit místo"),
+            "uk": ("Звільнилося місце: {event}", "Місце зарезервовано для вас",
+                   "Підтвердіть безкоштовний квиток до завершення пропозиції.", "Отримати квиток"),
+        }
+        template=labels.get(row.language,labels["en"])
+        subject=template[0].format(event=str(event.title or "Event")[:180])
+        title,lead,button=template[1],template[2],template[3]
+        extra=card("Deadline (UTC)", utc(offer.expires_at).strftime("%Y-%m-%d %H:%M UTC"))
+        link=f"{web_url}/checkout/{event.id}?offer=1"
     else:
         from importlib import import_module
         module = import_module("main")
