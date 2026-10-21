@@ -41,7 +41,7 @@ from demo_account_recovery import VerifiedEmail, EmailChallenge, install_email_a
 from demo_telegram import DemoTelegramIdentity, install_telegram_auth, verified_telegram_id_for_guest, send_miniapp_ticket_notice
 from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
 from demo_roles import WebAccountRole, EventOwnership, EventModerationLog, install_demo_roles, install_account_moderation
-from demo_email import EmailOutbox, queue_email, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
+from demo_email import EmailOutbox, queue_email, queue_event_reminder, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
 
 
 # =========================================================
@@ -2711,6 +2711,7 @@ def demo_checkout(
         recipient=guest.email, guest_id=guest.id, ticket_id=ticket.id,
         language=payload.language,
     )
+    queue_event_reminder(db, event=event, guest=guest, ticket=ticket, language=payload.language)
     db.commit()
     db.refresh(ticket)
 
