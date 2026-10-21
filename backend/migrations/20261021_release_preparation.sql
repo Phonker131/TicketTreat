@@ -60,4 +60,26 @@ CREATE TABLE IF NOT EXISTS demo_mfa_sessions (
     verified_until TIMESTAMPTZ NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_demo_mfa_sessions_account_id ON demo_mfa_sessions(account_id);
+CREATE TABLE IF NOT EXISTS demo_legacy_ticket_claims (
+    registration_id INTEGER PRIMARY KEY,
+    event_id INTEGER NOT NULL,
+    ticket_id INTEGER NOT NULL UNIQUE,
+    claimed_at TIMESTAMPTZ NOT NULL,
+    source VARCHAR(24) NOT NULL DEFAULT 'telegram'
+);
+CREATE INDEX IF NOT EXISTS ix_demo_legacy_ticket_claims_event_id
+    ON demo_legacy_ticket_claims(event_id);
+
+-- On an existing deployment this index may expose duplicate historical bot
+-- registrations. Inspect and reconcile those rows on staging before applying.
+DO $
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM registrations GROUP BY user_id,event_id HAVING COUNT(*)>1
+    ) THEN
+        RAISE EXCEPTION 'Duplicate bot registrations: reconcile before applying unique index';
+    END IF;
+END $;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_registrations_user_event
+    ON registrations(user_id,event_id);
 COMMIT;
