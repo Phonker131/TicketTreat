@@ -344,6 +344,34 @@ async def isolate_showcase_api(request, call_next):
 
 
 
+@app.middleware("http")
+async def protect_legacy_bot_api(request: Request, call_next):
+    """Protect the older Bot/FastAPI service separately from the public Web API.
+
+    TicketTreat's website runs with DEMO_ISOLATED_API=true. Legacy commands are
+    allowed only with a private server-to-server key, never website cookies.
+    """
+    if os.getenv("APP_ENV","development").lower() != "production":
+        return await call_next(request)
+    if DEMO_ISOLATED_API:
+        return await call_next(request)
+    path=request.url.path
+    if path.startswith("/demo/"):
+        return JSONResponse(status_code=404,content={"detail":"not_found"})
+    if request.method=="GET" and (
+        path in {"/","/events","/docs","/openapi.json","/redoc"}
+        or (path.startswith("/events/") and path[8:].isdigit())
+    ):
+        return await call_next(request)
+    secret=os.getenv("BOT_API_KEY","").strip()
+    supplied=request.headers.get("X-Bot-Api-Key","")
+    if len(secret)<32:
+        return JSONResponse(status_code=503,content={"detail":"backend_service_auth_not_configured"})
+    if not secrets.compare_digest(secret,supplied):
+        return JSONResponse(status_code=401,content={"detail":"invalid_service_key"})
+    return await call_next(request)
+
+
 # =========================================================
 # Pydantic models
 # =========================================================
