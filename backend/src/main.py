@@ -46,6 +46,7 @@ from demo_roles import WebAccountRole, EventOwnership, EventModerationLog, Accou
 from demo_email import EmailOutbox, queue_email, queue_event_reminder, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
 from demo_privacy import PrivacyRequest, install_privacy_routes
 from demo_mfa import MFAFactor, MFASession, install_mfa
+from demo_legacy import LegacyTicketClaim
 
 
 # =========================================================
@@ -835,7 +836,10 @@ def get_registered_count(
 ) -> int:
     telegram_count = (
         db.query(func.count(Registration.id))
-        .filter(Registration.event_id == event_id)
+        .filter(
+            Registration.event_id == event_id,
+            ~Registration.id.in_(db.query(LegacyTicketClaim.registration_id)),
+        )
         .scalar()
         or 0
     )
@@ -1878,6 +1882,18 @@ def register_to_event(
         )
         .first()
     )
+
+    # Linked Telegram identities may already own a canonical website ticket.
+    # Do not create a second registration for the same physical attendee.
+    verified_guest = db.query(DemoTelegramIdentity).filter(
+        DemoTelegramIdentity.telegram_id == user.telegram_id,
+    ).first()
+    if verified_guest and db.query(DemoTicket.id).filter(
+        DemoTicket.guest_id == verified_guest.guest_id,
+        DemoTicket.event_id == event.id,
+        DemoTicket.ticket_status == "active",
+    ).first():
+        return {"status": "already_registered", "registration_source": "ticket"}
 
     if existing_registration is not None:
         return registration_response(
