@@ -54,6 +54,31 @@ class PostgresStartupTest(unittest.TestCase):
             self.assertEqual(response.status_code, 200, response.text)
             self.assertEqual(response.json()["status"], "ready")
 
+    def test_legacy_backend_requires_private_bot_key(self):
+        from fastapi.testclient import TestClient
+        secret="CI-only-bot-backend-key-123456789012345"
+        before_flag=main.DEMO_ISOLATED_API
+        before_key=os.environ.get("BOT_API_KEY")
+        main.DEMO_ISOLATED_API=False
+        os.environ["BOT_API_KEY"]=secret
+        try:
+            with TestClient(main.app) as client:
+                without=client.get("/profile/123456")
+                self.assertEqual(without.status_code,401,without.text)
+                wrong=client.get("/profile/123456",
+                    headers={"X-Bot-Api-Key":"invalid"})
+                self.assertEqual(wrong.status_code,401,wrong.text)
+                allowed=client.get("/profile/123456",
+                    headers={"X-Bot-Api-Key":secret})
+                self.assertNotIn(allowed.status_code,(401,503),allowed.text)
+                blocked_demo=client.get("/demo/config",
+                    headers={"X-Bot-Api-Key":secret})
+                self.assertEqual(blocked_demo.status_code,404,blocked_demo.text)
+        finally:
+            main.DEMO_ISOLATED_API=before_flag
+            if before_key is None:os.environ.pop("BOT_API_KEY",None)
+            else:os.environ["BOT_API_KEY"]=before_key
+
     def test_production_rejects_demo_guest_and_shared_admin(self):
         from fastapi.testclient import TestClient
         with TestClient(main.app) as client:
