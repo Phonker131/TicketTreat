@@ -104,7 +104,7 @@ export type TelegramAuthResult = {
   guest: DemoGuest;
   telegram: {id: number; first_name: string; username: string | null};
   bot_registrations: CrowdlyEvent[];
-  accounts_linked: false;
+  accounts_linked: boolean;
 };
 
 export type ManageIdentity = {
