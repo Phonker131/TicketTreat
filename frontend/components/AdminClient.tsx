@@ -73,7 +73,7 @@ export function AdminClient() {
         starts_at:starts+":00",languages:langs,poster_data_url,
       });
       setEvents(current=>[event,...current]);
-      form.reset();setPreview("");setCountryCode("");setCity("");setShowForm(false);setNotice("Ивент успешно создан.");
+      form.reset();setPreview("");setCountryCode("");setCity("");setShowForm(false);setNotice("Черновик создан. Заполни детали и опубликуй его из карточки мероприятия.");
     }catch(e){setError(errorText(e));}
     finally{setSaving(false);}
   }
@@ -97,7 +97,7 @@ export function AdminClient() {
         {showForm?"Закрыть":"+ Create event"}</button>
       </div>
       {showForm&&<form className="panel form-stack" onSubmit={submit}>
-        <h2>Новый ивент</h2>
+        <h2>Новый ивент</h2><p className="form-note">Новый ивент создаётся как приватный черновик. После редактирования его можно опубликовать или запланировать.</p>
         <label>Название<input required name="title" maxLength={255}/></label>
         <label>Организатор<input name="organizer" defaultValue="TicketTreat" /></label>
         <CountryCityFields countryCode={countryCode} city={city} onCountryChange={setCountryCode}
@@ -117,13 +117,13 @@ export function AdminClient() {
         </div></fieldset>
         <div className="two-col"><label>Начало<input name="starts_at" type="datetime-local" required/></label>
         <label>Мест<input name="max_participants" type="number" min="1" defaultValue="30" required/></label></div>
-        <div className="two-col"><label>Цена<input name="price" type="number" min="0" step="0.01" defaultValue="350"/></label>
+        <div className="two-col"><label>Цена<input name="price" type="number" min="0" step="0.01" defaultValue="0"/></label>
         <label>Валюта<select name="currency" defaultValue="CZK"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option></select></label></div>
-        <button className="button button-primary" disabled={saving}>{saving?"Создаём…":"Создать ивент"}</button>
+        <button className="button button-primary" disabled={saving}>{saving?"Сохраняем…":"Создать черновик"}</button>
       </form>}
       <div className="admin-event-grid">
         {events.map(ev=><Link key={ev.id} href={`/admin/events/${ev.id}`} className="admin-event-card">
-          <small>#{ev.id} {ev.is_cancelled?" · CANCELLED":""}</small>
+          <small>#{ev.id} · {ev.is_cancelled?"Отменён":ev.publication?.status==="draft"?"Черновик":ev.publication?.status==="scheduled"?"Запланирован":"Опубликован"}</small>
           <h3>{ev.title}</h3>
           <p>{ev.location||"—"}</p>
           <div><span>{ev.registered_count??0} guests</span>
