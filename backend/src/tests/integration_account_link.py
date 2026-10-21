@@ -58,6 +58,15 @@ class AccountLinkTests(unittest.TestCase):
                                   expires_at=now().replace(year=now().year+1)))
                 db.commit()
                 web_guest_id = guest.id
+            # A self-declared anonymous guest must never book in production.
+            anonymous_token=secrets.token_urlsafe(32)
+            with SessionLocal() as db:
+                db.add(main.DemoGuest(access_token=anonymous_token,first_name="Anonymous"))
+                db.commit()
+            blocked=client.post("/demo/events/999999/checkout",json={
+                "guest_token":anonymous_token,"language":"en"
+            })
+            self.assertEqual(blocked.status_code,403,blocked.text)
             linked = client.post("/demo/telegram/link", json={"init_data": launch},
                                  headers={"Authorization": "Bearer "+raw_token})
             self.assertEqual(linked.status_code, 200, linked.text)
