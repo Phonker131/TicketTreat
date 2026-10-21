@@ -1746,7 +1746,7 @@ def start(message):
 
 
 @bot.message_handler(commands=["app", "tickets"])
-def open_crowdly_mini_app(message):
+def open_tickettreat_mini_app(message):
     """Open signed Telegram Mini App, optionally on My tickets."""
     if not WEB_APP_URL.startswith("https://"):
         bot.send_message(
