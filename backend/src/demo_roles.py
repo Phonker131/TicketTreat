@@ -482,6 +482,10 @@ class AccountAdminAudit(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
 
+class OrganizerDecision(BaseModel):
+    approve: bool
+
+
 class AccountRoleChange(BaseModel):
     role: str = Field(pattern="^(participant|organizer)$")
 
@@ -578,11 +582,8 @@ def install_account_moderation(app, get_db):
         return [{"account_id":a.id,"email":a.email,"created_at":req.created_at}
                 for req,a in results]
 
-    class DecisionPayload(BaseModel):
-        approve: bool
-
     @app.post("/demo/manage/organizer-applications/{account_id}/decision")
-    def decide_organizer(account_id:int,payload:DecisionPayload,
+    def decide_organizer(account_id:int,payload:OrganizerDecision,
                          admin:WebAccount=Depends(admin_account),
                          db:Session=Depends(get_db)):
         from demo_account_recovery import email_is_verified
