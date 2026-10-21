@@ -1890,6 +1890,9 @@ def register_to_event(
         return {
             "error": "event_already_started",
         }
+    # The same organizer cutoff applies to legacy Telegram bot bookings.
+    if booking_cutoff_reached(db, event):
+        return {"error": "event_registration_closed"}
 
     if event_requires_payment(event):
         settings = get_payment_settings(
