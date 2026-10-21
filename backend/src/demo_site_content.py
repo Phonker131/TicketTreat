@@ -1,4 +1,4 @@
-"""Globally administered homepage content for the public Crowdly website.
+"""Globally administered homepage content for the public TicketTreat website.
 
 Editable text and a small hero image live in PostgreSQL. This keeps demo
 content durable across Railway container restarts. Use object storage for
