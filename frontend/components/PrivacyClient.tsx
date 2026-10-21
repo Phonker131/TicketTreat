@@ -56,6 +56,7 @@ export function PrivacyClient(){
         <>
           <p><strong>Status:</strong> Pending review</p>
           <p className="form-note">Requested: {details.requested_at?new Date(details.requested_at).toLocaleString():"—"}</p>
+          <p className="form-note">Response due: {details.response_due_at?new Date(details.response_due_at).toLocaleDateString():"—"}</p>
           <button className="button button-outline" type="button" disabled={pending} onClick={withdraw}>Withdraw request</button>
         </>:
         <form onSubmit={send} className="form-stack">
