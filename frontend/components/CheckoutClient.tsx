@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
-import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig } from "@/lib/api";
+import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig, getWaitlistOfferStatus,claimWaitlistOffer,declineWaitlistOffer } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { getStoredGuestToken, restoreGuest, storeGuest } from "@/lib/session";
@@ -27,6 +27,7 @@ export function CheckoutClient() {
   const [loadingGuest, setLoadingGuest] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [offer,setOffer]=useState<{status:string;expires_at:string|null;position:number|null}|null>(null);
   const [method, setMethod] = useState<PaymentMethod>("card");
   const [bookingConfig,setBookingConfig] = useState<{demo_payment_mode:boolean;verified_accounts_required:boolean}|null>(null);
 
@@ -48,6 +49,12 @@ export function CheckoutClient() {
       .finally(() => setLoadingGuest(false));
   }, []);
 
+  useEffect(()=>{
+    if(!guest||!eventId)return;
+    let active=true;
+    void getWaitlistOfferStatus(eventId).then(value=>{if(active)setOffer(value)}).catch(()=>{});
+    return()=>{active=false};
+  },[guest,eventId]);
   const price = useMemo(() => event ? formatPrice(event, language) : "", [event, language]);
   const isFree = Boolean(event && Number(event.price || 0) <= 0);
   const freeLabel = language === "ru" ? "Бесплатно" : language === "uk" ? "Безкоштовно" :
@@ -83,9 +90,19 @@ export function CheckoutClient() {
     setBusy(true);
     setMessage(null);
     try {
+      if(offer?.status==="offered"){
+        const result=await claimWaitlistOffer(event.id,language);
+        router.push(`/tickets/${result.ticket.id}?registered=1`);
+        return;
+      }
       if (wantsWaitlist || event.spots_left === 0) {
         const result = await joinWaitlist(event.id, guest.access_token);
-        setMessage(`${t(language, "waitlistJoined")}${result.position ? ` #${result.position}` : ""}`);
+        if(result.status==="offered"){
+          const next=await getWaitlistOfferStatus(event.id);setOffer(next);
+          setMessage("Место зарезервировано для вас. Подтвердите его до указанного срока.");
+        }else{
+          setMessage(`${t(language, "waitlistJoined")}${result.position ? ` #${result.position}` : ""}`);
+        }
         return;
       }
 
@@ -156,7 +173,23 @@ export function CheckoutClient() {
                   <div><strong>{guest.first_name} {guest.last_name || ""}</strong><small>{guest.email || `Telegram ${guest.telegram_id}`}</small></div>
                 </div>
 
-                {wantsWaitlist || event.spots_left === 0 ? (
+                {offer?.status==="offered" ? (
+                  <section className="form-stack" aria-live="polite">
+                    <h2>{language==="ru"?"Ваше место освободилось":language==="cs"?"Místo je pro vás připraveno":language==="uk"?"Місце для вас доступне":"Your seat is available"}</h2>
+                    <p>{language==="ru"?"Место временно зарезервировано до:":language==="cs"?"Rezervace platí do:":language==="uk"?"Резервація діє до:":"Reserved until:"}{" "}
+                      <strong>{offer.expires_at?new Date(offer.expires_at).toLocaleString():"—"}</strong></p>
+                    <button className="button button-primary button-wide" disabled={busy}
+                      onClick={performCheckout}>{busy?t(language,"loading"):registerLabel}</button>
+                    <button className="button button-outline" disabled={busy} onClick={async()=>{
+                      if(!window.confirm("Отказаться от предложенного места?"))return;
+                      setBusy(true);
+                      try{await declineWaitlistOffer(event.id);setOffer({status:"declined",expires_at:null,position:null});
+                        setMessage("Предложение отклонено.");}
+                      catch(err){setMessage(err instanceof Error?err.message:"Error");}
+                      finally{setBusy(false);}
+                    }}>{language==="ru"?"Отказаться от места":language==="cs"?"Odmítnout místo":language==="uk"?"Відмовитись від місця":"Decline offer"}</button>
+                  </section>
+                ) : wantsWaitlist || event.spots_left === 0 ? (
                   <>
                     <h2>{t(language, "waitlist")}</h2>
                     <p>{t(language, "soldOut")}</p>
