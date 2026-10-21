@@ -18,3 +18,15 @@ CREATE TABLE IF NOT EXISTS demo_event_gallery_images (
 );
 CREATE INDEX IF NOT EXISTS ix_demo_event_gallery_images_event_id
 ON demo_event_gallery_images(event_id);
+
+CREATE TABLE IF NOT EXISTS demo_event_notices (
+    id SERIAL PRIMARY KEY,
+    event_id INTEGER NOT NULL REFERENCES events(id),
+    kind VARCHAR(20) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_demo_event_notices_event_id
+ON demo_event_notices(event_id);
+ALTER TABLE demo_email_outbox
+    ADD COLUMN IF NOT EXISTS notice_id INTEGER REFERENCES demo_event_notices(id);
