@@ -244,6 +244,37 @@ def install_pilot_ops(app, get_db, main):
         db.commit()
         return {"status": "revoked"}
 
+    @app.post("/demo/manage/events/{event_id}/check-in-by-list/{ticket_id}")
+    def owner_checkin_by_list(event_id: int, ticket_id: int,
+                              account=Depends(current), db: Session=Depends(get_db)):
+        """Audited manual admission for event owners, never delegated scanners."""
+        owner_event(db,event_id,account)
+        ticket=db.query(main.DemoTicket).filter(
+            main.DemoTicket.id==ticket_id,main.DemoTicket.event_id==event_id
+        ).with_for_update().first()
+        if ticket is None:
+            raise HTTPException(404,"ticket_not_found")
+        if ticket.ticket_status!="active":
+            raise HTTPException(409,"ticket_not_active")
+        event=db.get(main.Event,event_id)
+        if event is None or event.is_cancelled:
+            raise HTTPException(409,"event_cancelled")
+        if ticket.checked_in_at is not None:
+            return {"status":"already_checked_in",
+                    "ticket":redact_organizer_ticket(main.demo_ticket_to_dict(ticket,db))}
+        ticket.checked_in_at=datetime.now(timezone.utc)
+        from demo_email import queue_email, ticket_language
+        guest=db.get(main.DemoGuest,ticket.guest_id)
+        queue_email(db,kind="checkin",
+            event_key=f"checkin:{ticket.id}:{ticket.checked_in_at.isoformat()}",
+            recipient=guest.email if guest else None,guest_id=ticket.guest_id,
+            ticket_id=ticket.id,language=ticket_language(db,ticket.id))
+        audit(db,event_id,account.id,"checkin_by_list",f"ticket:{ticket.id}")
+        db.commit()
+        db.refresh(ticket)
+        return {"status":"checked_in",
+                "ticket":redact_organizer_ticket(main.demo_ticket_to_dict(ticket,db))}
+
     @app.post("/demo/pilot/check-in")
     def staff_checkin(payload: StaffScanRequest, account=Depends(current),
                       db: Session=Depends(get_db)):
