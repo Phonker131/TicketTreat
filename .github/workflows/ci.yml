@@ -85,6 +85,8 @@ jobs:
         run: |
           python backend/migrations/apply.py
           python backend/migrations/apply.py
+      - name: Preflight registration integrity without exposing personal data
+        run: python scripts/preflight_database.py
       - name: Verify migration ledger
         env:
           PGPASSWORD: test_only_password
