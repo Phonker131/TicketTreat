@@ -31,7 +31,7 @@ export function PwaBootstrap() {
       if (webApp.initData) {
         void getVerifiedTelegramSession().catch(() => {
           // Do not expose Telegram initData or server details in browser logs.
-          console.warn("Crowdly: Telegram Mini App authentication unavailable.");
+          console.warn("TicketTreat: Telegram Mini App authentication unavailable.");
         });
       }
     }
