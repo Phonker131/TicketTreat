@@ -236,15 +236,10 @@ def install_demo_accounts(
         last = payload.last_name.strip()
         if not first or not last:
             raise HTTPException(status_code=422, detail="name_required")
-        if payload.guest_token:
-            guest = db.query(DemoGuest).filter(
-                DemoGuest.access_token == payload.guest_token,
-                func.lower(DemoGuest.email) == email,
-            ).first()
-            if guest and db.query(WebAccount.id).filter(WebAccount.guest_id == guest.id).first():
-                guest = None
-        else:
-            guest = None
+        # Unverified guest email is never evidence of account ownership.
+        # A supplied guest token may only attach after independently proving
+        # control of that guest account; until then, make a distinct profile.
+        guest = None
         try:
             if guest is None:
                 guest = DemoGuest(
