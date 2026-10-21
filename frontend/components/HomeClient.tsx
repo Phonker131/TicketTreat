@@ -9,7 +9,7 @@ import {getEvents,getWebProfile,getSiteLanding,type SiteLanding} from "@/lib/api
 import {getWebToken} from "@/lib/session";
 import {isInUsersCity} from "@/lib/location";
 import {t} from "@/lib/i18n";
-import type {TicketTreatEvent,LanguageCode} from "@/lib/types";
+import type {CrowdlyEvent,LanguageCode} from "@/lib/types";
 
 const COPY: Record<LanguageCode,{
   local:string;inYourCity:string;other:string;all:string;showOther:string;
@@ -40,7 +40,7 @@ const COPY: Record<LanguageCode,{
 export function HomeClient(){
   const {language}=useLanguage();
   const c=COPY[language];
-  const [events,setEvents]=useState<TicketTreatEvent[]>([]);
+  const [events,setEvents]=useState<CrowdlyEvent[]>([]);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState<string|null>(null);
   const [location,setLocation]=useState<{country:string;city:string}|null>(null);
