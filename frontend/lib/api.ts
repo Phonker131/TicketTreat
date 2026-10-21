@@ -424,3 +424,13 @@ export function confirmMFA(code:string):Promise<MFAStatus> {
 export function elevateMFA(code:string):Promise<MFAStatus> {
   return request("/demo/auth/mfa/elevate",{method:"POST",body:JSON.stringify({code})});
 }
+
+export type PendingErasure = {request_id:number;account_id:number;email:string;created_at:string};
+export function listErasureRequests():Promise<PendingErasure[]> {
+  return request("/demo/manage/privacy-requests");
+}
+export function fulfillErasureRequest(requestId:number,justification:string):Promise<{status:string;account_id:number}> {
+  return request(`/demo/manage/privacy-requests/${requestId}/fulfill`,{
+    method:"POST",body:JSON.stringify({confirmation:"ERASE",justification}),
+  });
+}
