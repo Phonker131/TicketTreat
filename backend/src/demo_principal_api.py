@@ -43,6 +43,25 @@ def install_principal_api(app,get_db,main):
             raise HTTPException(404,"identity_profile_missing")
         return guest
 
+    @app.get("/demo/me/attendance")
+    def own_attendance(guest=Depends(guest_for), db:Session=Depends(get_db)):
+        """Privacy-scoped history; never exposes other guests or QR secrets."""
+        rows = (db.query(main.DemoTicket)
+                .filter(main.DemoTicket.guest_id == guest.id,
+                        main.DemoTicket.checked_in_at.is_not(None))
+                .order_by(main.DemoTicket.checked_in_at.desc()).limit(100).all())
+        records = []
+        for ticket in rows:
+            event = db.get(main.Event, ticket.event_id)
+            records.append({
+                "event_id": ticket.event_id,
+                "title": event.title if event else "Deleted event",
+                "checked_in_at": ticket.checked_in_at,
+                "location": event.location if event else None,
+            })
+        return {"visit_count": len(records), "history": records,
+                "limited_to": 100}
+
     @app.get("/demo/me/tickets")
     def own_tickets(guest=Depends(guest_for),db:Session=Depends(get_db)):
         rows=(db.query(main.DemoTicket)
