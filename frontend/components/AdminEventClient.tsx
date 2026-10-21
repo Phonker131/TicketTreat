@@ -8,7 +8,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { CountryCityFields } from "@/components/CountryCityFields";
 import {
   getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
-  editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,
+  editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,orderManageGallery,
   setManagePublication,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
   getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
@@ -204,6 +204,24 @@ export function AdminEventClient(){
     catch(e){setError(formattedError(e));}
     finally{setBusy(false);}
   }
+  async function updateMediaOrder(photoId:number,direction:-1|1|0){
+    const token=getWebToken(),photos=[...(event?.uploaded_gallery||[])];
+    if(!token||!photos.length)return;
+    const index=photos.findIndex(p=>p.id===photoId);
+    if(index<0)return;
+    let cover=photos.find(p=>p.is_cover)?.id ?? photos[0].id;
+    if(direction===0)cover=photoId;
+    else{
+      const other=index+direction;
+      if(other<0||other>=photos.length)return;
+      [photos[index],photos[other]]=[photos[other],photos[index]];
+    }
+    setBusy(true);setError("");
+    try{await orderManageGallery(token,eventId,photos.map(p=>p.id),cover);
+      await reload();setNotice("Галерея обновлена.");}
+    catch(e){setError(formattedError(e));}
+    finally{setBusy(false);}
+  }
   async function publication(status:"draft"|"scheduled"|"published"){
     const token=getWebToken();if(!token||!event)return;
     if(status==="published"&&!window.confirm("Открыть мероприятие для всех и разрешить бесплатную регистрацию?"))return;
@@ -323,9 +341,19 @@ export function AdminEventClient(){
           <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy} onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/>
         </label>
         <div className="event-media-gallery">
-          {(event.uploaded_gallery||[]).map(photo=><div key={photo.id}>
+          {(event.uploaded_gallery||[]).map((photo,i)=><div key={photo.id}>
             <img src={photo.url} alt="Фотография мероприятия" />
-            <button type="button" className="button button-outline" disabled={busy} onClick={()=>removePhoto(photo.id)}>Удалить</button>
+            <div className="admin-event-actions">
+              <button type="button" className="button button-outline" disabled={busy||i===0}
+                onClick={()=>updateMediaOrder(photo.id,-1)} aria-label="Переместить фото назад">↑</button>
+              <button type="button" className="button button-outline" disabled={busy||i===(event.uploaded_gallery?.length||0)-1}
+                onClick={()=>updateMediaOrder(photo.id,1)} aria-label="Переместить фото вперёд">↓</button>
+              <button type="button" className="button button-outline" disabled={busy||photo.is_cover}
+                onClick={()=>updateMediaOrder(photo.id,0)}>
+                {photo.is_cover?"✓ Обложка":"Сделать обложкой"}</button>
+              <button type="button" className="button button-outline" disabled={busy}
+                onClick={()=>removePhoto(photo.id)}>Удалить</button>
+            </div>
           </div>)}
         </div>
       </section>}
