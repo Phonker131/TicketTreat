@@ -21,6 +21,8 @@ export function CheckoutClient() {
 
   const eventId = Number(params?.id);
   const wantsWaitlist = search.get("waitlist") === "1";
+  const rawSource=(search.get("utm_source")||search.get("ref")||"direct").toLowerCase();
+  const attributionSource=/^[a-z0-9_-]{1,40}$/.test(rawSource)?rawSource:"direct";
 
   const [event, setEvent] = useState<TicketTreatEvent | null>(null);
   const [guest, setGuest] = useState<DemoGuest | null>(null);
@@ -107,7 +109,7 @@ export function CheckoutClient() {
       }
 
       if (!isFree) await new Promise((resolve) => setTimeout(resolve, 900));
-      const result = await demoCheckout(event.id, guest.access_token, language);
+      const result = await demoCheckout(event.id, guest.access_token, language, attributionSource);
       router.push(`/tickets/${result.ticket.id}${isFree ? "?registered=1" : "?paid=1"}`);
     } catch (err) {
       const text = err instanceof Error ? err.message : "Error";
