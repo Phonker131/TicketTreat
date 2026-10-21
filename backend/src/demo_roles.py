@@ -419,7 +419,12 @@ def install_demo_roles(app, get_db, main):
         if ticket is None:
             raise HTTPException(status_code=404,detail="ticket_not_found")
         ensure_owner(db,ticket.event_id,account)
-        return main.demo_admin_check_in(qr_token,_admin_key="",db=db)
+        first_checkin=ticket.checked_in_at is None
+        result=main.demo_admin_check_in(qr_token,_admin_key="",db=db)
+        if first_checkin and result.get("status")=="checked_in":
+            audit(db,ticket.event_id,account.id,"checkin",f"ticket:{ticket.id}")
+            db.commit()
+        return result
 
     @app.get("/demo/manage/organizers")
     def list_organizers(account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
