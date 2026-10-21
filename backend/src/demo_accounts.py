@@ -231,6 +231,8 @@ def install_demo_accounts(
         }
 
     from demo_google import install_google_auth
+    from demo_quick_signup import install_quick_signup
+    install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict)
     install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict)
 
     @app.post("/demo/auth/signup", status_code=201)
