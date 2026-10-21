@@ -508,3 +508,44 @@ export function decideOrganizer(accountId:number,approve:boolean):Promise<{statu
     method:"POST",body:JSON.stringify({approve}),
   });
 }
+
+/** Organizer-owned read-only performance metrics. */
+export type PilotInsights = {
+  event_id:number; capacity:number|null; registered:number;
+  active_qr_tickets:number; checked_in:number; awaiting_checkin:number;
+  waitlist:number; cancelled_tickets:number; no_show:number|null;
+  occupancy_percent:number|null; attendance_percent:number|null;
+  daily_bookings:{date:string;count:number}[];limitations:string[];
+};
+export type PilotSettings = {signup_cutoff_minutes:number;reminder_minutes:number[]};
+export type CheckinStaff = {account_id:number;email:string;granted_at:string};
+export function getPilotInsights(token:string,id:number):Promise<PilotInsights>{
+  return request(`/demo/manage/events/${id}/insights`,{headers:accountHeaders(token)});
+}
+export function getPilotSettings(token:string,id:number):Promise<PilotSettings>{
+  return request(`/demo/manage/events/${id}/pilot-settings`,{headers:accountHeaders(token)});
+}
+export function updatePilotSettings(token:string,id:number,settings:PilotSettings):Promise<PilotSettings>{
+  return request(`/demo/manage/events/${id}/pilot-settings`,
+    {method:"PUT",headers:accountHeaders(token),body:JSON.stringify(settings)});
+}
+export function getPilotStaff(token:string,id:number):Promise<CheckinStaff[]>{
+  return request(`/demo/manage/events/${id}/checkin-staff`,{headers:accountHeaders(token)});
+}
+export function grantPilotStaff(token:string,id:number,email:string):Promise<{account_id:number;status:string}>{
+  return request(`/demo/manage/events/${id}/checkin-staff`,
+    {method:"POST",headers:accountHeaders(token),body:JSON.stringify({email})});
+}
+export function revokePilotStaff(token:string,id:number,accountId:number):Promise<{status:string}>{
+  return request(`/demo/manage/events/${id}/checkin-staff/${accountId}`,
+    {method:"DELETE",headers:accountHeaders(token)});
+}
+export function scanPilotTicket(token:string,qrToken:string):Promise<{status:"checked_in"|"already_checked_in";ticket:DemoTicket}>{
+  return request("/demo/pilot/check-in",{method:"POST",headers:accountHeaders(token),
+    body:JSON.stringify({qr_token:qrToken})});
+}
+export type AttendanceHistory = {visit_count:number;limited_to:number;
+  history:{event_id:number;title:string;checked_in_at:string;location:string|null}[]};
+export function getMyAttendance():Promise<AttendanceHistory>{
+  return request("/demo/me/attendance");
+}
