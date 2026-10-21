@@ -6,6 +6,7 @@ records are retained only for subsequent controlled fulfillment.
 """
 from __future__ import annotations
 
+import calendar
 import os
 import secrets
 from datetime import datetime, timezone, timedelta
@@ -42,6 +43,15 @@ class FulfillErasure(BaseModel):
     justification: str = Field(min_length=12, max_length=500)
 
 
+def response_due_at(created_at: datetime) -> datetime:
+    """Calendar-month GDPR response target, retaining UTC timestamps."""
+    value=created_at
+    year=value.year+(1 if value.month==12 else 0)
+    month=1 if value.month==12 else value.month+1
+    last_day=calendar.monthrange(year,month)[1]
+    return value.replace(year=year,month=month,day=min(value.day,last_day))
+
+
 def install_privacy_routes(app, get_db, main):
     def current(
         authorization: str | None = Header(default=None),
@@ -59,6 +69,7 @@ def install_privacy_routes(app, get_db, main):
         return {"status": item.status if item else "none",
                 "requested_at": item.created_at if item else None,
                 "updated_at": item.updated_at if item else None,
+                "response_due_at": response_due_at(item.created_at) if item else None,
                 "note": "Submitting a request does not delete event or financial records immediately."}
 
     @app.post("/demo/auth/privacy-request", status_code=202)
@@ -114,8 +125,12 @@ def install_privacy_routes(app, get_db, main):
             .join(WebAccount,WebAccount.id==PrivacyRequest.account_id)
             .filter(PrivacyRequest.status=="pending")
             .order_by(PrivacyRequest.created_at).limit(100).all())
+        now=datetime.now(timezone.utc)
         return [{"request_id":r.id,"account_id":r.account_id,
-                 "email":a.email,"created_at":r.created_at} for r,a in records]
+                 "email":a.email,"created_at":r.created_at,
+                 "response_due_at":response_due_at(r.created_at),
+                 "overdue":response_due_at(r.created_at)<now}
+                for r,a in records]
 
     @app.post("/demo/manage/privacy-requests/{request_id}/fulfill")
     def fulfill(request_id:int,payload:FulfillErasure,
