@@ -67,6 +67,19 @@ class LegacyMigrationTests(unittest.TestCase):
                 self.assertEqual(claim.ticket_id,tickets[0]["id"])
                 preserved=db.get(main.Registration,legacy_id)
                 self.assertIsNotNone(preserved)
+            # Cancelling the canonical ticket must not leave a ghost "joined"
+            # event in the historical Telegram bot event list.
+            cancelled=client.delete(
+                f"/demo/me/tickets/{tickets[0]['id']}",
+                headers={"X-Telegram-Init-Data":launch},
+            )
+            self.assertEqual(cancelled.status_code,200,cancelled.text)
+            with SessionLocal() as db:
+                visible=main.get_user_events(tid,include_past=True,db=db)
+                self.assertEqual({e["id"] for e in visible},{paid_id})
+                self.assertIsNotNone(db.get(main.Registration,legacy_id))
+                self.assertEqual(main.get_registered_count(db,free_id),0)
+
 
 
 if __name__=="__main__":
