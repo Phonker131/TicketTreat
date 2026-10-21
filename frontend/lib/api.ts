@@ -370,3 +370,10 @@ export function updateSiteLanding(token:string,payload:{
 export function exportAccountData(token:string):Promise<unknown> {
   return request("/demo/auth/export",{headers:{Authorization:`Bearer ${token}`}});
 }
+
+export function linkTelegramToWebsite(token:string,initData:string):Promise<{linked:boolean;already_linked:boolean;migrated_tickets?:number}> {
+  return request("/demo/telegram/link",{
+    method:"POST",headers:{Authorization:`Bearer ${token}`},
+    body:JSON.stringify({init_data:initData})
+  });
+}
