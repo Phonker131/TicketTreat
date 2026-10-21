@@ -61,7 +61,7 @@ export function AdminClient() {
       if(!starts)throw new Error("Введи дату и время.");
       const event=await addManageEvent(token,{
         title:String(data.get("title")||"").trim(),
-        organizer:String(data.get("organizer")||"Crowdly").trim(),
+        organizer:String(data.get("organizer")||"TicketTreat").trim(),
         description:String(data.get("description")||"").trim(),
         gallery_urls:String(data.get("gallery_urls")||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean),
         video_url:String(data.get("video_url")||"").trim(),
@@ -99,7 +99,7 @@ export function AdminClient() {
       {showForm&&<form className="panel form-stack" onSubmit={submit}>
         <h2>Новый ивент</h2>
         <label>Название<input required name="title" maxLength={255}/></label>
-        <label>Организатор<input name="organizer" defaultValue="Crowdly" /></label>
+        <label>Организатор<input name="organizer" defaultValue="TicketTreat" /></label>
         <CountryCityFields countryCode={countryCode} city={city} onCountryChange={setCountryCode}
           onCityChange={setCity} language="ru" />
         <label>Адрес или место проведения<input name="location" required /></label>
