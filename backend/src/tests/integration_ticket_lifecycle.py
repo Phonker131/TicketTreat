@@ -1,6 +1,7 @@
 """Free-event E2E: signed Telegram attendees, waitlist, promotion, QR scanning."""
 import base64
 import os
+from unittest.mock import patch
 import secrets
 import time
 import unittest
@@ -95,6 +96,56 @@ class QRWaitlistE2E(unittest.TestCase):
             for entry in attendees.json()["tickets"]:
                 self.assertNotIn("qr_token",entry)
                 self.assertNotIn("access_token",entry.get("guest",{}))
+            # Organizers may upload a bounded photo gallery without
+            # hand-hosted URLs, and all attendees can view the gallery.
+            tiny_png="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9eUNbXcAAAAASUVORK5CYII="
+            uploaded=client.post(f"/demo/manage/events/{event_id}/gallery",
+                headers=headers,json={"data_url":"data:image/png;base64,"+tiny_png})
+            self.assertEqual(uploaded.status_code,201,uploaded.text)
+            picture=client.get(uploaded.json()["url"].removeprefix("/api/gateway"))
+            self.assertEqual(picture.status_code,200,picture.text)
+            self.assertEqual(picture.headers["content-type"],"image/png")
+            event_payload=client.get(f"/events/{event_id}").json()
+            self.assertIn(uploaded.json()["url"],event_payload["gallery_urls"])
+            self.assertEqual(len(event_payload["uploaded_gallery"]),1)
+            deleted=client.delete(f"/demo/manage/events/{event_id}/gallery/{uploaded.json()['id']}",
+                headers=headers)
+            self.assertEqual(deleted.status_code,200,deleted.text)
+
+            # A verified attendee receives transactional event-change and
+            # cancellation notices; unverified addresses are excluded.
+            with SessionLocal() as db:
+                attendee=db.get(main.DemoGuest,promoted.json()[0]["guest_id"])
+                email=f"notice-{secrets.token_hex(8)}@example.invalid"
+                attendee.email=email
+                account=WebAccount(email=email,first_name="Notified",
+                    last_name="Participant",guest_id=attendee.id,
+                    password_hash=hash_password("notice-test-password-2026"),
+                    contact_preference="email")
+                db.add(account);db.flush()
+                db.add(VerifiedEmail(account_id=account.id,verified_at=now()))
+                db.commit()
+
+            with patch("demo_email.configured",return_value=True):
+                changed=client.patch(f"/demo/manage/events/{event_id}",
+                    headers=headers,json={"location":"New address for checked-in attendees"})
+                self.assertEqual(changed.status_code,200,changed.text)
+                stopped=client.post(f"/demo/manage/events/{event_id}/cancel",headers=headers,
+                    json={"reason":"Organizer has cancelled this event for technical reasons."})
+                self.assertEqual(stopped.status_code,200,stopped.text)
+            from demo_email import EmailOutbox,EventNotice,render_email
+            with SessionLocal() as db:
+                notices=db.query(EventNotice).filter(EventNotice.event_id==event_id).all()
+                self.assertEqual({notice.kind for notice in notices},{"change","cancel"})
+                messages=db.query(EmailOutbox).filter(EmailOutbox.notice_id.in_([n.id for n in notices])).all()
+                self.assertEqual(len(messages),2)
+                with patch.dict(os.environ,{"EMAIL_FROM":"tickets@example.invalid"}):
+                    for mail in messages:
+                        payload=render_email(mail,db)
+                        self.assertEqual(payload["to"],[email])
+                        self.assertIn("TicketTreat",payload["html"])
+                active=db.get(main.DemoTicket,promoted.json()[0]["id"])
+                self.assertEqual(active.payment_status,"not_required")
             self.assertIsNotNone(scan.json()["ticket"]["checked_in_at"])
             replay=client.post("/demo/manage/check-in",headers=headers,json={"qr_token":qr})
             self.assertEqual(replay.status_code,200,replay.text)
