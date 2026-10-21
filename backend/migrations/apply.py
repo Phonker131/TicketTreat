@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -55,11 +56,7 @@ def apply(database_url: str) -> list[str]:
                     continue
                 # SQL files are reviewed internal artifacts, not user input.
                 # Transactions belong to the migration runner, not individual files.
-                source = sql.strip()
-                if source.upper().startswith("BEGIN;"):
-                    source = source[len("BEGIN;"):].strip()
-                if source.upper().endswith("COMMIT;"):
-                    source = source[:-len("COMMIT;")].strip()
+                source = re.sub(r"(?mi)^\\s*(?:BEGIN|COMMIT);\\s*$", "", sql).strip()
                 conn.exec_driver_sql(source)
                 conn.execute(text(
                     f"INSERT INTO {SCHEMA}(filename,checksum) VALUES(:filename,:checksum)"
