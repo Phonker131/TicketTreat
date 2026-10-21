@@ -35,13 +35,14 @@ These are *implemented code paths*, not proof of production end-to-end functiona
 
 ## Railway release process
 
-1. Back up production PostgreSQL; restore a copy to staging and verify row counts, accounts, tickets and migrations.
-2. Keep `APP_ENV=production` and `DEMO_PAYMENT_MODE=false`; do **not** enable simulated paid checkout.
-3. Configure secrets only on the relevant Railway services. Required email secret: `AUTH_CODE_SECRET` (random 32+ characters); leave email sending disabled until Resend is verified.
-4. Deploy the isolated FastAPI web API and Next.js frontend to staging first. Set server-side `BACKEND_API_URL` on Next.js.
-5. Run browser/PWA, Telegram Mini App, bot, account, QR and email smoke tests.
-6. Back up production again, complete the change window and rollback plan, then deploy the tested build. Only switch the existing Bot after successful API/frontend verification.
-7. Do not merge the release PR until technical and operational checks pass.
+1. **Source branch safety:** Railway Production currently follows `crowdly-demo-mvp-20261020` for Frontend, Bot and Demo API, and `main` for Backend. Keep the old branch intact until each service has been successfully retargeted. Closing PR #2 does not change Railway source settings.
+2. Back up production PostgreSQL; restore a copy to staging and verify row counts, accounts, tickets and migrations.
+3. Keep `APP_ENV=production` and `DEMO_PAYMENT_MODE=false`; do **not** enable simulated paid checkout.
+4. Configure secrets only on the relevant Railway services. Required email secret: `AUTH_CODE_SECRET` (random 32+ characters); leave email sending disabled until Resend is verified.
+5. Deploy the isolated FastAPI web API and Next.js frontend to staging first. Set server-side `BACKEND_API_URL` on Next.js.
+6. Run browser/PWA, Telegram Mini App, bot, account, QR and email smoke tests.
+7. Back up production again, complete the change window and rollback plan, then deploy the tested build. Only switch the existing Bot after successful API/frontend verification.
+8. Do not merge the release PR until technical and operational checks pass.
 
 ## Maintenance conventions
 
