@@ -535,7 +535,7 @@ export type PilotInsights = {
   occupancy_percent:number|null; attendance_percent:number|null;
   daily_bookings:{date:string;count:number}[];limitations:string[];
 };
-export type PilotSettings = {signup_cutoff_minutes:number;reminder_minutes:number[]};
+export type PilotSettings = {signup_cutoff_minutes:number;reminder_minutes:number[];waitlist_offer_minutes:number};
 export type CheckinStaff = {account_id:number;email:string;granted_at:string};
 export function getPilotInsights(token:string,id:number):Promise<PilotInsights>{
   return request(`/demo/manage/events/${id}/insights`,{headers:accountHeaders(token)});
@@ -568,6 +568,20 @@ export function scanPilotTicket(token:string,qrToken:string):Promise<{status:"ch
 }
 export type AttendanceHistory = {visit_count:number;limited_to:number;
   history:{event_id:number;title:string;checked_in_at:string;location:string|null}[]};
+export type WaitlistOfferStatus = {status:string;expires_at:string|null;position:number|null};
+export function getWaitlistOfferStatus(eventId:number):Promise<WaitlistOfferStatus>{
+  return request(`/demo/me/events/${eventId}/waitlist/status`);
+}
+export function claimWaitlistOffer(eventId:number,language:string):Promise<DemoCheckoutResponse>{
+  return request(`/demo/me/events/${eventId}/waitlist/claim`,{
+    method:"POST",body:JSON.stringify({language})
+  });
+}
+export function declineWaitlistOffer(eventId:number):Promise<{status:string}>{
+  return request(`/demo/me/events/${eventId}/waitlist/decline`,{
+    method:"POST",body:JSON.stringify({})
+  });
+}
 export function getMyAttendance():Promise<AttendanceHistory>{
   return request("/demo/me/attendance");
 }
