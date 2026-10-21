@@ -195,7 +195,7 @@ export function ProfileClient() {
       loadProfile(updatedProfile);
       setClaimKey("");
       setShowClaim(false);
-      window.dispatchEvent(new Event("crowdly-auth-change"));
+      window.dispatchEvent(new Event("tickettreat-auth-change"));
       setNotice(
         language === "ru" ? "Доступ глобального администратора подтверждён." :
         language === "uk" ? "Права глобального адміністратора підтверджено." :
