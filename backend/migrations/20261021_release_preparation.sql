@@ -82,4 +82,6 @@ BEGIN
 END $;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_registrations_user_event
     ON registrations(user_id,event_id);
+-- Telegram IDs can exceed the signed PostgreSQL INTEGER range.
+ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT USING telegram_id::BIGINT;
 COMMIT;
