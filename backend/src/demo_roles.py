@@ -55,6 +55,21 @@ class GlobalAdminBinding(Base):
     )
 
 
+class GlobalAdminDelegation(Base):
+    """Audited global-admin grant bound to one *verified* immutable account.
+
+    Neither a matching email nor an unverified signup can claim this grant.
+    The granting admin must pass existing privileged MFA checks.
+    """
+    __tablename__ = "demo_global_admin_delegations"
+    account_id = Column(Integer, primary_key=True)
+    email = Column(String(255), nullable=False)
+    granted_by = Column(Integer, nullable=False)
+    granted_at = Column(DateTime(timezone=True), nullable=False,
+                        default=lambda: datetime.now(timezone.utc))
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+
+
 class EventOwnership(Base):
     __tablename__ = "demo_event_ownership"
     event_id = Column(Integer, primary_key=True)
@@ -171,6 +186,12 @@ def role_for(db: Session, account: WebAccount) -> str:
     if account.id in global_admin_ids():
         return "global_admin"
     normalized_email = (account.email or "").strip().casefold()
+    delegation = db.get(GlobalAdminDelegation, account.id)
+    if (delegation is not None and delegation.revoked_at is None
+            and delegation.email == normalized_email):
+        from demo_account_recovery import email_is_verified
+        if email_is_verified(db, account.id):
+            return "global_admin"
     if normalized_email in permanent_global_admin_emails():
         binding = db.query(GlobalAdminBinding).filter(
             GlobalAdminBinding.email == normalized_email,
@@ -529,6 +550,10 @@ class ScanTicketPayload(BaseModel):
     qr_token: str = Field(min_length=24,max_length=80)
 
 
+class GlobalAdminGrantRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=255)
+
+
 class AccountRoleChange(BaseModel):
     role: str = Field(pattern="^(participant|organizer)$")
 
@@ -588,6 +613,73 @@ def install_account_moderation(app, get_db):
         if role_for(db,account)!="global_admin":
             raise HTTPException(status_code=403,detail="global_admin_only")
         return account
+
+
+    @app.get("/demo/manage/global-admins")
+    def list_global_admin_delegations(
+        _admin: WebAccount = Depends(admin_account),
+        db: Session = Depends(get_db),
+    ):
+        rows = db.query(GlobalAdminDelegation).filter(
+            GlobalAdminDelegation.revoked_at.is_(None),
+        ).order_by(GlobalAdminDelegation.granted_at.asc()).all()
+        return [{"account_id":r.account_id,"email":r.email,"granted_at":r.granted_at}
+                for r in rows]
+
+    @app.post("/demo/manage/global-admins/grant")
+    def grant_global_admin(
+        payload: GlobalAdminGrantRequest,
+        admin: WebAccount = Depends(admin_account),
+        db: Session = Depends(get_db),
+    ):
+        """Grant only to an existing account with independently verified email."""
+        from demo_accounts import normalize_email
+        from demo_account_recovery import email_is_verified
+        email = normalize_email(payload.email)
+        target = db.query(WebAccount).filter(WebAccount.email == email).with_for_update().first()
+        if target is None:
+            raise HTTPException(404, "account_not_found_sign_up_first")
+        if not email_is_verified(db, target.id):
+            raise HTTPException(403, "target_email_verification_required")
+        if target.id in global_admin_ids():
+            return {"account_id":target.id,"email":email,"role":"global_admin"}
+        # Never treat the address alone as an authorization secret.
+        delegation = db.get(GlobalAdminDelegation,target.id)
+        if delegation is None:
+            delegation = GlobalAdminDelegation(account_id=target.id,email=email,
+                                               granted_by=admin.id)
+            db.add(delegation)
+        else:
+            delegation.email=email
+            delegation.granted_by=admin.id
+            delegation.granted_at=datetime.now(timezone.utc)
+            delegation.revoked_at=None
+        db.add(AccountAdminAudit(actor_account_id=admin.id,
+                                  target_account_id=target.id,
+                                  action="global_admin_granted"))
+        db.commit()
+        return {"account_id":target.id,"email":email,"role":"global_admin",
+                "mfa_setup_required":True}
+
+    @app.delete("/demo/manage/global-admins/{account_id}")
+    def revoke_global_admin(
+        account_id: int,
+        admin: WebAccount = Depends(admin_account),
+        db: Session = Depends(get_db),
+    ):
+        if account_id == admin.id or account_id in global_admin_ids():
+            raise HTTPException(403, "protected_global_admin")
+        delegation = db.query(GlobalAdminDelegation).filter(
+            GlobalAdminDelegation.account_id == account_id
+        ).with_for_update().first()
+        if delegation is None or delegation.revoked_at is not None:
+            raise HTTPException(404,"active_delegation_not_found")
+        delegation.revoked_at=datetime.now(timezone.utc)
+        db.add(AccountAdminAudit(actor_account_id=admin.id,
+                                  target_account_id=account_id,
+                                  action="global_admin_revoked"))
+        db.commit()
+        return {"status":"revoked","account_id":account_id}
 
 
     @app.post("/demo/auth/organizer-application",status_code=202)
