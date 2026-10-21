@@ -52,6 +52,7 @@ from demo_legacy import LegacyTicketClaim
 from demo_observability import install_request_logging
 from demo_principal_api import install_principal_api
 from demo_publication import EventPublication, state as event_publication_state, require_published
+from demo_waitlist_offers import WaitlistOffer, offer_count, maybe_offer_next, expire_for_event, ensure_available_offer, accept_offer
 from demo_pilot_ops import EventPilotSettings, EventCheckinStaff, booking_cutoff_reached, install_pilot_ops
 
 
@@ -2500,10 +2501,14 @@ def promote_demo_waitlist(
         # Never silently create an unpaid "paid" ticket.
         return None
 
-    if (
-        event.max_participants is not None
-        and get_registered_count(db, event_id) >= event.max_participants
-    ):
+    expire_for_event(db,event_id)
+    registered=get_registered_count(db,event_id)
+    if (event.max_participants is not None
+        and registered + offer_count(db,event_id) >= event.max_participants):
+        return None
+    from demo_pilot_ops import effective_settings
+    if effective_settings(db,event_id).get("waitlist_offer_minutes",0):
+        maybe_offer_next(db,event,registered)
         return None
 
     waitlist_entry = (
@@ -2877,7 +2882,7 @@ def demo_checkout(
 
     if (
         event.max_participants is not None
-        and get_registered_count(db, event.id) >= event.max_participants
+        and get_registered_count(db, event.id) + offer_count(db,event.id,guest_id=guest.id) >= event.max_participants
     ):
         raise HTTPException(status_code=409, detail="event_full")
 
@@ -2916,6 +2921,10 @@ def demo_checkout(
     if waitlist_entry is not None:
         waitlist_entry.status = "promoted"
         waitlist_entry.promoted_at = utc_now()
+    # Direct booking by a holder of an offered place accepts the hold too.
+    offer=ensure_available_offer(db,event,guest)
+    if offer is not None:
+        accept_offer(db,event,guest)
 
     db.flush()
     queue_email(
@@ -2983,7 +2992,8 @@ def join_demo_waitlist(
     if event.max_participants is None:
         raise HTTPException(status_code=409, detail="waitlist_not_needed")
 
-    if get_registered_count(db, event.id) < event.max_participants:
+    expire_for_event(db,event.id)
+    if get_registered_count(db,event.id) + offer_count(db,event.id) < event.max_participants:
         raise HTTPException(status_code=409, detail="spots_available")
 
     existing_ticket = (
@@ -3018,6 +3028,10 @@ def join_demo_waitlist(
         )
         db.add(existing)
     else:
+        # Don't allow rejoining to invalidate an unexpired invitation.
+        active_offer=ensure_available_offer(db,event,guest)
+        if active_offer is not None:
+            return {"status":"offered","expires_at":active_offer.expires_at.isoformat()}
         existing.status = "waiting"
         existing.promoted_at = None
 
