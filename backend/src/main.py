@@ -51,6 +51,7 @@ from demo_mfa import MFAFactor, MFASession, install_mfa
 from demo_legacy import LegacyTicketClaim
 from demo_observability import install_request_logging
 from demo_principal_api import install_principal_api
+from demo_quick_signup import QuickSignupPending,QuickPrivacyConsent
 from demo_publication import EventPublication, state as event_publication_state, require_published
 from demo_waitlist_offers import WaitlistOffer, offer_count, maybe_offer_next, expire_for_event, ensure_available_offer, accept_offer, install_waitlist_offer_worker
 from demo_pilot_ops import EventPilotSettings, EventCheckinStaff, booking_cutoff_reached, install_pilot_ops
