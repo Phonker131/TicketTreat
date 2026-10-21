@@ -135,7 +135,7 @@ def install_demo_accounts(
     get_db,
     require_demo_admin,
 ):
-    from demo_roles import WebAccountRole, role_for, permanent_global_admin_emails
+    from demo_roles import WebAccountRole, OrganizerApplication, role_for, permanent_global_admin_emails
     def issue_session(db: Session, account: WebAccount) -> str:
         # New sessions last 7 days. Old sessions retain their original expiry;
         # no existing account is logged out by this deployment.
@@ -258,7 +258,10 @@ def install_demo_accounts(
             guest.first_name, guest.last_name, guest.email = first, last, email
             db.add(account)
             db.flush()
-            db.add(WebAccountRole(account_id=account.id, role=payload.account_role))
+            # Never grant organizer powers from a public signup form.
+            db.add(WebAccountRole(account_id=account.id, role="participant"))
+            if payload.account_role=="organizer":
+                db.add(OrganizerApplication(account_id=account.id,status="pending"))
             save_place(db, DemoAccountPlace, "account_id", account.id, country_code, city)
             db.flush()
             queue_email(
