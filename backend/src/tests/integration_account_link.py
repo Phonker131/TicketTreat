@@ -88,7 +88,11 @@ class AccountLinkTests(unittest.TestCase):
                     max_participants=4,currency="CZK")
                 db.add(event);db.commit();db.refresh(event)
                 event_id=event.id
-            guest_token=again.json()["guest"]["access_token"]
+            self.assertEqual(again.json()["guest"]["access_token"],"")
+            # Legacy route tests use a token obtained internally from fixture
+            # data, never from a production API response.
+            with SessionLocal() as db:
+                guest_token=db.get(main.DemoGuest,web_guest_id).access_token
             ticket=client.post(f"/demo/events/{event_id}/checkout",json={
                 "guest_token":guest_token,"language":"en"
             },headers={"X-Telegram-Init-Data":launch})
