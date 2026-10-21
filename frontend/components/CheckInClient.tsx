@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
-import { checkInManagedTicket, getManageMe } from "@/lib/api";
+import { scanPilotTicket } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { DemoTicket } from "@/lib/types";
 
@@ -20,23 +20,26 @@ export function CheckInClient() {
   const [result, setResult] = useState<DemoTicket | null>(null);
   const [message, setMessage] = useState("");
   const scannerRef = useRef<{stop: () => Promise<void>} | null>(null);
+  const scanBusy = useRef(false);
+  const [scanCycle,setScanCycle]=useState(0);
+  const [scanning,setScanning]=useState(false);
 
   async function submit(value: string) {
     const token = extractToken(value);
-    if (!token) return;
+    if (!token || scanBusy.current) return;
+    scanBusy.current=true;
     try {
       const session = getWebToken();
-      if (!session) throw new Error("Нужно войти в аккаунт организатора.");
-      await getManageMe(session).then(me => {
-        if(me.role === "participant") throw new Error("Доступ только организаторам.");
-      });
-      const response = await checkInManagedTicket(session, token);
+      if (!session) throw new Error("Войдите в подтверждённый аккаунт с доступом к check-in.");
+      const response = await scanPilotTicket(session, token);
       setResult(response.ticket);
-      setMessage("Check-in successful");
+      setMessage(response.status==="already_checked_in"?
+        "Билет уже использован! Повторный проход запрещён.":"Check-in successful");
+      setManual("");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Check-in failed");
       setResult(null);
-    }
+    } finally { scanBusy.current=false; }
   }
 
   useEffect(() => {
@@ -50,12 +53,16 @@ export function CheckInClient() {
           {facingMode: "environment"},
           {fps: 10, qrbox: {width: 240, height: 240}},
           async (decodedText) => {
+            if(scanBusy.current)return;
             await scanner.stop().catch(() => {});
+            setScanning(false);
             await submit(decodedText);
           },
           () => {},
         );
+        setScanning(true);
       } catch {
+        setScanning(false);
         setMessage("Camera unavailable. You can paste the QR token manually.");
       }
     });
@@ -63,8 +70,9 @@ export function CheckInClient() {
     return () => {
       mounted = false;
       scannerRef.current?.stop().catch(() => {});
+      scannerRef.current=null;
     };
-  }, []);
+  }, [scanCycle]);
 
   return (
     <div className="app-shell">
@@ -75,10 +83,14 @@ export function CheckInClient() {
           <div id="crowdly-reader" className="scanner-box" />
           <div className="manual-checkin">
             <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Paste QR token" />
-            <button className="button button-primary" onClick={() => submit(manual)}>Check in</button>
+            <button className="button button-primary" disabled={!manual.trim()} onClick={() => submit(manual)}>Check in</button>
           </div>
+          <button type="button" className="button button-outline" disabled={scanning}
+            onClick={()=>{setResult(null);setMessage("");setScanCycle(s=>s+1)}}>
+            {scanning?"Камера сканирует":"Сканировать следующий билет"}
+          </button>
         </section>
-        {message && <div className={result ? "success-banner" : "state-card state-error"}>{message}</div>}
+        {message && <div className={result&&message==="Check-in successful" ? "success-banner" : "state-card state-error"}>{message}</div>}
         {result && (
           <section className="panel checkin-result">
             <h2>{result.guest?.first_name} {result.guest?.last_name}</h2>
