@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     default: "TicketTreat",
     template: "%s · TicketTreat",
   },
-  description: "Events, tickets and reminders in one place.",
+  description: "TicketTreat — discover events, reserve tickets and get helpful reminders in one place.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
