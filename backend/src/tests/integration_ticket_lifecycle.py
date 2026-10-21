@@ -139,6 +139,9 @@ class QRWaitlistE2E(unittest.TestCase):
                 self.assertEqual({notice.kind for notice in notices},{"change","cancel"})
                 messages=db.query(EmailOutbox).filter(EmailOutbox.notice_id.in_([n.id for n in notices])).all()
                 self.assertEqual(len(messages),2)
+                reminders=db.query(EmailOutbox).filter(EmailOutbox.kind=="reminder",EmailOutbox.ticket_id==promoted.json()[0]["id"]).all()
+                self.assertEqual(len(reminders),1)
+                self.assertEqual(reminders[0].state,"pending")
                 with patch.dict(os.environ,{"EMAIL_FROM":"tickets@example.invalid"}):
                     for mail in messages:
                         payload=render_email(mail,db)
