@@ -1567,6 +1567,7 @@ def update_event(
     event_id: int,
     payload: EventUpdate,
     db: Session = Depends(get_db),
+    commit: bool = True,
 ):
     event = (
         db.query(Event)
@@ -1696,7 +1697,10 @@ def update_event(
         elif current_settings is not None:
             db.delete(current_settings)
 
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     db.refresh(event)
 
     return {
