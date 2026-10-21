@@ -455,6 +455,16 @@ def install_demo_roles(app, get_db, main):
         records=db.query(EventModerationLog).filter(EventModerationLog.event_id==event_id).order_by(EventModerationLog.id.desc()).limit(100).all()
         return [{"action":r.action,"details":r.details,"actor_account_id":r.actor_account_id,"at":r.created_at} for r in records]
 
+class AccountAdminAudit(Base):
+    """Non-secret audit trail of privileged changes, retained for review."""
+    __tablename__ = "demo_account_admin_audit"
+    id = Column(Integer, primary_key=True)
+    actor_account_id = Column(Integer, nullable=False, index=True)
+    target_account_id = Column(Integer, nullable=False, index=True)
+    action = Column(String(48), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
 class AccountRoleChange(BaseModel):
     role: str = Field(pattern="^(participant|organizer)$")
 
@@ -501,6 +511,8 @@ def install_account_moderation(app, get_db):
         else:
             grant.account_id = account.id
             grant.claimed_at = datetime.now(timezone.utc)
+        db.add(AccountAdminAudit(actor_account_id=account.id,target_account_id=account.id,
+                                 action="admin_recovery_claim"))
         db.commit()
         return {"role": "global_admin", "account_id": account.id}
 
@@ -512,6 +524,17 @@ def install_account_moderation(app, get_db):
         if role_for(db,account)!="global_admin":
             raise HTTPException(status_code=403,detail="global_admin_only")
         return account
+
+    @app.get("/demo/manage/account-audit")
+    def account_audit(
+        _admin: WebAccount = Depends(admin_account),
+        db: Session = Depends(get_db),
+    ):
+        records=db.query(AccountAdminAudit).order_by(AccountAdminAudit.id.desc()).limit(100).all()
+        return [{"actor_account_id":r.actor_account_id,
+                 "target_account_id":r.target_account_id,
+                 "action":r.action,"created_at":r.created_at} for r in records]
+
 
     @app.get("/demo/manage/accounts")
     def accounts(
@@ -545,5 +568,7 @@ def install_account_moderation(app, get_db):
             record.role=payload.role
         else:
             db.add(WebAccountRole(account_id=account_id,role=payload.role))
+        db.add(AccountAdminAudit(actor_account_id=_admin.id,target_account_id=target.id,
+                                 action="grant_"+payload.role))
         db.commit()
         return {"account_id":account_id,"role":payload.role}
