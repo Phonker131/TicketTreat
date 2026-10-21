@@ -33,7 +33,7 @@ export function AdminEventClient(){
   const [data,setData]=useState<AdminEventTickets|null>(null);
   const [emailStatus,setEmailStatus]=useState<EventEmailStatus|null>(null);
   const [pilotInsights,setPilotInsights]=useState<PilotInsights|null>(null);
-  const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180],waitlist_offer_minutes:0});
+  const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180],waitlist_offer_minutes:0,event_duration_minutes:180});
   const [pilotStaff,setPilotStaff]=useState<CheckinStaff[]>([]);
   const [staffEmail,setStaffEmail]=useState("");
   const [announcementCategory,setAnnouncementCategory]=useState<"access"|"logistics"|"schedule">("logistics");
@@ -342,7 +342,7 @@ export function AdminEventClient(){
           <div className="stat-card"><strong>{pilotInsights.registered}</strong><span>Регистрации всего</span></div>
           <div className="stat-card"><strong>{pilotInsights.occupancy_percent??"—"}%</strong><span>Заполненность</span></div>
           <div className="stat-card"><strong>{pilotInsights.checked_in}</strong><span>Пришли по QR</span></div>
-          <div className="stat-card"><strong>{pilotInsights.no_show??"—"}</strong><span>No-show (после начала)</span></div>
+          <div className="stat-card"><strong>{pilotInsights.no_show??"—"}</strong><span>{pilotInsights.event_finished?"Итоговый no-show":"No-show после окончания"}</span></div>
           <div className="stat-card"><strong>{pilotInsights.waitlist}</strong><span>Ожидают места</span></div>
           <div className="stat-card"><strong>{pilotInsights.cancelled_tickets}</strong><span>Отмены</span></div>
         </div>
@@ -371,6 +371,10 @@ export function AdminEventClient(){
               {label}
             </label>)}
         </fieldset>
+        <label>Продолжительность ивента (минуты для окончательной статистики no-show)
+          <input type="number" min={15} max={1440} step={15} value={pilotSettings.event_duration_minutes||180}
+            onChange={e=>setPilotSettings(s=>({...s,event_duration_minutes:Number(e.target.value)}))}/>
+        </label>
         <label>Предложение места из waitlist
           <select value={pilotSettings.waitlist_offer_minutes||0}
             onChange={e=>setPilotSettings(s=>({...s,waitlist_offer_minutes:Number(e.target.value)}))}>
