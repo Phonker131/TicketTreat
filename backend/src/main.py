@@ -2015,3 +2015,8 @@ def get_user_events(
         )
         for event in events
     ]
+
+
+# Protected website / Telegram Mini App API (separate from legacy bot routes)
+from web_api import install as install_web_api
+install_web_api(app)
