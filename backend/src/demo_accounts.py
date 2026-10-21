@@ -1,4 +1,4 @@
-"""Manual website accounts and organizer CSV for the Crowdly showcase MVP.
+"""Manual website accounts and organizer CSV for the TicketTreat platform.
 
 Separate from Telegram users. New passwords are Argon2id; PBKDF2 legacy
 hashes are upgraded after successful login. Session tokens are random,
@@ -487,7 +487,7 @@ def install_demo_accounts(
             content=body,
             media_type="text/csv; charset=utf-8",
             headers={
-                "Content-Disposition": f'attachment; filename="crowdly-event-{event_id}-participants.csv"',
+                "Content-Disposition": f'attachment; filename="tickettreat-event-{event_id}-participants.csv"',
                 "Cache-Control": "no-store",
                 "X-Content-Type-Options": "nosniff",
             },
