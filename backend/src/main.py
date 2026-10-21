@@ -2020,3 +2020,21 @@ def get_user_events(
 # Protected website / Telegram Mini App API (separate from legacy bot routes)
 from web_api import install as install_web_api
 install_web_api(app)
+
+# Guard legacy Telegram-bot endpoints before any public website deployment.
+# All client-facing traffic uses authenticated /api/v1 routes.
+# Configure the same BOT_API_KEY in backend and bot environments.
+import os as _web_os
+import hmac as _web_hmac
+from fastapi.responses import JSONResponse as _WebJSONResponse
+
+@app.middleware("http")
+async def protect_legacy_bot_api(request, call_next):
+    path = request.url.path
+    if path == "/" or path.startswith("/api/v1/") or path in ("/docs", "/openapi.json", "/redoc"):
+        return await call_next(request)
+    secret = _web_os.getenv("BOT_API_KEY", "").strip()
+    supplied = request.headers.get("X-Bot-Api-Key", "")
+    if not secret or not _web_hmac.compare_digest(secret, supplied):
+        return _WebJSONResponse({"detail": "Bot API authentication required"}, status_code=401)
+    return await call_next(request)
