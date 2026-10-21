@@ -124,3 +124,42 @@ def accept_offer(db,event,guest):
         entry.status="promoted"
     db.flush()
     return offer
+
+def install_waitlist_offer_worker(app, session_factory, main):
+    """A single designated Railway worker may sweep expiration every minute.
+
+    Configure WAITLIST_OFFER_WORKER_ENABLED=true on exactly one backend service.
+    Every event is independently row-locked; no Redis dependency or stale
+    booking counter. When no designated worker is online, claim/status routes
+    still expire offers synchronously, but notifications may be delayed.
+    """
+    import os
+    import threading
+    import time
+    import logging
+    if os.getenv("WAITLIST_OFFER_WORKER_ENABLED","false").lower() not in {"true","1","yes"}:
+        return
+    logger=logging.getLogger("tickettreat.waitlist")
+    @app.on_event("startup")
+    def start_worker():
+        def loop():
+            while True:
+                try:
+                    with session_factory() as db:
+                        now=datetime.now(timezone.utc)
+                        ids=[item[0] for item in db.query(WaitlistOffer.event_id).filter(
+                            WaitlistOffer.status=="offered",
+                            WaitlistOffer.expires_at<=now).distinct().limit(100).all()]
+                        db.rollback()
+                    for event_id in ids:
+                        with session_factory() as db:
+                            event=db.query(main.Event).filter(main.Event.id==event_id).with_for_update(
+                                skip_locked=True).first()
+                            if event is not None:
+                                expire_for_event(db,event.id)
+                                maybe_offer_next(db,event,main.get_registered_count(db,event.id))
+                                db.commit()
+                except Exception:
+                    logger.exception("waitlist_offer_sweep_failed")
+                time.sleep(60)
+        threading.Thread(target=loop,daemon=True,name="ticket-waitlist-expiry").start()
