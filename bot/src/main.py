@@ -38,6 +38,7 @@ load_dotenv(PROJECT_ROOT / ".env", override=False, encoding="utf-8-sig")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 BOT_USERNAME = os.getenv("BOT_USERNAME")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+BOT_API_KEY = os.getenv("BOT_API_KEY", "").strip()
 CLIENT_SERVICE_URL = os.getenv("CLIENT_SERVICE_URL", "").strip()
 WEB_APP_URL = os.getenv("WEB_APP_URL", "").strip().rstrip("/")
 PRAGUE_TZ = ZoneInfo("Europe/Prague")
@@ -125,10 +126,14 @@ def backend_request(
     timeout: int = 10,
     **kwargs,
 ) -> Any:
+    headers = dict(kwargs.pop("headers", {}) or {})
+    if BOT_API_KEY:
+        headers["X-Bot-Api-Key"] = BOT_API_KEY
     response = requests.request(
         method,
         f"{BACKEND_URL}{path}",
         timeout=timeout,
+        headers=headers,
         **kwargs,
     )
 
