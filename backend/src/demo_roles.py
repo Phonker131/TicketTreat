@@ -439,6 +439,26 @@ def install_demo_roles(app, get_db, main):
         changes=[]
         if event.starts_at != original_start:
             changes.append("Date/time: "+str(event.starts_at))
+            # Suppress obsolete reminders for the old start time and
+            # enqueue fresh reminders only for verified active holders.
+            from demo_email import EmailOutbox, queue_event_reminder, ticket_language
+            db.query(EmailOutbox).filter(
+                EmailOutbox.kind=="reminder",
+                EmailOutbox.state=="pending",
+                EmailOutbox.ticket_id.in_(
+                    db.query(main.DemoTicket.id).filter(
+                        main.DemoTicket.event_id==event_id
+                    )
+                ),
+            ).update({EmailOutbox.state:"skipped"},synchronize_session=False)
+            for ticket in db.query(main.DemoTicket).filter(
+                main.DemoTicket.event_id==event_id,
+                main.DemoTicket.ticket_status=="active",
+            ).all():
+                guest=db.get(main.DemoGuest,ticket.guest_id)
+                if guest is not None:
+                    queue_event_reminder(db,event=event,guest=guest,ticket=ticket,
+                                         language=ticket_language(db,ticket.id))
         if event.location != original_location:
             changes.append("Location: "+str(event.location or "Not specified"))
         if changes:
