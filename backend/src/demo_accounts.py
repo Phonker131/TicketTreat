@@ -215,6 +215,7 @@ def install_demo_accounts(
             "email_verified": _verified_email(db, account.id),
             "admin_claim_available": bool(
                 account.email.casefold() in permanent_global_admin_emails()
+                and _verified_email(db, account.id)
                 and len(os.getenv("GLOBAL_ADMIN_RECOVERY_SECRET", "")) >= 32
                 and role_for(db, account) != "global_admin"
             ),
