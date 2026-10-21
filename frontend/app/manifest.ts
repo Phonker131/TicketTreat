@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Crowdly",
-    short_name: "Crowdly",
+    name: "TicketTreat",
+    short_name: "TicketTreat",
     description: "Events, tickets and reminders in one place.",
     start_url: "/",
     display: "standalone",
