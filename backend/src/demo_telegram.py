@@ -1,4 +1,4 @@
-"""Verified Telegram Mini App identity bridge for Crowdly.
+"""Verified Telegram Mini App identity bridge for TicketTreat.
 
 Security model:
 - Trust only Telegram-signed initData, never initDataUnsafe or caller-supplied IDs.
