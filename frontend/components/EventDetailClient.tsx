@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
-import { getEvent } from "@/lib/api";
+import { getEvent,getBookingConfig } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { LANGUAGE_NAMES, t } from "@/lib/i18n";
 import type { CrowdlyEvent } from "@/lib/types";
@@ -15,6 +15,7 @@ export function EventDetailClient() {
   const {language} = useLanguage();
   const [event, setEvent] = useState<CrowdlyEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [demoPayments,setDemoPayments]=useState(false);
 
   useEffect(() => {
     if (!params?.id) return;
@@ -22,6 +23,8 @@ export function EventDetailClient() {
       .then(setEvent)
       .catch((e) => setError(e instanceof Error ? e.message : "error"));
   }, [params?.id]);
+
+  useEffect(()=>{getBookingConfig().then(cfg=>setDemoPayments(cfg.demo_payment_mode)).catch(()=>{});},[]);
 
   if (error) {
     return <><AppHeader /><main className="page"><div className="state-card state-error">{t(language, "eventNotFound")}</div></main></>;
@@ -53,7 +56,7 @@ export function EventDetailClient() {
             <div className="event-badges">
               {event.is_cancelled && <span className="status status-danger">{t(language, "cancelled")}</span>}
               {event.spots_left === 0 && <span className="status status-danger">{t(language, "soldOut")}</span>}
-              <span className="status status-demo">{t(language, "demo")}</span>
+              {demoPayments&&<span className="status status-demo">{t(language, "demo")}</span>}
             </div>
             <h1>{event.title}</h1>
             {event.description && <p className="event-description">{event.description}</p>}
@@ -88,7 +91,7 @@ export function EventDetailClient() {
           <section className="join-card">
             <div>
               <h2>{event.spots_left === 0 ? t(language, "soldOut") : t(language, "join")}</h2>
-              <p>{t(language, "demoHint")}</p>
+              <p>{Number(event.price||0)<=0 ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.") : demoPayments?t(language,"demoHint"):(language==="ru"?"Продажа платных билетов пока недоступна.":language==="cs"?"Prodej placených vstupenek zatím není dostupný.":language==="uk"?"Продаж платних квитків поки недоступний.":"Paid ticket sales are not available yet.")}</p>
             </div>
             {event.spots_left === 0 ? (
               <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1`}>{t(language, "waitlist")}</Link>
