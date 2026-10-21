@@ -367,3 +367,7 @@ export function updateSiteLanding(token:string,payload:{
     method:"PUT",headers:{Authorization:`Bearer ${token}`},body:JSON.stringify(payload)
   });
 }
+
+export function exportAccountData(token:string):Promise<unknown> {
+  return request("/demo/auth/export",{headers:{Authorization:`Bearer ${token}`}});
+}
