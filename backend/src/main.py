@@ -47,6 +47,7 @@ from demo_email import EmailOutbox, queue_email, queue_event_reminder, ticket_la
 from demo_privacy import PrivacyRequest, install_privacy_routes
 from demo_mfa import MFAFactor, MFASession, install_mfa
 from demo_legacy import LegacyTicketClaim
+from demo_observability import install_request_logging
 
 
 # =========================================================
@@ -267,7 +268,8 @@ class DemoEventPoster(Base):
 # Creates only tables that do not already exist.
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Crowdly API")
+app = FastAPI(title="TicketTreat API")
+install_request_logging(app)
 
 
 def configured_frontend_origins() -> list[str]:
