@@ -39,6 +39,11 @@ class PilotSettingsUpdate(BaseModel):
     reminder_minutes: list[int] = Field(min_length=1, max_length=4)
 
 
+class EventAnnouncementRequest(BaseModel):
+    message: str = Field(min_length=20, max_length=1000)
+    category: str = Field(pattern="^(access|logistics|schedule)$")
+
+
 class CheckinGrantRequest(BaseModel):
     email: str = Field(min_length=5, max_length=255)
 
@@ -172,6 +177,26 @@ def install_pilot_ops(app, get_db, main):
         audit(db, event_id, account.id, "pilot_settings", "cutoff/reminders")
         db.commit()
         return effective_settings(db, event_id)
+
+    @app.post("/demo/manage/events/{event_id}/announcement")
+    def send_announcement(event_id: int, payload: EventAnnouncementRequest,
+                          account=Depends(current), db: Session=Depends(get_db)):
+        """Transactional attendance information, not promotional mailing."""
+        event=owner_event(db,event_id,account)
+        from demo_publication import state as publication_state
+        if event.is_cancelled or main.event_has_started(event) or not publication_state(db,event_id)["visible"]:
+            raise HTTPException(409,"event_not_open_for_notice")
+        from demo_email import EventNotice, queue_event_notice, configured
+        if not configured():
+            raise HTTPException(503,"email_provider_unavailable")
+        from demo_auth_security import guard_rate, record_rate
+        guard_rate(db,"event_announcement",str(event_id),2,86400)
+        record_rate(db,"event_announcement",str(event_id),86400)
+        count=queue_event_notice(db,event=event,kind="announcement",
+                                 message=f"[{payload.category.upper()}] {payload.message.strip()}")
+        audit(db,event_id,account.id,"announcement",f"{payload.category};recipients:{count}")
+        db.commit()
+        return {"status":"queued","eligible_verified_ticket_holders":count}
 
     @app.get("/demo/manage/events/{event_id}/checkin-staff")
     def list_staff(event_id: int, account=Depends(current), db: Session=Depends(get_db)):
