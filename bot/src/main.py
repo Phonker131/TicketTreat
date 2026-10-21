@@ -1061,6 +1061,16 @@ def get_main_menu(user_id: int):
         KeyboardButton("🆘 Client service"),
     )
 
+    # One real Mini App for web and Telegram (private chats only).
+    # The frontend verifies signed initData with Demo API before linking identity.
+    if WEB_APP_URL.startswith("https://"):
+        keyboard.row(
+            KeyboardButton(
+                "🌐 Crowdly Mini App",
+                web_app=WebAppInfo(url=WEB_APP_URL),
+            )
+        )
+
     if is_admin(user_id):
         keyboard.row(KeyboardButton("⚙️ Admin"))
 
@@ -1727,6 +1737,35 @@ def start(message):
         message.chat.id,
         "Привет! Я бот Crowdly для записи на ивенты.",
         reply_markup=get_main_menu(message.from_user.id),
+    )
+
+
+@bot.message_handler(commands=["app", "tickets"])
+def open_crowdly_mini_app(message):
+    """Open signed Telegram Mini App, optionally on My tickets."""
+    if not WEB_APP_URL.startswith("https://"):
+        bot.send_message(
+            message.chat.id,
+            "Crowdly Mini App пока не настроен.",
+            reply_markup=get_main_menu(message.from_user.id),
+        )
+        return
+    command = (message.text or "").split(maxsplit=1)[0].split("@")[0].lower()
+    target = "/tickets" if command == "/tickets" else ""
+    language = get_interface_language(message.from_user.id)
+    url = f"{WEB_APP_URL}{target}?lang={language}" if target else f"{WEB_APP_URL}/?lang={language}"
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(
+        InlineKeyboardButton(
+            "🎟 Мои билеты в Crowdly" if command == "/tickets" else "🌐 Открыть Crowdly",
+            web_app=WebAppInfo(url=url),
+        )
+    )
+    bot.send_message(
+        message.chat.id,
+        "Открой Mini App, чтобы посмотреть события и QR-билеты. "
+        "Существующие записи через бота также будут доступны в разделе билетов.",
+        reply_markup=keyboard,
     )
 
 
