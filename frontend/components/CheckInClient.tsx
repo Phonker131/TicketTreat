@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import {useLanguage} from "@/components/LanguageProvider";
+import {adminTranslate} from "@/lib/admin-i18n";
 import { scanPilotTicket } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { DemoTicket } from "@/lib/types";
@@ -16,6 +18,8 @@ function extractToken(value: string): string {
 }
 
 export function CheckInClient() {
+  const {language}=useLanguage();
+  const tr=(phrase:string)=>adminTranslate(language,phrase);
   const [manual, setManual] = useState("");
   const [result, setResult] = useState<DemoTicket | null>(null);
   const [message, setMessage] = useState("");
@@ -78,12 +82,12 @@ export function CheckInClient() {
     <div className="app-shell">
       <AppHeader />
       <main className="page narrow-page">
-        <div className="admin-heading"><div><span className="status status-demo">CHECK-IN</span><h1>Scan TicketTreat ticket</h1><p>Camera scanner + manual fallback.</p></div></div>
+        <div className="admin-heading"><div><span className="status status-demo">CHECK-IN</span><h1>{tr("Scan TicketTreat ticket")}</h1><p>{tr("Camera scanner + manual fallback.")}</p></div></div>
         <section className="panel">
           <div id="tickettreat-qr-reader" className="scanner-box" />
           <div className="manual-checkin">
             <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Paste QR token" />
-            <button className="button button-primary" disabled={!manual.trim()} onClick={() => submit(manual)}>Check in</button>
+            <button className="button button-primary" disabled={!manual.trim()} onClick={() => submit(manual)}>{tr("Check in")}</button>
           </div>
           <button type="button" className="button button-outline" disabled={scanning}
             onClick={()=>{setResult(null);setMessage("");setScanCycle(s=>s+1)}}>
