@@ -34,7 +34,7 @@ class WaitlistOfferTests(unittest.TestCase):
             db.add(EventPilotSettings(event_id=event.id,waitlist_offer_minutes=60,
                 signup_cutoff_minutes=0,reminder_minutes_json="[1440]"))
             db.commit()
-            event_id=event.id; original_id=original.id
+            event_id=event.id; original_id=original.id; person_b_id=person_b.id
         with TestClient(main.app) as client:
             cancelled=client.delete(f"/demo/me/tickets/{original_id}",headers=a)
             self.assertEqual(cancelled.status_code,200,cancelled.text)
@@ -48,7 +48,7 @@ class WaitlistOfferTests(unittest.TestCase):
             # Expiry releases B's hold, then atomically reserves it for C.
             with SessionLocal() as db:
                 invitation=db.query(WaitlistOffer).filter(
-                    WaitlistOffer.event_id==event_id,WaitlistOffer.guest_id==person_b.id).first()
+                    WaitlistOffer.event_id==event_id,WaitlistOffer.guest_id==person_b_id).first()
                 invitation.expires_at=datetime.now(timezone.utc)-timedelta(minutes=1)
                 db.commit()
             b_expired=client.get(f"/demo/me/events/{event_id}/waitlist/status",headers=b)
