@@ -29,8 +29,8 @@ export function AppHeader() {
       } catch {if(live)setCanOrganize(false);}
     }
     refresh();
-    window.addEventListener("crowdly-auth-change",refresh);
-    return()=>{live=false;window.removeEventListener("crowdly-auth-change",refresh)};
+    window.addEventListener("tickettreat-auth-change",refresh);
+    return()=>{live=false;window.removeEventListener("tickettreat-auth-change",refresh)};
   }, []);
 
   return (
