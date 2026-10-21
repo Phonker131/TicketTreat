@@ -149,6 +149,22 @@ def install_email_account_security(app, get_db):
         consume_challenge(db, account, "verify", payload.code)
         if not email_is_verified(db, account.id):
             db.add(VerifiedEmail(account_id=account.id, verified_at=now()))
+            db.flush()
+            # Existing active registrations should get a future reminder after
+            # email verification, but never a bulk catch-up of old reminders.
+            from importlib import import_module
+            from demo_email import queue_event_reminder
+            main = import_module("main")
+            guest = db.query(main.DemoGuest).filter(main.DemoGuest.id == account.guest_id).first()
+            if guest is not None:
+                rows = db.query(main.DemoTicket, main.Event).join(
+                    main.Event, main.DemoTicket.event_id == main.Event.id,
+                ).filter(
+                    main.DemoTicket.guest_id == guest.id,
+                    main.DemoTicket.ticket_status == "active",
+                ).all()
+                for ticket, event in rows:
+                    queue_event_reminder(db, event=event, guest=guest, ticket=ticket)
         db.commit()
         return {"email_verified": True}
 
