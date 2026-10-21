@@ -29,7 +29,7 @@ class PostgresStartupTest(unittest.TestCase):
             "users", "events", "demo_web_accounts", "demo_web_sessions",
             "demo_event_media", "demo_site_landing", "demo_verified_emails",
             "demo_email_challenges", "demo_email_outbox",
-            "demo_tickets", "demo_telegram_identities", "demo_privacy_requests", "demo_account_admin_audit", "demo_mfa_factors", "demo_mfa_sessions", "demo_legacy_ticket_claims",
+            "demo_tickets", "demo_telegram_identities", "demo_privacy_requests", "demo_account_admin_audit", "demo_mfa_factors", "demo_mfa_sessions", "demo_legacy_ticket_claims", "demo_organizer_applications",
         ):
             with self.subTest(table=name):
                 self.assertIn(name, names)
