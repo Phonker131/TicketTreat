@@ -14,7 +14,7 @@ from db.base import Base
 from demo_accounts import WebAccount, WebSession, token_hash
 from demo_account_recovery import VerifiedEmail
 from demo_auth_security import hash_password
-from demo_roles import WebAccountRole
+from demo_roles import WebAccountRole, GlobalAdminDelegation
 from demo_google import GoogleIdentity, GoogleFlow, install_google_auth, validate_claims, exchange_code
 
 
@@ -34,7 +34,7 @@ class GoogleAuthTests(unittest.TestCase):
         self.env.start(); self.addCleanup(self.env.stop)
         self.engine = create_engine("sqlite://", connect_args={"check_same_thread":False}, poolclass=StaticPool)
         Base.metadata.create_all(self.engine, tables=[OAuthTestGuest.__table__, WebAccount.__table__,
-            WebSession.__table__, VerifiedEmail.__table__, WebAccountRole.__table__, GoogleIdentity.__table__, GoogleFlow.__table__])
+            WebSession.__table__, VerifiedEmail.__table__, WebAccountRole.__table__, GlobalAdminDelegation.__table__, GoogleIdentity.__table__, GoogleFlow.__table__])
         self.sessions = sessionmaker(self.engine)
         def get_db():
             with self.sessions() as db: yield db
