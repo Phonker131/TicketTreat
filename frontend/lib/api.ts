@@ -247,7 +247,7 @@ export async function downloadEventParticipantsCsv(eventId: number, adminKey: st
   try {
     const link = document.createElement("a");
     link.href = objectUrl;
-    link.download = `crowdly-event-${eventId}-participants.csv`;
+    link.download = `tickettreat-event-${eventId}-participants.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -293,7 +293,7 @@ export async function exportManageParticipantsCsv(token:string,eventId:number):P
   const data=await r.blob();
   const url=URL.createObjectURL(data);
   const anchor=document.createElement("a");anchor.href=url;
-  anchor.download=`crowdly-event-${eventId}-participants.csv`;
+  anchor.download=`tickettreat-event-${eventId}-participants.csv`;
   document.body.appendChild(anchor);anchor.click();anchor.remove();
   window.setTimeout(()=>URL.revokeObjectURL(url),120000);
 }
