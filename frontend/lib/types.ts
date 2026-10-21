@@ -19,6 +19,8 @@ export type TicketTreatEvent = {
   payment_instructions_configured?: boolean;
   image_url: string | null;
   gallery_urls?: string[];
+  external_gallery_urls?: string[];
+  uploaded_gallery?: {id:number;url:string}[];
   video_url?: string | null;
   starts_at: string | null;
   is_cancelled: boolean;
