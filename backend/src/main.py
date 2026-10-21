@@ -3105,7 +3105,12 @@ def cancel_demo_ticket(
         }
 
     ticket.ticket_status = "cancelled"
-    ticket.payment_status = "refunded_demo"
+    # Cancellation of a free QR entry is not a payment or a refund.
+    # Never report simulated transactions as real money refunded.
+    ticket.payment_status = (
+        "not_required" if ticket.payment_provider in {"free","legacy_free"}
+        else "cancelled_demo"
+    )
     ticket.cancelled_at = utc_now()
 
     db.flush()
