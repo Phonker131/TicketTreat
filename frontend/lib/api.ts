@@ -517,6 +517,11 @@ export function confirmMagicLogin(email:string,code:string):Promise<WebAuthResul
     {method:"POST",body:JSON.stringify({email,code})});
 }
 
+export function sendEventAnnouncement(token:string,id:number,payload:{category:"access"|"logistics"|"schedule";message:string}):
+ Promise<{status:string;eligible_verified_ticket_holders:number}>{
+  return request(`/demo/manage/events/${id}/announcement`,{method:"POST",headers:accountHeaders(token),
+    body:JSON.stringify(payload)});
+}
 /** Organizer-owned read-only performance metrics. */
 export type PilotInsights = {
   event_id:number; capacity:number|null; registered:number;
