@@ -12,6 +12,7 @@
 | Organizers and global admins | ownership-scoped CRUD, CSV, QR check-in | Keep global-admin claims explicit; email alone not an admin grant |
 | Free entry | checkout branches for zero-price tickets and QR | Integration-test against DB |
 | Photo poster and event description | existing | Retain |
+| Global-admin website banner CMS | Implemented in this branch: editable headline, subtitle and stored image | Must test DB/media response in staging; site text currently shared across languages |
 | Event photo gallery + external video | added in this branch | External HTTPS links only; no video/file upload |
 | Transactional email | Resend outbox for welcome/ticket/check-in | Disabled until sender and credentials verified |
 | Scheduled email event reminders | Code added: durable Resend outbox 24h before event; verified email accounts only | Requires real provider + staging confirmation; no marketing email |
@@ -61,3 +62,7 @@
 - New QR booking: if website email is verified and the event is more than one hour away, queue one reminder approximately 24h before the start; an email provider must be configured. The worker skips cancelled events and inactive tickets. Verifying email also queues reminders for upcoming existing bookings.
 - Transactional reminders are **not** marketing newsletters. Consent for promotional email and address export requires separate policy/features.
 - `demo_verified_emails`, `demo_email_challenges`, and `demo_event_media` are additive SQLAlchemy tables; confirm database privileges and migration outcomes in staging. Do not assume `create_all` changes existing columns.
+
+## Global-admin homepage content
+
+The new `/admin/content` page allows a verified global administrator (with properly granted privileges) to edit homepage title, subtitle and a small JPG/PNG/WebP hero banner. Content is stored in the `demo_site_landing` table and served to the standalone browser site and Telegram Mini App. Larger production media should use object storage. Existing organizer CRUD, role permissions and QR check-in remain unchanged.
