@@ -73,11 +73,11 @@ export function HomeClient(){
     void refreshProfile();
     const onStorage=()=>{void refreshProfile();};
     window.addEventListener("storage",onStorage);
-    window.addEventListener("crowdly-auth-change",onStorage);
+    window.addEventListener("tickettreat-auth-change",onStorage);
     return()=>{
       controller.abort();
       window.removeEventListener("storage",onStorage);
-      window.removeEventListener("crowdly-auth-change",onStorage);
+      window.removeEventListener("tickettreat-auth-change",onStorage);
     };
   },[refreshProfile]);
 
