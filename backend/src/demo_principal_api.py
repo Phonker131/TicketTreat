@@ -100,6 +100,62 @@ def install_principal_api(app,get_db,main):
             db=db,authorization=authorization,
             x_telegram_init_data=x_telegram_init_data)
 
+    @app.get("/demo/me/events/{event_id}/waitlist/status")
+    def waitlist_status(event_id:int,guest=Depends(guest_for),db:Session=Depends(get_db)):
+        from demo_waitlist_offers import ensure_available_offer, expire_for_event, maybe_offer_next
+        event=db.query(main.Event).filter(main.Event.id==event_id).with_for_update().first()
+        if event is None:raise HTTPException(404,"event_not_found")
+        expire_for_event(db,event_id)
+        maybe_offer_next(db,event,main.get_registered_count(db,event_id))
+        offer=ensure_available_offer(db,event,guest)
+        entry=db.query(main.DemoWaitlist).filter(
+            main.DemoWaitlist.event_id==event_id,
+            main.DemoWaitlist.guest_id==guest.id).first()
+        position=None
+        if entry and entry.status=="waiting":
+            from sqlalchemy import func
+            position=db.query(func.count(main.DemoWaitlist.id)).filter(
+                main.DemoWaitlist.event_id==event_id,
+                main.DemoWaitlist.status=="waiting",
+                main.DemoWaitlist.created_at<=entry.created_at).scalar()
+        db.commit()
+        return {"status":"offered" if offer else entry.status if entry else "not_joined",
+                "expires_at":offer.expires_at.isoformat() if offer else None,
+                "position":int(position) if position else None}
+
+    @app.post("/demo/me/events/{event_id}/waitlist/claim")
+    def claim_waitlist_offer(event_id:int,payload:FreeBooking,
+                            background_tasks:BackgroundTasks,
+                            authorization:str|None=Header(default=None),
+                            x_telegram_init_data:str|None=Header(default=None),
+                            guest=Depends(guest_for),db:Session=Depends(get_db)):
+        from demo_waitlist_offers import ensure_available_offer, expire_for_event
+        event=db.query(main.Event).filter(main.Event.id==event_id).with_for_update().first()
+        if event is None:raise HTTPException(404,"event_not_found")
+        expire_for_event(db,event_id)
+        if ensure_available_offer(db,event,guest) is None:
+            raise HTTPException(409,"waitlist_offer_unavailable_or_expired")
+        return main.demo_checkout(event_id=event_id,
+            payload=main.DemoCheckoutCreate(guest_token=guest.access_token,language=payload.language),
+            background_tasks=background_tasks,db=db,authorization=authorization,
+            x_telegram_init_data=x_telegram_init_data)
+
+    @app.post("/demo/me/events/{event_id}/waitlist/decline")
+    def decline_waitlist_offer(event_id:int,guest=Depends(guest_for),
+                               db:Session=Depends(get_db)):
+        from demo_waitlist_offers import ensure_available_offer, maybe_offer_next
+        event=db.query(main.Event).filter(main.Event.id==event_id).with_for_update().first()
+        if event is None:raise HTTPException(404,"event_not_found")
+        offer=ensure_available_offer(db,event,guest)
+        if offer is None:raise HTTPException(409,"waitlist_offer_unavailable_or_expired")
+        offer.status="declined"
+        entry=db.get(main.DemoWaitlist,offer.waitlist_id)
+        if entry is not None:entry.status="declined"
+        db.flush()
+        maybe_offer_next(db,event,main.get_registered_count(db,event_id))
+        db.commit()
+        return {"status":"declined"}
+
     @app.post("/demo/me/events/{event_id}/waitlist")
     def waitlist(event_id:int,
                  authorization:str|None=Header(default=None),
