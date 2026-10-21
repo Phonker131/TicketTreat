@@ -45,3 +45,31 @@ Railway project **TicketTreat Production** currently has services **Backend, Bot
 ## Rollback
 
 Keep prior Git commit/deployment and verified backup. Reverse **application code** independently where possible; never blindly roll back irreversible database migrations. Document compensating SQL and reconciliation before attempting a schema rollback.
+
+
+## Encrypted offsite backups — deploy checklist (implementation added)
+
+The repository now has `scripts/offsite_backup.py` and `scripts/restore_offsite_backup.py`. These use streaming AES-256-GCM to protect a database dump before upload to S3-compatible private object storage; server-side S3 AES-256 encryption and an uploaded SHA-256 metadata check provide extra controls. **No Railway cron worker, destination credentials or backup schedule has been enabled.** Do not count this as an operating backup until a complete restore is rehearsed.
+
+Provision a dedicated PRIVATE backup worker with no public domain, no reuse of bot credentials and a dedicated read-only PostgreSQL backup user. Install `boto3`, `cryptography` and PostgreSQL client binaries matching the database major version. Set these as private worker secrets: `DATABASE_URL`, `TT_BACKUP_KEY_HEX` (a randomly generated 64-character hex value stored separately from the backups), `S3_BACKUP_BUCKET`, `S3_BACKUP_PREFIX`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` and optionally `S3_ENDPOINT_URL`.
+
+The cron/start command after secrets and encrypted object storage are configured is:
+
+```sh
+python scripts/offsite_backup.py --scratch-dir /tmp/tickettreat-private-backup
+```
+
+Choose cron cadence according to the approved RPO, verify error notifications and configure S3 object lifecycle expiration, versioning and privileged delete protections. The private scratch location briefly contains unencrypted dump material; it is wiped by the utility on ordinary exit but cannot be assumed safe on a crashed/compromised worker. Keep it isolated; do not use shared mounts.
+
+**Restore rehearsal into a new, isolated staging DB only:**
+
+```sh
+python scripts/restore_offsite_backup.py \
+  --s3-key 'tickettreat/database/YYYY/MM/DD/<known-object-key>.dump.ttbk' \
+  --destination /private/restore/tickettreat-staging.dump
+# Verify the destination is NOT the live production DB before pg_restore:
+pg_restore --no-owner --no-acl --dbname 'postgresql://STAGING_HOST/STAGING_DB' \
+  /private/restore/tickettreat-staging.dump
+```
+
+Review row counts, linked ticket claims, old bot identities, role grants and migration-ledger state. Destroy the temporary plaintext file securely, record the successful restoration and test rollback. The S3 permissions, key escrow, backup object lifecycle, retention periods and provider/data-processing approvals are operator decisions.
