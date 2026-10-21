@@ -90,3 +90,16 @@ jobs:
           PGPASSWORD: test_only_password
         run: |
           psql -h 127.0.0.1 -U tickettreat -d tickettreat_ci -tAc "SELECT count(*) FROM tickettreat_schema_migrations" | grep -qx 1
+      - name: Backup and restore rehearsal on disposable PostgreSQL
+        env:
+          PGPASSWORD: test_only_password
+        run: |
+          mkdir -p "$RUNNER_TEMP/private-backups"
+          python scripts/backup_postgres.py --output-dir "$RUNNER_TEMP/private-backups"
+          createdb -h 127.0.0.1 -U tickettreat -O tickettreat -T template0 tickettreat_restore_ci
+          pg_restore -h 127.0.0.1 -U tickettreat --no-owner --no-acl -d tickettreat_restore_ci "$RUNNER_TEMP"/private-backups/*.dump
+          for table in users registrations demo_tickets demo_legacy_ticket_claims demo_mfa_factors demo_privacy_requests; do
+            original="$(psql -h 127.0.0.1 -U tickettreat -d tickettreat_ci -tAc "SELECT count(*) FROM $table")"
+            restored="$(psql -h 127.0.0.1 -U tickettreat -d tickettreat_restore_ci -tAc "SELECT count(*) FROM $table")"
+            test "$original" = "$restored"
+          done
