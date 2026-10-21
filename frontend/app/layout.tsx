@@ -18,7 +18,8 @@ export const metadata: Metadata = {
     title: "TicketTreat",
   },
   icons: {
-    apple: "/apple-touch-icon.png",
+    icon: "/icon",
+    apple: "/apple-icon",
   },
 };
 
