@@ -131,7 +131,9 @@ def queue_event_reminder(db: Session, *, event, guest, ticket, language: str = "
     if not account or not email_is_verified(db, account.id):
         return
     start = event.starts_at
-    start = start.replace(tzinfo=timezone.utc) if start.tzinfo is None else start.astimezone(timezone.utc)
+    # Legacy event timestamps are venue-local Europe/Prague, never UTC.
+    start = start.replace(tzinfo=PRAGUE) if start.tzinfo is None else start.astimezone(PRAGUE)
+    start = start.astimezone(timezone.utc)
     current = datetime.now(timezone.utc)
     if start <= current + timedelta(hours=1):
         return
