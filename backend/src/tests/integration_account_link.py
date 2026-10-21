@@ -112,6 +112,19 @@ class AccountLinkTests(unittest.TestCase):
             cancelled=client.delete(f"/demo/guests/{guest_token}/tickets/{ticket.json()['ticket']['id']}",
                 headers={"Authorization":"Bearer "+raw_token})
             self.assertEqual(cancelled.status_code,200,cancelled.text)
+            # Erasure requests require account authentication and password
+            # confirmation, and may be withdrawn without corrupting tickets.
+            headers={"Authorization":"Bearer "+raw_token}
+            bad=client.post("/demo/auth/privacy-request",
+                headers=headers,json={"current_password":"incorrect"})
+            self.assertEqual(bad.status_code,403,bad.text)
+            request=client.post("/demo/auth/privacy-request",headers=headers,
+                json={"current_password":"dummy-safe-password-1234"})
+            self.assertEqual(request.status_code,202,request.text)
+            pending=client.get("/demo/auth/privacy-request",headers=headers)
+            self.assertEqual(pending.json()["status"],"pending")
+            withdrawn=client.delete("/demo/auth/privacy-request",headers=headers)
+            self.assertEqual(withdrawn.json()["status"],"withdrawn")
 
 
 if __name__ == "__main__":
