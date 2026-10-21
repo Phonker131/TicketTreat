@@ -80,11 +80,11 @@ export function AdminClient() {
   return <div className="app-shell"><AppHeader/><main className="page">
     <div className="admin-heading">
       <div><span className="status status-demo">{identity?.role==="global_admin"?"GLOBAL ADMIN":"ORGANIZER"}</span>
-        <h1>{identity?.role==="global_admin"?"Все события Crowdly":"Мои ивенты"}</h1>
+        <h1>{identity?.role==="global_admin"?"Все события TicketTreat":"Мои ивенты"}</h1>
         <p>{identity?.role==="global_admin"?"Полный доступ, назначение владельцев и модерация.":"Доступ только к собственным событиям."}</p>
       </div>
       {identity&&<div className="admin-event-actions">
-        {identity.role==="global_admin"&&<><Link className="button button-outline" href="/admin/accounts">Управление аккаунтами</Link><Link className="button button-outline" href="/admin/content">Контент сайта</Link></>}
+        {identity.role==="global_admin"&&<><Link className="button button-outline" href="/admin/accounts">Управление аккаунтами</Link><Link className="button button-outline" href="/admin/content">Контент сайта</Link><Link className="button button-outline" href="/admin/privacy">Запросы на удаление</Link></>}
         <Link className="button button-sun" href="/admin/check-in">Scan ticket</Link>
       </div>}
     </div>
