@@ -99,7 +99,15 @@ def queue_email(
     recipient = recipient.strip().lower()
     if not recipient or len(recipient) > 255 or "@" not in recipient:
         return
-    if db.query(EmailOutbox.id).filter(EmailOutbox.event_key == event_key).first():
+    prior = db.query(EmailOutbox).filter(EmailOutbox.event_key == event_key).first()
+    if prior:
+        # Rescheduling may revive a previously suppressed reminder. Never
+        # resend messages already sent or retry permanently failed delivery.
+        if kind == "reminder" and prior.state == "skipped":
+            prior.state = "pending"
+            prior.attempts = 0
+            prior.next_attempt_at = scheduled_at or datetime.now(timezone.utc)
+            prior.last_error = None
         return
     db.add(EmailOutbox(
         event_key=event_key, recipient=recipient,
@@ -110,10 +118,10 @@ def queue_email(
 
 
 def queue_event_reminder(db: Session, *, event, guest, ticket, language: str = "en") -> None:
-    """Queue one service reminder per ticket for 24 hours before the event.
+    """Queue configured intervals (default 7d, 24h, 3h) for verified holders.
 
-    Only verified website accounts receive this; anonymous emails are never
-    eligible, and old bookings do not trigger catch-up email blasts.
+    Deduplication keys contain the ticket, event time and interval; old
+    bookings do not trigger retrospective blasts.
     """
     if not configured() or event.starts_at is None:
         return
@@ -127,11 +135,16 @@ def queue_event_reminder(db: Session, *, event, guest, ticket, language: str = "
     current = datetime.now(timezone.utc)
     if start <= current + timedelta(hours=1):
         return
-    scheduled = max(current + timedelta(minutes=15), start - timedelta(hours=24))
-    queue_email(db, kind="reminder",
-        event_key=f"reminder:{ticket.id}:{int(start.timestamp())}",
-        recipient=account.email, guest_id=guest.id, ticket_id=ticket.id,
-        language=language, scheduled_at=scheduled)
+    from demo_pilot_ops import effective_settings
+    for minutes in effective_settings(db, event.id)["reminder_minutes"]:
+        intended = start - timedelta(minutes=minutes)
+        # Never send missed reminders shortly after a late registration.
+        if intended <= current + timedelta(minutes=15):
+            continue
+        queue_email(db, kind="reminder",
+            event_key=f"reminder:{ticket.id}:{int(start.timestamp())}:{minutes}",
+            recipient=account.email, guest_id=guest.id, ticket_id=ticket.id,
+            language=language, scheduled_at=intended)
 
 
 def queue_event_notice(db:Session, *, event, kind:str, message:str) -> int:
@@ -356,6 +369,16 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             subject = d[f"{row.kind}_subject"].format(event=name)
             title = d[f"{row.kind}_title"].format(event=name)
             lead = d[f"{row.kind}_body"]
+            if row.kind == "reminder":
+                try:
+                    minutes = int(row.event_key.rsplit(":", 1)[-1])
+                    if minutes in {10080, 1440, 180}:
+                        unit = {10080: "7 days", 1440: "24 hours", 180: "3 hours"}[minutes]
+                    else:
+                        unit = f"{minutes} minutes"
+                    lead = f"{lead}\nEvent starts in approximately {unit}."
+                except ValueError:
+                    pass
         link = f"{web_url}/tickets/{ticket.id}"
         button = d["button_ticket"]
         extra = (
