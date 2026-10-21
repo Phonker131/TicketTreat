@@ -90,6 +90,34 @@ authentication and browser integration tests. GitHub Actions jobs validate
 Python, migrations, PostgreSQL, browser E2E and TypeScript build on each
 branch update. Check the exact final commit's CI results before merging.
 
+## TicketTreat brand cleanup and legacy compatibility
+
+**Active public brand:** TicketTreat, domain `tickettreat.eu`. New app-only
+identifiers are `X-TicketTreat-Client`, `tickettreat-auth-change`,
+`tickettreat_web_auth`, `tickettreat_interface_language` and
+`tickettreat-qr-reader`. Website authentication markers and language choice
+are migrated from previous browser keys on first use without changing the
+HttpOnly session cookie. Regression testing verifies migration.
+
+**Compatibility exceptions only (not product branding):**
+- Older `CROWDLY:TICKET:` QR payloads remain accepted during check-in,
+  alongside the new `TICKETTREAT:TICKET:` prefix.
+- Stored organizer value `Crowdly` and saved CMS copy are normalized to
+  `TicketTreat` before display; historic database rows are not rewritten in
+  production by this branch.
+- The old `x-crowdly-client` gateway header may still be accepted for
+  already-loaded frontend clients; new requests send `X-TicketTreat-Client`.
+- Browser storage aliases beginning `crowdly_` are **read for migration and
+  then deleted**, not written as the current application state.
+- Resend's old internal `crowdly-` idempotency prefix is retained as a
+  *non-customer-facing delivery compatibility key* to avoid double delivery
+  of previously queued mail after a deployment. It is not part of the sender,
+  subject, template or product name.
+- `feature/crowdly-release-preparation` and
+  `crowdly-demo-mvp-20261020` are historic branch identifiers linked to
+  active release/production configuration. Rename those only as a separate
+  source-migration operation, not as a cosmetic commit.
+
 ## Product milestone
 
 Ship free events first with a deliberately bounded feature scope; scale
