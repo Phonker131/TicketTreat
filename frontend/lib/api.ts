@@ -553,6 +553,10 @@ export function revokePilotStaff(token:string,id:number,accountId:number):Promis
   return request(`/demo/manage/events/${id}/checkin-staff/${accountId}`,
     {method:"DELETE",headers:accountHeaders(token)});
 }
+export function checkInByList(token:string,eventId:number,ticketId:number):Promise<{status:"checked_in"|"already_checked_in";ticket:DemoTicket}>{
+  return request(`/demo/manage/events/${eventId}/check-in-by-list/${ticketId}`,
+    {method:"POST",headers:accountHeaders(token),body:JSON.stringify({})});
+}
 export function scanPilotTicket(token:string,qrToken:string):Promise<{status:"checked_in"|"already_checked_in";ticket:DemoTicket}>{
   return request("/demo/pilot/check-in",{method:"POST",headers:accountHeaders(token),
     body:JSON.stringify({qr_token:qrToken})});
