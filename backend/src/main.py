@@ -14,7 +14,7 @@ from typing import Any
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
@@ -36,7 +36,7 @@ from db import models
 from db.base import Base
 from db.session import SessionLocal, engine, get_db
 from demo_accounts import WebAccount, WebSession, install_demo_accounts
-from demo_telegram import DemoTelegramIdentity, install_telegram_auth
+from demo_telegram import DemoTelegramIdentity, install_telegram_auth, verified_telegram_id_for_guest, send_miniapp_ticket_notice
 from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
 from demo_roles import WebAccountRole, EventOwnership, EventModerationLog, install_demo_roles, install_account_moderation
 from demo_email import EmailOutbox, queue_email, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
@@ -2600,6 +2600,7 @@ def telegram_guest_has_bot_registration(db: Session, guest: DemoGuest, event_id:
 def demo_checkout(
     event_id: int,
     payload: DemoCheckoutCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     # A genuinely free event never needs a payment provider.
@@ -2706,6 +2707,14 @@ def demo_checkout(
     )
     db.commit()
     db.refresh(ticket)
+
+    # Signed Telegram Mini App users receive a QR-ticket link in the same bot
+    # after successful booking. This is independent from bot long polling.
+    telegram_id = verified_telegram_id_for_guest(db, guest.id)
+    if telegram_id is not None:
+        background_tasks.add_task(
+            send_miniapp_ticket_notice, telegram_id, event.title, ticket.id, free_event
+        )
 
     return {
         "status": "registered" if free_event else "paid",

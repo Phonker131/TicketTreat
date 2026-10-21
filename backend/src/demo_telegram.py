@@ -9,6 +9,9 @@ Security model:
 from __future__ import annotations
 
 import hashlib
+import html
+import urllib.error
+import urllib.request
 import hmac
 import json
 import logging
@@ -138,3 +141,57 @@ def install_telegram_auth(app, get_db, main) -> None:
             "bot_registrations": bot_user_registrations(db, telegram_id, main),
             "accounts_linked": False,
         }
+
+def send_miniapp_ticket_notice(telegram_id: int, event_title: str, ticket_id: int, is_free: bool) -> None:
+    """Best-effort private Telegram confirmation; does not block checkout.
+
+    A Telegram bot cannot initiate a DM to a user who never started it.
+    Do not send raw bearer/QR tokens in messages or logs.
+    """
+    bot_token = os.getenv("TELEGRAM_MINIAPP_BOT_TOKEN", "").strip()
+    web_url = os.getenv("WEB_APP_URL", "").strip().rstrip("/")
+    if not bot_token or not web_url.startswith("https://"):
+        return
+
+    kind = "🎟 Бесплатный билет" if is_free else "🎟 Crowdly Demo билет"
+    event = html.escape(event_title[:180])
+    ticket_url = f"{web_url}/tickets/{ticket_id}"
+    payload = {
+        "chat_id": telegram_id,
+        "text": (
+            f"<b>{kind} оформлен!</b>\\n"
+            f"<b>{event}</b>\\n"
+            f"Билет № CRD-{ticket_id:06d}\\n"
+            "Открой Mini App, чтобы показать QR-код на входе."
+        ).replace("\\n", "\n"),
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+        "reply_markup": {
+            "inline_keyboard": [[{
+                "text": "🎫 Открыть QR-билет",
+                "web_app": {"url": ticket_url},
+            }]]
+        },
+    }
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{bot_token}/sendMessage",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=6) as response:
+            if response.status != 200:
+                LOGGER.warning("Telegram notice failed with non-200 response (ticket %s)", ticket_id)
+    except urllib.error.HTTPError as exc:
+        # 403 is normal when the user has blocked the bot.
+        LOGGER.warning("Telegram notice HTTP %s for ticket %s", exc.code, ticket_id)
+    except (urllib.error.URLError, TimeoutError):
+        LOGGER.warning("Telegram notice unavailable for ticket %s", ticket_id)
+
+
+def verified_telegram_id_for_guest(db: Session, guest_id: int) -> int | None:
+    # Do not trust demo_guests.telegram_id alone, since guests can be created
+    # anonymously; only the signed-identity mapping is sufficient evidence.
+    row = db.query(DemoTelegramIdentity).filter(DemoTelegramIdentity.guest_id == guest_id).first()
+    return int(row.telegram_id) if row is not None else None
