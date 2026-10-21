@@ -6,6 +6,7 @@ via GLOBAL_ADMIN_ACCOUNT_IDS. Email alone is NOT proof of identity.
 from __future__ import annotations
 import csv
 import json
+import base64
 from urllib.parse import urlsplit
 import hashlib
 import hmac
@@ -23,6 +24,7 @@ from db.base import Base
 from demo_geography import DemoEventPlace, place_dict, save_place
 from demo_accounts import WebAccount, WebSession, token_hash, safe_csv
 from demo_auth_security import guard_rate, record_rate
+from demo_publication import EventPublication, state as publication_state, set_publication
 
 class WebAccountRole(Base):
     __tablename__ = "demo_web_account_roles"
@@ -169,6 +171,15 @@ class UpdateManageEvent(BaseModel):
     poster_data_url: str | None = Field(default=None, max_length=5700000)
     gallery_urls: list[str] | None = None
     video_url: str | None = None
+
+class PublicationUpdate(BaseModel):
+    status: str = Field(pattern="^(draft|published|scheduled)$")
+    publish_at: datetime | None = None
+
+
+class EventDuplicateOptions(BaseModel):
+    starts_at: datetime | None = None
+
 
 class CancelManageEvent(BaseModel):
     reason: str = Field(min_length=8, max_length=1000)
@@ -375,6 +386,7 @@ def install_demo_roles(app, get_db, main):
         eid=created["id"]
         event=db.query(main.Event).filter(main.Event.id==eid).first()
         db.add(EventOwnership(event_id=eid,owner_account_id=account.id))
+        set_publication(db,eid,"draft")
         save_place(db, DemoEventPlace, "event_id", eid, payload.country_code, payload.city)
         if payload.poster_data_url:
             poster_setup(db,main,request,event,payload.poster_data_url)
@@ -383,6 +395,112 @@ def install_demo_roles(app, get_db, main):
         db.commit()
         db.refresh(event)
         return event_data(event,db,main)
+
+    @app.put("/demo/manage/events/{event_id}/publication")
+    def change_publication(event_id:int,payload:PublicationUpdate,
+                           account:WebAccount=Depends(managing),
+                           db:Session=Depends(get_db)):
+        ensure_owner(db,event_id,account)
+        event=db.query(main.Event).filter(
+            main.Event.id==event_id
+        ).with_for_update().first()
+        if event is None:
+            raise HTTPException(404,"event_not_found")
+        if event.is_cancelled:
+            raise HTTPException(409,"event_is_cancelled")
+        if payload.status=="draft":
+            # Hiding events with issued passes or waiting attendees breaks
+            # existing users' links. Cancellation is a separate audited flow.
+            has_tickets=db.query(main.DemoTicket.id).filter(
+                main.DemoTicket.event_id==event_id,
+                main.DemoTicket.ticket_status=="active",
+            ).first()
+            has_waiters=db.query(main.DemoWaitlist.id).filter(
+                main.DemoWaitlist.event_id==event_id,
+                main.DemoWaitlist.status=="waiting",
+            ).first()
+            if has_tickets or has_waiters or main.get_registered_count(db,event_id)>0:
+                raise HTTPException(409,"cannot_unpublish_with_attendees")
+        else:
+            if not event.title or not event.title.strip() or not event.description or not event.description.strip():
+                raise HTTPException(422,"publish_requires_title_and_description")
+            if not event.location or not event.location.strip():
+                raise HTTPException(422,"publish_requires_venue")
+            place=db.query(DemoEventPlace).filter(DemoEventPlace.event_id==event_id).first()
+            if not place or not place.country_code or not place.city:
+                raise HTTPException(422,"publish_requires_country_and_city")
+            if not event.starts_at or main.event_is_past(event):
+                raise HTTPException(422,"publish_requires_future_start")
+            if not event.max_participants or event.max_participants<1:
+                raise HTTPException(422,"publish_requires_capacity")
+            if not main.get_event_languages(db,event_id):
+                raise HTTPException(422,"publish_requires_languages")
+            if main.price_decimal(event.price)>0:
+                raise HTTPException(409,"paid_event_publication_disabled")
+            if payload.status=="scheduled":
+                if payload.publish_at is None or payload.publish_at.tzinfo is None:
+                    raise HTTPException(422,"publish_at_timezone_required")
+                now=datetime.now(timezone.utc)
+                from demo_publication import utc
+                publish_at=utc(payload.publish_at)
+                event_start=main.normalize_event_datetime(event.starts_at).astimezone(timezone.utc)
+                if not now < publish_at < event_start:
+                    raise HTTPException(422,"publish_at_must_precede_event")
+            elif payload.publish_at is not None:
+                raise HTTPException(422,"publish_at_only_for_scheduled")
+        set_publication(db,event_id,payload.status,payload.publish_at)
+        audit(db,event_id,account.id,"publication",payload.status)
+        db.commit()
+        db.refresh(event)
+        return event_data(event,db,main)
+
+    @app.post("/demo/manage/events/{event_id}/duplicate",status_code=201)
+    def duplicate_event(event_id:int,payload:EventDuplicateOptions,request:Request,
+                        account:WebAccount=Depends(managing),
+                        db:Session=Depends(get_db)):
+        ensure_owner(db,event_id,account)
+        source=db.query(main.Event).filter(main.Event.id==event_id).first()
+        if source is None:
+            raise HTTPException(404,"event_not_found")
+        place=db.query(DemoEventPlace).filter(DemoEventPlace.event_id==event_id).first()
+        if place is None or not place.city or not place.country_code:
+            raise HTTPException(422,"set_source_country_and_city_first")
+        original=db.query(EventMedia).filter(EventMedia.event_id==event_id).first()
+        external=json.loads(original.gallery_json or "[]") if original else []
+        video=original.video_url if original else None
+        source_poster=db.query(main.DemoEventPoster).filter(
+            main.DemoEventPoster.event_id==event_id,
+        ).first()
+        poster=None
+        if source_poster is not None:
+            poster="data:"+source_poster.content_type+";base64,"+base64.b64encode(
+                source_poster.image_bytes).decode("ascii")
+        languages=main.get_event_languages(db,event_id)
+        if not languages:
+            raise HTTPException(422,"source_languages_missing")
+        data=CreateManageEvent(
+            title=(source.title[:240]+" (копия)") if len(source.title)<241 else source.title[:255],
+            organizer=source.organizer,location=source.location,
+            description=source.description,max_participants=source.max_participants,
+            price=source.price or Decimal("0"),currency=source.currency or "CZK",
+            starts_at=payload.starts_at or source.starts_at,
+            languages=languages,country_code=place.country_code,city=place.city,
+            gallery_urls=external,video_url=video,poster_data_url=poster,
+        )
+        result=new_event(data,request,account,db)
+        # Duplicate editorial media only, never bookings, waitlists or check-ins.
+        source_images=db.query(EventGalleryImage).filter(
+            EventGalleryImage.event_id==event_id,
+        ).order_by(EventGalleryImage.id).all()
+        if len(source_images)+len(external)>8:
+            raise HTTPException(409,"gallery_limit_reached")
+        for image in source_images:
+            db.add(EventGalleryImage(event_id=result["id"],
+                                     content_type=image.content_type,
+                                     image_bytes=image.image_bytes))
+        audit(db,result["id"],account.id,"duplicate",f"from:{event_id}")
+        db.commit()
+        return event_data(db.get(main.Event,result["id"]),db,main)
 
     @app.patch("/demo/manage/events/{event_id}")
     def modify_event(
@@ -504,7 +622,10 @@ def install_demo_roles(app, get_db, main):
         return event_data(event,db,main)
 
     @app.get("/demo/events/{event_id}/gallery/{image_id}")
-    def public_gallery_image(event_id:int,image_id:int,db:Session=Depends(get_db)):
+    def public_gallery_image(event_id:int,image_id:int,db:Session=Depends(get_db),
+                             authorization:str|None=Header(default=None)):
+        if not publication_state(db,event_id)["visible"]:
+            ensure_owner(db,event_id,account_lookup(db,authorization))
         image=db.query(EventGalleryImage).filter(
             EventGalleryImage.id==image_id,
             EventGalleryImage.event_id==event_id,
