@@ -7,10 +7,8 @@ before an isolated restore rehearsal, secrets audit and explicit release approva
 ## Implemented in code in this release branch
 
 - Event preparation, draft/preview/publication/scheduling, duplication and public share QR.
-- Website + signed Telegram identity, QR tickets, cancellation, waitlist auto-promotion
-  and event-capacity row locking; paid purchases remain disabled.
-- Verified website email login with a one-use, rate-limited 8-digit email OTP
-  (existing verified accounts only); Google authorization-code sign-in separately.
+- Website + signed Telegram identity, QR tickets, cancellation, backwards-compatible waitlist auto-promotion and optional timed waitlist offers (15–1440m). Event-row serialization reserves offered seats across parallel checkouts; holders can accept/decline, and expired offers are reassigned. Paid purchases remain disabled.
+- Verified website email login with a one-use, rate-limited 8-digit email OTP, and **new first-time passwordless email signup** with consent version stored; Google authorization-code sign-in separately.
   Login remains subject to existing MFA gates; no auto-grants.
 - Configurable event booking cutoff (0–10080 minutes) enforced on website
   checkout and waitlist. The bot's legacy registration cutoff must be tested and
@@ -25,30 +23,18 @@ before an isolated restore rehearsal, secrets audit and explicit release approva
   independently verified account; limited to scanning that event. Separate
   owner-only manual admission, duplicate-scan warning and read-only live counters.
   Staff cannot export participants or manage event settings.
-- Owner-only event insights: QR tickets, registrations including legacy count,
-  check-ins, waiting, cancellations, fill %, daily booking data; attendee check-in
-  history visible to the authenticated account only (up to 100 records).
-- Organizer search/filter/sort, mobile analytics layout, existing public media,
-  calendar, map, 4-language attendee interfaces and PWA support.
+- Owner-only event insights: QR tickets, registrations including legacy count, check-ins, waiting, cancellations, fill %, daily booking data, attributed channel totals (`utm_source` / `ref`) and final no-show after configurable duration. Attendee check-in history remains account-scoped (last 100 records).
+- Organizer search/filter/sort, responsive analytics, multilingual administrative labels, editable gallery image ordering and cover selection; optional private S3-compatible media uploads normalized to WebP with legacy PostgreSQL image reads. Calendar, map, four-language attendee interfaces and PWA support remain.
 
 ## Known engineering limitations — do NOT claim fully finished
 
-- Waitlist currently **auto-promotes** eligible guests; a configurable
-  offer/claim expiry workflow with cross-channel notifications is **not**
-  implemented. Do not promise time-limited claims to participants.
-- Registration is short for already authenticated browser/Google/Telegram
-  users. Email OTP login supports *existing verified accounts*; brand-new users
-  still need Google sign-up or account signup/verification. A truly registration-
-  free 3-action first-time experience is not yet complete.
-- Organizer/admin interface is not fully translated to CZ/EN/RU/UA.
-- Uploaded gallery images are bounded but still stored in PostgreSQL;
-  image order/crop/optimized object storage are not yet complete.
-- No event end timestamp, so no-show metrics can only be interpreted as an
-  indicative pending-admission count after start, not final attendance.
-- No full venue acquisition-source analytics, per-device offline scanning or
-  dynamic ticket lookups without connectivity.
-- Legacy Telegram bots must be regression-tested against booking cutoffs,
-  email and publication rules on isolated staging data.
+- Timed waitlist **offer/claim/decline and expiry** paths are implemented and tested. Transactional EMAIL offers require Resend; Telegram-specific offer notifications are not fully implemented. Set `WAITLIST_OFFER_WORKER_ENABLED=true` on exactly one designated Railway backend worker to enforce periodic expiry/reassignment without attendee traffic. Legacy auto-promotion stays the default.
+- Brand-new users can create a verified participant account during checkout using name, email and an eight-digit one-use code. This still requires a configured sender domain and a legally approved privacy notice. Non-email Telegram and Google routes remain independently authenticated.
+- Most core organizer actions and major account/privacy/MFA headings have curated CZ/EN/RU/UA labels in `frontend/lib/admin-i18n.ts`. Some dynamic admin messages, technical validation errors and secondary controls still need human localization QA.
+- New media can be stored privately in an S3-compatible bucket and normalized to WebP **when all S3 credentials are present**; legacy PostgreSQL media stays readable. Bucket provisioning, migrated old media, cross-provider egress and real CDN caching require staging validation. No user-side image crop editor.
+- Event duration is configurable and no-show is only reported after this duration elapses. Explicit arbitrary end-datetime and overnight/DST edge-case QA remain follow-ups.
+- UTM/ref channel totals are collected without cross-site fingerprinting. Offline QR verification and advanced multi-touch attribution are out of the bounded Free Pilot scope.
+- Legacy Telegram bots must be regression-tested against booking cutoffs, email and publication rules on isolated staging data. Their original old-version QR payloads are accepted by the new scanner.
 - Operational notices are service announcements, not promotional newsletters.
   A consent, unsubscribe, preference and deliverability system is required
   before any marketing outreach.
@@ -59,8 +45,7 @@ before an isolated restore rehearsal, secrets audit and explicit release approva
 ## Release gate: staging before any production update
 
 1. Isolate Railway staging with separate Postgres and **test** Bot credentials.
-   An attempt to create `TicketTreat Staging` on 21 October was rejected by
-   Railway with **"Deploys have been paused temporarily"**. It was not created.
+   Repeated attempts to create `TicketTreat Staging` on 21 October were rejected by Railway with **"Deploys have been paused temporarily"**. It was not created.
 2. Take a safe snapshot of the **live production** database; restore into
    staging without exposing user data to test email/Telegram providers.
 3. Preflight old bot duplicate registrations and conflicting website/Telegram
@@ -84,8 +69,8 @@ before an isolated restore rehearsal, secrets audit and explicit release approva
 
 ## CI and testing
 
-The repository includes `integration_pilot_ops.py` and
-`integration_magic_login.py`, in addition to existing PostgreSQL,
+The repository includes `integration_pilot_ops.py`, `integration_waitlist_offers.py`,
+`integration_quick_signup.py`, and `integration_magic_login.py`, in addition to existing PostgreSQL,
 authentication and browser integration tests. GitHub Actions jobs validate
 Python, migrations, PostgreSQL, browser E2E and TypeScript build on each
 branch update. Check the exact final commit's CI results before merging.
