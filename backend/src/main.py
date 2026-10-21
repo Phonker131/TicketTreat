@@ -37,6 +37,7 @@ from db import models
 from db.base import Base
 from db.session import SessionLocal, engine, get_db
 from demo_accounts import WebAccount, WebSession, install_demo_accounts
+from demo_account_recovery import VerifiedEmail, EmailChallenge, install_email_account_security
 from demo_telegram import DemoTelegramIdentity, install_telegram_auth, verified_telegram_id_for_guest, send_miniapp_ticket_notice
 from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
 from demo_roles import WebAccountRole, EventOwnership, EventModerationLog, install_demo_roles, install_account_moderation
@@ -3053,6 +3054,7 @@ def demo_email_status(
 install_demo_roles(app, get_db, __import__("sys").modules[__name__])
 
 install_account_moderation(app, get_db)
+install_email_account_security(app, get_db)
 
 # Privacy defaults for all user-specific responses, including errors.
 @app.middleware("http")
