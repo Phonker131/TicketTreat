@@ -215,14 +215,14 @@ def event_date(value: datetime | None) -> str:
 
 
 def qr_attachment(qr_token: str, ticket_id: int) -> dict:
-    image = qrcode.make(f"CROWDLY:TICKET:{qr_token}")
+    image = qrcode.make(f"TICKETTREAT:TICKET:{qr_token}")
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
     return {
-        "filename": f"crowdly-ticket-{ticket_id}.png",
+        "filename": f"tickettreat-ticket-{ticket_id}.png",
         "content": base64.b64encode(buffer.getvalue()).decode("ascii"),
         "content_type": "image/png",
-        "content_id": "crowdly-ticket-qr",
+        "content_id": "tickettreat-ticket-qr",
     }
 
 
@@ -313,9 +313,9 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             attachments.append(qr_attachment(ticket.qr_token, ticket.id))
             extra += (
                 '<div style="margin:25px 0;text-align:center;background:#F6EEFA;padding:20px;border-radius:12px">'
-                '<p style="font-weight:bold;margin:0 0 10px">CROWDLY PASS</p>'
+                '<p style="font-weight:bold;margin:0 0 10px">TICKETTREAT PASS</p>'
                 '<img alt="Ticket QR" width="220" height="220" style="max-width:100%;height:auto" '
-                'src="cid:crowdly-ticket-qr"></div>'
+                'src="cid:tickettreat-ticket-qr"></div>'
             )
             caption = d["qr_fallback"] + (" " + d["demo"] if ticket.payment_provider == "demo" else "")
         else:
