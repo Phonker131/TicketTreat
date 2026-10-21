@@ -5,12 +5,13 @@ import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { CountryCityFields } from "@/components/CountryCityFields";
 import {
-  getManageMe,getManageEvent,getManageParticipants,
+  getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
   editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
+import type {EventEmailStatus} from "@/lib/api";
 
 function asLocal(value: string|null): string {
   if(!value)return "";
@@ -25,6 +26,7 @@ export function AdminEventClient(){
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
   const [event,setEvent]=useState<ManageEvent|null>(null);
   const [data,setData]=useState<AdminEventTickets|null>(null);
+  const [emailStatus,setEmailStatus]=useState<EventEmailStatus|null>(null);
   const [organizers,setOrganizers]=useState<OrganizerIdentity[]>([]);
   const [audit,setAudit]=useState<{action:string;details:string;actor_account_id:number;at:string}[]>([]);
   const [error,setError]=useState(""),[notice,setNotice]=useState("");
@@ -45,6 +47,7 @@ export function AdminEventClient(){
       getManageMe(token),getManageEvent(eventId,token),getManageParticipants(token,eventId)
     ]);
     setIdentity(me);setEvent(ev);setData(tickets);
+    void getEventEmailStatus(token,eventId).then(setEmailStatus).catch(()=>setEmailStatus(null));
     setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"TicketTreat");
     setCountryCode(ev.country_code||"");setCity(ev.city||"");
     setDescription(ev.description||"");setGallery((ev.external_gallery_urls||ev.gallery_urls||[]).filter(s=>!s.startsWith("/api/gateway/demo/events/")).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
@@ -210,6 +213,15 @@ export function AdminEventClient(){
           value={reason} onChange={e=>setReason(e.target.value)} placeholder="Например: Организатор вынужден перенести мероприятие из-за…"/></label>
         <button className="button button-outline" disabled={busy||reason.trim().length<8}>Подтвердить отмену</button>
       </form>}
+      <section className="panel form-stack">
+        <h2>Уведомления участникам</h2>
+        <p>С подтверждённым email и действующим билетом: <strong>{emailStatus?.verified_ticket_holders??"—"}</strong></p>
+        <p className="form-note">{emailStatus?.email_enabled?
+          "Отправка подключена. Зарегистрированные пользователи получают письма с билетами, напоминаниями и важными изменениями.":
+          "Отправка отключена до подтверждения домена и настройки Resend. Новые письма пока не отправляются."}</p>
+        {emailStatus&&<p className="form-note">Доставлено: {emailStatus.message_states.sent||0} · В очереди: {emailStatus.message_states.pending||0} · Ошибок: {emailStatus.message_states.failed||0}</p>}
+        <p className="form-note">Список адресов участников доступен через Export CSV. Рекламные массовые письма не отправляются без отдельного согласия.</p>
+      </section>
       {identity.role==="global_admin"&&<section className="panel form-stack">
         <h2>Глобальная модерация</h2>
         <p>Владелец ивента: {event.owner_account_id==null?"не назначен":`Аккаунт #${event.owner_account_id}`}</p>
