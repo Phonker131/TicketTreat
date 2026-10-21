@@ -487,13 +487,13 @@ def install_demo_roles(app, get_db, main):
             languages=languages,country_code=place.country_code,city=place.city,
             gallery_urls=external,video_url=video,poster_data_url=poster,
         )
-        result=new_event(data,request,account,db)
-        # Duplicate editorial media only, never bookings, waitlists or check-ins.
+        # Copy only editorial media; fail before creating the new event if limits have changed.
         source_images=db.query(EventGalleryImage).filter(
             EventGalleryImage.event_id==event_id,
         ).order_by(EventGalleryImage.id).all()
         if len(source_images)+len(external)>8:
             raise HTTPException(409,"gallery_limit_reached")
+        result=new_event(data,request,account,db)
         for image in source_images:
             db.add(EventGalleryImage(event_id=result["id"],
                                      content_type=image.content_type,
