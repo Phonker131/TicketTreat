@@ -1,7 +1,8 @@
 """Manual website accounts and organizer CSV for the Crowdly showcase MVP.
 
-Separate from Telegram users. Passwords are PBKDF2-HMAC-SHA256 hashes.
-Web sessions are revocable, random bearer tokens stored as SHA-256 hashes.
+Separate from Telegram users. New passwords are Argon2id; PBKDF2 legacy
+hashes are upgraded after successful login. Session tokens are random,
+revocable bearer tokens stored as SHA-256 hashes.
 This is a DEMO auth flow: email ownership is NOT yet verified.
 """
 from __future__ import annotations
@@ -13,8 +14,6 @@ import io
 import os
 import re
 import secrets
-import threading
-import time
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, Header, HTTPException, Request
@@ -29,12 +28,9 @@ from demo_geography import DemoAccountPlace, clean_location, place_dict, save_pl
 from demo_email import queue_email
 from demo_auth_security import AuthRateBucket, hash_password, verify_password, needs_rehash, validate_new_password, guard_rate, record_rate, clear_rate
 
-PASSWORD_ITERATIONS = 350_000
 SESSION_DAYS = 7
 MAX_ACTIVE_SESSIONS = 5
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
-_ATTEMPTS: dict[str, list[float]] = {}
-_ATTEMPT_LOCK = threading.Lock()
 
 
 class WebAccount(Base):
@@ -112,17 +108,6 @@ def normal_contact(value: str) -> str:
     if value not in {"email", "phone", "telegram", "instagram"}:
         raise HTTPException(status_code=422, detail="invalid_contact_preference")
     return value
-
-
-def throttle(bucket: str, max_attempts: int = 12, window_seconds: int = 600) -> None:
-    """Per-process soft throttling for demo signups and login attempts."""
-    now = time.monotonic()
-    with _ATTEMPT_LOCK:
-        recent = [at for at in _ATTEMPTS.get(bucket, []) if now - at < window_seconds]
-        if len(recent) >= max_attempts:
-            raise HTTPException(status_code=429, detail="too_many_attempts")
-        recent.append(now)
-        _ATTEMPTS[bucket] = recent
 
 
 def safe_csv(value: object) -> str:
@@ -233,7 +218,7 @@ def install_demo_accounts(
     @app.post("/demo/auth/signup", status_code=201)
     def signup(payload: SignupData, request: Request, db: Session = Depends(get_db)):
         source_ip = request.client.host if request.client else "unknown"
-        guard_rate(db, "signup_ip", source_ip, 8, 600)
+        guard_rate(db, "signup_ip", source_ip, 40, 600)
         record_rate(db, "signup_ip", source_ip, 600)
         validate_new_password(payload.password)
         email = normalize_email(payload.email)
@@ -304,7 +289,7 @@ def install_demo_accounts(
     def login(payload: LoginData, request: Request, db: Session = Depends(get_db)):
         email = normalize_email(payload.email)
         source_ip = request.client.host if request.client else "unknown"
-        guard_rate(db, "login_ip", source_ip, 40, 900)
+        guard_rate(db, "login_ip", source_ip, 200, 900)
         guard_rate(db, "login_email", email, 12, 900)
         account = db.query(WebAccount).filter(WebAccount.email == email).first()
         if account is None or not verify_password(payload.password, account.password_hash):
@@ -356,8 +341,11 @@ def install_demo_accounts(
     ):
         """Change password and revoke every session on every device."""
         validate_new_password(payload.new_password)
+        guard_rate(db, "change_password_account", str(account.id), 8, 3600)
         if not verify_password(payload.current_password, account.password_hash):
+            record_rate(db, "change_password_account", str(account.id), 3600)
             raise HTTPException(status_code=401, detail="invalid_current_password")
+        clear_rate(db, "change_password_account", str(account.id))
         if payload.current_password == payload.new_password:
             raise HTTPException(status_code=422, detail="password_must_change")
         account.password_hash = hash_password(payload.new_password)
