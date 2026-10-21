@@ -142,7 +142,9 @@ def install_telegram_auth(app, get_db, main) -> None:
             "accounts_linked": False,
         }
 
-def send_miniapp_ticket_notice(telegram_id: int, event_title: str, ticket_id: int, is_free: bool) -> None:
+def send_miniapp_ticket_notice(
+    telegram_id: int, event_title: str, ticket_id: int, is_free: bool, language: str = "en",
+) -> None:
     """Best-effort private Telegram confirmation; does not block checkout.
 
     A Telegram bot cannot initiate a DM to a user who never started it.
@@ -153,22 +155,33 @@ def send_miniapp_ticket_notice(telegram_id: int, event_title: str, ticket_id: in
     if not bot_token or not web_url.startswith("https://"):
         return
 
-    kind = "🎟 Бесплатный билет" if is_free else "🎟 Crowdly Demo билет"
+    copy = {
+        "ru": ("Бесплатный билет" if is_free else "Демо-билет",
+               "оформлен", "Билет №", "Открой Mini App, чтобы показать QR-код на входе.", "Открыть QR-билет"),
+        "uk": ("Безкоштовний квиток" if is_free else "Демо-квиток",
+               "готовий", "Квиток №", "Відкрий Mini App, щоб показати QR-код на вході.", "Відкрити QR-квиток"),
+        "cs": ("Vstupenka zdarma" if is_free else "Demo vstupenka",
+               "vystavena", "Vstupenka č.", "Otevři Mini App a u vstupu ukaž QR kód.", "Otevřít QR vstupenku"),
+        "en": ("Free ticket" if is_free else "Demo ticket",
+               "confirmed", "Ticket #", "Open Mini App to show your QR code at the entrance.", "Open QR ticket"),
+    }
+    locale = (language or "en").lower().split("-", 1)[0]
+    heading, status, number, hint, button = copy.get(locale, copy["en"])
     event = html.escape(event_title[:180])
     ticket_url = f"{web_url}/tickets/{ticket_id}"
     payload = {
         "chat_id": telegram_id,
         "text": (
-            f"<b>{kind} оформлен!</b>\\n"
+            f"<b>🎟 {heading} — {status}</b>\\n"
             f"<b>{event}</b>\\n"
-            f"Билет № CRD-{ticket_id:06d}\\n"
-            "Открой Mini App, чтобы показать QR-код на входе."
+            f"{number} CRD-{ticket_id:06d}\\n"
+            f"{hint}"
         ).replace("\\n", "\n"),
         "parse_mode": "HTML",
         "disable_web_page_preview": True,
         "reply_markup": {
             "inline_keyboard": [[{
-                "text": "🎫 Открыть QR-билет",
+                "text": f"🎫 {button}",
                 "web_app": {"url": ticket_url},
             }]]
         },

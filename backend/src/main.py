@@ -2713,7 +2713,7 @@ def demo_checkout(
     telegram_id = verified_telegram_id_for_guest(db, guest.id)
     if telegram_id is not None:
         background_tasks.add_task(
-            send_miniapp_ticket_notice, telegram_id, event.title, ticket.id, free_event
+            send_miniapp_ticket_notice, telegram_id, event.title, ticket.id, free_event, payload.language
         )
 
     return {
