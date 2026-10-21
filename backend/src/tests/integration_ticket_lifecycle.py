@@ -53,20 +53,22 @@ class QRWaitlistE2E(unittest.TestCase):
             self.assertEqual(b.status_code,200,b.text)
             token_a=a.json()["guest"]["access_token"]
             token_b=b.json()["guest"]["access_token"]
-            booked=client.post(f"/demo/events/{event_id}/checkout",
-                json={"guest_token":token_a,"language":"en"},
+            booked=client.post(f"/demo/me/events/{event_id}/checkout",
+                json={"language":"en"},
                 headers={"X-Telegram-Init-Data":launch_a})
             self.assertEqual(booked.status_code,200,booked.text)
-            joined=client.post(f"/demo/events/{event_id}/waitlist",
-                json={"guest_token":token_b},headers={"X-Telegram-Init-Data":launch_b})
+            joined=client.post(f"/demo/me/events/{event_id}/waitlist",
+                headers={"X-Telegram-Init-Data":launch_b})
             self.assertEqual(joined.status_code,200,joined.text)
             self.assertEqual(joined.json()["status"],"waiting")
             cancelled=client.delete(
-                f"/demo/guests/{token_a}/tickets/{booked.json()['ticket']['id']}",
+                f"/demo/me/tickets/{booked.json()['ticket']['id']}",
                 headers={"X-Telegram-Init-Data":launch_a})
             self.assertEqual(cancelled.status_code,200,cancelled.text)
             self.assertIsNotNone(cancelled.json()["promoted_ticket_id"])
-            promoted=client.get(f"/demo/guests/{token_b}/tickets",
+            without_auth=client.get("/demo/me/tickets")
+            self.assertEqual(without_auth.status_code,401,without_auth.text)
+            promoted=client.get("/demo/me/tickets",
                 headers={"X-Telegram-Init-Data":launch_b})
             self.assertEqual(promoted.status_code,200,promoted.text)
             self.assertEqual(len(promoted.json()),1)
