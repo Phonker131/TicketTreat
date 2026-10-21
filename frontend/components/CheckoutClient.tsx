@@ -41,6 +41,7 @@ export function CheckoutClient() {
   useEffect(() => {
     restoreGuest()
       .then(setGuest)
+      .catch(err => setMessage(err instanceof Error ? err.message : "Authentication unavailable"))
       .finally(() => setLoadingGuest(false));
   }, []);
 

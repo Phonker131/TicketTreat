@@ -9,7 +9,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { cancelDemoTicket, getDemoTicket } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
-import { getStoredGuestToken } from "@/lib/session";
+import { restoreGuest } from "@/lib/session";
 import type { DemoTicket } from "@/lib/types";
 
 export function TicketClient() {
@@ -21,9 +21,9 @@ export function TicketClient() {
   const [message, setMessage] = useState(search.get("paid") === "1" ? t(language, "paymentSuccess") : null);
 
   async function load() {
-    const token = getStoredGuestToken();
-    if (!token || !params?.id) return;
-    const data = await getDemoTicket(token, params.id);
+    const guest = await restoreGuest();
+    if (!guest || !params?.id) return;
+    const data = await getDemoTicket(guest.access_token, params.id);
     setTicket(data);
     setQr(await QRCode.toDataURL(`CROWDLY:TICKET:${data.qr_token}`, {width: 360, margin: 1}));
   }
@@ -32,10 +32,10 @@ export function TicketClient() {
 
   async function cancel() {
     if (!ticket) return;
-    const token = getStoredGuestToken();
-    if (!token) return;
+    const guest = await restoreGuest();
+    if (!guest) return;
     if (!window.confirm(t(language, "cancelTicket"))) return;
-    const result = await cancelDemoTicket(token, ticket.id);
+    const result = await cancelDemoTicket(guest.access_token, ticket.id);
     setTicket(result.ticket);
     setMessage(t(language, "cancelledTicket"));
   }

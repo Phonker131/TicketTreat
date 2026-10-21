@@ -1010,3 +1010,7 @@ input:focus, textarea:focus, select:focus {
   .location-reminder {align-items:stretch;flex-direction:column;}
   .location-reminder .button {width:100%;}
 }
+
+/* Telegram Mini App: keep legacy bot registrations distinct from QR tickets. */
+.telegram-bot-events { padding-top: 22px; margin-top: 20px; border-top: 1px solid rgba(30, 10, 40, .1); }
+.telegram-bot-events .ticket-list { margin-top: 12px; }
