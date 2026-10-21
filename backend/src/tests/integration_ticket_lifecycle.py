@@ -86,6 +86,20 @@ class QRWaitlistE2E(unittest.TestCase):
             code=_code(secret,int(time.time())//30)
             ready=client.post("/demo/auth/mfa/confirm",headers=headers,json={"code":code})
             self.assertEqual(ready.status_code,200,ready.text)
+            create=client.post("/demo/manage/events",headers=headers,json={
+                "country_code":"CZ","city":"Prague","title":"Draft test",
+                "description":"Event description","location":"Praha 2",
+                "starts_at":(datetime.now(timezone.utc)+timedelta(days=3)).isoformat(),
+                "max_participants":20,"price":0,"currency":"CZK","languages":["en"]})
+            self.assertEqual(create.status_code,201,create.text)
+            draft=create.json()["id"]
+            self.assertEqual(create.json()["publication"]["status"],"draft")
+            self.assertEqual(client.get(f"/events/{draft}").status_code,404)
+            self.assertEqual(client.get(f"/demo/manage/events/{draft}",headers=headers).status_code,200)
+            published=client.put(f"/demo/manage/events/{draft}/publication",
+                headers=headers,json={"status":"published"})
+            self.assertEqual(published.status_code,200,published.text)
+            self.assertEqual(client.get(f"/events/{draft}").status_code,200)
             scan=client.post("/demo/manage/check-in",headers=headers,json={"qr_token":qr})
             self.assertEqual(scan.status_code,200,scan.text)
             self.assertEqual(scan.json()["status"],"checked_in")
