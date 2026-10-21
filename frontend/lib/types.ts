@@ -15,6 +15,7 @@ export type CrowdlyEvent = {
   currency: string | null;
   languages: LanguageCode[];
   payment_required?: boolean;
+  payment_status?: string;
   payment_instructions_configured?: boolean;
   image_url: string | null;
   starts_at: string | null;

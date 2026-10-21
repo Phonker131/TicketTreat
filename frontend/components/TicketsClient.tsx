@@ -88,7 +88,9 @@ export function TicketsClient() {
                   </div>
                   <div className="ticket-row-right">
                     <span className="status status-demo">{event.is_cancelled ?
-                      t(language,"cancelledTicket") : language==="ru"?"Записан":language==="cs"?"Přihlášen":"Registered"}</span>
+                      t(language,"cancelledTicket") : event.payment_status === "pending" ?
+                      (language==="ru"?"Ожидает оплаты":language==="uk"?"Очікує оплати":language==="cs"?"Čeká na platbu":"Payment pending") :
+                      (language==="ru"?"Записан":language==="uk"?"Зареєстровано":language==="cs"?"Přihlášen":"Registered")}</span>
                   </div>
                 </Link>
               ))}
