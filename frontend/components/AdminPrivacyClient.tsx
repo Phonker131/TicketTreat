@@ -2,10 +2,14 @@
 import {useEffect,useState} from "react";
 import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
+import {useLanguage} from "@/components/LanguageProvider";
+import {adminTranslate} from "@/lib/admin-i18n";
 import {getWebToken} from "@/lib/session";
 import {listErasureRequests,fulfillErasureRequest,type PendingErasure} from "@/lib/api";
 
 export function AdminPrivacyClient(){
+  const {language}=useLanguage();
+  const tr=(phrase:string)=>adminTranslate(language,phrase);
   const [rows,setRows]=useState<PendingErasure[]>([]);
   const [reason,setReason]=useState("");
   const [code,setCode]=useState("");
@@ -28,12 +32,12 @@ export function AdminPrivacyClient(){
     }finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
-    <Link href="/admin" className="back-link">← Admin dashboard</Link>
-    <h1>Data erasure requests</h1>
+    <Link href="/admin" className="back-link">{tr("← Admin dashboard")}</Link>
+    <h1>{tr("Data erasure requests")}</h1>
     <p className="form-note">Global-admin MFA is required. Never fulfill a request without checking legal obligations, user ownership and backup retention. Conflicting records will block automatic fulfillment.</p>
     {error&&<p className="state-card state-error" role="alert">{error}</p>}
     {notice&&<p className="success-banner">{notice}</p>}
-    {rows.length===0?<p className="state-card">No pending requests.</p>:
+    {rows.length===0?<p className="state-card">{tr("No pending requests.")}</p>:
       <div className="ticket-list">{rows.map(row=><section key={row.request_id} className="panel form-stack">
         <strong>Request #{row.request_id} · Account #{row.account_id}</strong>
         <p>{row.email}</p><small>{new Date(row.created_at).toLocaleString()}</small>
@@ -52,7 +56,7 @@ export function AdminPrivacyClient(){
         <input autoComplete="off" value={code} onChange={e=>setCode(e.target.value)}/>
       </label>
       <button className="button button-primary" disabled={busy||code!=="ERASE"||reason.trim().length<12}
-        onClick={act}>Fulfill eligible erasure</button>
+        onClick={act}>{tr("Fulfill eligible erasure")}</button>
     </section>}
   </main></div>;
 }
