@@ -25,7 +25,7 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/src/requirements.txt
-      - run: python -m pip install -r backend/src/requirements.txt
+      - run: python -m pip install -r backend/src/requirements.txt httpx==0.28.1
       - run: python -m compileall -q backend/src bot/src
       - name: Unit tests
         env:
@@ -92,7 +92,7 @@ jobs:
         env:
           PGPASSWORD: test_only_password
         run: |
-          psql -h 127.0.0.1 -U tickettreat -d tickettreat_ci -tAc "SELECT count(*) FROM tickettreat_schema_migrations" | grep -qx 1
+          psql -h 127.0.0.1 -U tickettreat -d tickettreat_ci -tAc "SELECT count(*) FROM tickettreat_schema_migrations" | grep -qx 2
       - name: Backup and restore rehearsal on disposable PostgreSQL
         env:
           PGPASSWORD: test_only_password
@@ -142,7 +142,7 @@ jobs:
           node-version: "22"
       - name: Install backend and browser dependencies
         run: |
-          python -m pip install -r backend/src/requirements.txt
+          python -m pip install -r backend/src/requirements.txt httpx==0.28.1
           cd frontend && npm install --no-audit --no-fund
           npx playwright install --with-deps chromium
       - name: Initialize browser-only fixture and start APIs

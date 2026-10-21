@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {GoogleSignIn} from "@/components/GoogleSignIn";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { getVerifiedTelegramSession } from "@/lib/session";
@@ -428,6 +429,8 @@ export function ProfileClient() {
                 }}>
                 {language==="ru"?"Скачать мои данные (JSON)":language==="uk"?"Завантажити мої дані (JSON)":language==="cs"?"Stáhnout moje údaje (JSON)":"Download my data (JSON)"}
               </button>
+              <GoogleSignIn link />
+              <p className="form-note">{language==="ru"?"Если аккаунт создан через Google, задай пароль через восстановление по email, чтобы включить двухфакторную защиту.":"For a Google-created account, set a password through email recovery before enrolling in two-factor authentication."}</p>
               <Link href="/security/mfa" className="button button-outline">Two-factor authentication</Link>
               {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">Become an organizer</Link>}
               <Link href="/privacy" className="button button-outline">
@@ -464,6 +467,7 @@ export function ProfileClient() {
             {notice && <div className="success-banner" role="status">{notice}</div>}
             <form className="panel form-stack" onSubmit={submitAuth}>
               <h2>{mode==="signup"?tr.create:tr.login}</h2>
+              <GoogleSignIn />
               {mode==="signup" && (
                 <fieldset className="event-language-fieldset">
                   <legend>{language==="en"?"Register as":language==="cs"?"Typ účtu":language==="uk"?"Зареєструватися як":"Зарегистрироваться как"}</legend>

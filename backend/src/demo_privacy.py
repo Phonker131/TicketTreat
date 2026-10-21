@@ -204,6 +204,9 @@ def install_privacy_routes(app, get_db, main):
         db.query(DemoAccountPlace).filter(DemoAccountPlace.account_id==account.id).delete(synchronize_session=False)
         db.query(WebAccountRole).filter(WebAccountRole.account_id==account.id).delete(synchronize_session=False)
         db.query(GlobalAdminBinding).filter(GlobalAdminBinding.account_id==account.id).delete(synchronize_session=False)
+        from demo_google import GoogleIdentity, GoogleFlow
+        db.query(GoogleIdentity).filter(GoogleIdentity.account_id==account.id).delete(synchronize_session=False)
+        db.query(GoogleFlow).filter(GoogleFlow.account_id==account.id).delete(synchronize_session=False)
         guest.access_token=secrets.token_urlsafe(32)
         guest.telegram_id=None;guest.username=None;guest.email=None
         guest.first_name="Erased";guest.last_name=None

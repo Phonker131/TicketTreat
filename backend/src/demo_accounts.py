@@ -221,6 +221,9 @@ def install_demo_accounts(
             ),
         }
 
+    from demo_google import install_google_auth
+    install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict)
+
     @app.post("/demo/auth/signup", status_code=201)
     def signup(payload: SignupData, request: Request, db: Session = Depends(get_db)):
         source_ip = request.client.host if request.client else "unknown"

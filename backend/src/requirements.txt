@@ -23,3 +23,6 @@ qrcode[pil]==8.2
 argon2-cffi==25.1.0
 
 cryptography>=43,<47
+
+google-auth>=2.40,<3
+requests>=2.32,<3

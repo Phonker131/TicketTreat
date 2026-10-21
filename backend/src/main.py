@@ -39,6 +39,7 @@ from db import models
 from db.base import Base
 from db.session import SessionLocal, engine, get_db
 from demo_accounts import WebAccount, WebSession, install_demo_accounts
+from demo_google import GoogleIdentity, GoogleFlow
 from demo_account_recovery import VerifiedEmail, EmailChallenge, install_email_account_security
 from demo_site_content import SiteLanding, install_site_content
 from demo_telegram import DemoTelegramIdentity, install_telegram_auth, verified_telegram_id_for_guest, verified_telegram_user, send_miniapp_ticket_notice

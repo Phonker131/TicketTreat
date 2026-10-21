@@ -90,11 +90,10 @@ export function clearWebAuth(): void {
 }
 
 export async function restoreWebProfile(): Promise<WebProfile | null> {
-  const token = getWebToken();
-  if (!token) return null;
+  const token = getWebToken() || SESSION_MARKER;
   try {
     const profile = await getWebProfile(token);
-    storeGuest(profile.guest);
+    setWebAuth({token:SESSION_MARKER,profile});
     return profile;
   } catch (error) {
     if ((error as {status?: number})?.status === 401) {

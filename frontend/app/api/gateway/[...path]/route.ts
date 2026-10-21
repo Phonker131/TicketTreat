@@ -20,6 +20,7 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   if (!supported.has(method)) return NextResponse.json({detail:"method_not_allowed"},{status:405});
   const {path} = await context.params;
   const relative = "/" + path.map(encodeURIComponent).join("/");
+  if (relative === "/demo/auth/google/finish") return NextResponse.json({detail:"path_not_allowed"},{status:404});
   if (!relative.startsWith("/demo/") && relative !== "/events" && !/^\/events\/\d+$/.test(relative) && relative !== "/") {
     return NextResponse.json({detail:"path_not_allowed"},{status:404});
   }
@@ -76,6 +77,16 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   const init:ResponseInit={status:upstream.status,headers:{"Content-Type":outType,"Cache-Control":"private, no-store"}};
   // Never forward Set-Cookie or upstream redirections.
   if(upstream.status>=300&&upstream.status<400)return NextResponse.json({detail:"redirect_denied"},{status:502});
+  if (relative === "/demo/auth/google/start" && upstream.ok) {
+    const data = await upstream.json().catch(() => null);
+    if (!data || typeof data.browser_token !== "string" || typeof data.url !== "string")
+      return NextResponse.json({detail:"malformed_google_response"},{status:502});
+    const response = NextResponse.json({url:data.url},{headers:{"Cache-Control":"no-store"}});
+    response.cookies.set("tt_google_flow",data.browser_token,{httpOnly:true,sameSite:"lax",
+      secure:process.env.NODE_ENV==="production" || req.nextUrl.protocol==="https:",
+      path:"/api/auth/google",maxAge:600});
+    return response;
+  }
   const shouldSave=sessionPaths.has(relative) && upstream.ok;
   const shouldClear=logoutPaths.has(relative) && upstream.ok;
   if(shouldSave){
