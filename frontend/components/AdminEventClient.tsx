@@ -11,10 +11,11 @@ import {
   editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,
   setManagePublication,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
+  getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
-import type {EventEmailStatus} from "@/lib/api";
+import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff} from "@/lib/api";
 
 function asLocal(value: string|null): string {
   if(!value)return "";
@@ -31,6 +32,10 @@ export function AdminEventClient(){
   const [event,setEvent]=useState<ManageEvent|null>(null);
   const [data,setData]=useState<AdminEventTickets|null>(null);
   const [emailStatus,setEmailStatus]=useState<EventEmailStatus|null>(null);
+  const [pilotInsights,setPilotInsights]=useState<PilotInsights|null>(null);
+  const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180]});
+  const [pilotStaff,setPilotStaff]=useState<CheckinStaff[]>([]);
+  const [staffEmail,setStaffEmail]=useState("");
   const [organizers,setOrganizers]=useState<OrganizerIdentity[]>([]);
   const [audit,setAudit]=useState<{action:string;details:string;actor_account_id:number;at:string}[]>([]);
   const [error,setError]=useState(""),[notice,setNotice]=useState("");
@@ -53,6 +58,9 @@ export function AdminEventClient(){
     ]);
     setIdentity(me);setEvent(ev);setData(tickets);
     void getEventEmailStatus(token,eventId).then(setEmailStatus).catch(()=>setEmailStatus(null));
+    void getPilotInsights(token,eventId).then(setPilotInsights).catch(()=>setPilotInsights(null));
+    void getPilotSettings(token,eventId).then(setPilotSettings).catch(()=>{});
+    void getPilotStaff(token,eventId).then(setPilotStaff).catch(()=>setPilotStaff([]));
     setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"TicketTreat");
     setCountryCode(ev.country_code||"");setCity(ev.city||"");
     setDescription(ev.description||"");setGallery((ev.external_gallery_urls||ev.gallery_urls||[]).filter(s=>!s.startsWith("/api/gateway/demo/events/")).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
@@ -139,6 +147,30 @@ export function AdminEventClient(){
       await reload();setNotice("Фотография удалена.");
     }catch(e){setError(formattedError(e))}
     finally{setBusy(false)}
+  }
+  async function savePilotPolicy(){
+    const token=getWebToken();if(!token)return;
+    setBusy(true);setError("");setNotice("");
+    try{
+      await updatePilotSettings(token,eventId,pilotSettings);
+      await reload();setNotice("Дедлайн регистрации и расписание напоминаний сохранены.");
+    }catch(e){setError(formattedError(e));}
+    finally{setBusy(false);}
+  }
+  async function addCheckinStaff(){
+    const token=getWebToken();if(!token||!staffEmail.trim())return;
+    setBusy(true);setError("");
+    try{await grantPilotStaff(token,eventId,staffEmail.trim());setStaffEmail("");await reload();
+      setNotice("Доступ к сканированию билетов предоставлен.");}
+    catch(e){setError(formattedError(e));}
+    finally{setBusy(false);}
+  }
+  async function removeCheckinStaff(id:number){
+    const token=getWebToken();if(!token||!window.confirm("Отозвать доступ к сканированию?"))return;
+    setBusy(true);setError("");
+    try{await revokePilotStaff(token,eventId,id);await reload();setNotice("Доступ отозван.");}
+    catch(e){setError(formattedError(e));}
+    finally{setBusy(false);}
   }
   async function publication(status:"draft"|"scheduled"|"published"){
     const token=getWebToken();if(!token||!event)return;
@@ -272,6 +304,56 @@ export function AdminEventClient(){
           value={reason} onChange={e=>setReason(e.target.value)} placeholder="Например: Организатор вынужден перенести мероприятие из-за…"/></label>
         <button className="button button-outline" disabled={busy||reason.trim().length<8}>Подтвердить отмену</button>
       </form>}
+      {pilotInsights&&<section className="panel form-stack">
+        <h2>Аналитика посещаемости</h2>
+        <div className="stats-grid">
+          <div className="stat-card"><strong>{pilotInsights.registered}</strong><span>Регистрации всего</span></div>
+          <div className="stat-card"><strong>{pilotInsights.occupancy_percent??"—"}%</strong><span>Заполненность</span></div>
+          <div className="stat-card"><strong>{pilotInsights.checked_in}</strong><span>Пришли по QR</span></div>
+          <div className="stat-card"><strong>{pilotInsights.no_show??"—"}</strong><span>No-show (после начала)</span></div>
+          <div className="stat-card"><strong>{pilotInsights.waitlist}</strong><span>Ожидают места</span></div>
+          <div className="stat-card"><strong>{pilotInsights.cancelled_tickets}</strong><span>Отмены</span></div>
+        </div>
+        <h3>Регистрации по дням (до 90 дат)</h3>
+        {pilotInsights.daily_bookings.length===0?<p>Нет регистраций.</p>:
+          <div className="pilot-analytics-bars">{pilotInsights.daily_bookings.map(day=>
+            <div className="pilot-bar-row" key={day.date}><span>{day.date}</span>
+              <div className="pilot-bar-track"><div style={{width:`${100*day.count/Math.max(1,...pilotInsights.daily_bookings.map(x=>x.count))}%`}}/></div>
+              <strong>{day.count}</strong>
+            </div>)}</div>}
+        <p className="form-note">Старые записи Telegram учитываются во вместимости, но не во всех QR-метриках.</p>
+      </section>}
+      {!event.is_cancelled&&<section className="panel form-stack">
+        <h2>Правила бесплатной регистрации</h2>
+        <label>Закрыть регистрацию за N минут до начала (0 — до старта)
+          <input type="number" min={0} max={10080}
+            value={pilotSettings.signup_cutoff_minutes}
+            onChange={e=>setPilotSettings(s=>({...s,signup_cutoff_minutes:Number(e.target.value)}))}/>
+        </label>
+        <fieldset className="event-language-fieldset"><legend>Письма-напоминания</legend>
+          {([[10080,"За 7 дней"],[1440,"За 24 часа"],[180,"За 3 часа"]] as const).map(([minutes,label])=>
+            <label key={minutes} style={{display:"inline-flex",gap:8,marginRight:16}}>
+              <input type="checkbox" checked={pilotSettings.reminder_minutes.includes(minutes)}
+                onChange={e=>setPilotSettings(s=>({...s,reminder_minutes:
+                  e.target.checked?[...s.reminder_minutes,minutes]:s.reminder_minutes.filter(x=>x!==minutes)}))}/>
+              {label}
+            </label>)}
+        </fieldset>
+        <p className="form-note">Письма отправляются только подтверждённым владельцам билетов, после включения Resend. Пропущенные интервалы не рассылаются задним числом.</p>
+        <button className="button button-primary" type="button" disabled={busy||!pilotSettings.reminder_minutes.length}
+          onClick={savePilotPolicy}>Сохранить правила</button>
+      </section>}
+      <section className="panel form-stack">
+        <h2>Персонал для проверки билетов</h2>
+        <p className="form-note">Можно назначить подтверждённый TicketTreat-аккаунт только на QR check-in этого мероприятия. Управление ивентом и экспорт участников остаются закрыты.</p>
+        <label>Email сотрудника<input type="email" value={staffEmail} onChange={e=>setStaffEmail(e.target.value)} placeholder="staff@example.com"/></label>
+        <button type="button" className="button button-outline" disabled={busy||!staffEmail.includes("@")} onClick={addCheckinStaff}>Выдать доступ</button>
+        {pilotStaff.map(staff=><div className="participant-row" key={staff.account_id}>
+          <div><strong>{staff.email}</strong><small>Аккаунт #{staff.account_id}</small></div>
+          <button className="button button-outline" type="button" disabled={busy}
+            onClick={()=>removeCheckinStaff(staff.account_id)}>Отозвать</button>
+        </div>)}
+      </section>
       <section className="panel form-stack">
         <h2>Уведомления участникам</h2>
         <p>С подтверждённым email и действующим билетом: <strong>{emailStatus?.verified_ticket_holders??"—"}</strong></p>
