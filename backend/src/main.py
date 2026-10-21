@@ -6,6 +6,7 @@ import hashlib
 import os
 import secrets
 import threading
+import json
 import time
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
@@ -939,6 +940,10 @@ def event_to_dict(
 
     if db is not None:
         data.update(place_dict(db, DemoEventPlace, "event_id", event.id))
+        from demo_roles import EventMedia
+        media = db.query(EventMedia).filter(EventMedia.event_id == event.id).first()
+        data["gallery_urls"] = json.loads(media.gallery_json or "[]") if media else []
+        data["video_url"] = media.video_url if media else None
     else:
         data.update({"country_code": None, "city": None})
 
