@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import {useLanguage} from "@/components/LanguageProvider";
+import {adminTranslate} from "@/lib/admin-i18n";
 import { CountryCityFields } from "@/components/CountryCityFields";
 import { addManageEvent, getManageEvents, getManageMe } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
@@ -20,6 +22,8 @@ function readPoster(file: File): Promise<string> {
   });
 }
 export function AdminClient() {
+  const {language}=useLanguage();
+  const tr=(phrase:string)=>adminTranslate(language,phrase);
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
   const [events,setEvents]=useState<ManageEvent[]>([]);
   const [loading,setLoading]=useState(true);
@@ -87,7 +91,7 @@ export function AdminClient() {
         <p>{identity?.role==="global_admin"?"Полный доступ, назначение владельцев и модерация.":"Доступ только к собственным событиям."}</p>
       </div>
       {identity&&<div className="admin-event-actions">
-        {identity.role==="global_admin"&&<><Link className="button button-outline" href="/admin/accounts">Управление аккаунтами</Link><Link className="button button-outline" href="/admin/content">Контент сайта</Link><Link className="button button-outline" href="/admin/privacy">Запросы на удаление</Link><Link className="button button-outline" href="/admin/organizers">Заявки организаторов</Link></>}
+        {identity.role==="global_admin"&&<><Link className="button button-outline" href="/admin/accounts">{tr("Управление аккаунтами")}</Link><Link className="button button-outline" href="/admin/content">{tr("Контент сайта")}</Link><Link className="button button-outline" href="/admin/privacy">{tr("Запросы на удаление")}</Link><Link className="button button-outline" href="/admin/organizers">{tr("Заявки организаторов")}</Link></>}
         <Link className="button button-sun" href="/admin/check-in">Scan ticket</Link>
       </div>}
     </div>
@@ -100,41 +104,41 @@ export function AdminClient() {
         {showForm?"Закрыть":"+ Create event"}</button>
       </div>
       {showForm&&<form className="panel form-stack" onSubmit={submit}>
-        <h2>Новый ивент</h2><p className="form-note">Новый ивент создаётся как приватный черновик. После редактирования его можно опубликовать или запланировать.</p>
-        <label>Название<input required name="title" maxLength={255}/></label>
-        <label>Организатор<input name="organizer" defaultValue="TicketTreat" /></label>
+        <h2>{tr("Новый ивент")}</h2><p className="form-note">Новый ивент создаётся как приватный черновик. После редактирования его можно опубликовать или запланировать.</p>
+        <label>{tr("Название")}<input required name="title" maxLength={255}/></label>
+        <label>{tr("Организатор")}<input name="organizer" defaultValue="TicketTreat" /></label>
         <CountryCityFields countryCode={countryCode} city={city} onCountryChange={setCountryCode}
           onCityChange={setCity} language="ru" />
-        <label>Адрес или место проведения<input name="location" required /></label>
-        <label>Описание<textarea name="description" rows={4}/></label>
+        <label>{tr("Адрес или место проведения")}<input name="location" required /></label>
+        <label>{tr("Описание")}<textarea name="description" rows={4}/></label>
         <label>Ссылки на фото (HTTPS, не более 8, каждая с новой строки)<textarea name="gallery_urls" rows={4} placeholder="https://example.com/event-photo.jpg"/></label>
         <label>Видео мероприятия (YouTube или Vimeo)<input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=…"/></label>
-        <label>Постер JPG/PNG/WebP до 4 МБ<input name="poster" type="file" accept="image/jpeg,image/png,image/webp"
+        <label>{tr("Постер JPG/PNG/WebP до 4 МБ")}<input name="poster" type="file" accept="image/jpeg,image/png,image/webp"
           onChange={e=>{const f=e.target.files?.[0];if(!f){setPreview("");return;}if(f.size>4*1024*1024){setError("Постер больше 4 МБ");return;}const url=URL.createObjectURL(f);setPreview(url);}}/></label>
         {preview&&<><img className="event-poster-preview" src={preview} alt="Poster preview"/></>}
-        <fieldset className="event-language-fieldset"><legend>Языки ивента</legend><div className="event-language-options">
+        <fieldset className="event-language-fieldset"><legend>{tr("Языки ивента")}</legend><div className="event-language-options">
           <label><input type="checkbox" name="languages" value="en" defaultChecked/>🇬🇧 English</label>
           <label><input type="checkbox" name="languages" value="cs"/>🇨🇿 Čeština</label>
           <label><input type="checkbox" name="languages" value="ru" defaultChecked/>🇷🇺 Русский</label>
           <label><input type="checkbox" name="languages" value="uk"/>🇺🇦 Українська</label>
         </div></fieldset>
-        <div className="two-col"><label>Начало<input name="starts_at" type="datetime-local" required/></label>
-        <label>Мест<input name="max_participants" type="number" min="1" defaultValue="30" required/></label></div>
-        <div className="two-col"><label>Цена<input name="price" type="number" min="0" step="0.01" defaultValue="0"/></label>
-        <label>Валюта<select name="currency" defaultValue="CZK"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option></select></label></div>
+        <div className="two-col"><label>{tr("Начало")}<input name="starts_at" type="datetime-local" required/></label>
+        <label>{tr("Мест")}<input name="max_participants" type="number" min="1" defaultValue="30" required/></label></div>
+        <div className="two-col"><label>{tr("Цена")}<input name="price" type="number" min="0" step="0.01" defaultValue="0"/></label>
+        <label>{tr("Валюта")}<select name="currency" defaultValue="CZK"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option></select></label></div>
         <button className="button button-primary" disabled={saving}>{saving?"Сохраняем…":"Создать черновик"}</button>
       </form>}
       <section className="panel pilot-event-filters" aria-label="Фильтрация мероприятий">
-        <label>Поиск мероприятий<input type="search" placeholder="Название, город или организатор"
+        <label>{tr("Поиск мероприятий")}<input type="search" placeholder="Название, город или организатор"
           value={eventSearch} onChange={e=>setEventSearch(e.target.value)}/></label>
-        <label>Статус<select value={eventStatus} onChange={e=>setEventStatus(e.target.value)}>
-          <option value="all">Все</option><option value="draft">Черновик</option>
-          <option value="scheduled">Запланировано</option><option value="published">Опубликовано</option>
-          <option value="cancelled">Отменено</option>
+        <label>{tr("Статус")}<select value={eventStatus} onChange={e=>setEventStatus(e.target.value)}>
+          <option value="all">{tr("Все")}</option><option value="draft">{tr("Черновик")}</option>
+          <option value="scheduled">{tr("Запланировано")}</option><option value="published">{tr("Опубликовано")}</option>
+          <option value="cancelled">{tr("Отменено")}</option>
         </select></label>
-        <label>Сортировка<select value={sortMode} onChange={e=>setSortMode(e.target.value)}>
-          <option value="newest">Новые первыми</option><option value="soonest">Ближайшие по дате</option>
-          <option value="title">По названию</option>
+        <label>{tr("Сортировка")}<select value={sortMode} onChange={e=>setSortMode(e.target.value)}>
+          <option value="newest">{tr("Новые первыми")}</option><option value="soonest">{tr("Ближайшие по дате")}</option>
+          <option value="title">{tr("По названию")}</option>
         </select></label>
       </section>
       <div className="admin-event-grid">
