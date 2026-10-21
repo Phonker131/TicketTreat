@@ -9,9 +9,7 @@ import type {
   TelegramAuthResult,
 } from "@/lib/types";
 
-const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
-).replace(/\/+$/, "");
+const API_URL = "/api/gateway";
 
 async function request<T>(
   path: string,
@@ -22,6 +20,7 @@ async function request<T>(
     ...init,
     headers: {
       Accept: "application/json",
+      "X-Crowdly-Client": "1",
       ...(init?.body ? {"Content-Type": "application/json"} : {}),
       ...(init?.headers || {}),
     },
