@@ -6,13 +6,15 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
 import { isTelegramWebApp } from "@/lib/telegram";
 import { t } from "@/lib/i18n";
-import { getManageMe } from "@/lib/api";
+import { getManageMe,getBookingConfig } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 
 export function AppHeader() {
   const { language } = useLanguage();
   const [insideTelegram, setInsideTelegram] = useState(false);
   const [canOrganize, setCanOrganize] = useState(false);
+  const [demoEnabled,setDemoEnabled] = useState(false);
+  useEffect(()=>{getBookingConfig().then(config=>setDemoEnabled(config.demo_payment_mode)).catch(()=>{});},[]);
 
   useEffect(() => setInsideTelegram(isTelegramWebApp()), []);
 
@@ -34,8 +36,8 @@ export function AppHeader() {
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <Link href="/" className="wordmark" aria-label="Crowdly">
-          crowdly<span className="wordmark-dot" />
+        <Link href="/" className="wordmark" aria-label="TicketTreat">
+          TicketTreat<span className="wordmark-dot" />
         </Link>
 
         <nav className="topbar-nav">
@@ -46,7 +48,7 @@ export function AppHeader() {
         </nav>
 
         <div className="topbar-actions">
-          <span className="demo-pill">{t(language, "demo")}</span>
+          {demoEnabled&&<span className="demo-pill">{t(language, "demo")}</span>}
           <span className="mode-pill">
             {insideTelegram ? t(language, "telegramMode") : t(language, "webMode")}
           </span>
