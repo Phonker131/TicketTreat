@@ -7,8 +7,12 @@ import { getWebToken } from "@/lib/session";
 import type { DemoTicket } from "@/lib/types";
 
 function extractToken(value: string): string {
-  const prefix = "CROWDLY:TICKET:";
-  return value.startsWith(prefix) ? value.slice(prefix.length) : value.trim();
+  // Existing QR codes must remain scannable after the brand migration.
+  const raw = value.trim();
+  for (const prefix of ["TICKETTREAT:TICKET:", "CROWDLY:TICKET:"]) {
+    if (raw.startsWith(prefix)) return raw.slice(prefix.length);
+  }
+  return raw;
 }
 
 export function CheckInClient() {
@@ -66,7 +70,7 @@ export function CheckInClient() {
     <div className="app-shell">
       <AppHeader />
       <main className="page narrow-page">
-        <div className="admin-heading"><div><span className="status status-demo">CHECK-IN</span><h1>Scan Crowdly ticket</h1><p>Camera scanner + manual fallback.</p></div></div>
+        <div className="admin-heading"><div><span className="status status-demo">CHECK-IN</span><h1>Scan TicketTreat ticket</h1><p>Camera scanner + manual fallback.</p></div></div>
         <section className="panel">
           <div id="crowdly-reader" className="scanner-box" />
           <div className="manual-checkin">
