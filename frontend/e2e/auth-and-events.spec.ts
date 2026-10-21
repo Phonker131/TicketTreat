@@ -26,8 +26,23 @@ test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({
     return response.status;
   });
   expect(result).toBe(200);
-  await page.goto("/tickets");
-  await expect(page.locator("body")).toBeVisible();
+  // Exercise a complete free-event browser flow via the same-origin BFF.
+  const eventId=await page.evaluate(async()=>{
+    const result=await fetch("/api/gateway/events");
+    if(!result.ok)throw new Error("Event catalogue unavailable");
+    const events=await result.json() as {id:number;title:string}[];
+    const event=events.find(x=>x.title==="CI browser free event");
+    if(!event)throw new Error("Missing test event");
+    return event.id;
+  });
+  await page.goto(`/checkout/${eventId}`);
+  await expect(page.locator(".checkout-summary")).toContainText("CI browser free event");
+  await page.locator(".panel button.button-primary.button-wide").click();
+  await page.waitForURL(/\/tickets\/\d+/);
+  await expect(page.locator(".qr-wrap img")).toBeVisible();
+  page.once("dialog",d=>d.accept());
+  await page.locator("button.button-outline.button-wide").click();
+  await expect(page.locator(".qr-wrap img")).toHaveCount(0);
 });
 
 test("mutating API requires a genuine browser Origin and app header",async({request})=>{
