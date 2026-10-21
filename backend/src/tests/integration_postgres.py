@@ -29,7 +29,7 @@ class PostgresStartupTest(unittest.TestCase):
             "users", "events", "demo_web_accounts", "demo_web_sessions",
             "demo_event_media", "demo_site_landing", "demo_verified_emails",
             "demo_email_challenges", "demo_email_outbox",
-            "demo_tickets", "demo_telegram_identities",
+            "demo_tickets", "demo_telegram_identities", "demo_privacy_requests",
         ):
             with self.subTest(table=name):
                 self.assertIn(name, names)
@@ -45,6 +45,14 @@ class PostgresStartupTest(unittest.TestCase):
         ):
             with self.subTest(route=path):
                 self.assertIn(path, paths)
+
+    def test_health_probes(self):
+        from fastapi.testclient import TestClient
+        with TestClient(main.app) as client:
+            self.assertEqual(client.get("/demo/health/live").status_code, 200)
+            response = client.get("/demo/health/ready")
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()["status"], "ready")
 
     def test_production_disables_fake_paid_checkout(self):
         self.assertEqual(os.getenv("APP_ENV"), "production")
