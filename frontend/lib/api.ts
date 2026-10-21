@@ -15,12 +15,21 @@ async function request<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
+  const websiteSession =
+    typeof window !== "undefined" &&
+    window.localStorage.getItem("crowdly_demo_web_auth") === "browser-session";
+  const telegramInitData =
+    typeof window !== "undefined"
+      ? (window as Window & {Telegram?: {WebApp?: {initData?: string}}}).Telegram?.WebApp?.initData
+      : undefined;
   const response = await fetch(`${API_URL}${path}`, {
     cache: "no-store",
     ...init,
     headers: {
       Accept: "application/json",
       "X-Crowdly-Client": "1",
+      ...(websiteSession ? {Authorization: "Bearer browser-session"} : {}),
+      ...(telegramInitData ? {"X-Telegram-Init-Data": telegramInitData} : {}),
       ...(init?.body ? {"Content-Type": "application/json"} : {}),
       ...(init?.headers || {}),
     },
