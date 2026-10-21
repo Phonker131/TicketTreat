@@ -1,81 +1,76 @@
 # TicketTreat
 
-> **Status: Active development — work in progress.** Features, data models, and setup may change. This is not a final release.
+**Event discovery, registration and ticketing — on the web and inside Telegram.**
 
-A Telegram event registration project with a FastAPI backend and PostgreSQL storage. The project is called TicketTreat.
+TicketTreat is a multi-interface event platform. A responsive Next.js website also runs as a Telegram Mini App; a Telegram bot provides notifications and fallback commands. Both use a FastAPI backend and PostgreSQL.
 
-## Features implemented in the source
-- Participant profiles and profile editing.
-- Event browsing, registration, and participant limits.
-- Administrator event creation, editing, cancellation, and broadcasts.
-- Event reminders and manual payment confirmation.
-- CZK, EUR, and USD event prices.
-- English, Czech, Russian, and Ukrainian interface text.
+[![CI](https://github.com/Phonker131/TicketTreat/actions/workflows/ci.yml/badge.svg?branch=feature%2Fcrowdly-release-preparation)](https://github.com/Phonker131/TicketTreat/actions/workflows/ci.yml)
 
-Payment status tracking is manual; it is not a payment gateway integration.
+> **Release status:** under active development. Free-event registration and QR flows are implemented and covered by automated tests. Real payments and several production security/privacy requirements are not yet finished. **Do not use this branch to sell paid tickets.**
 
-## Stack
-Python, FastAPI, SQLAlchemy, PostgreSQL, pyTelegramBotAPI, Pydantic, Requests.
+## Capabilities
 
-## Architecture
-The Telegram bot calls the backend over HTTP. The backend stores users, events, registrations, and supporting settings in PostgreSQL.
+- **Attendees:** browse events, select a city, register, access and cancel QR tickets, join waitlists, and manage a profile.
+- **Accounts:** email login, verification and recovery; signed Telegram Mini App authentication; explicit account linking and session management.
+- **Organizers:** create and edit events, set capacity and location, add photo/video links, review participants and check in QR tickets.
+- **Global administrators:** manage account permissions and homepage content.
+- **Notifications:** Telegram confirmations and an optional transactional-email queue with event reminders.
+- **Languages:** English, Czech, Ukrainian and Russian in key interfaces; some administrative and editorial content still needs full localization.
 
-| Path | Purpose |
-| --- | --- |
-| `backend/src/main.py` | API, payment settings, and background processing |
-| `backend/src/db/` | SQLAlchemy models and database sessions |
-| `bot/src/main.py` | Telegram handlers, menus, and translations |
-| `requirements.txt` | Root Python dependency list |
+## Technology
 
-## Local setup
-Use Python 3.11 or newer and a local PostgreSQL database.
-```sh
-git clone https://github.com/Phonker131/TicketTreat.git
-cd TicketTreat
-python -m venv .venv
+| Component | Stack | Location |
+| --- | --- | --- |
+| Website / PWA / Mini App | Next.js 15, React 19, TypeScript | [`frontend/`](frontend/) |
+| API and business logic | FastAPI, SQLAlchemy, Pydantic | [`backend/src/`](backend/src/) |
+| Persistent storage | PostgreSQL | [`backend/src/db/`](backend/src/db/) |
+| Telegram bot | Python, pyTelegramBotAPI | [`bot/src/`](bot/src/) |
+| Verification and CI | Python unit + PostgreSQL integration tests, Next.js build | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+
+The web app and Mini App share one frontend; Telegram adds its native launch and signed identity flow. Browser account sessions use a same-origin Next.js API gateway with an HttpOnly cookie. Bot commands remain available independently.
+
+## Local development
+
+Prerequisites: **Python 3.12**, **Node.js 22**, and **PostgreSQL 16** (or compatible versions).
+
+1. Clone the repository and create a PostgreSQL database.
+2. Copy [`.env.example`](.env.example) to `.env` and configure your **development-only** credentials. Never commit secrets.
+3. Install and run the backend:
+
+   ```bash
+   python -m pip install -r backend/src/requirements.txt
+   python -m uvicorn main:app --app-dir backend/src --host 127.0.0.1 --port 8000
+   ```
+
+4. In a separate terminal, configure `frontend/.env.local` with `BACKEND_API_URL=http://127.0.0.1:8000`, then start the web application:
+
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+5. The bot is optional for browser-only development. To run it, install `bot/src/requirements.txt`, configure a **test bot token**, and start `python bot/src/main.py` from the repository root.
+
+The website is available at `http://localhost:3000`; FastAPI documentation is at `http://127.0.0.1:8000/docs` in local development. Telegram Mini App testing requires an HTTPS URL and BotFather configuration.
+
+## Testing and deployment
+
+GitHub Actions runs frontend checks, backend unit tests and PostgreSQL-backed integration tests. For local checks:
+
+```bash
+python -m unittest discover -s backend/src/tests -p 'test_*.py' -v
+cd frontend && npm run build
 ```
-Activate the environment with `.venv\Scripts\activate` on Windows or `source .venv/bin/activate` on macOS/Linux, then run:
-```sh
-python -m pip install -r requirements.txt
-```
 
-Create a PostgreSQL database and a local database user, then copy `.env.example` to `.env` in the repository root and fill in your values. Both processes load this file; existing shell environment variables take precedence.
+**Before production:** complete the staging database migration and restore rehearsal; configure trusted origins, backend URL, email sender, secrets and HTTPS; verify Telegram linking, bot compatibility and end-to-end flows. Paid ticketing requires a genuine payment provider, validated webhooks and refund handling. See [release checklist](docs/UNIFIED_RELEASE_GATE.md) and [Mini App guide](docs/TELEGRAM_MINIAPP_INTEGRATION.md).
 
-Configuration:
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL SQLAlchemy connection URL |
-| `BOT_TOKEN` | Token for your own Telegram bot |
-| `ADMIN_IDS` | Comma-separated numeric Telegram administrator IDs |
-| `BACKEND_URL` | Backend URL; defaults to `http://127.0.0.1:8000` |
-| `BOT_USERNAME` | Your bot username |
-| `CLIENT_SERVICE_URL` | Optional support link |
+## Development workflow
 
-Start the API from the repository root:
-```sh
-python -m uvicorn main:app --app-dir backend/src --host 127.0.0.1 --port 8000
-```
-Start the bot in a separate shell with the same virtual environment:
-```sh
-python bot/src/main.py
-```
-Explore API documentation at `http://127.0.0.1:8000/docs`.
-
-## Current limitations
-- The backend creates missing tables on startup; this does not migrate existing columns.
-- Bot conversation state is stored in memory.
-- Telegram/PostgreSQL end-to-end flows require your own local services and credentials.
-- Automated checks currently cover Python syntax, not complete event-registration flows.
-- Keep the API local during evaluation until authentication and authorization have been reviewed.
-
-## Development priorities
-- Add integration tests for registration limits, cancellations, and payment status changes.
-- Introduce versioned database migrations.
-- Split large handler modules as the feature set stabilizes.
-- Review backend access control before a public deployment.
-
-## Dependencies
-The root `requirements.txt` is the dependency source of truth. Files under `backend/` and `bot/` forward to it so existing install commands remain usable.
+- `main`: current deployment baseline; not changed by experimental features.
+- `feature/crowdly-release-preparation`: single active integration branch and [release PR #5](https://github.com/Phonker131/TicketTreat/pull/5).
+- Keep each change reviewable as a commit; verify CI and staging before merging or deploying.
 
 ## License
-See [LICENSE](LICENSE).
+
+Licensed under [Apache License 2.0](LICENSE).
