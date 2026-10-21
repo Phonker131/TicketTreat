@@ -273,6 +273,19 @@ export function getManageEvent(id: number, token: string): Promise<import("@/lib
 export function addManageEvent(token: string, payload: Record<string, unknown>): Promise<import("@/lib/types").ManageEvent> {
   return request("/demo/manage/events", {method:"POST",headers:accountHeaders(token),body:JSON.stringify(payload)});
 }
+export function setManagePublication(token:string,eventId:number,payload:{status:"draft"|"scheduled"|"published";publish_at?:string}):
+  Promise<import("@/lib/types").ManageEvent>{
+  return request(`/demo/manage/events/${eventId}/publication`,{
+    method:"PUT",headers:accountHeaders(token),body:JSON.stringify(payload)
+  });
+}
+export function duplicateManageEvent(token:string,eventId:number,startsAt?:string):
+  Promise<import("@/lib/types").ManageEvent>{
+  return request(`/demo/manage/events/${eventId}/duplicate`,{
+    method:"POST",headers:accountHeaders(token),
+    body:JSON.stringify(startsAt?{starts_at:startsAt}:{})
+  });
+}
 export function editManageEvent(token: string, eventId: number, payload: Record<string,unknown>): Promise<import("@/lib/types").ManageEvent> {
   return request(`/demo/manage/events/${eventId}`, {method:"PATCH",headers:accountHeaders(token),body:JSON.stringify(payload)});
 }
