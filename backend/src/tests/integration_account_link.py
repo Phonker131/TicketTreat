@@ -78,6 +78,29 @@ class AccountLinkTests(unittest.TestCase):
             self.assertEqual(again.status_code, 200, again.text)
             self.assertTrue(again.json()["accounts_linked"])
             self.assertEqual(again.json()["guest"]["first_name"], "Website")
+            # Free tickets must work with APP_ENV=production while
+            # simulated paid checkout is disabled.
+            from datetime import datetime, timedelta, timezone
+            from decimal import Decimal
+            with SessionLocal() as db:
+                event = main.Event(title="CI free event",price=Decimal("0"),
+                    starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=2),
+                    max_participants=4,currency="CZK")
+                db.add(event);db.commit();db.refresh(event)
+                event_id=event.id
+            guest_token=again.json()["guest"]["access_token"]
+            ticket=client.post(f"/demo/events/{event_id}/checkout",json={
+                "guest_token":guest_token,"language":"en"
+            })
+            self.assertEqual(ticket.status_code,200,ticket.text)
+            self.assertEqual(ticket.json()["ticket"]["payment_status"],"not_required")
+            self.assertFalse(ticket.json()["demo_payment"])
+            again_ticket=client.post(f"/demo/events/{event_id}/checkout",json={
+                "guest_token":guest_token,"language":"en"
+            })
+            self.assertEqual(again_ticket.json()["status"],"already_registered")
+            cancelled=client.delete(f"/demo/guests/{guest_token}/tickets/{ticket.json()['ticket']['id']}")
+            self.assertEqual(cancelled.status_code,200,cancelled.text)
 
 
 if __name__ == "__main__":
