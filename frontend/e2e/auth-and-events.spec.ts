@@ -3,6 +3,8 @@ import {test,expect} from "@playwright/test";
 test("catalogue renders upcoming events through the live FastAPI gateway",async({page})=>{
   await page.goto("/");
   await expect(page.getByText("CI browser free event").first()).toBeVisible();
+  await expect(page.locator("header .wordmark")).toContainText("TicketTreat");
+  await expect(page.locator(".hero .eyebrow")).toHaveText("TICKETTREAT");
 });
 
 test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({page})=>{
@@ -52,4 +54,16 @@ test("mutating API requires a genuine browser Origin and app header",async({requ
   expect(login.status()).toBe(403);
   const catalogue=await request.get("/api/gateway/demo/config");
   expect(catalogue.status()).toBe(200);
+});
+
+
+test("TicketTreat PWA icon and manifest expose the active brand",async({request})=>{
+  const icon=await request.get("/brand/icon/192");
+  expect(icon.status()).toBe(200);
+  expect(icon.headers()["content-type"]).toContain("image/png");
+  const manifest=await request.get("/manifest.webmanifest");
+  expect(manifest.status()).toBe(200);
+  const data=await manifest.json();
+  expect(data.name).toBe("TicketTreat");
+  expect(data.icons.some((entry:{src:string})=>entry.src==="/brand/icon/192")).toBe(true);
 });
