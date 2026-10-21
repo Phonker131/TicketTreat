@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "TicketTreat",
     short_name: "TicketTreat",
-    description: "Events, tickets and reminders in one place.",
+    description: "TicketTreat — discover events, reserve tickets and get helpful reminders in one place.",
     start_url: "/",
     display: "standalone",
     background_color: "#F6EEFA",
