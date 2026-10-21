@@ -320,6 +320,21 @@ export function setManagedAccountRole(token:string,accountId:number,role:"partic
   });
 }
 
+export type GlobalAdminDelegation = {account_id:number;email:string;granted_at:string};
+export function getGlobalAdminDelegations(token:string):Promise<GlobalAdminDelegation[]> {
+  return request("/demo/manage/global-admins",{headers:accountHeaders(token)});
+}
+export function grantGlobalAdmin(token:string,email:string):Promise<{account_id:number;role:string;mfa_setup_required:boolean}> {
+  return request("/demo/manage/global-admins/grant",{
+    method:"POST",headers:accountHeaders(token),body:JSON.stringify({email})
+  });
+}
+export function revokeGlobalAdmin(token:string,accountId:number):Promise<{status:string}> {
+  return request(`/demo/manage/global-admins/${accountId}`,{
+    method:"DELETE",headers:accountHeaders(token)
+  });
+}
+
 /** Recover a configured global-admin account; server verifies the recovery secret. */
 export function claimWebGlobalAdmin(token: string, recoveryKey: string): Promise<{role:"global_admin";account_id:number}> {
   return request("/demo/auth/admin-claim", {
