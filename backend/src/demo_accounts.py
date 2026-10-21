@@ -383,6 +383,27 @@ def install_demo_accounts(
                           "expires_at": s.expires_at} for s in rows],
         }
 
+    @app.get("/demo/auth/export")
+    def export_account(account: WebAccount = Depends(get_current_account),
+                       db: Session = Depends(get_db)):
+        tickets = db.query(DemoTicket).filter(DemoTicket.guest_id == account.guest_id).all()
+        return {
+            "account": {
+                "email": account.email,
+                "first_name": account.first_name,
+                "last_name": account.last_name,
+                "phone": account.phone,
+                "instagram": account.instagram,
+                "created_at": account.created_at,
+                **place_dict(db, DemoAccountPlace, "account_id", account.id),
+            },
+            "tickets": [
+                {"event_id": item.event_id, "status": item.ticket_status,
+                 "created_at": item.created_at, "checked_in_at": item.checked_in_at}
+                for item in tickets
+            ],
+        }
+
     @app.post("/demo/auth/logout")
     def logout(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
         if authorization and authorization.startswith("Bearer "):
