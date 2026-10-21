@@ -104,12 +104,13 @@ export function demoCheckout(
   eventId: number,
   guestToken: string,
   language: "en" | "cs" | "ru" | "uk" = "en",
+  source = "direct",
 ): Promise<DemoCheckoutResponse> {
   return request<DemoCheckoutResponse>(
     signedIdentityAvailable()? `/demo/me/events/${eventId}/checkout` : `/demo/events/${eventId}/checkout`,
     {
       method: "POST",
-      body: JSON.stringify(signedIdentityAvailable()?{language}:{guest_token:guestToken,language}),
+      body: JSON.stringify(signedIdentityAvailable()?{language,source}:{guest_token:guestToken,language,source}),
     },
   );
 }
@@ -533,7 +534,7 @@ export type PilotInsights = {
   active_qr_tickets:number; checked_in:number; awaiting_checkin:number;event_finished:boolean;
   waitlist:number; cancelled_tickets:number; no_show:number|null;
   occupancy_percent:number|null; attendance_percent:number|null;
-  daily_bookings:{date:string;count:number}[];limitations:string[];
+  daily_bookings:{date:string;count:number}[];channels:{source:string;registrations:number}[];limitations:string[];
 };
 export type PilotSettings = {signup_cutoff_minutes:number;reminder_minutes:number[];waitlist_offer_minutes:number;event_duration_minutes:number};
 export type CheckinStaff = {account_id:number;email:string;granted_at:string};
