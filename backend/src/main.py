@@ -51,6 +51,7 @@ from demo_mfa import MFAFactor, MFASession, install_mfa
 from demo_legacy import LegacyTicketClaim
 from demo_observability import install_request_logging
 from demo_principal_api import install_principal_api
+from demo_publication import EventPublication, state as event_publication_state, require_published
 
 
 # =========================================================
@@ -927,6 +928,7 @@ def event_to_dict(
 
     data: dict[str, Any] = {
         "id": event.id,
+        "publication": event_publication_state(db,event.id) if db is not None else {"status":"published","publish_at":None,"visible":True},
         "title": event.title,
         # Old platform-owned events retain their original DB data, but render
         # the current product brand across the website, bot and ticket emails.
@@ -1510,6 +1512,7 @@ def list_events(
         .all()
     )
 
+    events = [event for event in events if event_publication_state(db,event.id)["visible"]]
     if not include_past:
         events = [
             event
@@ -1551,6 +1554,7 @@ def get_event(
         return {
             "error": "event_not_found",
         }
+    require_published(db,event_id)
 
     return event_to_dict(
         event,
@@ -1870,6 +1874,7 @@ def register_to_event(
             "error": "event_not_found",
         }
 
+    require_published(db,event_id)
     if getattr(event, "is_cancelled", False):
         return {
             "error": "event_cancelled",
@@ -2597,7 +2602,11 @@ def decode_demo_poster(data_url: str) -> tuple[str, bytes]:
 
 
 @app.get("/demo/events/{event_id}/poster")
-def get_demo_event_poster(event_id: int, db: Session = Depends(get_db)):
+def get_demo_event_poster(event_id: int, db: Session = Depends(get_db),
+                          authorization: str | None = Header(default=None)):
+    if not event_publication_state(db,event_id)["visible"]:
+        from demo_roles import account_lookup, ensure_owner
+        ensure_owner(db,event_id,account_lookup(db,authorization))
     poster = db.query(DemoEventPoster).filter(DemoEventPoster.event_id == event_id).first()
     if poster is None:
         raise HTTPException(status_code=404, detail="poster_not_found")
@@ -2825,6 +2834,7 @@ def demo_checkout(
 
     if event is None:
         raise HTTPException(status_code=404, detail="event_not_found")
+    require_published(db,event_id)
 
     free_event = price_decimal(event.price) <= 0
     if not free_event and not DEMO_PAYMENT_MODE:
@@ -2957,6 +2967,7 @@ def join_demo_waitlist(
 
     if event is None:
         raise HTTPException(status_code=404, detail="event_not_found")
+    require_published(db,event_id)
 
     if telegram_guest_has_bot_registration(db, guest, event_id):
         raise HTTPException(status_code=409, detail="already_registered_via_bot")
