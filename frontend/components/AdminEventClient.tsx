@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
+import QRCode from "qrcode";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
@@ -7,6 +9,7 @@ import { CountryCityFields } from "@/components/CountryCityFields";
 import {
   getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
   editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,
+  setManagePublication,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
@@ -22,6 +25,7 @@ function posterData(file:File):Promise<string> {return new Promise((resolve,reje
   const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Poster read failed"));reader.readAsDataURL(file);
 });}
 export function AdminEventClient(){
+  const router=useRouter();
   const params=useParams<{id:string}>(),eventId=Number(params?.id);
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
   const [event,setEvent]=useState<ManageEvent|null>(null);
@@ -33,6 +37,7 @@ export function AdminEventClient(){
   const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
   const [showEdit,setShowEdit]=useState(false),[showCancel,setShowCancel]=useState(false);
   const [reason,setReason]=useState(""),[owner,setOwner]=useState("");
+  const [scheduleAt,setScheduleAt]=useState("");
   const [poster,setPoster]=useState<File|null>(null);
   const [title,setTitle]=useState(""),[location,setLocation]=useState("");
   const [countryCode,setCountryCode]=useState(""),[city,setCity]=useState("");
@@ -135,6 +140,41 @@ export function AdminEventClient(){
     }catch(e){setError(formattedError(e))}
     finally{setBusy(false)}
   }
+  async function publication(status:"draft"|"scheduled"|"published"){
+    const token=getWebToken();if(!token||!event)return;
+    if(status==="published"&&!window.confirm("Открыть мероприятие для всех и разрешить бесплатную регистрацию?"))return;
+    if(status==="draft"&&!window.confirm("Снять мероприятие с публикации? Это возможно только без участников."))return;
+    setBusy(true);setError("");setNotice("");
+    try{
+      const when=status==="scheduled" ? new Date(scheduleAt).toISOString() : undefined;
+      await setManagePublication(token,eventId,{status,publish_at:when});
+      await reload();
+      setNotice(status==="published"?"Мероприятие опубликовано.":status==="scheduled"?"Публикация запланирована.":"Мероприятие сохранено как черновик.");
+    }catch(e){setError(formattedError(e))}finally{setBusy(false)}
+  }
+  async function duplicate(){
+    const token=getWebToken();if(!token||!event)return;
+    if(!window.confirm("Создать закрытую копию этого ивента без участников и билетов?"))return;
+    setBusy(true);setError("");setNotice("");
+    try{
+      const next=await duplicateManageEvent(token,eventId);
+      router.push(`/admin/events/${next.id}`);
+    }catch(e){setError(formattedError(e));setBusy(false)}
+  }
+  async function downloadPromotionQR(){
+    if(!event||!event.publication?.visible)return;
+    const url=window.location.origin+`/events/${eventId}`;
+    const png=await QRCode.toDataURL(url,{width:960,margin:3,
+      color:{dark:"#1E0A28",light:"#FFFFFF"}});
+    const link=document.createElement("a");
+    link.href=png;link.download=`tickettreat-event-${eventId}-qr.png`;
+    link.click();
+  }
+  async function copyEventLink(){
+    if(!event?.publication?.visible)return;
+    try{await navigator.clipboard.writeText(window.location.origin+`/events/${eventId}`);setNotice("Публичная ссылка скопирована.");}
+    catch{setError("Не удалось скопировать ссылку. Открой публичную страницу.")}
+  }
   async function csv(){
     const token=getWebToken();if(!token)return;
     setBusy(true);try{await exportManageParticipantsCsv(token,eventId);}
@@ -153,7 +193,7 @@ export function AdminEventClient(){
     {notice&&<div className="success-banner" role="status">{notice}</div>}
     {event&&identity&&<>
       <div className="admin-heading">
-        <div><span className={event.is_cancelled?"status status-danger":"status status-demo"}>{event.is_cancelled?"CANCELLED":`EVENT #${event.id}`}</span>
+        <div><span className={event.is_cancelled?"status status-danger":"status status-demo"}>{event.is_cancelled?"CANCELLED":`${(event.publication?.status||"published").toUpperCase()} · #${event.id}`}</span>
         <h1>{event.title}</h1><p>{event.location}</p></div>
         <div className="admin-event-actions">
           <button className="button button-outline" onClick={csv} disabled={busy}>↓ Export CSV</button>
@@ -165,8 +205,27 @@ export function AdminEventClient(){
         {!event.is_cancelled&&<button className="button button-primary" onClick={()=>setShowEdit(v=>!v)}>
         {showEdit?"Закрыть":"Редактировать ивент"}</button>}
         {!event.is_cancelled&&<button className="button button-outline" onClick={()=>setShowCancel(v=>!v)}>Отменить ивент</button>}
-        <Link className="button button-outline" href={`/events/${event.id}`}>Публичная страница ↗</Link>
+        <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>Предпросмотр ↗</Link>
+        {event.publication?.visible&&<Link className="button button-outline" href={`/events/${event.id}`}>Публичная страница ↗</Link>}
+        <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>Копировать ивент</button>
       </div>
+      {!event.is_cancelled&&<section className="panel form-stack">
+        <h2>Публикация мероприятия</h2>
+        <p className="form-note">Статус: <strong>{event.publication?.status==="draft"?"Черновик":event.publication?.status==="scheduled"?"Запланировано":"Опубликовано"}</strong>. Новые ивенты скрыты до публикации. Публиковать можно только бесплатные будущие мероприятия с заполненными названием, описанием, адресом, городом и вместимостью.</p>
+        {event.publication?.publish_at&&<p>Автопубликация: {new Date(event.publication.publish_at).toLocaleString("ru-RU")}</p>}
+        <div className="admin-event-actions">
+          {!event.publication?.visible&&<button type="button" className="button button-primary" disabled={busy} onClick={()=>publication("published")}>Опубликовать сейчас</button>}
+          {event.publication?.visible&&<button type="button" className="button button-outline" disabled={busy} onClick={()=>publication("draft")}>Снять с публикации</button>}
+        </div>
+        {!event.publication?.visible&&<div className="two-col">
+          <label>Опубликовать автоматически<input type="datetime-local" value={scheduleAt} onChange={e=>setScheduleAt(e.target.value)}/></label>
+          <button type="button" className="button button-outline" disabled={busy||!scheduleAt} onClick={()=>publication("scheduled")}>Запланировать</button>
+        </div>}
+        {event.publication?.visible&&<div className="admin-event-actions">
+          <button type="button" className="button button-outline" onClick={copyEventLink}>Копировать ссылку</button>
+          <button type="button" className="button button-sun" onClick={()=>void downloadPromotionQR()}>Скачать QR для афиши</button>
+        </div>}
+      </section>}
       {showEdit&&!event.is_cancelled&&<form className="panel form-stack" onSubmit={saveChanges}>
         <h2>Редактировать информацию</h2>
         <label>Название<input value={title} required onChange={e=>setTitle(e.target.value)}/></label>
