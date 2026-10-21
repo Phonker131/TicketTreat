@@ -2578,11 +2578,12 @@ def create_or_get_demo_guest(
     payload: DemoGuestCreate,
     db: Session = Depends(get_db),
 ):
-    """Create an isolated demo guest. Email / Telegram ID are not verified.
+    """Create an isolated demo guest for local/staging demonstrations only.
 
-    Never reuse or reveal an existing bearer token based on an unverified
-    email or Telegram ID. The frontend keeps the token for this browser only.
+    Real guests sign up with confirmed email or use signed Telegram login.
     """
+    if os.getenv("APP_ENV", "development").strip().lower() == "production":
+        raise HTTPException(status_code=403, detail="anonymous_guest_creation_disabled")
     email = payload.email.strip().lower() if payload.email else None
     if not email:
         raise HTTPException(status_code=422, detail="email_required")
