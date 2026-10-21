@@ -78,8 +78,14 @@ def code_digest(account_id: int, purpose: str, code: str) -> str:
 def send_code(email: str, purpose: str, code: str):
     if not configured():
         raise HTTPException(503, "email_provider_unavailable")
-    title = "Confirm your Crowdly email" if purpose == "verify" else "Reset your Crowdly password"
-    msg = ("Your Crowdly verification code" if purpose == "verify" else "Your Crowdly password reset code")
+    templates = {
+        "verify": ("Verify your TicketTreat email", "Your TicketTreat verification code"),
+        "reset": ("Reset your TicketTreat password", "Your TicketTreat password reset code"),
+        "login": ("Sign in to TicketTreat", "Your one-time TicketTreat sign-in code"),
+    }
+    if purpose not in templates:
+        raise ValueError("unsupported_challenge_purpose")
+    title, msg = templates[purpose]
     try:
         _send_resend({
             "from": os.environ["EMAIL_FROM"].strip(),
