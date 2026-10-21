@@ -391,3 +391,21 @@ export type BookingConfig = {demo_payment_mode:boolean;real_money_charged:boolea
 export function getBookingConfig():Promise<BookingConfig> {
   return request("/demo/config");
 }
+
+export type PrivacyRequestStatus = {
+  status: "none" | "pending" | "withdrawn" | "completed";
+  requested_at: string | null;
+  updated_at: string | null;
+  note: string;
+};
+export function getPrivacyRequest(): Promise<PrivacyRequestStatus> {
+  return request("/demo/auth/privacy-request");
+}
+export function submitPrivacyRequest(password: string): Promise<{status:string;message:string}> {
+  return request("/demo/auth/privacy-request", {
+    method:"POST", body:JSON.stringify({current_password:password}),
+  });
+}
+export function withdrawPrivacyRequest(): Promise<{status:string}> {
+  return request("/demo/auth/privacy-request",{method:"DELETE"});
+}
