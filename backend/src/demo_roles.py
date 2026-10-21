@@ -17,7 +17,7 @@ from typing import Any
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, DateTime, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import Session
 from db.base import Base
 from demo_geography import DemoEventPlace, place_dict, save_place
@@ -91,6 +91,24 @@ class EventMedia(Base):
     event_id = Column(Integer, primary_key=True)
     gallery_json = Column(Text, nullable=False, default="[]")
     video_url = Column(String(2048), nullable=True)
+
+
+class EventGalleryImage(Base):
+    """Bounded gallery storage for early pilots (up to eight images/event).
+
+    For larger media traffic move these objects to dedicated image storage.
+    """
+    __tablename__ = "demo_event_gallery_images"
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, nullable=False, index=True)
+    content_type = Column(String(32), nullable=False)
+    image_bytes = Column(LargeBinary, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False,
+                        default=lambda: datetime.now(timezone.utc))
+
+
+class GalleryUpload(BaseModel):
+    data_url: str = Field(min_length=40,max_length=2900000)
 
 
 def validate_media_urls(gallery_urls, video_url):
@@ -444,6 +462,51 @@ def install_demo_roles(app, get_db, main):
         db.commit()
         db.refresh(event)
         return event_data(event,db,main)
+
+    @app.get("/demo/events/{event_id}/gallery/{image_id}")
+    def public_gallery_image(event_id:int,image_id:int,db:Session=Depends(get_db)):
+        image=db.query(EventGalleryImage).filter(
+            EventGalleryImage.id==image_id,
+            EventGalleryImage.event_id==event_id,
+        ).first()
+        if image is None:
+            raise HTTPException(404,"gallery_image_not_found")
+        return Response(content=image.image_bytes,media_type=image.content_type,
+                        headers={"Cache-Control":"public, max-age=3600",
+                                 "X-Content-Type-Options":"nosniff"})
+
+    @app.post("/demo/manage/events/{event_id}/gallery",status_code=201)
+    def upload_gallery(event_id:int,payload:GalleryUpload,
+                       account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
+        ensure_owner(db,event_id,account)
+        event=db.query(main.Event).filter(main.Event.id==event_id).with_for_update().first()
+        if event is None:raise HTTPException(404,"event_not_found")
+        if event.is_cancelled:raise HTTPException(409,"event_is_cancelled")
+        media=db.get(EventMedia,event_id)
+        urls=json.loads(media.gallery_json or "[]") if media else []
+        uploaded=db.query(EventGalleryImage).filter(EventGalleryImage.event_id==event_id).count()
+        if len(urls)+uploaded>=8:raise HTTPException(409,"gallery_limit_reached")
+        content_type,blob=main.decode_demo_poster(payload.data_url)
+        if len(blob)>2*1024*1024:raise HTTPException(413,"gallery_image_too_large")
+        image=EventGalleryImage(event_id=event_id,content_type=content_type,image_bytes=blob)
+        db.add(image)
+        db.flush()
+        audit(db,event_id,account.id,"gallery_upload",f"image:{image.id}")
+        db.commit()
+        return {"id":image.id,"url":f"/api/gateway/demo/events/{event_id}/gallery/{image.id}"}
+
+    @app.delete("/demo/manage/events/{event_id}/gallery/{image_id}")
+    def delete_gallery(event_id:int,image_id:int,account:WebAccount=Depends(managing),
+                       db:Session=Depends(get_db)):
+        ensure_owner(db,event_id,account)
+        image=db.query(EventGalleryImage).filter(
+            EventGalleryImage.id==image_id,EventGalleryImage.event_id==event_id
+        ).first()
+        if image is None:raise HTTPException(404,"gallery_image_not_found")
+        db.delete(image)
+        audit(db,event_id,account.id,"gallery_delete",f"image:{image_id}")
+        db.commit()
+        return {"status":"deleted","id":image_id}
 
     @app.get("/demo/manage/events/{event_id}/participants")
     def event_participants(event_id:int,account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
