@@ -200,6 +200,12 @@ def ensure_manage(db: Session, account: WebAccount) -> str:
     role = role_for(db, account)
     if role not in {"organizer", "global_admin"}:
         raise HTTPException(status_code=403, detail="organizer_role_required")
+    # A self-selected organizer role is not sufficient proof of identity.
+    # Enforce email ownership before exposing real participant data.
+    if os.getenv("APP_ENV", "development").lower() == "production":
+        from demo_account_recovery import email_is_verified
+        if not email_is_verified(db, account.id):
+            raise HTTPException(status_code=403, detail="email_verification_required")
     return role
 
 def ensure_owner(db: Session, event_id: int, account: WebAccount) -> str:
