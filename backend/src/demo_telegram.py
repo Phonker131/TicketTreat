@@ -21,7 +21,7 @@ import time
 from urllib.parse import parse_qsl
 from typing import Any
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Header
 from pydantic import BaseModel, Field
 from sqlalchemy import BigInteger, Column, Integer, UniqueConstraint
 from sqlalchemy.exc import IntegrityError
@@ -87,6 +87,70 @@ def bot_user_registrations(db: Session, telegram_id: int, main) -> list[dict]:
 
 
 def install_telegram_auth(app, get_db, main) -> None:
+    @app.post("/demo/telegram/link")
+    def link_telegram(payload: TelegramAuthRequest, authorization: str | None = Header(None),
+                      db: Session = Depends(get_db)):
+        """Explicitly link separately authenticated website and Telegram identities.
+
+        Preserve all existing QR passes and waitlist records. Do not guess from
+        name/email. Reject conflicts instead of silently overwriting bookings.
+        """
+        from demo_roles import account_lookup
+        from demo_accounts import WebAccount
+        from demo_account_recovery import email_is_verified
+        if not main.DEMO_ISOLATED_API:
+            raise HTTPException(503, "telegram_miniapp_requires_isolated_api")
+        account = account_lookup(db, authorization)
+        if not email_is_verified(db, account.id):
+            raise HTTPException(403, "email_verification_required")
+        user = verified_telegram_user(payload.init_data, os.getenv("TELEGRAM_MINIAPP_BOT_TOKEN", "").strip())
+        telegram_id = user["id"]
+        link = db.query(DemoTelegramIdentity).filter(
+            DemoTelegramIdentity.telegram_id == telegram_id
+        ).with_for_update().first()
+        if link is None:
+            # The Telegram account must first have been signed in via Mini App.
+            raise HTTPException(409, "telegram_login_required_first")
+        existing_web = db.query(WebAccount).filter(WebAccount.guest_id == link.guest_id).first()
+        if existing_web and existing_web.id != account.id:
+            raise HTTPException(409, "telegram_already_linked_to_another_account")
+        any_other = db.query(DemoTelegramIdentity).filter(
+            DemoTelegramIdentity.guest_id == account.guest_id,
+            DemoTelegramIdentity.telegram_id != telegram_id,
+        ).first()
+        if any_other:
+            raise HTTPException(409, "website_account_has_another_telegram")
+        if link.guest_id == account.guest_id:
+            return {"linked": True, "already_linked": True}
+        old = db.query(main.DemoGuest).filter(main.DemoGuest.id == link.guest_id).with_for_update().first()
+        guest = db.query(main.DemoGuest).filter(main.DemoGuest.id == account.guest_id).with_for_update().first()
+        if old is None or guest is None:
+            raise HTTPException(409, "identity_guest_missing")
+        web_tickets = {row.event_id for row in db.query(main.DemoTicket).filter(
+            main.DemoTicket.guest_id == guest.id).all()}
+        tg_tickets = db.query(main.DemoTicket).filter(main.DemoTicket.guest_id == old.id).all()
+        if any(t.event_id in web_tickets for t in tg_tickets):
+            raise HTTPException(409, "duplicate_event_ticket_requires_manual_resolution")
+        web_waitlists = {row.event_id for row in db.query(main.DemoWaitlist).filter(
+            main.DemoWaitlist.guest_id == guest.id).all()}
+        tg_waitlists = db.query(main.DemoWaitlist).filter(main.DemoWaitlist.guest_id == old.id).all()
+        if any(w.event_id in web_waitlists for w in tg_waitlists):
+            raise HTTPException(409, "duplicate_waitlist_requires_manual_resolution")
+        for row in tg_tickets:
+            row.guest_id = guest.id
+        for row in tg_waitlists:
+            row.guest_id = guest.id
+        guest.telegram_id = telegram_id
+        guest.username = str(user.get("username") or "")[:255] or None
+        link.guest_id = guest.id
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(409, "telegram_link_conflict") from None
+        return {"linked": True, "already_linked": False,
+                "migrated_tickets": len(tg_tickets), "migrated_waitlists": len(tg_waitlists)}
+
     @app.post("/demo/telegram/auth")
     def telegram_auth(payload: TelegramAuthRequest, db: Session = Depends(get_db)):
         token = os.getenv("TELEGRAM_MINIAPP_BOT_TOKEN", "").strip()
@@ -126,8 +190,11 @@ def install_telegram_auth(app, get_db, main) -> None:
                 raise HTTPException(status_code=503, detail="telegram_identity_incomplete")
             # Keep Telegram display name current, never touch user's web account/email.
             guest.username = str(user.get("username") or "")[:255] or None
-            guest.first_name = user["first_name"].strip()[:100]
-            guest.last_name = str(user.get("last_name") or "")[:100] or None
+            # A linked website account owns its canonical profile name.
+            from demo_accounts import WebAccount
+            if not db.query(WebAccount.id).filter(WebAccount.guest_id == guest.id).first():
+                guest.first_name = user["first_name"].strip()[:100]
+                guest.last_name = str(user.get("last_name") or "")[:100] or None
             db.commit()
             db.refresh(guest)
 
@@ -139,7 +206,7 @@ def install_telegram_auth(app, get_db, main) -> None:
                 "username": guest.username,
             },
             "bot_registrations": bot_user_registrations(db, telegram_id, main),
-            "accounts_linked": False,
+            "accounts_linked": bool(db.query(__import__("demo_accounts").WebAccount.id).filter(__import__("demo_accounts").WebAccount.guest_id == guest.id).first()),
         }
 
 def send_miniapp_ticket_notice(
