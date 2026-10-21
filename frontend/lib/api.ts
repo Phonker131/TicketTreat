@@ -355,3 +355,15 @@ export function requestPasswordReset(email:string):Promise<{status:string}> {
 export function confirmPasswordReset(email:string,code:string,newPassword:string):Promise<{status:string}> {
   return request("/demo/auth/password/reset",{method:"POST",body:JSON.stringify({email,code,new_password:newPassword})});
 }
+
+export type SiteLanding = {headline:string;subtitle:string;hero_image_url:string|null};
+export function getSiteLanding():Promise<SiteLanding> {
+  return request("/demo/site/landing");
+}
+export function updateSiteLanding(token:string,payload:{
+  headline:string;subtitle:string;hero_image_data_url?:string|null;remove_hero_image?:boolean;
+}):Promise<SiteLanding> {
+  return request("/demo/manage/site/landing",{
+    method:"PUT",headers:{Authorization:`Bearer ${token}`},body:JSON.stringify(payload)
+  });
+}
