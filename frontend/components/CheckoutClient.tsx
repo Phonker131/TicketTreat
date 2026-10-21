@@ -46,6 +46,12 @@ export function CheckoutClient() {
   }, []);
 
   const price = useMemo(() => event ? formatPrice(event, language) : "", [event, language]);
+  const isFree = Boolean(event && Number(event.price || 0) <= 0);
+  const freeLabel = language === "ru" ? "Бесплатно" : language === "uk" ? "Безкоштовно" :
+    language === "cs" ? "Zdarma" : "Free";
+  const registerLabel = language === "ru" ? "Получить бесплатный билет" :
+    language === "uk" ? "Отримати безкоштовний квиток" :
+    language === "cs" ? "Získat vstupenku zdarma" : "Get free ticket";
 
   async function submitGuest(e: FormEvent) {
     e.preventDefault();
@@ -77,9 +83,9 @@ export function CheckoutClient() {
         return;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 900));
+      if (!isFree) await new Promise((resolve) => setTimeout(resolve, 900));
       const result = await demoCheckout(event.id, guest.access_token, language);
-      router.push(`/tickets/${result.ticket.id}?paid=1`);
+      router.push(`/tickets/${result.ticket.id}${isFree ? "?registered=1" : "?paid=1"}`);
     } catch (err) {
       const text = err instanceof Error ? err.message : "Error";
       if (text === "event_full") {
@@ -116,7 +122,7 @@ export function CheckoutClient() {
                 <small>{event.organizer || "Crowdly"}</small>
                 <h2>{event.title}</h2>
               </div>
-              <strong>{price}</strong>
+              <strong>{isFree ? freeLabel : price}</strong>
             </section>
 
             {!guest ? (
@@ -154,7 +160,13 @@ export function CheckoutClient() {
                   </>
                 ) : (
                   <>
-                    <h2>{t(language, "payment")}</h2>
+                    <h2>{isFree ? freeLabel : t(language, "payment")}</h2>
+                    {isFree ? <p className="demo-banner">{
+                      language === "ru" ? "Оплата не нужна. После регистрации сразу получишь QR-билет." :
+                      language === "uk" ? "Оплата не потрібна. QR-квиток буде доступний одразу." :
+                      language === "cs" ? "Platba není potřeba. QR vstupenka bude připravena ihned." :
+                      "No payment required. Your QR ticket will be ready immediately."
+                    }</p> : <>
                     <div className="demo-banner">{t(language, "demoHint")}</div>
                     <div className="payment-methods">
                       {[
@@ -178,8 +190,9 @@ export function CheckoutClient() {
                         <div><input value="12/30" readOnly aria-label="Expiry" /><input value="123" readOnly aria-label="CVC" /></div>
                       </div>
                     )}
+                    </>}
                     <button className="button button-primary button-wide" onClick={performCheckout} disabled={busy}>
-                      {busy ? t(language, "loading") : `${t(language, "pay")} ${price}`}
+                      {busy ? t(language, "loading") : isFree ? registerLabel : `${t(language, "pay")} ${price}`}
                     </button>
                   </>
                 )}

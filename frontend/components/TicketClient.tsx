@@ -18,7 +18,9 @@ export function TicketClient() {
   const search = useSearchParams();
   const [ticket, setTicket] = useState<DemoTicket | null>(null);
   const [qr, setQr] = useState("");
-  const [message, setMessage] = useState(search.get("paid") === "1" ? t(language, "paymentSuccess") : null);
+  const [message, setMessage] = useState(search.get("paid") === "1" ? t(language, "paymentSuccess") :
+    search.get("registered") === "1" ? (language==="ru"?"Бесплатный билет успешно оформлен!":
+      language==="cs"?"Bezplatná vstupenka byla vystavena.":"Your free ticket is ready!") : null);
 
   async function load() {
     const guest = await restoreGuest();
@@ -68,7 +70,9 @@ export function TicketClient() {
                 </div>
               )}
               <div className="ticket-status-grid">
-                <span className="status status-success">✓ {t(language, "paid")}</span>
+                <span className="status status-success">✓ {ticket.payment_provider === "free" ?
+                  (language==="ru"?"Бесплатно":language==="cs"?"Zdarma":language==="uk"?"Безкоштовно":"Free") :
+                  t(language, "paid")}</span>
                 <span className={`status ${ticket.checked_in_at ? "status-success" : "status-muted"}`}>
                   {ticket.checked_in_at ? t(language, "checkedIn") : t(language, "notCheckedIn")}
                 </span>

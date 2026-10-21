@@ -2398,8 +2398,8 @@ def promote_demo_waitlist(
         ticket = existing
         ticket.qr_token = secrets.token_urlsafe(32)
         ticket.ticket_status = "active"
-        ticket.payment_status = "paid"
-        ticket.payment_provider = "demo"
+        ticket.payment_status = "not_required" if price_decimal(event.price) <= 0 else "paid"
+        ticket.payment_provider = "free" if price_decimal(event.price) <= 0 else "demo"
         ticket.payment_amount = str(price_decimal(event.price))
         ticket.currency = getattr(event, "currency", None) or "CZK"
         ticket.checked_in_at = None
@@ -2410,8 +2410,8 @@ def promote_demo_waitlist(
             guest_id=waitlist_entry.guest_id,
             qr_token=secrets.token_urlsafe(32),
             ticket_status="active",
-            payment_status="paid",
-            payment_provider="demo",
+            payment_status="not_required" if price_decimal(event.price) <= 0 else "paid",
+            payment_provider="free" if price_decimal(event.price) <= 0 else "demo",
             payment_amount=str(price_decimal(event.price)),
             currency=getattr(event, "currency", None) or "CZK",
         )
@@ -2602,12 +2602,9 @@ def demo_checkout(
     payload: DemoCheckoutCreate,
     db: Session = Depends(get_db),
 ):
-    if not DEMO_PAYMENT_MODE:
-        raise HTTPException(
-            status_code=503,
-            detail="demo_payment_disabled",
-        )
-
+    # A genuinely free event never needs a payment provider.
+    # Paid events still require explicit DEMO_PAYMENT_MODE until a real
+    # licensed payment integration is activated.
     guest = get_demo_guest_by_token(db, payload.guest_token)
 
     if guest is None:
@@ -2624,6 +2621,10 @@ def demo_checkout(
 
     if event is None:
         raise HTTPException(status_code=404, detail="event_not_found")
+
+    free_event = price_decimal(event.price) <= 0
+    if not free_event and not DEMO_PAYMENT_MODE:
+        raise HTTPException(status_code=503, detail="demo_payment_disabled")
 
     if getattr(event, "is_cancelled", False):
         raise HTTPException(status_code=409, detail="event_cancelled")
@@ -2645,9 +2646,9 @@ def demo_checkout(
 
     if existing is not None and existing.ticket_status == "active":
         return {
-            "status": "already_paid",
+            "status": "already_registered" if free_event else "already_paid",
             "ticket": demo_ticket_to_dict(existing, db),
-            "demo_payment": True,
+            "demo_payment": not free_event,
             "real_money_charged": False,
         }
 
@@ -2664,8 +2665,8 @@ def demo_checkout(
         ticket = existing
         ticket.qr_token = secrets.token_urlsafe(32)
         ticket.ticket_status = "active"
-        ticket.payment_status = "paid"
-        ticket.payment_provider = "demo"
+        ticket.payment_status = "not_required" if free_event else "paid"
+        ticket.payment_provider = "free" if free_event else "demo"
         ticket.payment_amount = str(price_decimal(event.price))
         ticket.currency = getattr(event, "currency", None) or "CZK"
         ticket.checked_in_at = None
@@ -2676,8 +2677,8 @@ def demo_checkout(
             guest_id=guest.id,
             qr_token=secrets.token_urlsafe(32),
             ticket_status="active",
-            payment_status="paid",
-            payment_provider="demo",
+            payment_status="not_required" if free_event else "paid",
+            payment_provider="free" if free_event else "demo",
             payment_amount=str(price_decimal(event.price)),
             currency=getattr(event, "currency", None) or "CZK",
         )
@@ -2707,9 +2708,9 @@ def demo_checkout(
     db.refresh(ticket)
 
     return {
-        "status": "paid",
+        "status": "registered" if free_event else "paid",
         "ticket": demo_ticket_to_dict(ticket, db),
-        "demo_payment": True,
+        "demo_payment": not free_event,
         "real_money_charged": False,
     }
 

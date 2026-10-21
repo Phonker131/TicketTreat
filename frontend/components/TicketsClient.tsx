@@ -65,7 +65,9 @@ export function TicketsClient() {
                 <div className="ticket-row-right">
                   <strong>{ticket.event ? formatPrice(ticket.event, language) : `${ticket.payment_amount} ${ticket.currency}`}</strong>
                   <span className={`status ${ticket.checked_in_at ? "status-success" : "status-demo"}`}>
-                    {ticket.ticket_status === "cancelled" ? t(language, "cancelledTicket") : ticket.checked_in_at ? t(language, "checkedIn") : t(language, "paid")}
+                    {ticket.ticket_status === "cancelled" ? t(language, "cancelledTicket") : ticket.checked_in_at ? t(language, "checkedIn") : (ticket.payment_provider==="free" ?
+                      (language==="ru"?"Бесплатно":language==="cs"?"Zdarma":language==="uk"?"Безкоштовно":"Free") :
+                      t(language, "paid"))}
                   </span>
                 </div>
               </Link>

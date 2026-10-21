@@ -52,7 +52,7 @@ export type DemoTicket = {
 };
 
 export type DemoCheckoutResponse = {
-  status: "paid" | "already_paid";
+  status: "paid" | "already_paid" | "registered" | "already_registered";
   ticket: DemoTicket;
   demo_payment: boolean;
   real_money_charged: boolean;

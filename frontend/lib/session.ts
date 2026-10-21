@@ -84,15 +84,17 @@ export async function restoreWebProfile(): Promise<WebProfile | null> {
 }
 
 export async function restoreGuest(): Promise<DemoGuest | null> {
+  // Inside Telegram always use the user proved by signed initData.
+  // A saved website account may be present in the same browser, but it must
+  // never silently replace the Telegram identity for tickets/checkout.
+  if (getTelegramWebApp()?.initData) {
+    const result = await getVerifiedTelegramSession();
+    return result?.guest || null;
+  }
   const webToken = getWebToken();
   if (webToken) {
     const profile = await restoreWebProfile();
     return profile?.guest || null;
-  }
-  if (getTelegramWebApp()?.initData) {
-    const result = await getVerifiedTelegramSession();
-    if (result) return result.guest;
-    return null;
   }
   const token = getStoredGuestToken();
   if (token) {
