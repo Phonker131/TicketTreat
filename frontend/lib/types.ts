@@ -20,7 +20,8 @@ export type TicketTreatEvent = {
   image_url: string | null;
   gallery_urls?: string[];
   external_gallery_urls?: string[];
-  uploaded_gallery?: {id:number;url:string}[];
+  uploaded_gallery?: {id:number;url:string;position?:number;is_cover?:boolean}[];
+  gallery_cover_url?:string|null;
   video_url?: string | null;
   starts_at: string | null;
   publication?: {status:"draft"|"scheduled"|"published";publish_at:string|null;visible:boolean};
