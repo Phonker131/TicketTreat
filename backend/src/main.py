@@ -36,6 +36,7 @@ from db import models
 from db.base import Base
 from db.session import SessionLocal, engine, get_db
 from demo_accounts import WebAccount, WebSession, install_demo_accounts
+from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
 from demo_roles import WebAccountRole, EventOwnership, EventModerationLog, install_demo_roles, install_account_moderation
 from demo_email import EmailOutbox, queue_email, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
 
@@ -934,6 +935,11 @@ def event_to_dict(
             None,
         ),
     }
+
+    if db is not None:
+        data.update(place_dict(db, DemoEventPlace, "event_id", event.id))
+    else:
+        data.update({"country_code": None, "city": None})
 
     if registered_count is not None:
         data["registered_count"] = registered_count

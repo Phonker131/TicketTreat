@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Session
 from db.base import Base
+from demo_geography import DemoEventPlace, place_dict, save_place
 from demo_accounts import WebAccount, WebSession, token_hash, safe_csv, throttle
 
 class WebAccountRole(Base):
@@ -57,6 +58,8 @@ class EventModerationLog(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
 class CreateManageEvent(BaseModel):
+    country_code: str = Field(min_length=2, max_length=2)
+    city: str = Field(min_length=1, max_length=100)
     title: str = Field(min_length=1, max_length=255)
     organizer: str | None = None
     location: str | None = None
@@ -69,6 +72,8 @@ class CreateManageEvent(BaseModel):
     poster_data_url: str | None = Field(default=None, max_length=5700000)
 
 class UpdateManageEvent(BaseModel):
+    country_code: str | None = Field(default=None, max_length=2)
+    city: str | None = Field(default=None, max_length=100)
     title: str | None = Field(default=None, min_length=1, max_length=255)
     organizer: str | None = None
     location: str | None = None
@@ -243,7 +248,7 @@ def install_demo_roles(app, get_db, main):
         if payload.starts_at is None:
             raise HTTPException(status_code=422,detail="date_required")
         # Existing bot event-creation logic remains the source of truth.
-        values=payload.model_dump(exclude={"poster_data_url"})
+        values=payload.model_dump(exclude={"poster_data_url","country_code","city"})
         from main import EventCreate
         values["payment_instructions"]="DEMO PAYMENT — automatically confirmed"
         values["reminder_minutes_before"]=180
@@ -254,6 +259,7 @@ def install_demo_roles(app, get_db, main):
         eid=created["id"]
         event=db.query(main.Event).filter(main.Event.id==eid).first()
         db.add(EventOwnership(event_id=eid,owner_account_id=account.id))
+        save_place(db, DemoEventPlace, "event_id", eid, payload.country_code, payload.city)
         if payload.poster_data_url:
             poster_setup(db,main,request,event,payload.poster_data_url)
         audit(db,eid,account.id,"create")
@@ -274,7 +280,9 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(status_code=409,detail="event_is_cancelled")
         values=payload.model_dump(exclude_unset=True)
         poster=values.pop("poster_data_url",None)
-        if not values and poster is None:
+        geo_country=values.pop("country_code",None)
+        geo_city=values.pop("city",None)
+        if not values and poster is None and geo_country is None and geo_city is None:
             raise HTTPException(status_code=422,detail="no_changes")
         validate_payload(values.get("languages"),values.get("currency"))
         cap=values.get("max_participants",event.max_participants)
@@ -291,9 +299,14 @@ def install_demo_roles(app, get_db, main):
             outcome=main.update_event(event_id,EventUpdate(**values),db=db)
             if isinstance(outcome,dict) and outcome.get("error"):
                 raise HTTPException(status_code=422,detail=outcome["error"])
+        if geo_country is not None or geo_city is not None:
+            previous=db.query(DemoEventPlace).filter(DemoEventPlace.event_id==event_id).first()
+            country=geo_country if geo_country is not None else (previous.country_code if previous else None)
+            city=geo_city if geo_city is not None else (previous.city if previous else None)
+            save_place(db, DemoEventPlace, "event_id", event_id, country, city)
         if poster:
             poster_setup(db,main,request,event,poster)
-        audit(db,event_id,account.id,"edit",",".join(values.keys())+(",poster" if poster else ""))
+        audit(db,event_id,account.id,"edit",",".join(values.keys())+(",poster" if poster else "")+(",geography" if geo_country is not None or geo_city is not None else ""))
         db.commit()
         db.refresh(event)
         return event_data(event,db,main)
