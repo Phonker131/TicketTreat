@@ -1,3 +1,5 @@
+import {calendarICS} from "../lib/event-actions";
+import type {TicketTreatEvent} from "../lib/types";
 import {test,expect} from "@playwright/test";
 
 test("catalogue renders upcoming events through the live FastAPI gateway",async({page})=>{
@@ -66,4 +68,21 @@ test("TicketTreat PWA icon and manifest expose the active brand",async({request}
   const data=await manifest.json();
   expect(data.name).toBe("TicketTreat");
   expect(data.icons.some((entry:{src:string})=>entry.src==="/brand/icon/192")).toBe(true);
+});
+
+test("calendar ICS DTSTART uses a valid venue-local DATE-TIME",()=>{
+  const event={
+    id:42,
+    title:"Prague, Music; Night",
+    description:"Bring friends",
+    starts_at:"2026-11-09T19:30:00",
+    location:"Example Hall",
+    city:"Prague",
+    country_code:"CZ",
+  } as TicketTreatEvent;
+  const ics=calendarICS(event,"https://tickettreat.eu/events/42");
+  expect(ics).toContain("DTSTART:20261109T193000\r\n");
+  expect(ics).toContain("SUMMARY:Prague\\, Music\\; Night");
+  expect(ics).toContain("URL:https://tickettreat.eu/events/42");
+  expect(ics).toContain("END:VCALENDAR");
 });
