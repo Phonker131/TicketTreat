@@ -1,6 +1,6 @@
-// Crowdly PWA v3: only cache static assets, never user pages or API data.
-const CACHE_NAME = "crowdly-public-static-v3";
-const STATIC_FILES = ["/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
+// TicketTreat PWA v4: only cache static assets, never user pages or API data.
+const CACHE_NAME = "tickettreat-public-static-v4";
+const STATIC_FILES = ["/brand/icon/192", "/brand/icon/512", "/apple-icon", "/icon"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_FILES)).then(() => self.skipWaiting()));
 });
