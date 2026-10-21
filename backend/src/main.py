@@ -2349,7 +2349,8 @@ def demo_guest_to_dict(
 
     return {
         "id": guest.id,
-        "access_token": guest.access_token,
+        # Never send a second bearer credential to browser clients in production.
+        "access_token": "" if os.getenv("APP_ENV", "development").strip().lower() == "production" else guest.access_token,
         "telegram_id": guest.telegram_id,
         "username": guest.username,
         "first_name": guest.first_name,
