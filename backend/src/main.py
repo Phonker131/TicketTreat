@@ -3278,7 +3278,7 @@ install_site_content(app, get_db, __import__("sys").modules[__name__])
 
 # Privacy defaults for all user-specific responses, including errors.
 @app.middleware("http")
-async def crowdly_security_response_headers(request: Request, call_next):
+async def tickettreat_security_response_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "no-referrer"
