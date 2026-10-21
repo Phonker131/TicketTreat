@@ -7,7 +7,7 @@ import { getVerifiedTelegramSession } from "@/lib/session";
 import {CountryCityFields} from "@/components/CountryCityFields";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions } from "@/lib/api";
+import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -92,6 +92,10 @@ export function ProfileClient() {
   const [countryCode,setCountryCode]=useState("");
   const [city,setCity]=useState("");
   const [claimKey, setClaimKey] = useState("");
+  const [verificationCode,setVerificationCode]=useState("");
+  const [resetOpen,setResetOpen]=useState(false);
+  const [resetCode,setResetCode]=useState("");
+  const [resetPassword,setResetPassword]=useState("");
   const [showClaim, setShowClaim] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [accountRole, setAccountRole] = useState<"participant"|"organizer">("participant");
@@ -303,6 +307,18 @@ export function ProfileClient() {
                 <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
                 <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">→ {tr.tickets}</Link></div>
               </div>
+              {!profile.email_verified && <div className="panel form-stack">
+                <h3>{language==="ru"?"Подтвердить email":language==="uk"?"Підтвердити email":language==="cs"?"Ověřit e-mail":"Verify email"}</h3>
+                <p className="form-note">{language==="ru"?"Отправь код подтверждения на почту и введи его здесь.": "Request a code and enter it here. Existing accounts can verify without losing tickets."}</p>
+                <button type="button" className="button button-outline" disabled={busy}
+                  onClick={async()=>{const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await requestEmailVerification(token);setNotice("Verification code sent.");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
+                  {language==="ru"?"Отправить код":"Send code"}</button>
+                <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await confirmAccountEmail(token,profile.account.email,verificationCode);loadProfile(await getWebProfile(token));setVerificationCode("");setNotice("Email verified.");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
+                  <label>{language==="ru"?"Код из письма":"Email code"}<input type="text" autoComplete="one-time-code" inputMode="numeric" required minLength={8} maxLength={8} value={verificationCode} onChange={e=>setVerificationCode(e.target.value)}/></label>
+                  <button type="submit" className="button button-primary" disabled={busy}>{language==="ru"?"Подтвердить email":"Confirm email"}</button>
+                </form>
+              </div>}
+              {profile.email_verified&&<p className="form-note">✓ {language==="ru"?"Email подтверждён":"Email verified"}</p>}
               <p className="form-note">{tr.note}</p>
               {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary">Organizer dashboard →</Link>}
             </section>
@@ -429,6 +445,22 @@ export function ProfileClient() {
               <p className="form-note">{mode==="signup"?tr.passwordHint:tr.note}</p>
               <button className="button button-primary" type="submit" disabled={busy}>{busy?tr.loading:mode==="signup"?tr.create:tr.login}</button>
             </form>
+            <button type="button" className="button button-outline" onClick={()=>setResetOpen(v=>!v)}>
+              {language==="ru"?"Забыли пароль?":language==="uk"?"Забули пароль?":language==="cs"?"Zapomenuté heslo?":"Forgot password?"}
+            </button>
+            {resetOpen&&<section className="panel form-stack">
+              <h3>{language==="ru"?"Восстановление пароля":"Password recovery"}</h3>
+              <p className="form-note">{language==="ru"?"На подтверждённую почту придёт код. Если аккаунта нет, ответ будет таким же.":"A code will be sent only to verified addresses."}</p>
+              <label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
+              <button type="button" className="button button-outline" disabled={busy} onClick={async()=>{setBusy(true);setError("");try{await requestPasswordReset(email);setNotice(language==="ru"?"Если адрес подтверждён, письмо отправлено.":"If an eligible account exists, a code was sent.");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
+                {language==="ru"?"Отправить код":"Send reset code"}
+              </button>
+              <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setError("");try{await confirmPasswordReset(email,resetCode,resetPassword);setResetOpen(false);setResetCode("");setResetPassword("");setNotice(language==="ru"?"Пароль изменён. Войди с новым паролем.":"Password changed. Sign in with the new password.");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
+                <label>{language==="ru"?"Код из письма":"Email code"}<input required minLength={8} maxLength={8} inputMode="numeric" value={resetCode} onChange={e=>setResetCode(e.target.value)}/></label>
+                <label>{language==="ru"?"Новый пароль (12+ символов)":"New password (12+ characters)"}<input type="password" required minLength={12} maxLength={128} value={resetPassword} onChange={e=>setResetPassword(e.target.value)}/></label>
+                <button type="submit" className="button button-primary" disabled={busy}>{language==="ru"?"Сбросить пароль":"Reset password"}</button>
+              </form>
+            </section>}
             <p className="form-note">{tr.note}</p>
           </>
         )}
