@@ -279,6 +279,18 @@ export function editManageEvent(token: string, eventId: number, payload: Record<
 export function cancelManageEvent(token: string, eventId: number, reason: string): Promise<import("@/lib/types").ManageEvent> {
   return request(`/demo/manage/events/${eventId}/cancel`,{method:"POST",headers:accountHeaders(token),body:JSON.stringify({reason})});
 }
+export function uploadManageGalleryPhoto(token:string,eventId:number,dataUrl:string):
+  Promise<{id:number;url:string}> {
+  return request(`/demo/manage/events/${eventId}/gallery`,{
+    method:"POST",headers:accountHeaders(token),body:JSON.stringify({data_url:dataUrl})
+  });
+}
+export function deleteManageGalleryPhoto(token:string,eventId:number,imageId:number):
+  Promise<{status:string}> {
+  return request(`/demo/manage/events/${eventId}/gallery/${imageId}`,{
+    method:"DELETE",headers:accountHeaders(token)
+  });
+}
 export function getManageParticipants(token:string, eventId:number): Promise<AdminEventTickets> {
   return request(`/demo/manage/events/${eventId}/participants`,{headers:accountHeaders(token)});
 }
