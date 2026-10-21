@@ -82,6 +82,7 @@ def send_code(email: str, purpose: str, code: str):
         "verify": ("Verify your TicketTreat email", "Your TicketTreat verification code"),
         "reset": ("Reset your TicketTreat password", "Your TicketTreat password reset code"),
         "login": ("Sign in to TicketTreat", "Your one-time TicketTreat sign-in code"),
+        "quick": ("Confirm your TicketTreat registration", "Your one-time TicketTreat signup code"),
     }
     if purpose not in templates:
         raise ValueError("unsupported_challenge_purpose")
