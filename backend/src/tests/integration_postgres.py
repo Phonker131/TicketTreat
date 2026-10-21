@@ -54,6 +54,17 @@ class PostgresStartupTest(unittest.TestCase):
             self.assertEqual(response.status_code, 200, response.text)
             self.assertEqual(response.json()["status"], "ready")
 
+    def test_production_rejects_demo_guest_and_shared_admin(self):
+        from fastapi.testclient import TestClient
+        with TestClient(main.app) as client:
+            anonymous = client.post("/demo/guests",json={
+                "first_name": "Unknown", "email": "unknown@example.invalid",
+            })
+            self.assertEqual(anonymous.status_code,403,anonymous.text)
+            legacy_admin = client.get("/demo/admin/verify",
+                headers={"X-Demo-Admin-Key": "anything"})
+            self.assertEqual(legacy_admin.status_code,403,legacy_admin.text)
+
     def test_production_disables_fake_paid_checkout(self):
         self.assertEqual(os.getenv("APP_ENV"), "production")
         self.assertFalse(main.DEMO_PAYMENT_MODE)
