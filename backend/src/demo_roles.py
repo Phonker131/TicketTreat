@@ -18,7 +18,7 @@ from typing import Any
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, UniqueConstraint, func
+from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, UniqueConstraint, Boolean, func
 from sqlalchemy.orm import Session
 from db.base import Base
 from demo_geography import DemoEventPlace, place_dict, save_place
@@ -104,9 +104,17 @@ class EventGalleryImage(Base):
     id = Column(Integer, primary_key=True)
     event_id = Column(Integer, nullable=False, index=True)
     content_type = Column(String(32), nullable=False)
-    image_bytes = Column(LargeBinary, nullable=False)
+    image_bytes = Column(LargeBinary, nullable=True)
+    object_key = Column(String(255),nullable=True)
+    position = Column(Integer, nullable=False, default=0)
+    is_cover = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), nullable=False,
                         default=lambda: datetime.now(timezone.utc))
+
+
+class GallerySort(BaseModel):
+    ordered_ids: list[int] = Field(min_length=1,max_length=8)
+    cover_id: int | None = None
 
 
 class GalleryUpload(BaseModel):
@@ -632,7 +640,12 @@ def install_demo_roles(app, get_db, main):
         ).first()
         if image is None:
             raise HTTPException(404,"gallery_image_not_found")
-        return Response(content=image.image_bytes,media_type=image.content_type,
+        if image.object_key:
+            from demo_media_store import load
+            content=load(image.object_key)
+        else:
+            content=image.image_bytes
+        return Response(content=content,media_type=image.content_type,
                         headers={"Cache-Control":"public, max-age=3600",
                                  "X-Content-Type-Options":"nosniff"})
 
@@ -649,7 +662,13 @@ def install_demo_roles(app, get_db, main):
         if len(urls)+uploaded>=8:raise HTTPException(409,"gallery_limit_reached")
         content_type,blob=main.decode_demo_poster(payload.data_url)
         if len(blob)>2*1024*1024:raise HTTPException(413,"gallery_image_too_large")
-        image=EventGalleryImage(event_id=event_id,content_type=content_type,image_bytes=blob)
+        from demo_media_store import configured,store
+        object_key=None
+        if configured():
+            object_key,content_type=store(event_id,blob)
+            blob=None
+        image=EventGalleryImage(event_id=event_id,content_type=content_type,image_bytes=blob,
+                                object_key=object_key,position=uploaded,is_cover=(uploaded==0))
         db.add(image)
         db.flush()
         audit(db,event_id,account.id,"gallery_upload",f"image:{image.id}")
@@ -664,10 +683,33 @@ def install_demo_roles(app, get_db, main):
             EventGalleryImage.id==image_id,EventGalleryImage.event_id==event_id
         ).first()
         if image is None:raise HTTPException(404,"gallery_image_not_found")
+        key=image.object_key
         db.delete(image)
         audit(db,event_id,account.id,"gallery_delete",f"image:{image_id}")
         db.commit()
+        if key:
+            from demo_media_store import remove
+            remove(key)
         return {"status":"deleted","id":image_id}
+
+    @app.put("/demo/manage/events/{event_id}/gallery/order")
+    def gallery_order(event_id:int,payload:GallerySort,
+                      account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
+        ensure_owner(db,event_id,account)
+        images=db.query(EventGalleryImage).filter(EventGalleryImage.event_id==event_id).all()
+        actual={image.id for image in images}
+        if len(set(payload.ordered_ids))!=len(payload.ordered_ids) or set(payload.ordered_ids)!=actual:
+            raise HTTPException(422,"gallery_order_mismatch")
+        if payload.cover_id is not None and payload.cover_id not in actual:
+            raise HTTPException(422,"gallery_cover_not_in_event")
+        selected=payload.cover_id if payload.cover_id is not None else payload.ordered_ids[0]
+        ordered={id:i for i,id in enumerate(payload.ordered_ids)}
+        for image in images:
+            image.position=ordered[image.id]
+            image.is_cover=image.id==selected
+        audit(db,event_id,account.id,"gallery_sort",str(payload.ordered_ids))
+        db.commit()
+        return {"ordered_ids":payload.ordered_ids,"cover_id":selected}
 
     @app.get("/demo/manage/events/{event_id}/email-status")
     def email_status(event_id:int,account:WebAccount=Depends(managing),
