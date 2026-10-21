@@ -2540,6 +2540,7 @@ def demo_config():
         "demo_payment_mode": DEMO_PAYMENT_MODE,
         "payment_provider": "demo",
         "real_money_charged": False,
+        "verified_accounts_required": os.getenv("APP_ENV", "development").strip().lower() == "production",
     }
 
 
