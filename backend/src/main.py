@@ -30,6 +30,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text as sql_text,
 )
 from sqlalchemy.orm import Session
 
@@ -1072,6 +1073,23 @@ def start_payment_cleanup_worker():
 # =========================================================
 # Basic
 # =========================================================
+@app.get("/demo/health/live")
+def live_health():
+    """Process liveness without exposing credentials or deployment internals."""
+    return {"status": "ok"}
+
+
+@app.get("/demo/health/ready")
+def readiness_health():
+    """Railway readiness: only healthy when the database accepts a query."""
+    try:
+        with engine.connect() as connection:
+            connection.execute(sql_text("SELECT 1"))
+    except Exception:
+        raise HTTPException(status_code=503, detail="database_unavailable") from None
+    return {"status": "ready"}
+
+
 @app.get("/")
 def root():
     return {
