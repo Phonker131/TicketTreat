@@ -118,6 +118,11 @@ def safe_csv(value: object) -> str:
     return raw
 
 
+def _verified_email(db: Session, account_id: int) -> bool:
+    from demo_account_recovery import email_is_verified
+    return email_is_verified(db, account_id)
+
+
 def install_demo_accounts(
     app,
     DemoGuest,
@@ -207,7 +212,7 @@ def install_demo_accounts(
                 "email": guest.email, "first_name": guest.first_name,
                 "last_name": guest.last_name, "visits": int(checkins),
             },
-            "email_verified": False,
+            "email_verified": _verified_email(db, account.id),
             "admin_claim_available": bool(
                 account.email.casefold() in permanent_global_admin_emails()
                 and len(os.getenv("GLOBAL_ADMIN_RECOVERY_SECRET", "")) >= 32
