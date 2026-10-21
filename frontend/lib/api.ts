@@ -279,6 +279,15 @@ export function editManageEvent(token: string, eventId: number, payload: Record<
 export function cancelManageEvent(token: string, eventId: number, reason: string): Promise<import("@/lib/types").ManageEvent> {
   return request(`/demo/manage/events/${eventId}/cancel`,{method:"POST",headers:accountHeaders(token),body:JSON.stringify({reason})});
 }
+export type EventEmailStatus = {
+  email_enabled:boolean;
+  verified_ticket_holders:number;
+  message_states:Record<string,number>;
+  scope:string;
+};
+export function getEventEmailStatus(token:string,eventId:number):Promise<EventEmailStatus> {
+  return request(`/demo/manage/events/${eventId}/email-status`,{headers:accountHeaders(token)});
+}
 export function uploadManageGalleryPhoto(token:string,eventId:number,dataUrl:string):
   Promise<{id:number;url:string}> {
   return request(`/demo/manage/events/${eventId}/gallery`,{
