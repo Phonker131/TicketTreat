@@ -18,6 +18,8 @@ export type CrowdlyEvent = {
   payment_status?: string;
   payment_instructions_configured?: boolean;
   image_url: string | null;
+  gallery_urls?: string[];
+  video_url?: string | null;
   starts_at: string | null;
   is_cancelled: boolean;
   cancellation_reason?: string | null;
