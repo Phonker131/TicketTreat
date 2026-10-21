@@ -38,6 +38,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 BOT_USERNAME = os.getenv("BOT_USERNAME")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 CLIENT_SERVICE_URL = os.getenv("CLIENT_SERVICE_URL", "").strip()
+WEB_APP_URL = os.getenv("WEB_APP_URL", "").strip()
+BOT_API_KEY = os.getenv("BOT_API_KEY", "").strip()
 PRAGUE_TZ = ZoneInfo("Europe/Prague")
 
 ADMIN_IDS = [
@@ -123,10 +125,14 @@ def backend_request(
     timeout: int = 10,
     **kwargs,
 ) -> Any:
+    headers = dict(kwargs.pop("headers", {}) or {})
+    if BOT_API_KEY:
+        headers["X-Bot-Api-Key"] = BOT_API_KEY
     response = requests.request(
         method,
         f"{BACKEND_URL}{path}",
         timeout=timeout,
+        headers=headers,
         **kwargs,
     )
 
@@ -222,7 +228,7 @@ UI_TRANSLATIONS = {
     "Не требуется": _tr("Not required", "Není vyžadováno", "Не требуется", "Не потрібна"),
 
     # General user flow
-    "Привет! Я бот Crowdly для записи на ивенты.": _tr(
+    "Добро пожаловать в TicketTreat! В меню можно открыть веб-приложение, а команды бота остаются резервным способом взаимодействия.": _tr(
         "Hi! I'm the Crowdly bot for joining events.",
         "Ahoj! Jsem Crowdly bot pro registraci na události.",
         "Привет! Я бот Crowdly для записи на ивенты.",
@@ -1044,6 +1050,9 @@ def require_admin_message(message) -> bool:
 
 def get_main_menu(user_id: int):
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+
+    if WEB_APP_URL.startswith("https://"):
+        keyboard.row(KeyboardButton("🌐 Open TicketTreat", web_app=telebot.types.WebAppInfo(url=WEB_APP_URL)))
 
     keyboard.row(
         KeyboardButton("🏠 Start"),
