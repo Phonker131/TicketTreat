@@ -20,3 +20,54 @@ Status: first safe foundation; **not production-ready**.
 Use the repository's existing local setup to run PostgreSQL, FastAPI and the Telegram bot. Serve `miniapp/index.html` via the same origin as the API (a local static-file mount or development reverse proxy). Telegram tests need an HTTPS URL; a local tunnel is fine for development if access is secured.
 
 **Important:** Do not merge this branch as a finished production Mini App. The catalog is intentionally read-only until authenticated API routes and legacy endpoint authorization are completed.
+
+
+## Product direction: Web-first, Telegram-enhanced
+
+The same responsive website must work as:
+- a standalone, public website in any modern browser, without requiring Telegram;
+- a Telegram Mini App embedded in Telegram, with Telegram-native theme and login;
+- a shared system with the existing Telegram bot as notification channel and fallback command interface.
+
+**Do not build two separate frontends.** Replace the early static HTML preview with a single React + TypeScript + Vite application. Use an environment adapter for Telegram WebApp SDK calls; the plain web browser must not assume `window.Telegram` exists. On web, offer email-based authentication plus optional verified Telegram account linking. In Telegram, securely validate `initData` on the backend; never trust `initDataUnsafe` as proof of identity.
+
+### Identity model
+- Give each person an internal immutable database user ID independent of Telegram.
+- Associate optional verified identities: email and Telegram ID. Uniqueness constraints apply to verified identities.
+- Email signup/signin requires verified email and a secure login flow; account linking requires proof of ownership of **both** accounts.
+- Migrate legacy Telegram-ID-centric profiles and registrations while preserving existing associations; add an Alembic migration, not a destructive table recreation.
+- Use secure sessions/tokens scoped to authenticated users and separate server-to-server credentials for the bot.
+- Public event discovery can be anonymous. Profile edits, registrations and payment details require authentication.
+
+### Feature parity
+Both website and Mini App: public event catalog/details, account/profile, event signup/unsubscribe, my events, payment instructions/status, four interface languages, and responsive views.
+Telegram bot: deep links to individual event pages, alerts for event updates, confirmations/reminders, and legacy commands as fallback. Never depend on a user's bot chat for core website functionality. Provide email or in-site notifications when Telegram is not connected.
+
+### Proposed workspace structure
+```
+frontend/
+  src/
+    app/
+    pages/
+    components/
+    features/
+    api/
+    auth/
+    integrations/telegram/
+    i18n/
+backend/src/
+  miniapp_auth.py
+  # existing API and models; introduce protected routes and migrations
+bot/src/
+  main.py
+```
+
+### Delivery order
+1. Implement shared responsive React frontend with anonymous event discovery, running directly in a browser; reuse the public events API.
+2. Secure old API endpoints before exposure and add unified user identities, authentication, account-linking, and migrations.
+3. Implement profile, event registration, personal event list, cancellation, and payments through protected shared API endpoints.
+4. Add Telegram environment adapter and Mini App signed login while preserving full website functionality.
+5. Add bot links, optional Telegram notifications and fallback commands; test changes locally with PostgreSQL and an HTTPS dev tunnel.
+6. Deploy web frontend/API separately as needed, behind HTTPS, and configure public domain and Telegram web-app entry point.
+
+**Current implementation note:** `miniapp/index.html` is a read-only proof of concept and not the definitive frontend. Existing API and bot are unchanged on this branch. Do not enable public backend access until the authorization review has been completed.
