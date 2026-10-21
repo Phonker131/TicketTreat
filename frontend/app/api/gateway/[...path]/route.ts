@@ -7,7 +7,10 @@ import { NextRequest, NextResponse } from "next/server";
  */
 const COOKIE = "tt_web_session";
 const MARKER = "browser-session";
-const base = (process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
+const base = (process.env.BACKEND_API_URL || (process.env.NODE_ENV === "production" ? "" : "http://127.0.0.1:8000")).replace(/\/+$/, "");
+if (!base || !/^https?:\/\//.test(base)) {
+  throw new Error("BACKEND_API_URL must be explicitly configured");
+}
 const sessionPaths = new Set(["/demo/auth/login", "/demo/auth/signup", "/demo/auth/change-password"]);
 const logoutPaths = new Set(["/demo/auth/logout", "/demo/auth/logout-all"]);
 const supported = new Set(["GET","POST","PATCH","PUT","DELETE"]);
@@ -23,7 +26,10 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   if (req.nextUrl.search.length > 2048) return NextResponse.json({detail:"query_too_long"},{status:400});
   if (!["GET"].includes(method)){
     const origin = req.headers.get("origin");
-    if (origin && origin !== req.nextUrl.origin) return NextResponse.json({detail:"cross_origin_denied"},{status:403});
+    const fetchSite = req.headers.get("sec-fetch-site");
+    if (origin !== req.nextUrl.origin || (fetchSite && fetchSite !== "same-origin")) {
+      return NextResponse.json({detail:"cross_origin_denied"},{status:403});
+    }
     if (req.headers.get("x-crowdly-client") !== "1") return NextResponse.json({detail:"client_header_required"},{status:403});
   }
   const headers = new Headers();
@@ -41,7 +47,15 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
     // Legacy website sessions may not be forwarded: they must log in again.
     return NextResponse.json({detail:"please_login_again"},{status:401});
   }
-  if(req.headers.has("x-admin-key"))headers.set("X-Admin-Key",req.headers.get("x-admin-key")!);
+  const signedLaunch = req.headers.get("x-telegram-init-data");
+  if (signedLaunch && signedLaunch.length <= 8192) {
+    headers.set("X-Telegram-Init-Data", signedLaunch);
+  }
+  // Legacy browser-wide administration keys never transit the public BFF.
+  // Organizers use /demo/manage/* with scoped, revocable web sessions.
+  if (relative.startsWith("/demo/admin/")) {
+    return NextResponse.json({detail:"legacy_admin_endpoint_disabled"},{status:403});
+  }
   const raw=method==="GET"?undefined:await req.arrayBuffer();
   if(raw && raw.byteLength>6_000_000)return NextResponse.json({detail:"request_too_large"},{status:413});
   let upstream:Response;
@@ -67,7 +81,7 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   }
   const bytes=await upstream.arrayBuffer();
   const response=new NextResponse(bytes,init);
-  if(shouldClear)response.cookies.set(COOKIE,"",{httpOnly:true,sameSite:"strict",secure:req.nextUrl.protocol==="https:",path:"/api/gateway",maxAge:0});
+  if(shouldClear)response.cookies.set(COOKIE,"",{httpOnly:true,sameSite:"strict",secure:process.env.NODE_ENV==="production" || req.nextUrl.protocol==="https:",path:"/api/gateway",maxAge:0});
   return response;
 }
 export {gateway as GET,gateway as POST,gateway as PATCH,gateway as PUT,gateway as DELETE};
