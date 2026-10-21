@@ -8,12 +8,12 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { getEvent,getBookingConfig } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { LANGUAGE_NAMES, t } from "@/lib/i18n";
-import type { CrowdlyEvent } from "@/lib/types";
+import type { TicketTreatEvent } from "@/lib/types";
 
 export function EventDetailClient() {
   const params = useParams<{id: string}>();
   const {language} = useLanguage();
-  const [event, setEvent] = useState<CrowdlyEvent | null>(null);
+  const [event, setEvent] = useState<TicketTreatEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [demoPayments,setDemoPayments]=useState(false);
 
