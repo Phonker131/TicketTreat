@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import { CountryCityFields } from "@/components/CountryCityFields";
 import { addManageEvent, getManageEvents, getManageMe } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { LanguageCode, ManageEvent, ManageIdentity } from "@/lib/types";
@@ -27,6 +28,8 @@ export function AdminClient() {
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
   const [preview,setPreview]=useState("");
+  const [countryCode,setCountryCode]=useState("");
+  const [city,setCity]=useState("");
   useEffect(()=>{
     let live=true;
     const token=getWebToken();
@@ -61,13 +64,14 @@ export function AdminClient() {
         organizer:String(data.get("organizer")||"Crowdly").trim(),
         description:String(data.get("description")||"").trim(),
         location:String(data.get("location")||"").trim(),
+        country_code:countryCode,city:city.trim(),
         max_participants:Number(data.get("max_participants")||30),
         price:String(data.get("price")||"0"),
         currency:String(data.get("currency")||"CZK"),
         starts_at:starts+":00",languages:langs,poster_data_url,
       });
       setEvents(current=>[event,...current]);
-      form.reset();setPreview("");setShowForm(false);setNotice("Ивент успешно создан.");
+      form.reset();setPreview("");setCountryCode("");setCity("");setShowForm(false);setNotice("Ивент успешно создан.");
     }catch(e){setError(errorText(e));}
     finally{setSaving(false);}
   }
@@ -94,7 +98,9 @@ export function AdminClient() {
         <h2>Новый ивент</h2>
         <label>Название<input required name="title" maxLength={255}/></label>
         <label>Организатор<input name="organizer" defaultValue="Crowdly" /></label>
-        <label>Место<input name="location" required /></label>
+        <CountryCityFields countryCode={countryCode} city={city} onCountryChange={setCountryCode}
+          onCityChange={setCity} language="ru" />
+        <label>Адрес или место проведения<input name="location" required /></label>
         <label>Описание<textarea name="description" rows={4}/></label>
         <label>Постер JPG/PNG/WebP до 4 МБ<input name="poster" type="file" accept="image/jpeg,image/png,image/webp"
           onChange={e=>{const f=e.target.files?.[0];if(!f){setPreview("");return;}if(f.size>4*1024*1024){setError("Постер больше 4 МБ");return;}const url=URL.createObjectURL(f);setPreview(url);}}/></label>

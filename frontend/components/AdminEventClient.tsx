@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import { CountryCityFields } from "@/components/CountryCityFields";
 import {
   getManageMe,getManageEvent,getManageParticipants,
   editManageEvent,cancelManageEvent,exportManageParticipantsCsv,
@@ -32,6 +33,7 @@ export function AdminEventClient(){
   const [reason,setReason]=useState(""),[owner,setOwner]=useState("");
   const [poster,setPoster]=useState<File|null>(null);
   const [title,setTitle]=useState(""),[location,setLocation]=useState("");
+  const [countryCode,setCountryCode]=useState(""),[city,setCity]=useState("");
   const [organizer,setOrganizer]=useState(""),[description,setDescription]=useState("");
   const [startsAt,setStartsAt]=useState(""),[capacity,setCapacity]=useState("30");
   const [price,setPrice]=useState("0"),[currency,setCurrency]=useState("CZK");
@@ -43,6 +45,7 @@ export function AdminEventClient(){
     ]);
     setIdentity(me);setEvent(ev);setData(tickets);
     setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"Crowdly");
+    setCountryCode(ev.country_code||"");setCity(ev.city||"");
     setDescription(ev.description||"");setStartsAt(asLocal(ev.starts_at));
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
     setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
@@ -71,6 +74,7 @@ export function AdminEventClient(){
       if(!languages.length)throw new Error("Выбери язык.");
       const payload:Record<string,unknown>={
         title:title.trim(),organizer:organizer.trim(),description,location,
+        country_code:countryCode,city:city.trim(),
         max_participants:Number(capacity),price:String(price),
         currency,starts_at:startsAt+":00",languages,
       };
@@ -135,7 +139,9 @@ export function AdminEventClient(){
         <h2>Редактировать информацию</h2>
         <label>Название<input value={title} required onChange={e=>setTitle(e.target.value)}/></label>
         <label>Организатор<input value={organizer} onChange={e=>setOrganizer(e.target.value)}/></label>
-        <label>Локация<input value={location} onChange={e=>setLocation(e.target.value)}/></label>
+        <CountryCityFields countryCode={countryCode} city={city} onCountryChange={setCountryCode}
+          onCityChange={setCity} language="ru" />
+        <label>Адрес или место проведения<input value={location} onChange={e=>setLocation(e.target.value)}/></label>
         <label>Описание<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>
         <div className="two-col"><label>Дата и время<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
           <label>Количество мест<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
