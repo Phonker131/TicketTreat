@@ -96,6 +96,23 @@ class QRWaitlistE2E(unittest.TestCase):
             self.assertEqual(create.json()["publication"]["status"],"draft")
             self.assertEqual(client.get(f"/events/{draft}").status_code,404)
             self.assertEqual(client.get(f"/demo/manage/events/{draft}",headers=headers).status_code,200)
+            copied=client.post(f"/demo/manage/events/{draft}/duplicate",
+                headers=headers,json={})
+            self.assertEqual(copied.status_code,201,copied.text)
+            new_id=copied.json()["id"]
+            self.assertNotEqual(new_id,draft)
+            self.assertEqual(copied.json()["registered_count"],0)
+            scheduled=client.put(f"/demo/manage/events/{new_id}/publication",
+                headers=headers,json={"status":"scheduled",
+                "publish_at":(datetime.now(timezone.utc)+timedelta(minutes=15)).isoformat()})
+            self.assertEqual(scheduled.status_code,200,scheduled.text)
+            self.assertEqual(client.get(f"/events/{new_id}").status_code,404)
+            from demo_publication import EventPublication
+            with SessionLocal() as db:
+                row=db.get(EventPublication,new_id)
+                row.publish_at=datetime.now(timezone.utc)-timedelta(minutes=1)
+                db.commit()
+            self.assertEqual(client.get(f"/events/{new_id}").status_code,200)
             published=client.put(f"/demo/manage/events/{draft}/publication",
                 headers=headers,json={"status":"published"})
             self.assertEqual(published.status_code,200,published.text)
