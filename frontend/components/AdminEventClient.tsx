@@ -346,6 +346,15 @@ export function AdminEventClient(){
           <div className="stat-card"><strong>{pilotInsights.waitlist}</strong><span>Ожидают места</span></div>
           <div className="stat-card"><strong>{pilotInsights.cancelled_tickets}</strong><span>Отмены</span></div>
         </div>
+        <h3>Источники регистраций</h3>
+        <div className="pilot-analytics-bars">
+          {pilotInsights.channels.length?pilotInsights.channels.map(c=>
+            <div className="pilot-bar-row" key={c.source}>
+              <span>{c.source}</span><div className="pilot-bar-track"><div style={{
+                width:`${100*c.registrations/Math.max(1,...pilotInsights.channels.map(v=>v.registrations))}%`
+              }}/></div><strong>{c.registrations}</strong>
+            </div>):<p>Пока нет данных по источникам.</p>}
+        </div>
         <h3>Регистрации по дням (до 90 дат)</h3>
         {pilotInsights.daily_bookings.length===0?<p>Нет регистраций.</p>:
           <div className="pilot-analytics-bars">{pilotInsights.daily_bookings.map(day=>
