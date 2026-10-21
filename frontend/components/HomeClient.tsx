@@ -92,9 +92,9 @@ export function HomeClient(){
       <section className="hero" style={landing?.hero_image_url?{backgroundImage:`linear-gradient(105deg,rgba(15,12,35,.88),rgba(15,12,35,.62)),url(${landing.hero_image_url})`,backgroundSize:"cover",backgroundPosition:"center"}:undefined}>
         <div className="hero-pattern"><span className="hero-you"/></div>
         <div className="hero-copy">
-          <p className="eyebrow">CROWDLY</p>
-          <h1>{landing?.headline||t(language,"upcoming")}</h1>
-          <p>{landing?.subtitle||t(language,"tagline")}</p>
+          <p className="eyebrow">TICKETTREAT</p>
+          <h1>{landing?.headline?.replace(/Crowdly/gi,"TicketTreat")||t(language,"upcoming")}</h1>
+          <p>{landing?.subtitle?.replace(/Crowdly/gi,"TicketTreat")||t(language,"tagline")}</p>
         </div>
       </section>
       <section className="section">
