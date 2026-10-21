@@ -5,24 +5,27 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
-import { getEvent,getBookingConfig } from "@/lib/api";
+import { getEvent,getBookingConfig,getManageEvent } from "@/lib/api";
+import {getWebToken} from "@/lib/session";
+import {downloadCalendar,mapQuery} from "@/lib/event-actions";
 import { formatDate, formatPrice } from "@/lib/format";
 import { LANGUAGE_NAMES, t } from "@/lib/i18n";
 import type { TicketTreatEvent } from "@/lib/types";
 
-export function EventDetailClient() {
+export function EventDetailClient({preview=false}:{preview?:boolean}) {
   const params = useParams<{id: string}>();
   const {language} = useLanguage();
   const [event, setEvent] = useState<TicketTreatEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [demoPayments,setDemoPayments]=useState(false);
+  const [mapOpen,setMapOpen]=useState(false);
 
   useEffect(() => {
     if (!params?.id) return;
-    getEvent(params.id)
-      .then(setEvent)
-      .catch((e) => setError(e instanceof Error ? e.message : "error"));
-  }, [params?.id]);
+    const token=getWebToken();
+    const result=preview ? (token ? getManageEvent(Number(params.id),token) : Promise.reject(new Error("Login required"))) : getEvent(params.id);
+    result.then(setEvent).catch((e) => setError(e instanceof Error ? e.message : "error"));
+  }, [params?.id,preview]);
 
   useEffect(()=>{getBookingConfig().then(cfg=>setDemoPayments(cfg.demo_payment_mode)).catch(()=>{});},[]);
 
@@ -34,6 +37,15 @@ export function EventDetailClient() {
     return <><AppHeader /><main className="page"><div className="state-card">{t(language, "loading")}</div></main></>;
   }
 
+  const mapUrl=mapQuery(event);
+  const eventUrl=typeof window!=="undefined" ? window.location.origin+`/events/${event.id}` : `/events/${event.id}`;
+  const posterUrl=preview&&!event.publication?.visible&&event.image_url?.includes(`/demo/events/${event.id}/poster`)
+    ? `/api/gateway/demo/events/${event.id}/poster` : event.image_url;
+  const galleryUrls=preview&&!event.publication?.visible
+    ? (event.gallery_urls||[]).map(url=>url.includes(`/demo/events/${event.id}/gallery/`)?
+        `/api/gateway/demo/events/${event.id}/gallery/${url.split("/").pop()}`:url)
+    : event.gallery_urls||[];
+
   const langs = event.languages?.length
     ? event.languages.map((code) => LANGUAGE_NAMES[language][code]).join(", ")
     : t(language, "notSpecified");
@@ -42,12 +54,13 @@ export function EventDetailClient() {
     <div className="app-shell">
       <AppHeader />
       <main className="page event-page">
-        <Link href="/" className="back-link">← {t(language, "back")}</Link>
+        <Link href={preview?`/admin/events/${event.id}`:"/"} className="back-link">← {preview?"Управление ивентом":t(language, "back")}</Link>
+        {preview&&<div className="state-card" role="status"><strong>Предпросмотр — доступен только организатору.</strong> {event.publication?.visible?"Ивент также опубликован.":"Черновик пока не виден гостям и не принимает регистрации."}</div>}
 
         <section className="event-hero">
-          {event.image_url ? (
+          {posterUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="event-image" src={event.image_url} alt="" />
+            <img className="event-image" src={posterUrl} alt="" />
           ) : (
             <div className="event-image event-image-placeholder"><div className="mini-crowd"><span/><span/><span className="mini-you"/><span/><span/></div></div>
           )}
@@ -63,9 +76,9 @@ export function EventDetailClient() {
           </div>
         </section>
 
-        {Boolean(event.gallery_urls?.length) && <section className="panel" style={{marginBottom:20}}>
+        {Boolean(galleryUrls.length) && <section className="panel" style={{marginBottom:20}}>
           <h2>{language==="ru"?"Фотографии":language==="uk"?"Світлини":language==="cs"?"Fotogalerie":"Photo gallery"}</h2>
-          <div className="event-media-gallery">{event.gallery_urls?.map((url,index)=><a key={url+index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Event gallery photo ${index+1}`} loading="lazy" referrerPolicy="no-referrer"/></a>)}</div>
+          <div className="event-media-gallery">{galleryUrls.map((url,index)=><a key={url+index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Event gallery photo ${index+1}`} loading="lazy" referrerPolicy="no-referrer"/></a>)}</div>
         </section>}
         {event.video_url && <section className="panel" style={{marginBottom:20}}>
           <h2>{language==="ru"?"Видео мероприятия":language==="uk"?"Відео події":language==="cs"?"Video z akce":"Event video"}</h2>
@@ -80,8 +93,19 @@ export function EventDetailClient() {
           <div className="detail-item"><span>{t(language, "spots")}</span><strong>{event.spots_left ?? "∞"}</strong></div>
           <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
         </section>
+        <section className="panel" style={{marginTop:20,marginBottom:20}}>
+          <h2>{language==="ru"?"Как добраться и сохранить дату":language==="cs"?"Místo a kalendář":language==="uk"?"Як дістатися та календар":"Venue and calendar"}</h2>
+          <div className="admin-event-actions">
+            {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar(event,eventUrl)}>↓ {language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
+            {mapUrl&&<><a className="button button-outline" href={mapUrl} target="_blank" rel="noopener noreferrer">↗ {language==="ru"?"Открыть карту":language==="cs"?"Otevřít mapu":language==="uk"?"Відкрити карту":"Open map"}</a>
+              <button type="button" className="button button-outline" onClick={()=>setMapOpen(v=>!v)}>{mapOpen?"Скрыть карту":"Показать карту"}</button></>}
+          </div>
+          {mapOpen&&mapUrl&&<iframe title="Карта места проведения" loading="lazy" referrerPolicy="no-referrer"
+            style={{width:"100%",height:300,border:0,borderRadius:12,marginTop:16}}
+            src={`https://maps.google.com/maps?q=${encodeURIComponent([event.location,event.city,event.country_code].filter(Boolean).join(", "))}&output=embed`} />}
+        </section>
 
-        {event.is_cancelled ? (
+        {preview ? <section className="state-card"><h2>Предпросмотр карточки</h2><p>Регистрация в режиме предпросмотра недоступна. Чтобы открыть её для гостей, опубликуй мероприятие в админке.</p></section> : event.is_cancelled ? (
           <section className="state-card state-error">
             <h2>{t(language,"cancelled")}</h2>
             <p><strong>{language==="en"?"Cancellation reason":language==="cs"?"Důvod zrušení":language==="uk"?"Причина скасування":"Причина отмены"}:</strong> {event.cancellation_reason || "—"}</p>
