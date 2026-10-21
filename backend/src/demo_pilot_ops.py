@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, Integer, String, UniqueConstraint, func
