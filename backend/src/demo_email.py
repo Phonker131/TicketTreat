@@ -1,4 +1,4 @@
-"""Durable transactional email notifications for the Crowdly Demo API.
+"""Durable transactional email notifications for the TicketTreat Demo API.
 
 Provider: Resend (https://api.resend.com/emails).
 Requires EMAIL_NOTIFICATIONS_ENABLED=true, RESEND_API_KEY, and EMAIL_FROM
@@ -133,12 +133,12 @@ def ticket_language(db: Session, ticket_id: int) -> str:
 
 COPY = {
     "en": {
-        "welcome_subject": "Welcome to Crowdly!",
-        "welcome_title": "Welcome to Crowdly",
-        "welcome_body": "Your Crowdly account is ready. Find events and keep your tickets in one place.",
-        "ticket_subject": "Your Crowdly ticket: {event}",
+        "welcome_subject": "Welcome to TicketTreat!",
+        "welcome_title": "Welcome to TicketTreat",
+        "welcome_body": "Your TicketTreat account is ready. Find events and keep your tickets in one place.",
+        "ticket_subject": "Your TicketTreat ticket: {event}",
         "ticket_title": "You're going to {event}!",
-        "ticket_body": "Your demo booking is confirmed. Show this QR code at the entrance.",
+        "ticket_body": "Your registration is confirmed. Show this QR code at the entrance.",
         "reminder_subject": "Reminder: {event} is coming up",
         "reminder_title": "Your event is soon!",
         "reminder_body": "Your registration is active. Remember the start time and bring your ticket.",
@@ -147,14 +147,14 @@ COPY = {
         "checkin_body": "You've checked in successfully. Enjoy the event!",
         "event": "Event", "date": "Starts", "location": "Location", "number": "Ticket",
         "price": "Price", "button_ticket": "Open my ticket", "button_profile": "My profile",
-        "demo": "DEMO — No real money was charged.", "footer": "This is an automatic Crowdly notification. Please do not reply.",
+        "demo": "DEMO — No real money was charged.", "footer": "This is an automatic TicketTreat notification. Please do not reply.",
         "qr_fallback": "If you can't see the QR image, open your ticket using the button.",
     },
     "ru": {
-        "welcome_subject": "Добро пожаловать в Crowdly!",
-        "welcome_title": "Добро пожаловать в Crowdly",
+        "welcome_subject": "Добро пожаловать в TicketTreat!",
+        "welcome_title": "Добро пожаловать в TicketTreat",
         "welcome_body": "Твой аккаунт создан. Теперь можно выбирать мероприятия и хранить билеты в одном месте.",
-        "ticket_subject": "Твой билет Crowdly: {event}",
+        "ticket_subject": "Твой билет TicketTreat: {event}",
         "ticket_title": "Ты записан на {event}!",
         "ticket_body": "Запись подтверждена. Покажи этот QR-код на входе.",
         "reminder_subject": "Напоминание о мероприятии: {event}",
@@ -165,14 +165,14 @@ COPY = {
         "checkin_body": "Отметка о посещении сохранена. Хорошего мероприятия!",
         "event": "Мероприятие", "date": "Начало", "location": "Место", "number": "Билет",
         "price": "Цена", "button_ticket": "Открыть билет", "button_profile": "Мой профиль",
-        "demo": "ДЕМО — реальные деньги не списывались.", "footer": "Автоматическое письмо Crowdly. Не отвечай на него.",
+        "demo": "ДЕМО — реальные деньги не списывались.", "footer": "Автоматическое письмо TicketTreat. Не отвечай на него.",
         "qr_fallback": "Если QR-код не отображается, открой билет по кнопке.",
     },
     "cs": {
-        "welcome_subject": "Vítej v Crowdly!",
-        "welcome_title": "Vítej v Crowdly",
+        "welcome_subject": "Vítej v TicketTreat!",
+        "welcome_title": "Vítej v TicketTreat",
         "welcome_body": "Tvůj účet je připraven. Vyber si akci a měj všechny vstupenky na jednom místě.",
-        "ticket_subject": "Tvoje vstupenka Crowdly: {event}",
+        "ticket_subject": "Tvoje vstupenka TicketTreat: {event}",
         "ticket_title": "Jsi přihlášen/a na {event}!",
         "ticket_body": "Registrace je potvrzena. U vstupu ukaž tento QR kód.",
         "reminder_subject": "Připomínka akce: {event}",
@@ -183,14 +183,14 @@ COPY = {
         "checkin_body": "Tvá účast je zaznamenána. Užij si akci!",
         "event": "Akce", "date": "Začátek", "location": "Místo", "number": "Vstupenka",
         "price": "Cena", "button_ticket": "Otevřít vstupenku", "button_profile": "Můj profil",
-        "demo": "DEMO — žádné skutečné peníze nebyly strženy.", "footer": "Automatická zpráva Crowdly. Neodpovídej na ni.",
+        "demo": "DEMO — žádné skutečné peníze nebyly strženy.", "footer": "Automatická zpráva TicketTreat. Neodpovídej na ni.",
         "qr_fallback": "Pokud QR kód nevidíš, otevři si vstupenku pomocí tlačítka.",
     },
     "uk": {
-        "welcome_subject": "Ласкаво просимо до Crowdly!",
-        "welcome_title": "Ласкаво просимо до Crowdly",
+        "welcome_subject": "Ласкаво просимо до TicketTreat!",
+        "welcome_title": "Ласкаво просимо до TicketTreat",
         "welcome_body": "Твій акаунт створено. Тепер можна обирати події та зберігати квитки в одному місці.",
-        "ticket_subject": "Твій квиток Crowdly: {event}",
+        "ticket_subject": "Твій квиток TicketTreat: {event}",
         "ticket_title": "Ти записався на {event}!",
         "ticket_body": "Реєстрацію підтверджено. Покажи цей QR-код на вході.",
         "reminder_subject": "Нагадування про подію: {event}",
@@ -201,7 +201,7 @@ COPY = {
         "checkin_body": "Твою присутність зафіксовано. Приємної події!",
         "event": "Подія", "date": "Початок", "location": "Місце", "number": "Квиток",
         "price": "Ціна", "button_ticket": "Відкрити квиток", "button_profile": "Мій профіль",
-        "demo": "ДЕМО — справжні гроші не списувались.", "footer": "Автоматичний лист Crowdly. Не відповідай на нього.",
+        "demo": "ДЕМО — справжні гроші не списувались.", "footer": "Автоматичний лист TicketTreat. Не відповідай на нього.",
         "qr_fallback": "Якщо QR-код не відображається, відкрий квиток за кнопкою.",
     },
 }
@@ -241,7 +241,7 @@ def email_shell(title: str, lead: str, details: str, link: str, button: str, cap
         '<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center">'
         '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:580px;background:#fff;'
         'border-radius:16px;overflow:hidden"><tr><td style="padding:26px 30px;background:#C2118A;color:#fff">'
-        '<div style="font-size:30px;font-weight:900">crowdly <span style="color:#FFC82E">●</span></div></td></tr>'
+        '<div style="font-size:30px;font-weight:900">TicketTreat <span style="color:#FFC82E">●</span></div></td></tr>'
         '<tr><td style="padding:30px"><h1 style="font-size:25px;margin:0 0 16px">'
         + html.escape(title) + '</h1><p style="font-size:15px;line-height:1.6;margin:0 0 20px">'
         + html.escape(lead) + '</p>'
@@ -317,9 +317,9 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
                 '<img alt="Ticket QR" width="220" height="220" style="max-width:100%;height:auto" '
                 'src="cid:crowdly-ticket-qr"></div>'
             )
-            caption = d["qr_fallback"] + " " + d["demo"]
+            caption = d["qr_fallback"] + (" " + d["demo"] if ticket.payment_provider == "demo" else "")
         else:
-            caption = d["demo"]
+            caption = d["demo"] if ticket.payment_provider == "demo" else ""
 
     return {
         "from": os.environ["EMAIL_FROM"].strip(),
@@ -420,7 +420,7 @@ def install_email_worker(app, session_factory) -> None:
             _started = True
 
         def run():
-            LOGGER.info("Crowdly email outbox worker started.")
+            LOGGER.info("TicketTreat email outbox worker started.")
             while True:
                 try:
                     for _ in range(MAX_EMAILS_PER_WORKER_CYCLE):
