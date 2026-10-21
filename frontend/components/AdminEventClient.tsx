@@ -6,7 +6,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { CountryCityFields } from "@/components/CountryCityFields";
 import {
   getManageMe,getManageEvent,getManageParticipants,
-  editManageEvent,cancelManageEvent,exportManageParticipantsCsv,
+  editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
@@ -47,7 +47,7 @@ export function AdminEventClient(){
     setIdentity(me);setEvent(ev);setData(tickets);
     setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"TicketTreat");
     setCountryCode(ev.country_code||"");setCity(ev.city||"");
-    setDescription(ev.description||"");setGallery((ev.gallery_urls||[]).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
+    setDescription(ev.description||"");setGallery((ev.external_gallery_urls||ev.gallery_urls||[]).filter(s=>!s.startsWith("/api/gateway/demo/events/")).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
     setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
     setOwner(ev.owner_account_id==null?"":String(ev.owner_account_id));
@@ -104,6 +104,33 @@ export function AdminEventClient(){
       await assignManageOwner(token,eventId,Number(owner));
       await reload();setNotice("Владелец ивента обновлён.");
     }catch(e){setError(formattedError(e));}finally{setBusy(false);}
+  }
+  async function uploadPhotos(files: FileList|null) {
+    const token=getWebToken();if(!token||!files?.length)return;
+    setBusy(true);setError("");setNotice("");
+    try {
+      const current=event?.gallery_urls?.length||0;
+      if(current+files.length>8)throw new Error("Не более 8 фотографий на мероприятие.");
+      for(const file of Array.from(files)){
+        if(file.size>2*1024*1024)throw new Error("Фотография должна быть меньше 2 МБ.");
+        if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw new Error("Нужны JPG, PNG или WebP.");
+        const dataUrl=await posterData(file);
+        await uploadManageGalleryPhoto(token,eventId,dataUrl);
+      }
+      await reload();
+      setNotice("Фотографии добавлены.");
+    }catch(e){setError(formattedError(e))}
+    finally{setBusy(false)}
+  }
+  async function removePhoto(imageId:number){
+    const token=getWebToken();if(!token)return;
+    if(!window.confirm("Удалить фотографию из галереи?"))return;
+    setBusy(true);setError("");setNotice("");
+    try{
+      await deleteManageGalleryPhoto(token,eventId,imageId);
+      await reload();setNotice("Фотография удалена.");
+    }catch(e){setError(formattedError(e))}
+    finally{setBusy(false)}
   }
   async function csv(){
     const token=getWebToken();if(!token)return;
@@ -163,6 +190,19 @@ export function AdminEventClient(){
         {event.image_url&&<img src={event.image_url} alt="Event poster" className="event-poster-preview"/>}
         <button className="button button-primary" disabled={busy}>{busy?"Сохраняем…":"Сохранить изменения"}</button>
       </form>}
+      {!event.is_cancelled&&<section className="panel form-stack">
+        <h2>Фотогалерея мероприятия</h2>
+        <p className="form-note">Загружай фотографии с прошлых мероприятий (JPG, PNG, WebP; до 2 МБ каждая, максимум 8 включая HTTPS-ссылки). Файлы сохраняются на сервере TicketTreat.</p>
+        <label>Добавить фотографии
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy} onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/>
+        </label>
+        <div className="event-media-gallery">
+          {(event.uploaded_gallery||[]).map(photo=><div key={photo.id}>
+            <img src={photo.url} alt="Фотография мероприятия" />
+            <button type="button" className="button button-outline" disabled={busy} onClick={()=>removePhoto(photo.id)}>Удалить</button>
+          </div>)}
+        </div>
+      </section>}
       {showCancel&&!event.is_cancelled&&<form className="panel form-stack" onSubmit={cancel}>
         <h2>Отмена ивента</h2>
         <p>Укажи причину отмены (обязательно). После отмены регистрация на ивент будет закрыта.</p>
