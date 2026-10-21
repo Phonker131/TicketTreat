@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
-import { createDemoGuest, demoCheckout, getEvent, joinWaitlist } from "@/lib/api";
+import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { getStoredGuestToken, restoreGuest, storeGuest } from "@/lib/session";
-import type { CrowdlyEvent, DemoGuest } from "@/lib/types";
+import type { CrowdlyEvent, DemoGuest, } from "@/lib/types";
 
 type PaymentMethod = "card" | "apple" | "google";
 
@@ -28,6 +28,7 @@ export function CheckoutClient() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [method, setMethod] = useState<PaymentMethod>("card");
+  const [bookingConfig,setBookingConfig] = useState<{demo_payment_mode:boolean;verified_accounts_required:boolean}|null>(null);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -37,6 +38,8 @@ export function CheckoutClient() {
     if (!Number.isFinite(eventId)) return;
     getEvent(eventId).then(setEvent).catch(() => setMessage(t(language, "eventNotFound")));
   }, [eventId, language]);
+
+  useEffect(()=>{getBookingConfig().then(setBookingConfig).catch(()=>setBookingConfig({demo_payment_mode:false,verified_accounts_required:true}));},[]);
 
   useEffect(() => {
     restoreGuest()
@@ -74,6 +77,9 @@ export function CheckoutClient() {
 
   async function performCheckout() {
     if (!event || !guest) return;
+    if (!isFree && !bookingConfig?.demo_payment_mode){
+      setMessage("Paid event checkout is not available yet. No payment has been charged.");return;
+    }
     setBusy(true);
     setMessage(null);
     try {
@@ -108,9 +114,9 @@ export function CheckoutClient() {
       <AppHeader />
       <main className="page narrow-page">
         <div className="checkout-header">
-          <span className="status status-demo">{t(language, "demo")}</span>
+          {bookingConfig?.demo_payment_mode && <span className="status status-demo">{t(language, "demo")}</span>}
           <h1>{t(language, "checkout")}</h1>
-          <p>{t(language, "demoHint")}</p>
+          {bookingConfig?.demo_payment_mode && <p>{t(language, "demoHint")}</p>}
         </div>
 
         {!event || loadingGuest ? (
@@ -134,14 +140,14 @@ export function CheckoutClient() {
                   {language === "en" ? "Sign up / Log in" : language === "cs" ? "Registrovat / Přihlásit se" : language === "uk" ? "Реєстрація / Вхід" : "Регистрация / Вход"}
                 </Link>
               </section>
-              <form className="panel form-stack" onSubmit={submitGuest}>
+              {!bookingConfig?.verified_accounts_required && <form className="panel form-stack" onSubmit={submitGuest}>
                 <h2>{language === "en" ? "Or continue as a demo guest" : language === "cs" ? "Nebo pokračuj jako demo host" : language === "uk" ? "Або продовж як демо-гість" : "Или продолжить как демо-гость"}</h2>
                 <h2>{t(language, "yourDetails")}</h2>
                 <label>{t(language, "firstName")}<input required value={firstName} onChange={(e) => setFirstName(e.target.value)} /></label>
                 <label>{t(language, "lastName")}<input value={lastName} onChange={(e) => setLastName(e.target.value)} /></label>
                 <label>{t(language, "email")}<input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
                 <button className="button button-primary" disabled={busy}>{busy ? t(language, "loading") : t(language, "continue")}</button>
-              </form>
+              </form>}
               </>
             ) : (
               <section className="panel">
@@ -166,7 +172,7 @@ export function CheckoutClient() {
                       language === "uk" ? "Оплата не потрібна. QR-квиток буде доступний одразу." :
                       language === "cs" ? "Platba není potřeba. QR vstupenka bude připravena ihned." :
                       "No payment required. Your QR ticket will be ready immediately."
-                    }</p> : <>
+                    }</p> : !bookingConfig?.demo_payment_mode ? <div className="state-card">Paid ticket sales are not available yet. Please check back later.</div> : <>
                     <div className="demo-banner">{t(language, "demoHint")}</div>
                     <div className="payment-methods">
                       {[
@@ -191,9 +197,9 @@ export function CheckoutClient() {
                       </div>
                     )}
                     </>}
-                    <button className="button button-primary button-wide" onClick={performCheckout} disabled={busy}>
+                    {(isFree || bookingConfig?.demo_payment_mode) && <button className="button button-primary button-wide" onClick={performCheckout} disabled={busy}>
                       {busy ? t(language, "loading") : isFree ? registerLabel : `${t(language, "pay")} ${price}`}
-                    </button>
+                    </button>}
                   </>
                 )}
               </section>
