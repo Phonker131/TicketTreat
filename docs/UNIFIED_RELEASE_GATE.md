@@ -52,3 +52,24 @@ These are *implemented code paths*, not proof of production end-to-end functiona
 - Run [CI](../.github/workflows/ci.yml) on each update.
 
 See [Telegram integration](TELEGRAM_MINIAPP_INTEGRATION.md) and [security status](../backend/SECURITY_STATUS.md).
+
+
+## Hardening changes in the current branch
+
+The following controls are implemented but require staged release validation:
+
+- Production guest ticket endpoints accept the exact verified website-account session or freshly signed Telegram `initData` for the owning guest; possession of an old `guest_token` by itself is not sufficient.
+- Anonymous demo guest creation and shared-key administrative endpoints are disabled when `APP_ENV=production`. Use verified account login and ownership-scoped `/demo/manage/*` routes.
+- Capacity-changing event registration, cancellation and waitlist actions serialize on the same PostgreSQL event row. A final-seat concurrency integration test is included.
+- Account holders can export their data and file/withdraw an erasure request with password confirmation in `/privacy`. Actual erasure is **not automatically performed**: fulfillment requires policy/legal retention review and a controlled administrative process.
+- Admin role grants and recovery are recorded in `demo_account_admin_audit`. This is not a substitute for MFA.
+- `/demo/health/live` and `/demo/health/ready` offer process liveness and PostgreSQL-backed readiness without exposing credentials.
+- Use `python backend/migrations/apply.py` from the repository root to apply checked-in SQL migrations. The runner takes an advisory PostgreSQL lock, runs migrations transactionally, tracks filename + SHA-256 digest, skips already applied files and refuses changed applied migrations. A database backup and restore test is mandatory before production; the old `create_all` path alone is not a migration.
+
+### Security-critical environment
+
+The production API should set `APP_ENV=production`, `DEMO_ISOLATED_API=true`, `DEMO_PAYMENT_MODE=false`, and use trusted `FRONTEND_ORIGINS`. The Next.js frontend needs `BACKEND_API_URL` pointing to the trusted internal API. Account email verification requires `AUTH_CODE_SECRET` and a verified transactional email provider. Do not expose tokens in `NEXT_PUBLIC_*` variables.
+
+### Remaining launch blockers
+
+**Still not complete:** full legacy Telegram registration migration to a unified canonical ticket model; privileged phishing-resistant MFA; formal personal-data erasure fulfillment, privacy notices and retention schedule; production CSP/XSS and penetration review; tested Railway staging DB restoration and rollback; operational mail bounce handling, monitoring/alerting and incident response. Real-money payments, commissions, marketplace payouts, settlement and refund workflows require a contracted payment provider and business/legal setup. Do not activate paid sales.
