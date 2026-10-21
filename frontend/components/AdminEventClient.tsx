@@ -5,6 +5,8 @@ import QRCode from "qrcode";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import {useLanguage} from "@/components/LanguageProvider";
+import {adminTranslate} from "@/lib/admin-i18n";
 import { CountryCityFields } from "@/components/CountryCityFields";
 import {
   getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
@@ -26,6 +28,8 @@ function posterData(file:File):Promise<string> {return new Promise((resolve,reje
   const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Poster read failed"));reader.readAsDataURL(file);
 });}
 export function AdminEventClient(){
+  const {language}=useLanguage();
+  const tr=(phrase:string)=>adminTranslate(language,phrase);
   const router=useRouter();
   const params=useParams<{id:string}>(),eventId=Number(params?.id);
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
@@ -286,56 +290,56 @@ export function AdminEventClient(){
       <div className="admin-event-actions" style={{marginBottom:18}}>
         {!event.is_cancelled&&<button className="button button-primary" onClick={()=>setShowEdit(v=>!v)}>
         {showEdit?"Закрыть":"Редактировать ивент"}</button>}
-        {!event.is_cancelled&&<button className="button button-outline" onClick={()=>setShowCancel(v=>!v)}>Отменить ивент</button>}
-        <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>Предпросмотр ↗</Link>
-        {event.publication?.visible&&<Link className="button button-outline" href={`/events/${event.id}`}>Публичная страница ↗</Link>}
-        <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>Копировать ивент</button>
+        {!event.is_cancelled&&<button className="button button-outline" onClick={()=>setShowCancel(v=>!v)}>{tr("Отменить ивент")}</button>}
+        <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
+        {event.publication?.visible&&<Link className="button button-outline" href={`/events/${event.id}`}>{tr("Публичная страница ↗")}</Link>}
+        <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>{tr("Копировать ивент")}</button>
       </div>
       {!event.is_cancelled&&<section className="panel form-stack">
-        <h2>Публикация мероприятия</h2>
+        <h2>{tr("Публикация мероприятия")}</h2>
         <p className="form-note">Статус: <strong>{event.publication?.status==="draft"?"Черновик":event.publication?.status==="scheduled"?"Запланировано":"Опубликовано"}</strong>. Новые ивенты скрыты до публикации. Публиковать можно только бесплатные будущие мероприятия с заполненными названием, описанием, адресом, городом и вместимостью.</p>
         {event.publication?.publish_at&&<p>Автопубликация: {new Date(event.publication.publish_at).toLocaleString("ru-RU")}</p>}
         <div className="admin-event-actions">
-          {!event.publication?.visible&&<button type="button" className="button button-primary" disabled={busy} onClick={()=>publication("published")}>Опубликовать сейчас</button>}
-          {event.publication?.visible&&<button type="button" className="button button-outline" disabled={busy} onClick={()=>publication("draft")}>Снять с публикации</button>}
+          {!event.publication?.visible&&<button type="button" className="button button-primary" disabled={busy} onClick={()=>publication("published")}>{tr("Опубликовать сейчас")}</button>}
+          {event.publication?.visible&&<button type="button" className="button button-outline" disabled={busy} onClick={()=>publication("draft")}>{tr("Снять с публикации")}</button>}
         </div>
         {!event.publication?.visible&&<div className="two-col">
-          <label>Опубликовать автоматически<input type="datetime-local" value={scheduleAt} onChange={e=>setScheduleAt(e.target.value)}/></label>
-          <button type="button" className="button button-outline" disabled={busy||!scheduleAt} onClick={()=>publication("scheduled")}>Запланировать</button>
+          <label>{tr("Опубликовать автоматически")}<input type="datetime-local" value={scheduleAt} onChange={e=>setScheduleAt(e.target.value)}/></label>
+          <button type="button" className="button button-outline" disabled={busy||!scheduleAt} onClick={()=>publication("scheduled")}>{tr("Запланировать")}</button>
         </div>}
         {event.publication?.visible&&<div className="admin-event-actions">
-          <button type="button" className="button button-outline" onClick={copyEventLink}>Копировать ссылку</button>
-          <button type="button" className="button button-sun" onClick={()=>void downloadPromotionQR()}>Скачать QR для афиши</button>
+          <button type="button" className="button button-outline" onClick={copyEventLink}>{tr("Копировать ссылку")}</button>
+          <button type="button" className="button button-sun" onClick={()=>void downloadPromotionQR()}>{tr("Скачать QR для афиши")}</button>
         </div>}
       </section>}
       {showEdit&&!event.is_cancelled&&<form className="panel form-stack" onSubmit={saveChanges}>
-        <h2>Редактировать информацию</h2>
-        <label>Название<input value={title} required onChange={e=>setTitle(e.target.value)}/></label>
-        <label>Организатор<input value={organizer} onChange={e=>setOrganizer(e.target.value)}/></label>
+        <h2>{tr("Редактировать информацию")}</h2>
+        <label>{tr("Название")}<input value={title} required onChange={e=>setTitle(e.target.value)}/></label>
+        <label>{tr("Организатор")}<input value={organizer} onChange={e=>setOrganizer(e.target.value)}/></label>
         <CountryCityFields countryCode={countryCode} city={city} onCountryChange={setCountryCode}
           onCityChange={setCity} language="ru" />
-        <label>Адрес или место проведения<input value={location} onChange={e=>setLocation(e.target.value)}/></label>
-        <label>Описание<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>
-        <label>Фото мероприятия (HTTPS, по одной ссылке на строку, до 8)<textarea rows={4} value={gallery} onChange={e=>setGallery(e.target.value)}/></label>
-        <label>Видео (YouTube/Vimeo)<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
+        <label>{tr("Адрес или место проведения")}<input value={location} onChange={e=>setLocation(e.target.value)}/></label>
+        <label>{tr("Описание")}<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>
+        <label>{tr("Фото мероприятия (HTTPS, по одной ссылке на строку, до 8)")}<textarea rows={4} value={gallery} onChange={e=>setGallery(e.target.value)}/></label>
+        <label>{tr("Видео (YouTube/Vimeo)")}<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
         <div className="two-col"><label>Дата и время<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
-          <label>Количество мест<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
-        <div className="two-col"><label>Цена<input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}/></label>
-          <label>Валюта<select value={currency} onChange={e=>setCurrency(e.target.value)}>
+          <label>{tr("Количество мест")}<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
+        <div className="two-col"><label>{tr("Цена")}<input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}/></label>
+          <label>{tr("Валюта")}<select value={currency} onChange={e=>setCurrency(e.target.value)}>
           <option>CZK</option><option>EUR</option><option>USD</option></select></label></div>
-        <fieldset className="event-language-fieldset"><legend>Языки</legend>
+        <fieldset className="event-language-fieldset"><legend>{tr("Языки")}</legend>
         <div className="event-language-options">
           {([["en","🇬🇧 English"],["cs","🇨🇿 Čeština"],["ru","🇷🇺 Русский"],["uk","🇺🇦 Українська"]] as const).map(([id,label])=>
             <label key={id}><input type="checkbox" checked={languages.includes(id)}
               onChange={e=>setLanguages(s=>e.target.checked?[...s,id]:s.filter(x=>x!==id))}/>{label}</label>)}
         </div></fieldset>
-        <label>Новый постер (необязательно)<input type="file" accept="image/png,image/jpeg,image/webp"
+        <label>{tr("Новый постер (необязательно)")}<input type="file" accept="image/png,image/jpeg,image/webp"
           onChange={e=>setPoster(e.target.files?.[0]||null)}/></label>
         {event.image_url&&<img src={event.image_url} alt="Event poster" className="event-poster-preview"/>}
         <button className="button button-primary" disabled={busy}>{busy?"Сохраняем…":"Сохранить изменения"}</button>
       </form>}
       {!event.is_cancelled&&<section className="panel form-stack">
-        <h2>Фотогалерея мероприятия</h2>
+        <h2>{tr("Фотогалерея мероприятия")}</h2>
         <p className="form-note">Загружай фотографии с прошлых мероприятий (JPG, PNG, WebP; до 2 МБ каждая, максимум 8 включая HTTPS-ссылки). Файлы сохраняются на сервере TicketTreat.</p>
         <label>Добавить фотографии
           <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy} onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/>
@@ -352,29 +356,29 @@ export function AdminEventClient(){
                 onClick={()=>updateMediaOrder(photo.id,0)}>
                 {photo.is_cover?"✓ Обложка":"Сделать обложкой"}</button>
               <button type="button" className="button button-outline" disabled={busy}
-                onClick={()=>removePhoto(photo.id)}>Удалить</button>
+                onClick={()=>removePhoto(photo.id)}>{tr("Удалить")}</button>
             </div>
           </div>)}
         </div>
       </section>}
       {showCancel&&!event.is_cancelled&&<form className="panel form-stack" onSubmit={cancel}>
-        <h2>Отмена ивента</h2>
+        <h2>{tr("Отмена ивента")}</h2>
         <p>Укажи причину отмены (обязательно). После отмены регистрация на ивент будет закрыта.</p>
-        <label>Причина отмены<textarea required minLength={8} maxLength={1000} rows={4}
+        <label>{tr("Причина отмены")}<textarea required minLength={8} maxLength={1000} rows={4}
           value={reason} onChange={e=>setReason(e.target.value)} placeholder="Например: Организатор вынужден перенести мероприятие из-за…"/></label>
-        <button className="button button-outline" disabled={busy||reason.trim().length<8}>Подтвердить отмену</button>
+        <button className="button button-outline" disabled={busy||reason.trim().length<8}>{tr("Подтвердить отмену")}</button>
       </form>}
       {pilotInsights&&<section className="panel form-stack">
-        <h2>Аналитика посещаемости</h2>
+        <h2>{tr("Аналитика посещаемости")}</h2>
         <div className="stats-grid">
-          <div className="stat-card"><strong>{pilotInsights.registered}</strong><span>Регистрации всего</span></div>
-          <div className="stat-card"><strong>{pilotInsights.occupancy_percent??"—"}%</strong><span>Заполненность</span></div>
-          <div className="stat-card"><strong>{pilotInsights.checked_in}</strong><span>Пришли по QR</span></div>
+          <div className="stat-card"><strong>{pilotInsights.registered}</strong><span>{tr("Регистрации всего")}</span></div>
+          <div className="stat-card"><strong>{pilotInsights.occupancy_percent??"—"}%</strong><span>{tr("Заполненность")}</span></div>
+          <div className="stat-card"><strong>{pilotInsights.checked_in}</strong><span>{tr("Пришли по QR")}</span></div>
           <div className="stat-card"><strong>{pilotInsights.no_show??"—"}</strong><span>{pilotInsights.event_finished?"Итоговый no-show":"No-show после окончания"}</span></div>
-          <div className="stat-card"><strong>{pilotInsights.waitlist}</strong><span>Ожидают места</span></div>
-          <div className="stat-card"><strong>{pilotInsights.cancelled_tickets}</strong><span>Отмены</span></div>
+          <div className="stat-card"><strong>{pilotInsights.waitlist}</strong><span>{tr("Ожидают места")}</span></div>
+          <div className="stat-card"><strong>{pilotInsights.cancelled_tickets}</strong><span>{tr("Отмены")}</span></div>
         </div>
-        <h3>Источники регистраций</h3>
+        <h3>{tr("Источники регистраций")}</h3>
         <div className="pilot-analytics-bars">
           {pilotInsights.channels.length?pilotInsights.channels.map(c=>
             <div className="pilot-bar-row" key={c.source}>
@@ -383,8 +387,8 @@ export function AdminEventClient(){
               }}/></div><strong>{c.registrations}</strong>
             </div>):<p>Пока нет данных по источникам.</p>}
         </div>
-        <h3>Регистрации по дням (до 90 дат)</h3>
-        {pilotInsights.daily_bookings.length===0?<p>Нет регистраций.</p>:
+        <h3>{tr("Регистрации по дням (до 90 дат)")}</h3>
+        {pilotInsights.daily_bookings.length===0?<p>{tr("Нет регистраций.")}</p>:
           <div className="pilot-analytics-bars">{pilotInsights.daily_bookings.map(day=>
             <div className="pilot-bar-row" key={day.date}><span>{day.date}</span>
               <div className="pilot-bar-track"><div style={{width:`${100*day.count/Math.max(1,...pilotInsights.daily_bookings.map(x=>x.count))}%`}}/></div>
@@ -393,13 +397,13 @@ export function AdminEventClient(){
         <p className="form-note">Старые записи Telegram учитываются во вместимости, но не во всех QR-метриках.</p>
       </section>}
       {!event.is_cancelled&&<section className="panel form-stack">
-        <h2>Правила бесплатной регистрации</h2>
+        <h2>{tr("Правила бесплатной регистрации")}</h2>
         <label>Закрыть регистрацию за N минут до начала (0 — до старта)
           <input type="number" min={0} max={10080}
             value={pilotSettings.signup_cutoff_minutes}
             onChange={e=>setPilotSettings(s=>({...s,signup_cutoff_minutes:Number(e.target.value)}))}/>
         </label>
-        <fieldset className="event-language-fieldset"><legend>Письма-напоминания</legend>
+        <fieldset className="event-language-fieldset"><legend>{tr("Письма-напоминания")}</legend>
           {([[10080,"За 7 дней"],[1440,"За 24 часа"],[180,"За 3 часа"]] as const).map(([minutes,label])=>
             <label key={minutes} style={{display:"inline-flex",gap:8,marginRight:16}}>
               <input type="checkbox" checked={pilotSettings.reminder_minutes.includes(minutes)}
@@ -426,33 +430,33 @@ export function AdminEventClient(){
         <p className="form-note">В режиме предложения место удерживается для следующего участника до принятия или истечения срока. Требуется включённый воркер истечения сроков в Railway.</p>
         <p className="form-note">Письма отправляются только подтверждённым владельцам билетов, после включения Resend. Пропущенные интервалы не рассылаются задним числом.</p>
         <button className="button button-primary" type="button" disabled={busy||!pilotSettings.reminder_minutes.length}
-          onClick={savePilotPolicy}>Сохранить правила</button>
+          onClick={savePilotPolicy}>{tr("Сохранить правила")}</button>
       </section>}
       <section className="panel form-stack">
-        <h2>Персонал для проверки билетов</h2>
+        <h2>{tr("Персонал для проверки билетов")}</h2>
         <p className="form-note">Можно назначить подтверждённый TicketTreat-аккаунт только на QR check-in этого мероприятия. Управление ивентом и экспорт участников остаются закрыты.</p>
-        <label>Email сотрудника<input type="email" value={staffEmail} onChange={e=>setStaffEmail(e.target.value)} placeholder="staff@example.com"/></label>
-        <button type="button" className="button button-outline" disabled={busy||!staffEmail.includes("@")} onClick={addCheckinStaff}>Выдать доступ</button>
+        <label>{tr("Email сотрудника")}<input type="email" value={staffEmail} onChange={e=>setStaffEmail(e.target.value)} placeholder="staff@example.com"/></label>
+        <button type="button" className="button button-outline" disabled={busy||!staffEmail.includes("@")} onClick={addCheckinStaff}>{tr("Выдать доступ")}</button>
         {pilotStaff.map(staff=><div className="participant-row" key={staff.account_id}>
           <div><strong>{staff.email}</strong><small>Аккаунт #{staff.account_id}</small></div>
           <button className="button button-outline" type="button" disabled={busy}
-            onClick={()=>removeCheckinStaff(staff.account_id)}>Отозвать</button>
+            onClick={()=>removeCheckinStaff(staff.account_id)}>{tr("Отозвать")}</button>
         </div>)}
       </section>
       <section className="panel form-stack">
-        <h2>Уведомления участникам</h2>
+        <h2>{tr("Уведомления участникам")}</h2>
         <p>С подтверждённым email и действующим билетом: <strong>{emailStatus?.verified_ticket_holders??"—"}</strong></p>
         <p className="form-note">{emailStatus?.email_enabled?
           "Отправка подключена. Зарегистрированные пользователи получают письма с билетами, напоминаниями и важными изменениями.":
           "Отправка отключена до подтверждения домена и настройки Resend. Новые письма пока не отправляются."}</p>
         {emailStatus&&<p className="form-note">Доставлено: {emailStatus.message_states.sent||0} · В очереди: {emailStatus.message_states.pending||0} · Ошибок: {emailStatus.message_states.failed||0}</p>}
         {!event.is_cancelled&&event.publication?.visible&&<section className="form-stack">
-          <h3>Служебное сообщение по мероприятию</h3>
-          <label>Тип уведомления<select value={announcementCategory} onChange={e=>
+          <h3>{tr("Служебное сообщение по мероприятию")}</h3>
+          <label>{tr("Тип уведомления")}<select value={announcementCategory} onChange={e=>
             setAnnouncementCategory(e.target.value as "access"|"logistics"|"schedule")}>
-            <option value="access">Инструкция по входу</option>
+            <option value="access">{tr("Инструкция по входу")}</option>
             <option value="logistics">Как добраться / организационная информация</option>
-            <option value="schedule">Уточнение программы</option>
+            <option value="schedule">{tr("Уточнение программы")}</option>
           </select></label>
           <label>Текст для подтверждённых участников
             <textarea rows={4} maxLength={1000} minLength={20} value={announcementText}
@@ -461,7 +465,7 @@ export function AdminEventClient(){
           </label>
           <button className="button button-outline" type="button"
             disabled={busy||announcementText.trim().length<20||!emailStatus?.email_enabled}
-            onClick={sendOperationalNotice}>Отправить служебное сообщение</button>
+            onClick={sendOperationalNotice}>{tr("Отправить служебное сообщение")}</button>
           <small>Не более двух сообщений в сутки на ивент. Только действующие подтверждённые билеты, не маркетинговая рассылка.</small>
         </section>}
         <p className="form-note">Список адресов участников доступен через Export CSV. Рекламные массовые письма не отправляются без отдельного согласия.</p>
