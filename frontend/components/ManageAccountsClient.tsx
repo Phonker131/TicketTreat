@@ -2,11 +2,15 @@
 import Link from "next/link";
 import {useEffect,useState} from "react";
 import {AppHeader} from "@/components/AppHeader";
+import {useLanguage} from "@/components/LanguageProvider";
+import {adminTranslate} from "@/lib/admin-i18n";
 import {getManagedAccounts,setManagedAccountRole,getGlobalAdminDelegations,grantGlobalAdmin,revokeGlobalAdmin} from "@/lib/api";
 import type {ManagedAccount,GlobalAdminDelegation} from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 
 export function ManageAccountsClient() {
+  const {language}=useLanguage();
+  const tr=(phrase:string)=>adminTranslate(language,phrase);
   const [accounts,setAccounts]=useState<ManagedAccount[]>([]);
   const [delegations,setDelegations]=useState<GlobalAdminDelegation[]>([]);
   const [inviteEmail,setInviteEmail]=useState("");
@@ -54,24 +58,24 @@ export function ManageAccountsClient() {
     finally{setBusy(null);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
-    <Link href="/admin" className="back-link">← Organizer dashboard</Link>
-    <div className="admin-heading"><div><span className="status status-demo">GLOBAL ADMIN</span><h1>Управление аккаунтами</h1>
+    <Link href="/admin" className="back-link">{tr("← Organizer dashboard")}</Link>
+    <div className="admin-heading"><div><span className="status status-demo">GLOBAL ADMIN</span><h1>{tr("Управление аккаунтами")}</h1>
       <p>Разрешение ролей участников и организаторов. Главного администратора можно безопасно назначить существующему аккаунту с подтверждённой почтой. Требуется ваша двухфакторная авторизация.</p></div></div>
     {error&&<div className="state-card state-error">{error}</div>}
     {notice&&<div className="success-banner">{notice}</div>}
     <section className="panel form-stack">
-      <h2>Главные администраторы</h2>
+      <h2>{tr("Главные администраторы")}</h2>
       <p className="form-note">Оба администратора имеют одинаковые права: события, главная страница, участники и роли. Нельзя назначить права до создания аккаунта и подтверждения email. После назначения получатель должен настроить двухфакторную аутентификацию.</p>
       <label>Email нового главного администратора
         <input type="email" autoComplete="off" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="Имейл подтверждённого аккаунта"/>
       </label>
-      <button type="button" className="button button-primary" disabled={busy!==null||!inviteEmail.includes("@")} onClick={grant}>Назначить главного администратора</button>
+      <button type="button" className="button button-primary" disabled={busy!==null||!inviteEmail.includes("@")} onClick={grant}>{tr("Назначить главного администратора")}</button>
       {delegations.map(d=><div className="account-management-row" key={d.account_id}>
         <div className="account-management-info"><strong>{d.email}</strong><small>Account #{d.account_id}</small></div>
-        <button type="button" className="button button-outline" disabled={busy!==null} onClick={()=>revoke(d.account_id)}>Отозвать</button>
+        <button type="button" className="button button-outline" disabled={busy!==null} onClick={()=>revoke(d.account_id)}>{tr("Отозвать")}</button>
       </div>)}
     </section>
-    {loading?<div className="state-card">Загрузка…</div>:<div className="panel">
+    {loading?<div className="state-card">{tr("Загрузка…")}</div>:<div className="panel">
       <h2>Аккаунты ({accounts.length})</h2>
       {accounts.map(a=><div className="account-management-row" key={a.account_id}>
         <div className="account-management-info">
@@ -85,9 +89,9 @@ export function ManageAccountsClient() {
         </div>
         {a.role!=="global_admin"&&<div className="account-management-actions">
           <button className="button button-outline" disabled={busy===a.account_id||a.role==="participant"}
-            onClick={()=>changeRole(a,"participant")}>Participant</button>
+            onClick={()=>changeRole(a,"participant")}>{tr("Participant")}</button>
           <button className="button button-primary" disabled={busy===a.account_id||a.role==="organizer"}
-            onClick={()=>changeRole(a,"organizer")}>Organizer</button>
+            onClick={()=>changeRole(a,"organizer")}>{tr("Organizer")}</button>
         </div>}
       </div>)}
     </div>}
