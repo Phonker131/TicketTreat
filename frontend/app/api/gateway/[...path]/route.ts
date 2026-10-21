@@ -11,7 +11,7 @@ const base = (process.env.BACKEND_API_URL || (process.env.NODE_ENV === "producti
 if (!base || !/^https?:\/\//.test(base)) {
   throw new Error("BACKEND_API_URL must be explicitly configured");
 }
-const sessionPaths = new Set(["/demo/auth/login", "/demo/auth/signup", "/demo/auth/change-password"]);
+const sessionPaths = new Set(["/demo/auth/login", "/demo/auth/signup", "/demo/auth/change-password", "/demo/auth/magic/confirm"]);
 const logoutPaths = new Set(["/demo/auth/logout", "/demo/auth/logout-all"]);
 const supported = new Set(["GET","POST","PATCH","PUT","DELETE"]);
 
