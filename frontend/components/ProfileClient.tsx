@@ -7,7 +7,7 @@ import { getVerifiedTelegramSession } from "@/lib/session";
 import {CountryCityFields} from "@/components/CountryCityFields";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, exportAccountData } from "@/lib/api";
+import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, exportAccountData, linkTelegramToWebsite } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -307,6 +307,22 @@ export function ProfileClient() {
                 <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
                 <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">→ {tr.tickets}</Link></div>
               </div>
+              {telegramProfile && profile.email_verified && <section className="panel form-stack">
+                <h3>{language==="ru"?"Связь с Telegram":"Connect Telegram"}</h3>
+                <p className="form-note">{language==="ru"?"Привяжи Telegram к веб-аккаунту, чтобы видеть общие билеты. Если на одно мероприятие есть две регистрации, потребуется ручное разрешение конфликта.":"Link your Telegram and website accounts using both verified sessions. Duplicate tickets require manual resolution."}</p>
+                <button className="button button-outline" type="button" disabled={busy || telegramProfile.accounts_linked}
+                  onClick={async()=>{
+                    const token=getWebToken();if(!token)return;
+                    const initData=(await import("@/lib/telegram")).getTelegramWebApp()?.initData;
+                    if(!initData)return;
+                    setBusy(true);setError("");
+                    try{
+                      await linkTelegramToWebsite(token,initData);
+                      loadProfile(await getWebProfile(token));
+                      setNotice("Telegram successfully linked.");
+                    }catch(e){setError(readableError(e));}finally{setBusy(false);}
+                  }}>{telegramProfile.accounts_linked?"Telegram linked":"Link Telegram account"}</button>
+              </section>}
               {!profile.email_verified && <div className="panel form-stack">
                 <h3>{language==="ru"?"Подтвердить email":language==="uk"?"Підтвердити email":language==="cs"?"Ověřit e-mail":"Verify email"}</h3>
                 <p className="form-note">{language==="ru"?"Отправь код подтверждения на почту и введи его здесь.": "Request a code and enter it here. Existing accounts can verify without losing tickets."}</p>
