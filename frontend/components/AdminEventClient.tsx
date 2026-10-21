@@ -201,8 +201,8 @@ export function AdminEventClient(){
             <div className="participant-actions">
               <span className={ticket.checked_in_at?"status status-success":"status status-demo"}>
                 {ticket.ticket_status==="cancelled"?"Cancelled":ticket.checked_in_at?"Checked in":"Paid"}</span>
-              {ticket.ticket_status==="active"&&!ticket.checked_in_at&&<button className="button button-outline"
-                onClick={()=>checkIn(ticket.qr_token)} disabled={busy}>Check in</button>}
+              {ticket.ticket_status==="active"&&!ticket.checked_in_at&&
+                <span className="status status-muted">Awaiting QR scan</span>}
             </div>
           </div>)}
         </div></section>
