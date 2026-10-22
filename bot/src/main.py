@@ -230,6 +230,8 @@ UI_TRANSLATIONS = {
     "Не требуется": _tr("Not required", "Není vyžadováno", "Не требуется", "Не потрібна"),
 
     # General user flow
+    "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.": _tr("🎟 TicketTreat — your events in one place. Discover events, reserve a spot and manage your tickets using the menu below.", "🎟 TicketTreat — všechny události na jednom místě. Vyber událost, rezervuj místo a spravuj vstupenky v nabídce níže.", "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.", "🎟 TicketTreat — твої події в одному місці. Обирай подію, бронюй місце та керуй квитками через меню нижче."),
+    "⚠️ TicketTreat is temporarily unavailable. Please try again later.": _tr("⚠️ TicketTreat is temporarily unavailable. Please try again later.", "⚠️ TicketTreat je dočasně nedostupný. Zkus to prosím později.", "⚠️ TicketTreat временно недоступен. Попробуй позже.", "⚠️ TicketTreat тимчасово недоступний. Спробуй пізніше."),
     "Привет! Я бот TicketTreat для записи на ивенты.": _tr(
         "Hi! I'm the TicketTreat bot for joining events.",
         "Ahoj! Jsem TicketTreat bot pro registraci na události.",
@@ -1052,7 +1054,7 @@ def require_admin_message(message) -> bool:
 
 
 def get_main_menu(user_id: int):
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
     keyboard.row(
         KeyboardButton("🏠 Start"),
@@ -1423,13 +1425,15 @@ def event_card_text(
         )
 
     return (
-        f"🎉 {preserve_custom(event.get('title') or '-')}\n"
+        f"🎟 {preserve_custom(event.get('title') or '-')}\n"
+        f"━━━━━━━━━━━━━━\n"
         f"👤 Организатор: "
         f"{preserve_custom(event.get('organizer') or '-')}\n"
         f"📍 Локация: "
         f"{preserve_custom(event.get('location') or '-')}\n"
         f"📝 Описание: "
         f"{preserve_custom(event.get('description') or '-')}\n"
+        f"━━━━━━━━━━━━━━\n"
         f"💰 Цена: "
         f"{format_event_price(event.get('price'), event.get('currency'))}\n"
         f"🌐 Языки: "
@@ -1738,7 +1742,7 @@ def start(message):
 
     bot.send_message(
         message.chat.id,
-        "Привет! Я бот TicketTreat для записи на ивенты.",
+        "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.",
         reply_markup=get_main_menu(message.from_user.id),
     )
     if not is_profile_complete(message.from_user.id):
