@@ -230,6 +230,8 @@ UI_TRANSLATIONS = {
     "Не требуется": _tr("Not required", "Není vyžadováno", "Не требуется", "Не потрібна"),
 
     # General user flow
+    "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.": _tr("🎟 TicketTreat — your events in one place. Discover events, reserve a spot and manage your tickets using the menu below.", "🎟 TicketTreat — všechny události na jednom místě. Vyber událost, rezervuj místo a spravuj vstupenky v nabídce níže.", "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.", "🎟 TicketTreat — твої події в одному місці. Обирай подію, бронюй місце та керуй квитками через меню нижче."),
+    "⚠️ TicketTreat is temporarily unavailable. Please try again later.": _tr("⚠️ TicketTreat is temporarily unavailable. Please try again later.", "⚠️ TicketTreat je dočasně nedostupný. Zkus to prosím později.", "⚠️ TicketTreat временно недоступен. Попробуй позже.", "⚠️ TicketTreat тимчасово недоступний. Спробуй пізніше."),
     "Привет! Я бот TicketTreat для записи на ивенты.": _tr(
         "Hi! I'm the TicketTreat bot for joining events.",
         "Ahoj! Jsem TicketTreat bot pro registraci na události.",
@@ -260,7 +262,8 @@ UI_TRANSLATIONS = {
     "Отправь Instagram username или ссылку:": _tr("Enter your Instagram username or link:", "Zadej uživatelské jméno nebo odkaz na Instagram:", "Отправь Instagram username или ссылку:", "Введи Instagram username або посилання:"),
     "Instagram username или ссылка слишком короткие.": _tr("Instagram username or link is too short.", "Uživatelské jméno nebo odkaz na Instagram je příliš krátký.", "Instagram username или ссылка слишком короткие.", "Instagram username або посилання занадто короткі."),
     "✅ Профиль сохранён!": _tr("✅ Profile saved!", "✅ Profil uložen!", "✅ Профиль сохранён!", "✅ Профіль збережено!"),
-    "Профиль ещё не заполнен. Нажми «📝 Registration».": _tr("Your profile is not complete yet. Tap “📝 Registration”.", "Profil ještě není vyplněný. Klepni na „📝 Registrace“.", "Профиль ещё не заполнен. Нажми «📝 Registration».", "Профіль ще не заповнено. Натисни «📝 Реєстрація»."),
+    "Профиль ещё не заполнен. Нажми «📝 Registration».": _tr("Your profile is not complete yet. Complete registration to continue.", "Tvůj profil ještě není dokončený. Pro pokračování dokonči registraci.", "Профиль ещё не заполнен. Заверши регистрацию, чтобы продолжить.", "Профіль ще не заповнений. Заверши реєстрацію, щоб продовжити."),
+    "✅ Ты уже зарегистрирован. Данные можно изменить в профиле.": _tr("✅ You are already registered. Edit your details in your profile.", "✅ Už jsi zaregistrovaný/á. Údaje můžeš změnit v profilu.", "✅ Ты уже зарегистрирован. Данные можно изменить в профиле.", "✅ Ти вже зареєстрований/а. Дані можна змінити у профілі."),
     "✅ Данные профиля обновлены.": _tr("✅ Profile updated.", "✅ Profil aktualizován.", "✅ Данные профиля обновлены.", "✅ Дані профілю оновлено."),
     "✅ Номер телефона обновлён.": _tr("✅ Phone number updated.", "✅ Telefonní číslo aktualizováno.", "✅ Номер телефона обновлён.", "✅ Номер телефону оновлено."),
     "Редактирование отменено.": _tr("Editing cancelled.", "Úpravy zrušeny.", "Редактирование отменено.", "Редагування скасовано."),
@@ -1051,7 +1054,7 @@ def require_admin_message(message) -> bool:
 
 
 def get_main_menu(user_id: int):
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
     keyboard.row(
         KeyboardButton("🏠 Start"),
@@ -1061,10 +1064,7 @@ def get_main_menu(user_id: int):
         KeyboardButton("🎟 My events"),
         KeyboardButton("👤 My profile"),
     )
-    keyboard.row(
-        KeyboardButton("📝 Registration"),
-        KeyboardButton("🆘 Client service"),
-    )
+    keyboard.row(KeyboardButton("🆘 Client service"))
 
     # One real Mini App for web and Telegram (private chats only).
     # The frontend verifies signed initData with Demo API before linking identity.
@@ -1425,13 +1425,15 @@ def event_card_text(
         )
 
     return (
-        f"🎉 {preserve_custom(event.get('title') or '-')}\n"
+        f"🎟 {preserve_custom(event.get('title') or '-')}\n"
+        f"━━━━━━━━━━━━━━\n"
         f"👤 Организатор: "
         f"{preserve_custom(event.get('organizer') or '-')}\n"
         f"📍 Локация: "
         f"{preserve_custom(event.get('location') or '-')}\n"
         f"📝 Описание: "
         f"{preserve_custom(event.get('description') or '-')}\n"
+        f"━━━━━━━━━━━━━━\n"
         f"💰 Цена: "
         f"{format_event_price(event.get('price'), event.get('currency'))}\n"
         f"🌐 Языки: "
@@ -1740,9 +1742,11 @@ def start(message):
 
     bot.send_message(
         message.chat.id,
-        "Привет! Я бот TicketTreat для записи на ивенты.",
+        "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.",
         reply_markup=get_main_menu(message.from_user.id),
     )
+    if not is_profile_complete(message.from_user.id):
+        ask_to_register(message.chat.id)
 
 
 @bot.message_handler(commands=["app", "tickets"])
@@ -1867,11 +1871,7 @@ def show_profile(
         return
 
     if not data.get("exists"):
-        bot.send_message(
-            chat_id,
-            "Профиль ещё не заполнен. Нажми «📝 Registration».",
-            reply_markup=get_main_menu(telegram_id),
-        )
+        ask_to_register(chat_id)
         return
 
     username = data.get("username")
@@ -1936,6 +1936,17 @@ def begin_registration(
     chat_id: int,
     telegram_id: int,
 ):
+    # Never restart onboarding for an existing complete profile.
+    # The backend remains the source of truth; failed lookups must not
+    # accidentally overwrite an existing user record.
+    try:
+        profile_data = backend_request("GET", f"/profile/{telegram_id}", timeout=5)
+    except Exception:
+        bot.send_message(chat_id, "⚠️ TicketTreat is temporarily unavailable. Please try again later.", reply_markup=get_main_menu(telegram_id))
+        return
+    if profile_data.get("complete"):
+        bot.send_message(chat_id, "✅ Ты уже зарегистрирован. Данные можно изменить в профиле.", reply_markup=get_main_menu(telegram_id))
+        return
     user_state[telegram_id] = "WAIT_LANGUAGE"
     user_temp[telegram_id] = {}
 
