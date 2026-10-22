@@ -20,6 +20,7 @@ from telebot.types import (
     InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
+    WebAppInfo,
 )
 
 
@@ -27,17 +28,19 @@ from telebot.types import (
 # Environment
 # =========================================================
 # Current file:
-# Crowdly/app/bot/src/main.py
+# TicketTreat/app/bot/src/main.py
 #
 # parents[3]:
-# Crowdly/
+# TicketTreat/
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(PROJECT_ROOT / ".env", override=False, encoding="utf-8-sig")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 BOT_USERNAME = os.getenv("BOT_USERNAME")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+BOT_API_KEY = os.getenv("BOT_API_KEY", "").strip()
 CLIENT_SERVICE_URL = os.getenv("CLIENT_SERVICE_URL", "").strip()
+WEB_APP_URL = os.getenv("WEB_APP_URL", "").strip().rstrip("/")
 PRAGUE_TZ = ZoneInfo("Europe/Prague")
 
 ADMIN_IDS = [
@@ -123,10 +126,14 @@ def backend_request(
     timeout: int = 10,
     **kwargs,
 ) -> Any:
+    headers = dict(kwargs.pop("headers", {}) or {})
+    if BOT_API_KEY:
+        headers["X-Bot-Api-Key"] = BOT_API_KEY
     response = requests.request(
         method,
         f"{BACKEND_URL}{path}",
         timeout=timeout,
+        headers=headers,
         **kwargs,
     )
 
@@ -163,7 +170,7 @@ def _tr(en: str, cs: str, ru: str, uk: str) -> dict[str, str]:
     return {"en": en, "cs": cs, "ru": ru, "uk": uk}
 
 
-# Only Crowdly-owned UI fragments are translated here. Event titles,
+# Only TicketTreat-owned UI fragments are translated here. Event titles,
 # descriptions, organizer payment instructions, organizer reminder text,
 # cancellation reasons and broadcast content are left unchanged.
 UI_TRANSLATIONS = {
@@ -174,6 +181,7 @@ UI_TRANSLATIONS = {
     "👤 My profile": _tr("👤 My profile", "👤 Můj profil", "👤 Мой профиль", "👤 Мій профіль"),
     "📝 Registration": _tr("📝 Registration", "📝 Registrace", "📝 Регистрация", "📝 Реєстрація"),
     "🆘 Client service": _tr("🆘 Client service", "🆘 Zákaznická podpora", "🆘 Поддержка", "🆘 Підтримка"),
+    "🌐 Open in app": _tr("🌐 Open in app", "🌐 Otevřít v aplikaci", "🌐 Открыть в приложении", "🌐 Відкрити в застосунку"),
     "⚙️ Admin": _tr("⚙️ Admin", "⚙️ Administrace", "⚙️ Админ", "⚙️ Адмін"),
     "⬅️ Назад": _tr("⬅️ Back", "⬅️ Zpět", "⬅️ Назад", "⬅️ Назад"),
     "⬅️ Back": _tr("⬅️ Back", "⬅️ Zpět", "⬅️ Назад", "⬅️ Назад"),
@@ -222,11 +230,13 @@ UI_TRANSLATIONS = {
     "Не требуется": _tr("Not required", "Není vyžadováno", "Не требуется", "Не потрібна"),
 
     # General user flow
-    "Привет! Я бот Crowdly для записи на ивенты.": _tr(
-        "Hi! I'm the Crowdly bot for joining events.",
-        "Ahoj! Jsem Crowdly bot pro registraci na události.",
-        "Привет! Я бот Crowdly для записи на ивенты.",
-        "Привіт! Я бот Crowdly для реєстрації на події.",
+    "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.": _tr("🎟 TicketTreat — your events in one place. Discover events, reserve a spot and manage your tickets using the menu below.", "🎟 TicketTreat — všechny události na jednom místě. Vyber událost, rezervuj místo a spravuj vstupenky v nabídce níže.", "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.", "🎟 TicketTreat — твої події в одному місці. Обирай подію, бронюй місце та керуй квитками через меню нижче."),
+    "⚠️ TicketTreat is temporarily unavailable. Please try again later.": _tr("⚠️ TicketTreat is temporarily unavailable. Please try again later.", "⚠️ TicketTreat je dočasně nedostupný. Zkus to prosím později.", "⚠️ TicketTreat временно недоступен. Попробуй позже.", "⚠️ TicketTreat тимчасово недоступний. Спробуй пізніше."),
+    "Привет! Я бот TicketTreat для записи на ивенты.": _tr(
+        "Hi! I'm the TicketTreat bot for joining events.",
+        "Ahoj! Jsem TicketTreat bot pro registraci na události.",
+        "Привет! Я бот TicketTreat для записи на ивенты.",
+        "Привіт! Я бот TicketTreat для реєстрації на події.",
     ),
     "Твой Telegram ID: ": _tr("Your Telegram ID: ", "Tvoje Telegram ID: ", "Твой Telegram ID: ", "Твій Telegram ID: "),
     "✅ Пройти регистрацию": _tr("✅ Register", "✅ Zaregistrovat se", "✅ Пройти регистрацию", "✅ Зареєструватися"),
@@ -252,7 +262,8 @@ UI_TRANSLATIONS = {
     "Отправь Instagram username или ссылку:": _tr("Enter your Instagram username or link:", "Zadej uživatelské jméno nebo odkaz na Instagram:", "Отправь Instagram username или ссылку:", "Введи Instagram username або посилання:"),
     "Instagram username или ссылка слишком короткие.": _tr("Instagram username or link is too short.", "Uživatelské jméno nebo odkaz na Instagram je příliš krátký.", "Instagram username или ссылка слишком короткие.", "Instagram username або посилання занадто короткі."),
     "✅ Профиль сохранён!": _tr("✅ Profile saved!", "✅ Profil uložen!", "✅ Профиль сохранён!", "✅ Профіль збережено!"),
-    "Профиль ещё не заполнен. Нажми «📝 Registration».": _tr("Your profile is not complete yet. Tap “📝 Registration”.", "Profil ještě není vyplněný. Klepni na „📝 Registrace“.", "Профиль ещё не заполнен. Нажми «📝 Registration».", "Профіль ще не заповнено. Натисни «📝 Реєстрація»."),
+    "Профиль ещё не заполнен. Нажми «📝 Registration».": _tr("Your profile is not complete yet. Complete registration to continue.", "Tvůj profil ještě není dokončený. Pro pokračování dokonči registraci.", "Профиль ещё не заполнен. Заверши регистрацию, чтобы продолжить.", "Профіль ще не заповнений. Заверши реєстрацію, щоб продовжити."),
+    "✅ Ты уже зарегистрирован. Данные можно изменить в профиле.": _tr("✅ You are already registered. Edit your details in your profile.", "✅ Už jsi zaregistrovaný/á. Údaje můžeš změnit v profilu.", "✅ Ты уже зарегистрирован. Данные можно изменить в профиле.", "✅ Ти вже зареєстрований/а. Дані можна змінити у профілі."),
     "✅ Данные профиля обновлены.": _tr("✅ Profile updated.", "✅ Profil aktualizován.", "✅ Данные профиля обновлены.", "✅ Дані профілю оновлено."),
     "✅ Номер телефона обновлён.": _tr("✅ Phone number updated.", "✅ Telefonní číslo aktualizováno.", "✅ Номер телефона обновлён.", "✅ Номер телефону оновлено."),
     "Редактирование отменено.": _tr("Editing cancelled.", "Úpravy zrušeny.", "Редактирование отменено.", "Редагування скасовано."),
@@ -1043,7 +1054,7 @@ def require_admin_message(message) -> bool:
 
 
 def get_main_menu(user_id: int):
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
     keyboard.row(
         KeyboardButton("🏠 Start"),
@@ -1053,10 +1064,17 @@ def get_main_menu(user_id: int):
         KeyboardButton("🎟 My events"),
         KeyboardButton("👤 My profile"),
     )
-    keyboard.row(
-        KeyboardButton("📝 Registration"),
-        KeyboardButton("🆘 Client service"),
-    )
+    keyboard.row(KeyboardButton("🆘 Client service"))
+
+    # One real Mini App for web and Telegram (private chats only).
+    # The frontend verifies signed initData with Demo API before linking identity.
+    if WEB_APP_URL.startswith("https://"):
+        keyboard.row(
+            KeyboardButton(
+                "🌐 TicketTreat Mini App",
+                web_app=WebAppInfo(url=WEB_APP_URL),
+            )
+        )
 
     if is_admin(user_id):
         keyboard.row(KeyboardButton("⚙️ Admin"))
@@ -1169,6 +1187,17 @@ def build_event_link(event_id: int) -> str:
         return f"event_{event_id}"
 
     return f"https://t.me/{BOT_USERNAME}?start=event_{event_id}"
+
+
+def build_web_event_url(
+    event_id: int,
+    user_id: int,
+) -> str | None:
+    if not WEB_APP_URL.startswith("https://"):
+        return None
+
+    language = get_interface_language(user_id)
+    return f"{WEB_APP_URL}/events/{event_id}?lang={language}"
 
 
 def format_event_datetime(value) -> str:
@@ -1396,13 +1425,15 @@ def event_card_text(
         )
 
     return (
-        f"🎉 {preserve_custom(event.get('title') or '-')}\n"
+        f"🎟 {preserve_custom(event.get('title') or '-')}\n"
+        f"━━━━━━━━━━━━━━\n"
         f"👤 Организатор: "
         f"{preserve_custom(event.get('organizer') or '-')}\n"
         f"📍 Локация: "
         f"{preserve_custom(event.get('location') or '-')}\n"
         f"📝 Описание: "
         f"{preserve_custom(event.get('description') or '-')}\n"
+        f"━━━━━━━━━━━━━━\n"
         f"💰 Цена: "
         f"{format_event_price(event.get('price'), event.get('currency'))}\n"
         f"🌐 Языки: "
@@ -1570,6 +1601,19 @@ def show_event_details_by_id(
             )
         )
 
+    web_event_url = build_web_event_url(
+        event_id,
+        user_id,
+    )
+
+    if web_event_url:
+        keyboard.add(
+            InlineKeyboardButton(
+                "🌐 Open in app",
+                web_app=WebAppInfo(url=web_event_url),
+            )
+        )
+
     send_event_card(
         chat_id,
         event,
@@ -1698,8 +1742,39 @@ def start(message):
 
     bot.send_message(
         message.chat.id,
-        "Привет! Я бот Crowdly для записи на ивенты.",
+        "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.",
         reply_markup=get_main_menu(message.from_user.id),
+    )
+    if not is_profile_complete(message.from_user.id):
+        ask_to_register(message.chat.id)
+
+
+@bot.message_handler(commands=["app", "tickets"])
+def open_tickettreat_mini_app(message):
+    """Open signed Telegram Mini App, optionally on My tickets."""
+    if not WEB_APP_URL.startswith("https://"):
+        bot.send_message(
+            message.chat.id,
+            "TicketTreat Mini App пока не настроен.",
+            reply_markup=get_main_menu(message.from_user.id),
+        )
+        return
+    command = (message.text or "").split(maxsplit=1)[0].split("@")[0].lower()
+    target = "/tickets" if command == "/tickets" else ""
+    language = get_interface_language(message.from_user.id)
+    url = f"{WEB_APP_URL}{target}?lang={language}" if target else f"{WEB_APP_URL}/?lang={language}"
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(
+        InlineKeyboardButton(
+            "🎟 Мои билеты в TicketTreat" if command == "/tickets" else "🌐 Открыть TicketTreat",
+            web_app=WebAppInfo(url=url),
+        )
+    )
+    bot.send_message(
+        message.chat.id,
+        "Открой Mini App, чтобы посмотреть события и QR-билеты. "
+        "Существующие записи через бота также будут доступны в разделе билетов.",
+        reply_markup=keyboard,
     )
 
 
@@ -1796,11 +1871,7 @@ def show_profile(
         return
 
     if not data.get("exists"):
-        bot.send_message(
-            chat_id,
-            "Профиль ещё не заполнен. Нажми «📝 Registration».",
-            reply_markup=get_main_menu(telegram_id),
-        )
+        ask_to_register(chat_id)
         return
 
     username = data.get("username")
@@ -1865,6 +1936,17 @@ def begin_registration(
     chat_id: int,
     telegram_id: int,
 ):
+    # Never restart onboarding for an existing complete profile.
+    # The backend remains the source of truth; failed lookups must not
+    # accidentally overwrite an existing user record.
+    try:
+        profile_data = backend_request("GET", f"/profile/{telegram_id}", timeout=5)
+    except Exception:
+        bot.send_message(chat_id, "⚠️ TicketTreat is temporarily unavailable. Please try again later.", reply_markup=get_main_menu(telegram_id))
+        return
+    if profile_data.get("complete"):
+        bot.send_message(chat_id, "✅ Ты уже зарегистрирован. Данные можно изменить в профиле.", reply_markup=get_main_menu(telegram_id))
+        return
     user_state[telegram_id] = "WAIT_LANGUAGE"
     user_temp[telegram_id] = {}
 
