@@ -414,11 +414,27 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             if row.kind == "reminder":
                 try:
                     minutes = int(row.event_key.rsplit(":", 1)[-1])
-                    if minutes in {10080, 1440, 180}:
-                        unit = {10080: "7 days", 1440: "24 hours", 180: "3 hours"}[minutes]
+                    locale = row.language if row.language in {"ru", "uk", "cs", "en"} else "en"
+                    units = {
+                        "en": {10080: "7 days", 1440: "24 hours", 180: "3 hours"},
+                        "ru": {10080: "7 дней", 1440: "24 часа", 180: "3 часа"},
+                        "uk": {10080: "7 днів", 1440: "24 години", 180: "3 години"},
+                        "cs": {10080: "7 dní", 1440: "24 hodin", 180: "3 hodiny"},
+                    }
+                    if minutes in units[locale]:
+                        unit = units[locale][minutes]
                     else:
-                        unit = f"{minutes} minutes"
-                    lead = f"{lead}\nEvent starts in approximately {unit}."
+                        unit = {
+                            "en": f"{minutes} minutes", "ru": f"{minutes} мин.",
+                            "uk": f"{minutes} хв.", "cs": f"{minutes} min.",
+                        }[locale]
+                    suffix = {
+                        "en": f"Event starts in approximately {unit}.",
+                        "ru": f"До начала мероприятия примерно {unit}.",
+                        "uk": f"До початку події приблизно {unit}.",
+                        "cs": f"Událost začíná přibližně za {unit}.",
+                    }[locale]
+                    lead = f"{lead}\n{suffix}"
                 except ValueError:
                     pass
         link = f"{web_url}/tickets/{ticket.id}"
