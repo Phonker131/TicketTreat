@@ -666,3 +666,49 @@ export function getWalletStatus():Promise<{enabled:boolean}>{
 export function getMailStatus():Promise<{available:boolean}>{
   return request("/demo/auth/email/status");
 }
+
+/** Support: website account owns its tickets; only global admins can read the inbox. */
+export type SupportTicket={
+  id:number;subject:string;category:string;status:"open"|"answered"|"closed";
+  created_at:string;updated_at:string;last_customer_at:string;
+  unread?:boolean;customer?:{name:string;email:string|null};
+};
+export type SupportMessage={
+  id:number;role:"customer"|"admin";body:string;created_at:string;
+  email_status?:"pending"|"sent"|"failed"|"skipped"|"not_queued";
+};
+export type SupportThread={ticket:SupportTicket;messages:SupportMessage[]};
+export type SupportSummary={unread:number;open:number;answered:number};
+export function createSupportTicket(category:string,subject:string,body:string):
+  Promise<{id:number;status:string}>{
+  return request("/demo/support/tickets",{method:"POST",body:JSON.stringify({category,subject,body})});
+}
+export function listMySupportTickets():Promise<{tickets:SupportTicket[]}>{
+  return request("/demo/support/tickets");
+}
+export function getMySupportTicket(id:number):Promise<SupportThread>{
+  return request(`/demo/support/tickets/${id}`);
+}
+export function replyMySupportTicket(id:number,body:string):Promise<{status:string}>{
+  return request(`/demo/support/tickets/${id}/messages`,{method:"POST",body:JSON.stringify({body})});
+}
+export function getSupportSummary():Promise<SupportSummary>{
+  return request("/demo/manage/support/summary");
+}
+export function listAdminSupportTickets(status:"all"|"open"|"answered"|"closed"="all"):
+  Promise<{tickets:SupportTicket[]}>{
+  return request(`/demo/manage/support/tickets?status=${status}`);
+}
+export function getAdminSupportTicket(id:number):Promise<SupportThread>{
+  return request(`/demo/manage/support/tickets/${id}`);
+}
+export function markSupportRead(id:number):Promise<{status:string}>{
+  return request(`/demo/manage/support/tickets/${id}/read`,{method:"POST"});
+}
+export function replyAdminSupportTicket(id:number,body:string):
+  Promise<{id:number;status:string;email_status:string}>{
+  return request(`/demo/manage/support/tickets/${id}/reply`,{method:"POST",body:JSON.stringify({body})});
+}
+export function closeAdminSupportTicket(id:number):Promise<{status:string}>{
+  return request(`/demo/manage/support/tickets/${id}/close`,{method:"POST"});
+}
