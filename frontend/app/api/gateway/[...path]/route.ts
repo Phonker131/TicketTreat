@@ -61,7 +61,7 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   // paths only, forward the HttpOnly browser session so an event owner can
   // preview draft posters/galleries. The backend still checks ownership.
   // Never apply implicit sessions to arbitrary GET endpoints.
-  if (method === "GET" && /^\\/demo\\/events\\/\\d+\\/(?:poster|gallery\\/\\d+)$/.test(relative)) {
+  if (method === "GET" && /^\/demo\/events\/\d+\/(?:poster|gallery\/\d+)$/.test(relative)) {
     const imageSession = req.cookies.get(COOKIE)?.value;
     if (imageSession && !headers.has("Authorization"))
       headers.set("Authorization", "Bearer " + imageSession);
