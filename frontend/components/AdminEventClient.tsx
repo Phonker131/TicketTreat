@@ -3,7 +3,7 @@ import Link from "next/link";
 import {useRouter} from "next/navigation";
 import QRCode from "qrcode";
 import { useParams } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {adminTranslate} from "@/lib/admin-i18n";
@@ -49,6 +49,8 @@ export function AdminEventClient(){
   const [error,setError]=useState(""),[notice,setNotice]=useState("");
   const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
   const [showEdit,setShowEdit]=useState(false),[showCancel,setShowCancel]=useState(false);
+  const cancelDialogRef=useRef<HTMLDialogElement>(null);
+  const [cancelError,setCancelError]=useState("");
   const [reason,setReason]=useState(""),[owner,setOwner]=useState("");
   const [scheduleAt,setScheduleAt]=useState("");
   const [poster,setPoster]=useState<File|null>(null);
@@ -123,15 +125,40 @@ export function AdminEventClient(){
     }catch(e){setError(formattedError(e));}
     finally{setBusy(false);}
   }
+  useEffect(()=>{
+    const dialog=cancelDialogRef.current;
+    if(!dialog)return;
+    if(showCancel && !event?.is_cancelled){
+      if(!dialog.open)dialog.showModal();
+    }else if(dialog.open){
+      dialog.close();
+    }
+  },[showCancel,event?.is_cancelled]);
+
+  function openCancelDialog(){
+    setReason("");
+    setCancelError("");
+    setShowCancel(true);
+  }
   async function cancel(e:FormEvent) {
     e.preventDefault();
-    const token=getWebToken();if(!token)return;
-    if(reason.trim().length<8){setError("Причина отмены должна содержать не менее 8 символов.");return;}
-    if(!window.confirm("Подтвердить отмену события? Новые записи будут заблокированы."))return;
-    setBusy(true);setError("");setNotice("");
-    try{await cancelManageEvent(token,eventId,reason.trim());await reload();setShowCancel(false);
-      setNotice("Ивент отменён. Причина сохранена.");
-    }catch(e){setError(formattedError(e));}finally{setBusy(false);}
+    if(busy)return;
+    const token=getWebToken();
+    if(!token){setCancelError("Сессия завершилась. Войди в профиль и повтори попытку.");return;}
+    if(reason.trim().length<8){
+      setCancelError("Причина отмены должна содержать не менее 8 символов.");
+      return;
+    }
+    if(!window.confirm("Окончательно отменить мероприятие? Регистрация будет закрыта, активные билеты аннулированы, а участники получат уведомления."))return;
+    setBusy(true);setCancelError("");setError("");setNotice("");
+    try{
+      await cancelManageEvent(token,eventId,reason.trim());
+      setShowCancel(false);
+      setNotice("Мероприятие отменено. Регистрация закрыта, причина сохранена.");
+      try{await reload();}catch(e){setError("Мероприятие отменено, но не удалось обновить страницу: "+formattedError(e));}
+    }catch(e){
+      setCancelError(formattedError(e));
+    }finally{setBusy(false);}
   }
   async function assign(){
     const token=getWebToken();if(!token||!owner)return;
@@ -294,7 +321,8 @@ export function AdminEventClient(){
       <div className="admin-event-actions" style={{marginBottom:18}}>
         {!event.is_cancelled&&<button className="button button-primary" onClick={()=>setShowEdit(v=>!v)}>
         {showEdit?"Закрыть":"Редактировать ивент"}</button>}
-        {!event.is_cancelled&&<button className="button button-outline" onClick={()=>setShowCancel(v=>!v)}>{tr("Отменить ивент")}</button>}
+        {!event.is_cancelled&&<button type="button" className="button button-outline" disabled={busy}
+          onClick={openCancelDialog}>{tr("Отменить ивент")}</button>}
         <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
         {event.publication?.visible&&<Link className="button button-outline" href={`/events/${event.id}`}>{tr("Публичная страница ↗")}</Link>}
         <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>{tr("Копировать ивент")}</button>
@@ -365,13 +393,30 @@ export function AdminEventClient(){
           </div>)}
         </div>
       </section>}
-      {showCancel&&!event.is_cancelled&&<form className="panel form-stack" onSubmit={cancel}>
-        <h2>{tr("Отмена ивента")}</h2>
-        <p>Укажи причину отмены (обязательно). После отмены регистрация на ивент будет закрыта.</p>
-        <label>{tr("Причина отмены")}<textarea required minLength={8} maxLength={1000} rows={4}
-          value={reason} onChange={e=>setReason(e.target.value)} placeholder="Например: Организатор вынужден перенести мероприятие из-за…"/></label>
-        <button className="button button-outline" disabled={busy||reason.trim().length<8}>{tr("Подтвердить отмену")}</button>
-      </form>}
+      <dialog ref={cancelDialogRef} className="tt-event-cancel-dialog" aria-labelledby="tt-event-cancel-title"
+        aria-describedby="tt-event-cancel-description" onClose={()=>setShowCancel(false)}>
+        <form className="form-stack" onSubmit={cancel}>
+          <span className="status status-danger">EVENT #{event.id} · CANCELLATION</span>
+          <h2 id="tt-event-cancel-title">{tr("Отмена ивента")}</h2>
+          <p id="tt-event-cancel-description">Ты собираешься отменить <strong>{event.title}</strong>.
+            Новые регистрации закроются, действующие билеты будут аннулированы, а участники получат уведомления.
+            Это действие нельзя отменить через панель организатора.</p>
+          <label>{tr("Причина отмены")} <span className="tt-cancel-required">(обязательно, минимум 8 символов)</span>
+            <textarea required minLength={8} maxLength={1000} rows={4} autoFocus
+              value={reason} onChange={e=>{setReason(e.target.value);setCancelError("");}}
+              placeholder="Например: Организатор вынужден отменить мероприятие из-за…"/>
+          </label>
+          <small className="tt-cancel-counter">{reason.trim().length}/1000 символов</small>
+          {cancelError&&<div className="state-card state-error" role="alert">{cancelError}</div>}
+          <div className="tt-event-cancel-actions">
+            <button type="button" className="button button-outline" disabled={busy}
+              onClick={()=>setShowCancel(false)}>{tr("Закрыть")}</button>
+            <button type="submit" className="button button-primary" disabled={busy||reason.trim().length<8}>
+              {busy?"Отменяем мероприятие…":tr("Подтвердить отмену")}
+            </button>
+          </div>
+        </form>
+      </dialog>
       {pilotInsights&&<section className="panel form-stack">
         <h2>{tr("Аналитика посещаемости")}</h2>
         <div className="stats-grid">
