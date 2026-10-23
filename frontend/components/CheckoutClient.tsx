@@ -203,6 +203,12 @@ export function CheckoutClient() {
                 <label>{t(language, "firstName")}<input required value={firstName} onChange={(e) => setFirstName(e.target.value)} /></label>
                 <label>{t(language, "lastName")}<input value={lastName} onChange={(e) => setLastName(e.target.value)} /></label>
                 <label>{t(language, "email")}<input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+                              <p className="tt-legal-at-collection">
+                {language==="ru"?"Регистрация и обработка данных выполняются по ":language==="uk"?"Реєстрація та обробка даних здійснюються відповідно до ":language==="cs"?"Informace o registraci a zpracování osobních údajů: ":"Registration and data handling: "}
+                <Link href="/terms" target="_blank" rel="noopener noreferrer">{language==="ru"?"условиям использования":language==="uk"?"умов користування":language==="cs"?"Obchodní podmínky":"Terms of Service"}</Link>
+                {" · "}
+                <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">{language==="ru"?"политика конфиденциальности":language==="uk"?"політика конфіденційності":language==="cs"?"Ochrana osobních údajů":"Privacy Policy"}</Link>.
+              </p>
                 <button className="button button-primary" disabled={busy}>{busy ? t(language, "loading") : t(language, "continue")}</button>
               </form>}
               </>
@@ -270,6 +276,12 @@ export function CheckoutClient() {
                       </div>
                     )}
                     </>}
+              <p className="tt-legal-at-collection">
+                {language==="ru"?"Регистрация и обработка данных выполняются по ":language==="uk"?"Реєстрація та обробка даних здійснюються відповідно до ":language==="cs"?"Informace o registraci a zpracování osobních údajů: ":"Registration and data handling: "}
+                <Link href="/terms" target="_blank" rel="noopener noreferrer">{language==="ru"?"условиям использования":language==="uk"?"умов користування":language==="cs"?"Obchodní podmínky":"Terms of Service"}</Link>
+                {" · "}
+                <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">{language==="ru"?"политика конфиденциальности":language==="uk"?"політика конфіденційності":language==="cs"?"Ochrana osobních údajů":"Privacy Policy"}</Link>.
+              </p>
                     {(isFree || bookingConfig?.demo_payment_mode) && <button className="button button-primary button-wide" onClick={performCheckout} disabled={busy}>
                       {busy ? t(language, "loading") : isFree ? registerLabel : `${t(language, "pay")} ${price}`}
                     </button>}
