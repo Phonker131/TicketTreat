@@ -174,7 +174,7 @@ export function AdminClient() {
         <button className="button button-primary" disabled={saving}>{saving?"Сохраняем…":"Создать черновик"}</button>
       </form>}
       <section className="panel pilot-event-filters" aria-label="Фильтрация мероприятий">
-        <label>{tr("Поиск мероприятий")}<input type="search" placeholder="Название, город или организатор"
+        <label>{tr("Поиск мероприятий")}<input type="search" placeholder="Название или организатор"
           value={eventSearch} onChange={e=>setEventSearch(e.target.value)}/></label>
         <label>{tr("Статус")}<select value={eventStatus} onChange={e=>setEventStatus(e.target.value)}>
           <option value="all">{tr("Все")}</option><option value="draft">{tr("Черновик")}</option>
