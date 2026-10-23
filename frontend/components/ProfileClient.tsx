@@ -426,7 +426,7 @@ export function ProfileClient() {
                   </label>
                   <button type="submit" className="button button-primary" disabled={mfaLinkBusy||mfaLinkCode.length!==6}>{mfaLinkBusy?"…":language==="ru"?"Подтвердить и привязать Telegram":"Verify and link Telegram"}</button>
                   <Link href="/security/mfa" className="button button-outline">{language==="ru"?"Управление двухфакторной защитой":"Manage two-factor authentication"}</Link>
-                </>}
+                </form>}
               </section>}
               {!profile.email_verified && <div className="panel form-stack">
                 <h3>{language==="ru"?"Подтвердить email":language==="uk"?"Підтвердити email":language==="cs"?"Ověřit e-mail":"Verify email"}</h3>
