@@ -421,3 +421,40 @@ body { background-image: none; }
 .tt-legal-at-collection { margin:8px 0; font-size:13px; line-height:1.55; }
 .tt-legal-at-collection a { text-decoration:underline; text-underline-offset:2px; }
 @media(max-width:480px) {.tt-legal-operator{padding:14px}.tt-legal-czech{scroll-margin-top:72px}}
+
+
+/* Support centre: account-owned messages and secure staff inbox. */
+.tt-support-page{max-width:1140px;}
+.tt-support-lead{max-width:70ch;line-height:1.65;}
+.tt-support-list{display:grid;gap:9px;}
+button.tt-support-list-item{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  width:100%;min-width:0;min-height:72px;text-align:left;
+  padding:13px 16px;border:2px solid var(--tt-keyline);
+  border-radius:12px;background:var(--tt-white);color:var(--tt-keyline);
+  cursor:pointer;box-shadow:2px 2px 0 var(--tt-keyline);font:inherit;
+}
+.tt-support-list-item span:first-child{display:grid;gap:5px;min-width:0;}
+.tt-support-list-item strong{font-weight:800;overflow-wrap:anywhere;}
+.tt-support-list-item small{font-size:12px;opacity:.75;overflow-wrap:anywhere;}
+button.tt-support-list-item:hover,button.tt-support-selected{background:var(--tt-mustard);}
+button.tt-support-unread{border-left:7px solid var(--tt-tomato);}
+.tt-support-ticket-heading{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;}
+.tt-support-ticket-heading h2{overflow-wrap:anywhere;margin:0;}
+.tt-support-thread{display:grid;gap:14px;margin:16px 0;max-height:650px;overflow:auto;overscroll-behavior:contain;}
+.tt-support-message{background:var(--tt-paper);border:1px solid var(--tt-keyline);
+  padding:17px;border-radius:14px;min-width:0;}
+.tt-support-message.is-staff{background:#fff3dd;border-left:5px solid var(--tt-fire);}
+.tt-support-message p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;margin:10px 0;}
+.tt-support-message-meta{display:flex;flex-wrap:wrap;gap:5px 14px;justify-content:space-between;align-items:center;}
+.tt-support-message-meta small{opacity:.72;}
+.tt-support-admin-grid{display:grid;grid-template-columns:minmax(280px,0.95fr) minmax(360px,1.35fr);gap:20px;margin-top:20px;}
+.tt-support-admin-grid .panel{min-width:0;align-self:start;}
+.tt-support-filters{display:flex;flex-wrap:wrap;gap:8px;}
+.tt-support-filters .button{font-size:13px;min-height:40px;}
+@media(max-width:860px){.tt-support-admin-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:480px){
+ .tt-support-page .panel{padding:16px;}
+ .tt-support-list-item{flex-wrap:wrap;}
+ .tt-support-message{padding:12px;}
+}
