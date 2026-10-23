@@ -2714,15 +2714,12 @@ def handle_register(call):
 @bot.message_handler(commands=["myevents"])
 def my_events(message):
     telegram_id = message.from_user.id
-
-    if not is_profile_complete(telegram_id):
-        ask_to_register(message.chat.id)
-        return
-
     try:
+        # Also load active website/Mini App tickets owned by an identity that
+        # was cryptographically verified during a Telegram Mini App launch.
         items = backend_request(
             "GET",
-            f"/users/{telegram_id}/events",
+            f"/users/{telegram_id}/events?include_web_tickets=true",
             timeout=10,
         )
     except Exception as error:
@@ -2734,10 +2731,20 @@ def my_events(message):
         return
 
     if not items:
+        keyboard = None
+        if WEB_APP_URL.startswith("https://"):
+            keyboard = InlineKeyboardMarkup()
+            keyboard.add(InlineKeyboardButton(
+                "🎟 Открыть профиль TicketTreat",
+                web_app=WebAppInfo(url=f"{WEB_APP_URL}/profile"),
+            ))
         bot.send_message(
             message.chat.id,
-            "Ты пока не записан ни на один ивент.",
-            reply_markup=get_main_menu(telegram_id),
+            "В этом Telegram-аккаунте пока нет доступных записей. "
+            "Если ты покупал билет на сайте, сначала привяжи Telegram "
+            "к своему подтверждённому TicketTreat-аккаунту в профиле. "
+            "По одному имени или email аккаунты не объединяются.",
+            reply_markup=keyboard or get_main_menu(telegram_id),
         )
         return
 
@@ -2745,35 +2752,42 @@ def my_events(message):
 
     for event in items:
         keyboard = InlineKeyboardMarkup()
-
+        ticket_id = event.get("ticket_id")
+        if ticket_id and WEB_APP_URL.startswith("https://"):
+            keyboard.add(InlineKeyboardButton(
+                "🎫 Открыть QR-билет",
+                web_app=WebAppInfo(
+                    url=f"{WEB_APP_URL}/tickets/{int(ticket_id)}"
+                ),
+            ))
         keyboard.add(
             InlineKeyboardButton(
                 "Подробнее",
                 callback_data=f"event_details:{event['id']}",
             )
         )
-
-        if event.get("payment_status") == "pending":
+        # Legacy registrations still use the original payment/unsubscribe
+        # flows. Canonical QR passes must be cancelled by their owner in
+        # Mini App (the legacy unsubscribe endpoint cannot cancel them).
+        if not ticket_id:
+            if event.get("payment_status") == "pending":
+                keyboard.add(
+                    InlineKeyboardButton(
+                        "💳 Реквизиты оплаты",
+                        callback_data=f"payment_info:{event['id']}",
+                    )
+                )
             keyboard.add(
                 InlineKeyboardButton(
-                    "💳 Реквизиты оплаты",
-                    callback_data=f"payment_info:{event['id']}",
+                    "❌ Отписаться",
+                    callback_data=f"unsubscribe:{event['id']}",
                 )
             )
-
-        keyboard.add(
-            InlineKeyboardButton(
-                "❌ Отписаться",
-                callback_data=f"unsubscribe:{event['id']}",
-            )
-        )
-
         send_event_card(
             message.chat.id,
             event,
             reply_markup=keyboard,
         )
-
 
 @bot.callback_query_handler(
     func=lambda call: call.data.startswith("payment_info:")
