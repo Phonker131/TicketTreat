@@ -161,3 +161,22 @@ body { background-image: none; }
 .tt-support-footer a:hover { background: var(--tt-tomato); }
 .tt-support-footer a:focus-visible { outline: 3px solid var(--tt-ultramarine); outline-offset: 4px; }
 @media (max-width: 480px) { .tt-support-footer { width: calc(100% - 28px); justify-content: center; } .tt-support-footer a { font-size: 13px; } }
+
+/* Organizer reminder controls — TicketTreat brand book inspired, touch first. */
+.tt-reminder-editor { display:grid; gap:14px; padding:20px; background:#f0ebe1; border:2px solid #151321; border-radius:22px; box-shadow:4px 4px 0 #151321; }
+.tt-reminder-editor h3 { margin:0; font-weight:900; color:#151321; }
+.tt-reminder-editor .form-note { margin:0; }
+.tt-reminder-heading { font-size:14px; font-weight:800; color:#151321; }
+.tt-reminder-chips { display:flex; gap:10px; flex-wrap:wrap; }
+.tt-reminder-chip { border:2px solid #151321; background:#fff; border-radius:24px; padding:9px 15px; font:inherit; font-weight:800; color:#151321; cursor:pointer; min-height:44px; box-shadow:2px 2px 0 #151321; }
+.tt-reminder-chip.is-selected { background:#ffc21c; }
+.tt-reminder-chip:focus-visible, .tt-reminder-scheduled button:focus-visible { outline:3px solid #364dea; outline-offset:3px; }
+.tt-reminder-custom { display:grid; grid-template-columns:minmax(80px,110px) minmax(120px,1fr) auto; gap:10px; align-items:end; }
+.tt-reminder-custom input,.tt-reminder-custom select { width:100%; min-height:44px; border:2px solid #151321; border-radius:13px; padding:8px 12px; background:#fff; color:#151321; font:inherit; }
+.tt-reminder-custom .button { min-height:44px; white-space:nowrap; }
+.tt-reminder-scheduled { display:inline-flex; gap:8px; align-items:center; background:#fff; color:#151321; border:2px solid #151321; border-radius:16px; padding:5px 8px 5px 12px; font-weight:700; }
+.tt-reminder-scheduled button { border:0; background:#ff533c; color:#151321; border-radius:50%; width:32px; height:32px; font-size:23px; cursor:pointer; line-height:1; }
+.tt-reminder-label { display:flex; flex-direction:column; gap:7px; font-weight:800; color:#151321; }
+.tt-reminder-label textarea { resize:vertical; min-height:112px; background:#fff; color:#151321; border-radius:14px; border:2px solid #151321; padding:12px; }
+.tt-reminder-label small { text-align:right; font-size:12px; font-weight:500; }
+@media (max-width:520px) { .tt-reminder-editor { padding:14px; box-shadow:3px 3px 0 #151321; } .tt-reminder-custom { grid-template-columns:minmax(75px,1fr) minmax(90px,1fr); } .tt-reminder-custom .button { grid-column:1/-1; width:100%; } }
