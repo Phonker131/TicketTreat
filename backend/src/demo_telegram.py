@@ -254,13 +254,13 @@ def send_miniapp_ticket_notice(
         return
 
     copy = {
-        "ru": ("Бесплатный билет" if is_free else "Демо-билет",
+        "ru": ("Бесплатный билет" if is_free else "Билет — оплата подтверждена организатором",
                "оформлен", "Билет №", "Открой Mini App, чтобы показать QR-код на входе.", "Открыть QR-билет"),
-        "uk": ("Безкоштовний квиток" if is_free else "Демо-квиток",
+        "uk": ("Безкоштовний квиток" if is_free else "Квиток — оплату підтверджено організатором",
                "готовий", "Квиток №", "Відкрий Mini App, щоб показати QR-код на вході.", "Відкрити QR-квиток"),
-        "cs": ("Vstupenka zdarma" if is_free else "Demo vstupenka",
+        "cs": ("Vstupenka zdarma" if is_free else "Vstupenka — platba potvrzena pořadatelem",
                "vystavena", "Vstupenka č.", "Otevři Mini App a u vstupu ukaž QR kód.", "Otevřít QR vstupenku"),
-        "en": ("Free ticket" if is_free else "Demo ticket",
+        "en": ("Free ticket" if is_free else "Ticket — organizer confirmed payment",
                "confirmed", "Ticket #", "Open Mini App to show your QR code at the entrance.", "Open QR ticket"),
     }
     locale = (language or "en").lower().split("-", 1)[0]
