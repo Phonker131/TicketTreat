@@ -12,8 +12,8 @@ regression checks, **not** a penetration test or legal certification.
 | HIGH | Website profile serialized `demo_guests.access_token` to authenticated browser/Google sessions. This is a second, unnecessary bearer credential. | `demo_accounts.profile_dict` | **Fixed**: return empty token in production as already done for signed Telegram principal responses. Session cookie is still HttpOnly; no forced logout. |
 | CRITICAL | Security dependency audit flagged Next.js 15.5.9 and its image/CSS dependencies, including DoS and other advisories. | GitHub Actions npm audit (critical/high) | **Patched on this branch**: Next.js 15.5.28 and PostCSS override >=8.5.23; await clean audit and build before release. |
 | HIGH | Python dependency audit found 25 advisory records in anyio, idna, Mako, python-dotenv, Starlette and cryptography. | GitHub Actions pip-audit | **Patched on this branch**: advisory-fixed Python dependency versions; audited successfully on CI. |
-| HIGH | PostgreSQL has a **public Railway TCP proxy**. Password/SSL alone are weaker than private-only networking. | Production Railway `list_tcp_proxies(Postgres)` returned a nonempty set | **Operator action required**: verify nothing external (local psql, reporting tools, backups) relies on it, switch all clients to Railway private networking and delete the public proxy. Do not delete blindly. |
-| HIGH | Working encrypted offsite backup / restore schedule unverified. A persistent volume and CI restore rehearsal are not a production restore guarantee. | Production services have no separate backup worker; `scripts/offsite_backup.py` is present but not provisioned | **Operator action required**: private scheduled worker, object storage, strong separate encryption key, retention, alerting and one real staging restore. Never commit backup keys or attach backup volume to web service. |
+| HIGH | Production PostgreSQL formerly had a public Railway TCP proxy. | Railway inventory 2026-10-23 | **Closed**: proxy removed; follow-up proxy listing empty and all Railway application services Online. External psql access via the retired endpoint no longer works. |
+| HIGH | Persistent volume alone was not a backup; previously no verified encrypted archive. | Railway production backup logs 2026-10-23 | **Partially remediated**: private EU bucket plus twice-daily encrypted backup job, first archive verified after full download/decrypt/pg_restore archive-list test. Independent staging restore, alerts, retention and off-provider replication are still outstanding. |
 | MEDIUM | Unknown accounts could be rejected before Argon2id password verification, exposing account existence through response-time differences. | `demo_accounts.login` | **Fixed**: verify a per-process dummy Argon2id hash for absent accounts. Existing IP/email rate limits retained. |
 | MEDIUM | Trusted-admin QR handler and organizer wrapper did not lock ticket rows before checking/marking attendance. Simultaneous scans could duplicate effects. | `main.demo_admin_check_in`, `demo_roles._secure_checkin` | **Fixed**: PostgreSQL `SELECT ... FOR UPDATE` in both. Existing idempotency and audit behavior preserved. |
 | MEDIUM | Erased website accounts could retain previously issued unclaimed Telegram browser-link challenges until TTL expiration. | `demo_privacy.fulfill` | **Fixed**: revoke pending link challenges transactionally during eligible erasure. |
@@ -61,3 +61,12 @@ Changes here do **not** modify database schema, erase existing user data, rotate
 live credentials or remove public DB routes. Tests must pass before merge. A
 read-only audit cannot establish that all external users/data processors meet
 GDPR, that an external backup is restorable, or that the service is invulnerable.
+
+
+## Verified high-priority remediation (2026-10-23)
+
+- A dedicated private Railway backup service encrypts pg_dump archives with AES-256-GCM, uploads to an AMS-region private bucket, downloads the object, confirms SHA-256, decrypts, and validates the archive with pg_restore --list. The first production run was successful; cron interval is twice daily.
+- PostgreSQL public TCP proxy was removed after testing the backup worker's private database connection; all internal TicketTreat services remained Online.
+- **Key custody is not fully closed** until a business owner saves TT_BACKUP_KEY_HEX from Railway in a separate protected password manager. Losing it prevents restoring encrypted archives.
+- **Disaster recovery is not fully proven** until a complete restore to an isolated PostgreSQL instance is rehearsed. Backups stored in the same Railway project are not independent from whole-account compromise.
+- See docs/PRODUCTION_OPERATIONS.md for IDs, schedule and first verified object path.
