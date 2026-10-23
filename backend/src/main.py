@@ -47,6 +47,7 @@ from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
 from demo_roles import WebAccountRole, OrganizerApplication, GlobalAdminDelegation, EventGalleryImage, EventOwnership, EventModerationLog, AccountAdminAudit, install_demo_roles, install_account_moderation
 from demo_email import EmailOutbox, EventNotice, queue_email, queue_event_reminder, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
 from demo_broadcast import BroadcastCampaign, BroadcastTelegramOutbox, install_broadcast_api, install_broadcast_worker
+from demo_telegram_notifications import TelegramNotificationOutbox, install_notification_worker
 from demo_privacy import PrivacyRequest, install_privacy_routes
 from demo_mfa import MFAFactor, MFASession, install_mfa
 from demo_legacy import LegacyTicketClaim
@@ -3364,6 +3365,8 @@ install_principal_api(app, get_db, __import__('sys').modules[__name__])
 install_pilot_ops(app, get_db, __import__('sys').modules[__name__])
 install_broadcast_api(app, get_db, __import__("sys").modules[__name__])
 install_broadcast_worker(app, SessionLocal)
+# Operational cancellations, changes and reminders use a separate durable queue.
+install_notification_worker(app, SessionLocal, __import__("sys").modules[__name__])
 
 # Opt-in dedicated expiry worker. Configure on only one Railway backend instance.
 install_waitlist_offer_worker(app, SessionLocal, __import__("sys").modules[__name__])
