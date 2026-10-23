@@ -1833,6 +1833,26 @@ def open_tickettreat_mini_app(message):
     )
 
 
+@bot.message_handler(commands=["loyalty", "rewards", "passport"])
+def open_loyalty_passport(message):
+    if message.chat.type != "private":
+        bot.reply_to(message, "Открой личный чат с @TicketTreatBot для просмотра наград.")
+        return
+    if not WEB_APP_URL.startswith("https://"):
+        bot.send_message(message.chat.id, "Паспорт гостя временно недоступен.")
+        return
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton(
+        "Паспорт гостя и мои награды",
+        web_app=WebAppInfo(url=WEB_APP_URL + "/loyalty"),
+    ))
+    bot.send_message(message.chat.id,
+        "За каждый подтверждённый check-in ты получаешь штамп. "
+        "Уровень «Свой» (3 посещения за сезон) даёт приоритет в очереди. "
+        "Открой паспорт, чтобы увидеть прогресс и бонусы.",
+        reply_markup=keyboard)
+
+
 @bot.message_handler(commands=["link", "connect"])
 def connect_account(message):
     if not WEB_APP_URL.startswith("https://"):
@@ -1863,7 +1883,7 @@ def user_help(message):
     bot.send_message(message.chat.id,
         "В TicketTreat доступны мероприятия, бронирования, очередь, QR-билеты "
         "и обращения в поддержку. Команды: /app, /tickets, /myevents, "
-        "/events, /profile, /link, /support.",
+        "/events, /profile, /link, /loyalty, /support.",
         reply_markup=keyboard)
 
 
