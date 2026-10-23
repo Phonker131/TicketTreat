@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
+import "./tickettreat-tokens.css";
+import "./brand-refresh.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { PwaBootstrap } from "@/components/PwaBootstrap";
@@ -28,7 +30,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#C2118A",
+  themeColor: "#F0EBE1",
 };
 
 export default function RootLayout({
