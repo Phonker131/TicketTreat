@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { getVerifiedTelegramSession } from "@/lib/session";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink } from "@/lib/api";
+import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink, elevateMFA } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -99,6 +99,10 @@ export function ProfileClient() {
   const [incomingLink, setIncomingLink] = useState("");
   const [linkConfirmed, setLinkConfirmed] = useState(false);
   const [linkBusy, setLinkBusy] = useState(false);
+  const [mfaLinkAction, setMfaLinkAction] = useState<"current"|"browser"|null>(null);
+  const [mfaLinkSetup, setMfaLinkSetup] = useState(false);
+  const [mfaLinkCode, setMfaLinkCode] = useState("");
+  const [mfaLinkBusy, setMfaLinkBusy] = useState(false);
 
 
   useEffect(() => {
@@ -151,6 +155,53 @@ export function ProfileClient() {
     return ()=>{mounted=false;window.clearInterval(interval);};
   },[linkRequest]);
 
+  // Privileged website sessions must complete a new TOTP assertion before
+  // linking identities. Preserve the backend's MFA enforcement.
+  function handleTelegramLinkError(err:unknown, action:"current"|"browser"){
+    const detail=err instanceof Error ? err.message : String(err);
+    if(detail==="mfa_challenge_required" || detail==="mfa_enrollment_required"){
+      setMfaLinkAction(action);
+      setMfaLinkSetup(detail==="mfa_enrollment_required");
+      setMfaLinkCode("");
+      setError("");
+      return;
+    }
+    setError(readableError(err));
+  }
+
+  async function linkCurrentTelegram(){
+    const token=getWebToken();
+    const initData=(await import("@/lib/telegram")).getTelegramWebApp()?.initData;
+    if(!token||!initData){setError("Open the account link inside @TicketTreatBot while signed into the website.");return;}
+    setBusy(true);setError("");setNotice("");
+    try{
+      await linkTelegramToWebsite(token,initData);
+      loadProfile(await getWebProfile(token));
+      setMfaLinkAction(null);
+      setNotice(language==="ru"?"Telegram успешно привязан.":"Telegram successfully linked.");
+    }catch(e){handleTelegramLinkError(e,"current");}
+    finally{setBusy(false);}
+  }
+
+  async function verifyMfaAndResumeLink(e:FormEvent<HTMLFormElement>){
+    e.preventDefault();
+    const action=mfaLinkAction;
+    if(!action||!/^[0-9]{6}$/.test(mfaLinkCode))return;
+    setMfaLinkBusy(true);setError("");
+    try{
+      const verified=await elevateMFA(mfaLinkCode);
+      if(!verified.elevated)throw new Error("mfa_challenge_required");
+      setMfaLinkAction(null);
+      setMfaLinkCode("");
+      if(action==="current")await linkCurrentTelegram();
+      else await beginTelegramLink();
+    }catch(err){
+      const detail=err instanceof Error?err.message:String(err);
+      if(detail==="invalid_mfa_code")setError(language==="ru"?"Неверный или уже использованный код. Введи новый код из приложения-аутентификатора.":"Invalid or already used code. Enter a new code from your authenticator.");
+      else handleTelegramLinkError(err,action);
+    }finally{setMfaLinkBusy(false);}
+  }
+
   async function beginTelegramLink(){
     const token=getWebToken();if(!token)return;
     setLinkBusy(true);setError("");setNotice("");
@@ -158,7 +209,7 @@ export function ProfileClient() {
       const result=await startTelegramAccountLink(token);
       setLinkRequest({challenge:result.challenge,bot_link:result.bot_link});
       window.open(result.bot_link,"_blank","noopener,noreferrer");
-    }catch(e){setError(readableError(e));}
+    }catch(e){handleTelegramLinkError(e,"browser");}
     finally{setLinkBusy(false);}
   }
 
@@ -348,18 +399,8 @@ export function ProfileClient() {
                 <h3>{language==="ru"?"Telegram и TicketTreat":"Telegram and TicketTreat"}</h3>
                 {profile.guest.telegram_id ? <p className="form-note">✓ {language==="ru"?"Telegram привязан. Сайт и бот используют одни билеты и регистрации.":"Telegram linked. Website and bot share your tickets and bookings."}</p> : <>
                   <p className="form-note">{language==="ru"?"Свяжи старый аккаунт Telegram с сайтом — билеты и очереди перенесутся без повторной регистрации. Понадобится подтвердить владение Telegram.":"Connect your existing Telegram account to this website profile without losing tickets. Telegram confirmation is required."}</p>
-                  {telegramProfile && <button className="button button-outline" type="button" disabled={busy}
-                    onClick={async()=>{
-                      const token=getWebToken();if(!token)return;
-                      const initData=(await import("@/lib/telegram")).getTelegramWebApp()?.initData;
-                      if(!initData)return;
-                      setBusy(true);setError("");
-                      try {
-                        await linkTelegramToWebsite(token,initData);
-                        loadProfile(await getWebProfile(token));
-                        setNotice("Telegram successfully linked.");
-                      }catch(e){setError(readableError(e));}finally{setBusy(false);}
-                    }}>{language==="ru"?"Привязать текущий Telegram":"Link current Telegram"}</button>}
+                  {telegramProfile && <button className="button button-outline" type="button" disabled={busy||mfaLinkBusy}
+                    onClick={()=>{void linkCurrentTelegram();}}>{language==="ru"?"Привязать текущий Telegram":"Link current Telegram"}</button>}
                   <button className="button button-primary" type="button" disabled={linkBusy}
                     onClick={()=>{void beginTelegramLink();}}>
                     {linkBusy?"…":language==="ru"?"Привязать через Telegram-бота":"Connect through Telegram bot"}
@@ -369,6 +410,23 @@ export function ProfileClient() {
                     <a className="button button-outline" href={linkRequest.bot_link} target="_blank" rel="noopener noreferrer">↗ @TicketTreatBot</a>
                   </div>}
                 </>}
+              </section>}
+              {mfaLinkAction && <section className="panel form-stack" aria-label="Confirm account security">
+                <h3>{language==="ru"?"Подтверждение безопасности":"Security confirmation"}</h3>
+                <p className="form-note">{language==="ru"
+                  ?"Для привязки Telegram к аккаунту организатора необходимо подтвердить двухфакторную аутентификацию. Это защищает аккаунт и билеты."
+                  :"Linking Telegram to an organizer account requires two-factor authentication to protect your account and tickets."}</p>
+                {mfaLinkSetup ? <>
+                  <p className="form-note">{language==="ru"?"Сначала подключи приложение-аутентификатор в настройках безопасности, затем повтори привязку.":"Set up your authenticator first, then retry linking."}</p>
+                  <Link href="/security/mfa" className="button button-outline">{language==="ru"?"Настроить двухфакторную защиту":"Set up two-factor authentication"}</Link>
+                </> : <form className="form-stack" onSubmit={e=>{void verifyMfaAndResumeLink(e);}}>
+                  <label>{language==="ru"?"Шестизначный код из приложения-аутентификатора":"Six-digit authenticator code"}
+                    <input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required
+                      value={mfaLinkCode} onChange={e=>setMfaLinkCode(e.target.value)}/>
+                  </label>
+                  <button type="submit" className="button button-primary" disabled={mfaLinkBusy||mfaLinkCode.length!==6}>{mfaLinkBusy?"…":language==="ru"?"Подтвердить и привязать Telegram":"Verify and link Telegram"}</button>
+                  <Link href="/security/mfa" className="button button-outline">{language==="ru"?"Управление двухфакторной защитой":"Manage two-factor authentication"}</Link>
+                </form>}
               </section>}
               {!profile.email_verified && <div className="panel form-stack">
                 <h3>{language==="ru"?"Подтвердить email":language==="uk"?"Підтвердити email":language==="cs"?"Ověřit e-mail":"Verify email"}</h3>
