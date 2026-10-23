@@ -24,6 +24,40 @@ function readPoster(file: File): Promise<string> {
 export function AdminClient() {
   const {language}=useLanguage();
   const tr=(phrase:string)=>adminTranslate(language,phrase);
+  const mfaCopy = {
+    ru: {
+      setupTitle: "Для доступа к админ-панели включи двухфакторную аутентификацию.",
+      challengeTitle: "Для доступа к админ-панели подтверди вход.",
+      setupDescription: "Это обязательная защита аккаунта организатора. Подключи приложение-аутентификатор и введи шестизначный код.",
+      challengeDescription: "Введи свежий код из приложения-аутентификатора. Подтверждение действует 12 часов.",
+      setupAction: "Настроить двухфакторную защиту",
+      challengeAction: "Подтвердить вход",
+    },
+    en: {
+      setupTitle: "Enable two-factor authentication to access the dashboard.",
+      challengeTitle: "Verify your session to access the dashboard.",
+      setupDescription: "This protects organizer accounts. Connect an authenticator app and confirm a six-digit code.",
+      challengeDescription: "Enter a fresh code from your authenticator app. Verification lasts 12 hours.",
+      setupAction: "Set up two-factor authentication",
+      challengeAction: "Verify session",
+    },
+    cs: {
+      setupTitle: "Pro přístup do administrace zapněte dvoufaktorové ověření.",
+      challengeTitle: "Pro přístup do administrace ověřte přihlášení.",
+      setupDescription: "Jde o povinné zabezpečení účtu pořadatele. Připojte ověřovací aplikaci a zadejte šestimístný kód.",
+      challengeDescription: "Zadejte nový kód z ověřovací aplikace. Ověření platí 12 hodin.",
+      setupAction: "Nastavit dvoufaktorové ověření",
+      challengeAction: "Ověřit přihlášení",
+    },
+    uk: {
+      setupTitle: "Для доступу до адмін-панелі увімкни двофакторну автентифікацію.",
+      challengeTitle: "Для доступу до адмін-панелі підтвердь вхід.",
+      setupDescription: "Це обов'язковий захист акаунта організатора. Підключи застосунок-автентифікатор і введи шестизначний код.",
+      challengeDescription: "Введи новий код із застосунку-автентифікатора. Підтвердження діє 12 годин.",
+      setupAction: "Налаштувати двофакторний захист",
+      challengeAction: "Підтвердити вхід",
+    },
+  }[language];
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
   const [events,setEvents]=useState<ManageEvent[]>([]);
   const [loading,setLoading]=useState(true);
@@ -95,7 +129,15 @@ export function AdminClient() {
         <Link className="button button-sun" href="/admin/check-in">Scan ticket</Link>
       </div>}
     </div>
-    {error&&<div className="state-card state-error" role="alert">{error} {!identity&&<Link href="/profile" className="button button-outline">Открыть профиль</Link>}</div>}
+    {error&&<div className="state-card state-error" role="alert">
+      {error==="mfa_enrollment_required" || error==="mfa_challenge_required" ? <>
+        <strong>{error==="mfa_enrollment_required" ? mfaCopy.setupTitle : mfaCopy.challengeTitle}</strong>
+        <p>{error==="mfa_enrollment_required" ? mfaCopy.setupDescription : mfaCopy.challengeDescription}</p>
+        <Link href="/security/mfa" className="button button-primary">
+          {error==="mfa_enrollment_required" ? mfaCopy.setupAction : mfaCopy.challengeAction} →
+        </Link>
+      </> : <>{error} {!identity&&<Link href="/profile" className="button button-outline">Открыть профиль</Link>}</>}
+    </div>}
     {notice&&<div className="success-banner" role="status">{notice}</div>}
     {loading?<div className="state-card">Загрузка…</div>:identity&&identity.role!=="participant"&&<>
       <div className="section-heading"><div><h2>{identity.role==="global_admin"?"Все события":"Мои события"}</h2>
