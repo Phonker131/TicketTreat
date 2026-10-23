@@ -152,11 +152,18 @@ def install_email_account_security(app, get_db):
         if email_is_verified(db, account.id):
             return {"status": "already_verified"}
         ip = request.client.host if request.client else "unknown"
-        guard_rate(db, "email_verify_ip", ip, 12, 3600)
-        guard_rate(db, "email_verify_account", str(account.id), 4, 3600)
-        record_rate(db, "email_verify_ip", ip, 3600)
-        record_rate(db, "email_verify_account", str(account.id), 3600)
+        # Delivery failures must not exhaust the small *successful-send*
+        # allowance. Keep an independent generous attempt budget so an
+        # unreachable provider cannot be hammered indefinitely.
+        guard_rate(db, "email_verify_attempt_ip", ip, 60, 3600)
+        guard_rate(db, "email_verify_attempt_account", str(account.id), 24, 3600)
+        guard_rate(db, "email_verify_sent_ip", ip, 12, 3600)
+        guard_rate(db, "email_verify_sent_account", str(account.id), 4, 3600)
+        record_rate(db, "email_verify_attempt_ip", ip, 3600)
+        record_rate(db, "email_verify_attempt_account", str(account.id), 3600)
         create_challenge(db, account, "verify")
+        record_rate(db, "email_verify_sent_ip", ip, 3600)
+        record_rate(db, "email_verify_sent_account", str(account.id), 3600)
         return {"status": "sent"}
 
     @app.post("/demo/auth/email/confirm")
