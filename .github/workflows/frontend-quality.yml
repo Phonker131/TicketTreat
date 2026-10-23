@@ -19,6 +19,8 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npx tsc --noEmit
       - run: npm run build
+        env:
+          BACKEND_API_URL: http://127.0.0.1:8000
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --grep 'responsive shell|mobile navigation'
         env:
