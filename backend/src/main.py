@@ -53,6 +53,7 @@ from demo_mfa import MFAFactor, MFASession, install_mfa
 from demo_legacy import LegacyTicketClaim
 from demo_observability import install_request_logging
 from demo_principal_api import install_principal_api
+from demo_support import SupportTicket, SupportMessage, SupportAdminRead, install_support_api
 from demo_paid_reservations import PaidReservation, pending_count, install_paid_admin_api, install_paid_expiry_worker
 from demo_quick_signup import QuickSignupPending,QuickPrivacyConsent
 from demo_publication import EventPublication, state as event_publication_state, require_published
@@ -3395,6 +3396,7 @@ async def tickettreat_security_response_headers(request: Request, call_next):
 # Telegram Mini App authorization: initData is validated with the BOT token on the server.
 install_telegram_auth(app, get_db, __import__('sys').modules[__name__])
 install_principal_api(app, get_db, __import__('sys').modules[__name__])
+install_support_api(app, get_db)
 install_paid_admin_api(app, get_db, __import__('sys').modules[__name__])
 install_paid_expiry_worker(app, SessionLocal, __import__('sys').modules[__name__])
 # Least-privilege event staffing, reporting and booking policy.
