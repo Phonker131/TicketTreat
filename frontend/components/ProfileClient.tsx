@@ -102,6 +102,13 @@ export function ProfileClient() {
       if (mounted) setTelegramProfile(tg);
     }).catch(() => { /* Signed Telegram login is optional for browser users. */ });
     void getMailStatus().then(data=>{if(mounted)setMailReady(data.available===true);}).catch(()=>{if(mounted)setMailReady(false);});
+    // The Google OAuth callback writes an HttpOnly cookie and redirects here.
+    // The browser-session marker is not a credential; it merely asks the
+    // gateway to validate that cookie. A missing/invalid cookie is rejected
+    // server-side and restoreWebProfile() clears the marker on 401.
+    if (new URLSearchParams(window.location.search).get("google") === "success") {
+      window.localStorage.setItem("tickettreat_web_auth", "browser-session");
+    }
     restoreWebProfile()
       .then((p) => { if(mounted && p) loadProfile(p); })
       .catch(() => { if (mounted) setError("Connection to the profile service failed."); })
