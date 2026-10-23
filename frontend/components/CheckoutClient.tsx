@@ -183,8 +183,10 @@ export function CheckoutClient() {
                   onChange={e=>{setEmail(e.target.value);setQuickSent(false);}}/></label>
                 <label style={{display:"flex",alignItems:"start",gap:10}}>
                   <input type="checkbox" checked={privacyAccepted} onChange={e=>setPrivacyAccepted(e.target.checked)}/>
-                  <span>{language==="ru"?"Я ознакомился с условиями и политикой конфиденциальности.":"I have reviewed the terms and privacy notice."}{" "}
-                    <Link href="/privacy">{language==="ru"?"Политика конфиденциальности":"Privacy notice"}</Link>
+                  <span>{language==="ru"?"Я ознакомился с ":"I have reviewed the "}
+                    <Link href="/terms">{language==="ru"?"условиями использования":language==="cs"?"obchodními podmínkami":language==="uk"?"умовами користування":"Terms of Service"}</Link>
+                    {" "}{language==="ru"?"и ":"and "}
+                    <Link href="/privacy-policy">{language==="ru"?"политикой конфиденциальности":language==="cs"?"zásadami ochrany osobních údajů":language==="uk"?"політикою конфіденційності":"Privacy Policy"}</Link>.
                   </span>
                 </label>
                 <button className="button button-outline" type="button"
