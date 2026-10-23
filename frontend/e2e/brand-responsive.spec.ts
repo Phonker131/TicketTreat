@@ -15,7 +15,7 @@ for (const viewport of widths) {
     await page.goto("/",{waitUntil:"domcontentloaded"});
     await expect(page.locator(".topbar")).toBeVisible();
     await expect(page.locator(".hero")).toBeVisible();
-    await expect(page.getByRole("link",{name:"TicketTreat"})).toBeVisible();
+    await expect(page.getByRole("link",{name:"TicketTreat",exact:true})).toBeVisible();
     await expect.poll(async()=>page.evaluate(()=>document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     await expect.poll(async()=>page.locator(".hero").evaluate(el=>el.getBoundingClientRect().width > 0)).toBe(true);
     await page.screenshot({path:`test-results/brand-${viewport.name}.png`,fullPage:true});
