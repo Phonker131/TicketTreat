@@ -57,6 +57,15 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
     // Legacy website sessions may not be forwarded: they must log in again.
     return NextResponse.json({detail:"please_login_again"},{status:401});
   }
+  // HTML <img> cannot set an Authorization header. For exact media GET
+  // paths only, forward the HttpOnly browser session so an event owner can
+  // preview draft posters/galleries. The backend still checks ownership.
+  // Never apply implicit sessions to arbitrary GET endpoints.
+  if (method === "GET" && /^\\/demo\\/events\\/\\d+\\/(?:poster|gallery\\/\\d+)$/.test(relative)) {
+    const imageSession = req.cookies.get(COOKIE)?.value;
+    if (imageSession && !headers.has("Authorization"))
+      headers.set("Authorization", "Bearer " + imageSession);
+  }
   const signedLaunch = req.headers.get("x-telegram-init-data");
   if (signedLaunch && signedLaunch.length <= 8192) {
     headers.set("X-Telegram-Init-Data", signedLaunch);
