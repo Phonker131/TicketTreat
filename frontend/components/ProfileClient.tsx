@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { getVerifiedTelegramSession } from "@/lib/session";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, exportAccountData, linkTelegramToWebsite } from "@/lib/api";
+import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, exportAccountData, linkTelegramToWebsite } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -43,7 +43,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
     instagram:"Instagram (nepovinné)",contact:"Preferovaný kontakt",save:"Uložit změny",
     saving:"Ukládání…",loading:"Načítání…",logout:"Odhlásit se",welcome:"Vítej zpět!",
     create:"Vytvořit účet",need:"Zaregistruj se a měj vstupenky dostupné na každém zařízení.",
-    note:"Demo verze: ověření e-mailu a obnovení hesla zatím nejsou dostupné. Použij jedinečné heslo.",
+    note:"Ověření e-mailu a obnovení hesla vyžadují aktivní e-mailovou službu.",
     visits:"Návštěvy",tickets:"Moje vstupenky",profile:"Údaje profilu",
     accountCreated:"Účet vytvořen.",updated:"Profil aktualizován.",required:"Vyplň povinná pole.",
     emailUsed:"Účet s tímto e-mailem již existuje. Přihlas se.",
@@ -92,6 +92,7 @@ export function ProfileClient() {
   const [claimKey, setClaimKey] = useState("");
   const [verificationCode,setVerificationCode]=useState("");
   const [resetOpen,setResetOpen]=useState(false);
+  const [mailReady,setMailReady]=useState<boolean|null>(null);
   const [resetCode,setResetCode]=useState("");
   const [resetPassword,setResetPassword]=useState("");
   const [showClaim, setShowClaim] = useState(false);
@@ -103,6 +104,7 @@ export function ProfileClient() {
     void getVerifiedTelegramSession().then(tg => {
       if (mounted) setTelegramProfile(tg);
     }).catch(() => { /* Signed Telegram login is optional for browser users. */ });
+    void getMailStatus().then(data=>{if(mounted)setMailReady(data.available===true);}).catch(()=>{if(mounted)setMailReady(false);});
     restoreWebProfile()
       .then((p) => { if(mounted && p) loadProfile(p); })
       .catch(() => { if (mounted) setError("Connection to the profile service failed."); })
@@ -320,7 +322,7 @@ export function ProfileClient() {
               {!profile.email_verified && <div className="panel form-stack">
                 <h3>{language==="ru"?"Подтвердить email":language==="uk"?"Підтвердити email":language==="cs"?"Ověřit e-mail":"Verify email"}</h3>
                 <p className="form-note">{language==="ru"?"Отправь код подтверждения на почту и введи его здесь.": "Request a code and enter it here. Existing accounts can verify without losing tickets."}</p>
-                <button type="button" className="button button-outline" disabled={busy}
+                <button type="button" className="button button-outline" disabled={busy||mailReady===false}
                   onClick={async()=>{const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await requestEmailVerification(token);setNotice("Verification code sent.");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
                   {language==="ru"?"Отправить код":"Send code"}</button>
                 <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await confirmAccountEmail(token,profile.account.email,verificationCode);loadProfile(await getWebProfile(token));setVerificationCode("");setNotice("Email verified.");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
@@ -484,9 +486,13 @@ export function ProfileClient() {
             </button>
             {resetOpen&&<section className="panel form-stack">
               <h3>{language==="ru"?"Восстановление пароля":"Password recovery"}</h3>
-              <p className="form-note">{language==="ru"?"На подтверждённую почту придёт код. Если аккаунта нет, ответ будет таким же.":"A code will be sent only to verified addresses."}</p>
+              <p className="form-note">{language==="ru"?"Если аккаунт существует, на эту почту придёт код для сброса пароля. Код также подтверждает владение почтой.":"If the account exists, a reset code will be sent to this address. This also verifies the email."}</p>
+              {mailReady===false&&<p role="alert" className="state-card state-error">{
+                language==="ru"?"Отправка писем сейчас недоступна. Администратору TicketTreat нужно проверить Resend, домен отправителя и переменные EMAIL_NOTIFICATIONS_ENABLED / EMAIL_FROM / RESEND_API_KEY.":
+                "Email sending is unavailable. TicketTreat support must verify Resend, sender domain and email environment variables."
+              }</p>}
               <label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
-              <button type="button" className="button button-outline" disabled={busy} onClick={async()=>{setBusy(true);setError("");try{await requestPasswordReset(email);setNotice(language==="ru"?"Если адрес подтверждён, письмо отправлено.":"If an eligible account exists, a code was sent.");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
+              <button type="button" className="button button-outline" disabled={busy||mailReady===false||!email.includes("@")} onClick={async()=>{setBusy(true);setError("");try{await requestPasswordReset(email);setNotice(language==="ru"?"Если адрес подтверждён, письмо отправлено.":"If an eligible account exists, a code was sent.");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
                 {language==="ru"?"Отправить код":"Send reset code"}
               </button>
               <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setError("");try{await confirmPasswordReset(email,resetCode,resetPassword);setResetOpen(false);setResetCode("");setResetPassword("");setNotice(language==="ru"?"Пароль изменён. Войди с новым паролем.":"Password changed. Sign in with the new password.");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
