@@ -336,8 +336,8 @@ def poster_setup(db, main, request, event, data_url: str):
     else:
         item.content_type=ctype
         item.image_bytes=blob
-    public_base=os.getenv("DEMO_PUBLIC_API_URL","").rstrip("/") or str(request.base_url).rstrip("/")
-    event.image_url=f"{public_base}/demo/events/{event.id}/poster"
+    # Same-origin public gateway. Do not expose the internal Railway API host.
+    event.image_url=f"/api/gateway/demo/events/{event.id}/poster"
 
 def install_demo_roles(app, get_db, main):
     def current(
