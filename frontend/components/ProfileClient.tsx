@@ -383,6 +383,13 @@ export function ProfileClient() {
               {mode==="signup" && details}
               <label>{tr.email}<input type="email" required maxLength={255} autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} /></label>
               <label>{tr.password}<input type="password" required minLength={mode==="signup"?12:1} maxLength={128} autoComplete={mode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} /></label>
+              {mode==="signup" && <p className="tt-legal-at-collection">
+                {language==="ru"?"Перед регистрацией ознакомься с ":language==="uk"?"Перед реєстрацією ознайомся з ":language==="cs"?"Před registrací si přečti ":"Before creating an account, read the "}
+                <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">{language==="ru"?"политикой конфиденциальности":language==="uk"?"політикою конфіденційності":language==="cs"?"zásady ochrany osobních údajů":"Privacy Policy"}</Link>
+                {" "}{language==="ru"?"и ":language==="uk"?"та ":language==="cs"?"a ":"and "}
+                <Link href="/terms" target="_blank" rel="noopener noreferrer">{language==="ru"?"условиями использования":language==="uk"?"умовами користування":language==="cs"?"obchodní podmínky":"Terms of Service"}</Link>.
+                {" "}{language==="ru"?"Создание аккаунта не означает согласия на маркетинговые рассылки.":language==="uk"?"Створення акаунта не означає згоди на маркетингові розсилки.":language==="cs"?"Registrace neznamená souhlas s marketingovým zasíláním.":"Creating an account does not consent to marketing."}
+              </p>}
               <p className="form-note">{mode==="signup"?tr.passwordHint:tr.note}</p>
               <button className="button button-primary" type="submit" disabled={busy}>{busy?tr.loading:mode==="signup"?tr.create:tr.login}</button>
             </form>
