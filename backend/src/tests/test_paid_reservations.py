@@ -8,6 +8,8 @@ from sqlalchemy import create_engine, Column,Integer,String,DateTime
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from db.base import Base
+from fastapi import BackgroundTasks, HTTPException
+from demo_paid_reservations import decision
 from demo_paid_reservations import PaidReservation,apply,pending_count,expire_for_event,now_utc
 
 class TestEvent(Base):
@@ -30,7 +32,15 @@ class TestTicket(Base):
     id=Column(Integer,primary_key=True)
     event_id=Column(Integer)
     guest_id=Column(Integer)
+    qr_token=Column(String(80))
     ticket_status=Column(String(20),default="active")
+    payment_status=Column(String(24))
+    payment_provider=Column(String(32))
+    payment_amount=Column(String(32))
+    currency=Column(String(3))
+    acquisition_source=Column(String(40))
+    checked_in_at=Column(DateTime(timezone=True),nullable=True)
+    cancelled_at=Column(DateTime(timezone=True),nullable=True)
 
 class ReservationTests(unittest.TestCase):
     def setUp(self):
@@ -84,4 +94,39 @@ class ReservationTests(unittest.TestCase):
 
     def test_no_ticket_issued_when_application_created(self):
         apply(self.db,self.main,1,self.db.get(TestGuest,1))
+        self.assertEqual(self.db.query(TestTicket).count(),0)
+
+    def test_organizer_only_can_confirm_and_ticket_is_issued_once(self):
+        request=apply(self.db,self.main,1,self.db.get(TestGuest,1))
+        rid=request["reservation"]["id"]
+        admin=SimpleNamespace(id=111)
+        from demo_roles import ensure_owner
+        with patch("demo_roles.ensure_owner",side_effect=HTTPException(403,"event_not_owned")):
+            with self.assertRaises(HTTPException) as denied:
+                decision(self.db,self.main,1,rid,admin,True,BackgroundTasks())
+            self.assertEqual(denied.exception.status_code,403)
+        self.assertEqual(self.db.query(TestTicket).count(),0)
+        with patch("demo_roles.ensure_owner"),patch("demo_roles.audit"),patch("demo_email.queue_email") as queue,patch("demo_email.queue_event_reminder"),patch("demo_telegram.verified_telegram_id_for_guest",return_value=None):
+            first=decision(self.db,self.main,1,rid,admin,True,BackgroundTasks())
+            second=decision(self.db,self.main,1,rid,admin,True,BackgroundTasks())
+        self.assertEqual(first["status"],"confirmed")
+        self.assertEqual(second["status"],"confirmed")
+        self.assertEqual(self.db.query(TestTicket).count(),1)
+        ticket=self.db.query(TestTicket).one()
+        self.assertEqual(ticket.payment_provider,"organizer_direct")
+        self.assertEqual(ticket.ticket_status,"active")
+        self.assertEqual(ticket.payment_status,"paid")
+        self.assertTrue(ticket.qr_token)
+        queue.assert_called_once()
+
+    def test_late_confirmation_cannot_issue_ticket(self):
+        request=apply(self.db,self.main,1,self.db.get(TestGuest,1))
+        rid=request["reservation"]["id"]
+        row=self.db.get(PaidReservation,rid)
+        row.expires_at=now_utc()-timedelta(seconds=1)
+        self.db.commit()
+        with patch("demo_roles.ensure_owner"):
+            with self.assertRaises(HTTPException) as rejected:
+                decision(self.db,self.main,1,rid,SimpleNamespace(id=11),True,BackgroundTasks())
+        self.assertEqual(rejected.exception.status_code,409)
         self.assertEqual(self.db.query(TestTicket).count(),0)
