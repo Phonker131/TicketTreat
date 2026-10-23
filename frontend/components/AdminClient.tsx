@@ -112,6 +112,7 @@ export function AdminClient() {
         max_participants:Number(data.get("max_participants")||30),
         price:String(data.get("price")||"0"),
         currency:String(data.get("currency")||"CZK"),
+        payment_instructions:String(data.get("payment_instructions")||"").trim(),
         starts_at:starts+":00",languages:langs,poster_data_url,
         reminder_minutes:reminderMinutes,reminder_text:reminderMessage.trim(),
       });
@@ -171,6 +172,10 @@ export function AdminClient() {
           message={reminderMessage} onMessageChange={setReminderMessage} language={language}/>
         <div className="two-col"><label>{tr("Цена")}<input name="price" type="number" min="0" step="0.01" defaultValue="0"/></label>
         <label>{tr("Валюта")}<select name="currency" defaultValue="CZK"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option></select></label></div>
+        <label>Инструкция по оплате напрямую организатору (обязательно для платного ивента)
+          <textarea name="payment_instructions" rows={4} maxLength={2000}
+            placeholder="Реквизиты, назначение платежа, контакт организатора. TicketTreat деньги не принимает."/>
+        </label>
         <button className="button button-primary" disabled={saving}>{saving?"Сохраняем…":"Создать черновик"}</button>
       </form>}
       <section className="panel pilot-event-filters" aria-label="Фильтрация мероприятий">
