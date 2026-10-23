@@ -8,6 +8,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { getEvent,getBookingConfig,getManageEvent } from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 import {downloadCalendar,mapQuery} from "@/lib/event-actions";
+import { CONSENT_EVENT,hasExternalMediaConsent,openCookieSettings } from "@/lib/cookie-consent";
 import { formatDate, formatPrice } from "@/lib/format";
 import { LANGUAGE_NAMES, t } from "@/lib/i18n";
 import type { TicketTreatEvent } from "@/lib/types";
@@ -22,6 +23,14 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
   const [error, setError] = useState<string | null>(null);
   const [demoPayments,setDemoPayments]=useState(false);
   const [mapOpen,setMapOpen]=useState(false);
+  const [mapConsent,setMapConsent]=useState(false);
+  useEffect(()=>{
+    const sync=()=>setMapConsent(hasExternalMediaConsent());
+    sync();
+    window.addEventListener(CONSENT_EVENT,sync);
+    window.addEventListener("storage",sync);
+    return()=>{window.removeEventListener(CONSENT_EVENT,sync);window.removeEventListener("storage",sync)};
+  },[]);
   const [posterUnavailable,setPosterUnavailable]=useState(false);
   useEffect(()=>setPosterUnavailable(false),[event?.image_url]);
 
@@ -105,9 +114,12 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
             {mapUrl&&<><a className="button button-outline" href={mapUrl} target="_blank" rel="noopener noreferrer">↗ {language==="ru"?"Открыть карту":language==="cs"?"Otevřít mapu":language==="uk"?"Відкрити карту":"Open map"}</a>
               <button type="button" className="button button-outline" onClick={()=>setMapOpen(v=>!v)}>{mapOpen?"Скрыть карту":"Показать карту"}</button></>}
           </div>
-          {mapOpen&&mapUrl&&<iframe title="Карта места проведения" loading="lazy" referrerPolicy="no-referrer"
+          {mapOpen&&mapUrl&&(mapConsent ? <iframe title="Карта места проведения" loading="lazy" referrerPolicy="no-referrer"
             style={{width:"100%",height:300,border:0,borderRadius:12,marginTop:16}}
-            src={`https://maps.google.com/maps?q=${encodeURIComponent([event.location,event.city,event.country_code].filter(Boolean).join(", "))}&output=embed`} />}
+            src={`https://maps.google.com/maps?q=${encodeURIComponent([event.location,event.city,event.country_code].filter(Boolean).join(", "))}&output=embed`} /> : <div className="state-card tt-map-consent-placeholder" role="status">
+            <p>{language==="ru"?"Для встроенной карты требуется разрешение на сторонний контент Google Maps. Можно использовать ссылку «Открыть карту» без загрузки карты на этом сайте.":language==="cs"?"Pro vloženou mapu je potřeba souhlas s externím obsahem Google Maps. Můžete otevřít mapu samostatným odkazem.":language==="uk"?"Для вбудованої карти потрібен дозвіл на сторонній вміст Google Maps. Ви можете відкрити карту окремим посиланням.":"The embedded Google Maps frame requires optional consent. Alternatively, use the external Open map link."}</p>
+            <button className="button button-outline" type="button" onClick={openCookieSettings}>{language==="ru"?"Настроить cookies":language==="cs"?"Nastavení cookies":language==="uk"?"Налаштувати cookies":"Manage cookie preferences"}</button>
+          </div>)}
         </section>
 
         {preview ? <section className="state-card"><h2>Предпросмотр карточки</h2><p>Регистрация в режиме предпросмотра недоступна. Чтобы открыть её для гостей, опубликуй мероприятие в админке.</p></section> : event.is_cancelled ? (
