@@ -543,7 +543,7 @@ export function confirmMagicLogin(email:string,code:string):Promise<WebAuthResul
 }
 
 export function sendEventAnnouncement(token:string,id:number,payload:{category:"access"|"logistics"|"schedule";message:string}):
- Promise<{status:string;eligible_verified_ticket_holders:number}>{
+ Promise<{status:string;eligible_notification_deliveries:number}>{
   return request(`/demo/manage/events/${id}/announcement`,{method:"POST",headers:accountHeaders(token),
     body:JSON.stringify(payload)});
 }
