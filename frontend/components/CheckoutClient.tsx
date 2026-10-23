@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
-import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig, getWaitlistOfferStatus,claimWaitlistOffer,declineWaitlistOffer,requestQuickSignup,confirmQuickSignup } from "@/lib/api";
+import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig, getWaitlistOfferStatus,claimWaitlistOffer,declineWaitlistOffer,requestQuickSignup,confirmQuickSignup, requestPaidReservation, getOwnPaidReservation } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { getStoredGuestToken, restoreGuest, storeGuest,setWebAuth } from "@/lib/session";
 import type { TicketTreatEvent, DemoGuest, } from "@/lib/types";
+import type {PaidReservationStatus} from "@/lib/api";
 
 type PaymentMethod = "card" | "apple" | "google";
 
@@ -157,14 +158,7 @@ export function CheckoutClient() {
             </section>
 
             {!isFree ? (
-              <section className="panel form-stack" role="status">
-                <h2>{language==="ru"?"Оплата напрямую организатору":language==="cs"?"Platba přímo pořadateli":language==="uk"?"Оплата безпосередньо організатору":"Payment directly to the organizer"}</h2>
-                <p>{language==="ru"?"TicketTreat не принимает деньги за это мероприятие и не обрабатывает оплату картой. Уточни у организатора порядок оплаты, получения подтверждения участия и возврата средств.":language==="cs"?"TicketTreat za tuto akci nepřijímá peníze ani nezpracovává platby kartou. Způsob platby, potvrzení účasti a případné vrácení peněz si ověř přímo u pořadatele.":language==="uk"?"TicketTreat не приймає кошти за цю подію й не обробляє оплату карткою. Уточни в організатора оплату, підтвердження участі та повернення коштів.":"TicketTreat does not collect payments or process card details for this event. Confirm payment instructions, participation and refunds directly with the organizer."}</p>
-                <p><strong>{language==="ru"?"Организатор:":language==="cs"?"Pořadatel:":language==="uk"?"Організатор:":"Organizer:"}</strong> {event.organizer || (language==="cs"?"Neuveden":"Not specified")}</p>
-                <p className="form-note">{language==="ru"?"Платная регистрация внутри TicketTreat пока отключена. QR-билет не подтверждает получение оплаты организатором.":language==="cs"?"Registrace placených akcí přes TicketTreat je nyní vypnutá. QR vstupenka nepotvrzuje, že pořadatel obdržel platbu.":language==="uk"?"Платна реєстрація через TicketTreat наразі вимкнена. QR-квиток не підтверджує оплату організатору.":"Paid registrations through TicketTreat are currently disabled. A TicketTreat QR ticket is not proof of payment to the organizer."}</p>
-                <p className="tt-legal-at-collection"><Link href="/terms">{language==="ru"?"Условия использования":language==="cs"?"Obchodní podmínky":language==="uk"?"Умови користування":"Terms of Service"}</Link> · <Link href="/privacy-policy">{language==="ru"?"Политика конфиденциальности":language==="cs"?"Ochrana osobních údajů":language==="uk"?"Політика конфіденційності":"Privacy Policy"}</Link></p>
-                <Link className="button button-outline" href={`/events/${event.id}`}>{language==="ru"?"Вернуться к мероприятию":language==="cs"?"Zpět na akci":language==="uk"?"Повернутися до події":"Back to event"}</Link>
-              </section>
+              <PaidCheckout event={event} guest={guest} language={language} source={attributionSource}/>
             ) : !guest ? (
               <>
               <section className="panel account-signup-banner">
@@ -310,4 +304,82 @@ export function CheckoutClient() {
       </main>
     </div>
   );
+}
+
+function PaidCheckout({event,guest,language,source}:{
+  event:TicketTreatEvent;guest:DemoGuest|null;
+  language:"en"|"cs"|"ru"|"uk";source:string;
+}){
+  const [state,setState]=useState<PaidReservationStatus|null>(null);
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState("");
+  const [currentTime,setCurrentTime]=useState(()=>Date.now());
+  const refresh=()=>getOwnPaidReservation(event.id).then(setState).catch(e=>setError(e instanceof Error?e.message:String(e)));
+  useEffect(()=>{
+    if(!guest)return;
+    void refresh();
+    const poll=window.setInterval(()=>{
+      if(document.visibilityState==="visible")void refresh();
+    },30000);
+    return()=>window.clearInterval(poll);
+  },[event.id,guest?.id]);
+  useEffect(()=>{
+    const tick=window.setInterval(()=>setCurrentTime(Date.now()),1000);
+    return()=>window.clearInterval(tick);
+  },[]);
+  const pending=state?.status==="pending"&&state.reservation;
+  const remains=pending?Math.max(0,new Date(pending.expires_at).getTime()-currentTime):0;
+  const time=remains>0?`${Math.floor(remains/3600000).toString().padStart(2,"0")}:${Math.floor(remains%3600000/60000).toString().padStart(2,"0")}:${Math.floor(remains%60000/1000).toString().padStart(2,"0")}`:"00:00:00";
+  const label=(en:string,ru:string,cs:string,uk:string)=>language==="ru"?ru:language==="cs"?cs:language==="uk"?uk:en;
+  async function apply(){
+    setBusy(true);setError("");
+    try{
+      await requestPaidReservation(event.id,language,source);
+      await refresh();
+    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    finally{setBusy(false)}
+  }
+  return <section className="panel form-stack">
+    <h2>{label("Organizer-direct payment","Оплата напрямую организатору","Platba přímo pořadateli","Оплата безпосередньо організатору")}</h2>
+    <p>{label("TicketTreat does not receive payments. Your application holds a place for up to 24 hours. Only the organizer can confirm receipt of your payment and activate a QR ticket.",
+    "TicketTreat не принимает деньги. Заявка резервирует место на срок до 24 часов. Только организатор подтверждает получение оплаты и активирует QR-билет.",
+    "TicketTreat nepřijímá platby. Žádost rezervuje místo až na 24 hodin. Pouze pořadatel potvrdí přijetí platby a aktivuje QR vstupenku.",
+    "TicketTreat не приймає кошти. Заявка резервує місце до 24 годин. Лише організатор підтверджує оплату та активує QR-квиток.")}</p>
+    <p><strong>{label("Organizer","Организатор","Pořadatel","Організатор")}:</strong> {event.organizer||"—"}</p>
+    {!guest ? <>
+      <p>{label("Sign in to apply. Your application and deadline will be linked to your verified account.",
+      "Войди в аккаунт, чтобы встать в очередь на подтверждение оплаты.",
+      "Přihlas se, abys požádal o rezervaci a následné potvrzení platby.",
+      "Увійди до акаунта, щоб подати заявку на підтвердження оплати.")}</p>
+      <Link className="button button-primary" href="/profile">{label("Sign in","Войти","Přihlásit se","Увійти")}</Link>
+    </>:<>
+      {!state&&<p role="status">{label("Loading reservation status…","Загружаем статус…","Načítání stavu…","Завантажуємо статус…")}</p>}
+      {pending&&remains>0&&<>
+        <div className="state-card" role="status">
+          <strong>{label("Awaiting organizer's payment confirmation","Ожидание подтверждения оплаты","Čeká se na potvrzení platby","Очікується підтвердження оплати")}</strong>
+          <p>{label("Time remaining","Осталось времени","Zbývající čas","Залишилося часу")}: <strong>{time}</strong></p>
+          <p>{label("If the organizer does not confirm payment in time, your reservation expires and the place becomes available again.",
+          "Если организатор не подтвердит оплату до истечения срока, заявка автоматически аннулируется и место освободится.",
+          "Pokud pořadatel platbu včas nepotvrdí, rezervace vyprší a místo se uvolní.",
+          "Якщо організатор не підтвердить оплату вчасно, заявку буде скасовано і місце звільниться.")}</p>
+        </div>
+        {state?.payment_instructions&&<div className="state-card">
+          <strong>{label("Organizer payment instructions","Инструкция по оплате от организатора","Pokyny k platbě od pořadatele","Інструкція з оплати від організатора")}</strong>
+          <p style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{state.payment_instructions}</p>
+        </div>}
+      </>}
+      {state?.status==="confirmed"&&<div className="state-card" role="status">
+        <strong>{label("Payment confirmed — your ticket is ready","Оплата подтверждена — билет готов","Platba potvrzena — vstupenka je připravena","Оплату підтверджено — квиток готовий")}</strong>
+        <p><Link href="/tickets">{label("Open My Tickets","Открыть мои билеты","Moje vstupenky","Мої квитки")}</Link></p>
+      </div>}
+      {(state?.status==="not_joined"||state?.status==="expired"||state?.status==="declined")&&<>
+        {state.status!=="not_joined"&&<p role="status">{label("The previous application is no longer active.","Предыдущая заявка больше не активна.","Předchozí žádost již není aktivní.","Попередня заявка більше не активна.")}</p>}
+        <button type="button" className="button button-primary" disabled={busy||event.is_cancelled||event.spots_left===0} onClick={()=>void apply()}>
+          {busy?label("Sending…","Отправляем…","Odesílání…","Надсилаємо…"):label("Reserve a place for 24 hours","Забронировать место на 24 часа","Rezervovat místo na 24 hodin","Зарезервувати місце на 24 години")}
+        </button>
+      </>}
+    </>}
+    <p className="tt-legal-at-collection"><Link href="/terms">Terms of Service</Link> · <Link href="/privacy-policy">Privacy Policy</Link></p>
+    {error&&<p className="state-card state-error" role="alert">{error}</p>}
+  </section>;
 }
