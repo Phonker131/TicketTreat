@@ -44,6 +44,18 @@ def install_principal_api(app,get_db,main):
             raise HTTPException(404,"identity_profile_missing")
         return guest
 
+    @app.post("/demo/me/events/{event_id}/paid-reservations",status_code=201)
+    def create_paid_reservation(event_id:int,payload:FreeBooking,
+             guest=Depends(guest_for),db:Session=Depends(get_db)):
+        from demo_paid_reservations import apply
+        return apply(db,main,event_id,guest,payload.language,payload.source)
+
+    @app.get("/demo/me/events/{event_id}/paid-reservations")
+    def own_paid_reservation(event_id:int,guest=Depends(guest_for),
+                             db:Session=Depends(get_db)):
+        from demo_paid_reservations import get_own
+        return get_own(db,main,event_id,guest)
+
     @app.get("/demo/me/attendance")
     def own_attendance(guest=Depends(guest_for), db:Session=Depends(get_db)):
         """Privacy-scoped history; never exposes other guests or QR secrets."""
