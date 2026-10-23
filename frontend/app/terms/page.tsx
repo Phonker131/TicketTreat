@@ -23,7 +23,7 @@ export default function TermsPage(){
         <section>
           <h2>1. About the service</h2>
           <p>TicketTreat is the brand of an event-platform pilot in Czechia and is not itself a separate registered legal person. The operator identified above provides the platform account and ticketing interface. An event organizer remains responsible for providing accurate event information and holding the event. Before public paid ticket sales, the platform must clearly identify the actual contracting seller, whether an organizer is a trader, and the division of responsibilities before checkout.</p>
-          <p>For platform support, contact <a href="https://t.me/vvladver" target="_blank" rel="noopener noreferrer">TicketTreat support on Telegram</a>. For questions about a specific event, please contact its organizer.</p>
+          <p>For platform support or complaints about TicketTreat, use the <Link href="/support">online support ticket system</Link> after signing in. Administrators can reply in the ticket and send an email to your verified account address. For questions about event delivery, payment made directly to an organizer or refunds, contact the organizer or contractual seller.</p>
         </section>
         <section>
           <h2>2. Accounts and access</h2>
