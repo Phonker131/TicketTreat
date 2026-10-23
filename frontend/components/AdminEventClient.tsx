@@ -443,6 +443,7 @@ export function AdminEventClient(){
       </section>
       <section className="panel form-stack">
         <h2>{tr("Уведомления участникам")}</h2>
+        <Link href={`/admin/broadcasts?event_id=${eventId}`} className="button button-outline">📢 Рассылка участникам этого ивента →</Link>
         <p>С подтверждённым email и действующим билетом: <strong>{emailStatus?.verified_ticket_holders??"—"}</strong></p>
         <p className="form-note">{emailStatus?.email_enabled?
           "Отправка подключена. Зарегистрированные пользователи получают письма с билетами, напоминаниями и важными изменениями.":
