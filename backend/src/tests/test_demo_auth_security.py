@@ -3,7 +3,7 @@ import hashlib
 import secrets
 import unittest
 from fastapi import HTTPException
-from demo_auth_security import hash_password, verify_password, needs_rehash, validate_new_password
+from demo_auth_security import hash_password, verify_password, needs_rehash, validate_new_password, DUMMY_PASSWORD_HASH
 
 class PasswordTests(unittest.TestCase):
     def test_argon2id(self):
@@ -14,6 +14,10 @@ class PasswordTests(unittest.TestCase):
         self.assertTrue(verify_password("correct horse battery staple",a))
         self.assertFalse(verify_password("bad",a))
         self.assertFalse(needs_rehash(a))
+
+    def test_missing_account_uses_real_argon2id_work_factor(self):
+        self.assertTrue(DUMMY_PASSWORD_HASH.startswith("$argon2id$"))
+        self.assertFalse(verify_password("no-such-password",DUMMY_PASSWORD_HASH))
 
     def test_pbkdf2_legacy(self):
         password="existing-account-password"
