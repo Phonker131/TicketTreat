@@ -19,7 +19,7 @@ from typing import Literal
 
 from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Integer, String, Text, func, and_, or_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -128,9 +128,18 @@ def _audience(db: Session, scope: str, event_id: int | None, main):
         bot_user_ids = db.query(main.User.telegram_id).filter(main.User.telegram_id > 0).all()
         miniapp_ids = db.query(DemoTelegramIdentity.telegram_id).filter(DemoTelegramIdentity.telegram_id > 0).all()
     else:
+        # A historical Telegram registration may remain after a converted QR
+        # ticket is cancelled; exclude these users from the event audience.
         bot_user_ids = db.query(main.User.telegram_id).join(
             main.Registration, main.Registration.user_id == main.User.id
-        ).filter(main.Registration.event_id == event_id).all()
+        ).outerjoin(
+            main.LegacyTicketClaim, main.LegacyTicketClaim.registration_id == main.Registration.id
+        ).outerjoin(
+            main.DemoTicket, main.DemoTicket.id == main.LegacyTicketClaim.ticket_id
+        ).filter(
+            main.Registration.event_id == event_id,
+            or_(main.LegacyTicketClaim.registration_id.is_(None), main.DemoTicket.ticket_status == "active"),
+        ).all()
         miniapp_ids = db.query(DemoTelegramIdentity.telegram_id).join(
             main.DemoTicket, main.DemoTicket.guest_id == DemoTelegramIdentity.guest_id
         ).filter(
@@ -215,6 +224,8 @@ def install_broadcast_api(app, get_db, main):
             image = None
         if not payload.subject.strip() or not payload.message.strip():
             raise HTTPException(422, "broadcast_content_required")
+        if image and _telegram_token() and len(payload.subject.strip()) + len(payload.message.strip()) + 2 > 1024:
+            raise HTTPException(422, "telegram_photo_caption_too_long")
         # Serializes confirmation by this actor to avoid duplicate broadcasts
         # from simultaneous taps in different browsers.
         db.execute(select(WebAccount).where(WebAccount.id == account.id).with_for_update()).scalar_one()
