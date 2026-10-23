@@ -293,11 +293,18 @@ def install_telegram_auth(app, get_db, main) -> None:
     def start_link(authorization: str | None = Header(None), db: Session = Depends(get_db)):
         from demo_roles import account_lookup
         from demo_account_recovery import email_is_verified
+        from demo_auth_security import guard_rate, record_rate
         if not main.DEMO_ISOLATED_API:
             raise HTTPException(503, "telegram_miniapp_requires_isolated_api")
         account = account_lookup(db, authorization)
         if not email_is_verified(db, account.id):
             raise HTTPException(403, "email_verification_required")
+        guard_rate(db, "telegram_link_account", str(account.id), 6, 600)
+        record_rate(db, "telegram_link_account", str(account.id), 600)
+        # Purge stale challenge records; no raw tokens were ever persisted.
+        db.query(TelegramLinkChallenge).filter(
+            TelegramLinkChallenge.expires_at < datetime.now(timezone.utc) - timedelta(days=7)
+        ).delete(synchronize_session=False)
         # Revoke previous pending challenges from this site account.
         db.query(TelegramLinkChallenge).filter(
             TelegramLinkChallenge.account_id == account.id,
@@ -329,11 +336,10 @@ def install_telegram_auth(app, get_db, main) -> None:
         ).first()
         if row is None:
             raise HTTPException(404, "link_not_found")
-        expired = row.status == "pending" and row.expires_at.replace(
-            tzinfo=timezone.utc
-        ) <= datetime.now(timezone.utc) if row.expires_at.tzinfo is None else (
-            row.status == "pending" and row.expires_at <= datetime.now(timezone.utc)
-        )
+        expiry = row.expires_at
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+        expired = row.status == "pending" and expiry <= datetime.now(timezone.utc)
         return {"status": "expired" if expired else row.status,
                 "linked": row.status == "linked"}
 
