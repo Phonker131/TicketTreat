@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -22,6 +23,8 @@ from demo_accounts import WebAccount, WebSession, normalize_email, token_hash
 from demo_account_recovery import VerifiedEmail
 from demo_auth_security import guard_rate, record_rate, verify_password
 from demo_mfa import session_for, require_privileged_mfa, utc
+
+logger = logging.getLogger("tickettreat.google_oauth")
 
 
 class GoogleIdentity(Base):
@@ -89,6 +92,18 @@ def exchange_code(code, verifier, nonce):
             "code_verifier": verifier,
         }, timeout=10, allow_redirects=False)
         if response.status_code != 200:
+            # Log only Google's documented error *category*, never bodies,
+            # credentials, authorization codes, tokens or user identifiers.
+            try:
+                provider_code = response.json().get("error")
+            except (ValueError, TypeError, AttributeError):
+                provider_code = None
+            if provider_code not in {"invalid_client", "invalid_grant",
+                                     "unauthorized_client", "invalid_request",
+                                     "access_denied"}:
+                provider_code = "unclassified"
+            logger.warning("Google token exchange rejected: http=%s category=%s",
+                           response.status_code, provider_code)
             raise HTTPException(401, "google_exchange_failed")
         raw = response.json().get("id_token")
         if not isinstance(raw, str) or len(raw) > 16384:
@@ -102,8 +117,9 @@ def exchange_code(code, verifier, nonce):
         return validate_claims(claims, client, nonce)
     except HTTPException:
         raise
-    except Exception:
-        # Do not expose codes, tokens, secrets, or provider error bodies.
+    except Exception as exc:
+        # Only the exception *class*, not its message, may reach server logs.
+        logger.warning("Google token verification failed: type=%s", type(exc).__name__)
         raise HTTPException(401, "google_verification_failed") from None
 
 
