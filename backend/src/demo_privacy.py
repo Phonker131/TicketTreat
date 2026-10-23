@@ -145,6 +145,7 @@ def install_privacy_routes(app, get_db, main):
         from demo_geography import DemoAccountPlace
         from demo_telegram import DemoTelegramIdentity
         from demo_legacy import LegacyTicketClaim
+        from demo_support import SupportTicket, SupportMessage, SupportAdminRead
 
         item=db.query(PrivacyRequest).filter(
             PrivacyRequest.id==request_id).with_for_update().first()
@@ -185,12 +186,31 @@ def install_privacy_routes(app, get_db, main):
             if event is None or not main.event_is_past(event):
                 blockers.append("active_waitlist")
                 break
+        support_tickets=db.query(SupportTicket).filter(SupportTicket.account_id==account.id).all()
+        if any(ticket.status!="closed" for ticket in support_tickets):
+            blockers.append("active_support_ticket")
         if blockers:
             raise HTTPException(409,{"code":"manual_review_required",
                                      "blockers":sorted(set(blockers))})
 
         # Transactional pseudonymization and deletion of eligible personal data.
-        db.query(EmailOutbox).filter(EmailOutbox.guest_id==guest.id).delete(synchronize_session=False)
+        # Support conversations contain personal details. Delete the
+        # outgoing support replies as well (they are not guest-linked), then
+        # erase messages, per-admin read markers, and closed ticket records.
+        support_ids=[ticket.id for ticket in support_tickets]
+        if support_ids:
+            msg_ids=[item[0] for item in db.query(SupportMessage.id).filter(
+                SupportMessage.ticket_id.in_(support_ids)).all()]
+            if msg_ids:
+                db.query(EmailOutbox).filter(EmailOutbox.kind=="support_reply",
+                    EmailOutbox.notice_id.in_(msg_ids)).delete(synchronize_session=False)
+            db.query(SupportAdminRead).filter(
+                SupportAdminRead.ticket_id.in_(support_ids)).delete(synchronize_session=False)
+            db.query(SupportMessage).filter(
+                SupportMessage.ticket_id.in_(support_ids)).delete(synchronize_session=False)
+            db.query(SupportTicket).filter(
+                SupportTicket.id.in_(support_ids)).delete(synchronize_session=False)
+                db.query(EmailOutbox).filter(EmailOutbox.guest_id==guest.id).delete(synchronize_session=False)
         db.query(main.DemoTicket).filter(main.DemoTicket.guest_id==guest.id).delete(synchronize_session=False)
         db.query(main.DemoWaitlist).filter(main.DemoWaitlist.guest_id==guest.id).delete(synchronize_session=False)
         session_hashes=[x[0] for x in db.query(WebSession.token_hash).filter(
