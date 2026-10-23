@@ -552,7 +552,7 @@ export type PilotInsights = {
   occupancy_percent:number|null; attendance_percent:number|null;
   daily_bookings:{date:string;count:number}[];channels:{source:string;registrations:number}[];limitations:string[];
 };
-export type PilotSettings = {signup_cutoff_minutes:number;reminder_minutes:number[];waitlist_offer_minutes:number;event_duration_minutes:number};
+export type PilotSettings = {signup_cutoff_minutes:number;reminder_minutes:number[];reminder_text?:string;waitlist_offer_minutes:number;event_duration_minutes:number};
 export type CheckinStaff = {account_id:number;email:string;granted_at:string};
 export function getPilotInsights(token:string,id:number):Promise<PilotInsights>{
   return request(`/demo/manage/events/${id}/insights`,{headers:accountHeaders(token)});
