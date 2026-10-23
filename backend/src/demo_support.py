@@ -259,3 +259,32 @@ def install_support_api(app,get_db):
         if t is None:raise HTTPException(404,"support_ticket_not_found")
         t.status="closed";t.updated_at=now();db.commit()
         return {"status":"closed"}
+
+def render_support_reply_email(row,db):
+    """Only send the exact admin-authored message to the original verified owner."""
+    import os
+    from demo_accounts import WebAccount
+    from demo_account_recovery import email_is_verified
+    from demo_email import email_shell, card
+    if row.notice_id is None:return None
+    msg=db.get(SupportMessage,row.notice_id)
+    if msg is None or msg.author_role!="admin" or f"support:reply:{msg.id}"!=row.event_key:
+        return None
+    ticket=db.get(SupportTicket,msg.ticket_id)
+    if ticket is None:return None
+    owner=db.get(WebAccount,ticket.account_id)
+    if owner is None or not email_is_verified(db,owner.id) or owner.email.casefold()!=row.recipient.casefold():
+        return None
+    url=(os.getenv("WEB_APP_URL","").strip() or "https://tickettreat.eu").rstrip("/")
+    if not url.startswith("https://"):return None
+    title=f"TicketTreat support — reply to #{ticket.id}"
+    body=f"Support has replied to your request: {ticket.subject}\n\n{msg.body}"
+    detail=card("Support ticket",f"#{ticket.id}")+card("Subject",ticket.subject)
+    return {
+        "from":os.environ["EMAIL_FROM"].strip(),
+        "to":[row.recipient],
+        "subject":f"[TicketTreat #{ticket.id}] {ticket.subject[:100]}",
+        "html":email_shell(title,body,detail,f"{url}/support?ticket={ticket.id}",
+                "Open support ticket","Reply in your TicketTreat account. Do not send passwords or card details.","TicketTreat transactional support reply."),
+        "text":f"{title}\n\n{body}\n\nOpen ticket: {url}/support?ticket={ticket.id}\n",
+    }
