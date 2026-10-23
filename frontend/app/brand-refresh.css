@@ -314,3 +314,42 @@ body { background-image: none; }
   .tt-event-cancel-actions {display:grid;grid-template-columns:minmax(0,1fr);}
   .tt-event-cancel-actions .button {width:100%;min-height:48px;}
 }
+
+/* TicketTreat admission pass: consistent with the brand rather than a generic QR card. */
+.mode-pill.mode-pill-link {
+  display:inline-flex!important; align-items:center; justify-content:center;
+  padding:8px 12px; text-decoration:none; font-weight:850;
+  min-height:36px; white-space:nowrap; box-shadow:2px 2px 0 var(--tt-keyline);
+}
+.mode-pill.mode-pill-link:hover {transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--tt-keyline);}
+.tt-pass {background:#15141f;color:#fff;border:2px solid #15141f;box-shadow:6px 6px 0 #15141f;border-radius:24px;overflow:hidden;}
+.tt-pass-top {background:#15141f;color:#fff;padding:16px clamp(18px,4vw,30px);gap:14px;flex-wrap:wrap;}
+.tt-pass-brand {font-family:var(--tt-font-display);font-size:clamp(20px,4vw,29px);font-weight:950;letter-spacing:-.06em;}
+.tt-pass-brand span {color:#f4b400;}
+.tt-pass-category {font-size:10px;letter-spacing:.13em;font-weight:900;font-family:var(--tt-font-mono);color:#f4b400;}
+.tt-pass-photo {height:clamp(110px,22vw,200px);background-position:center;background-size:cover;}
+.tt-pass-body {padding:clamp(20px,5vw,36px);background:#f0ebe1;color:#15141f;}
+.tt-pass-body .eyebrow {margin-bottom:10px;font-family:var(--tt-font-mono);font-size:11px;letter-spacing:.10em;color:#d63e24;}
+.tt-pass-body h1 {font-family:var(--tt-font-display);font-weight:950;letter-spacing:-.055em;font-size:clamp(32px,7vw,56px);line-height:1.03;overflow-wrap:anywhere;margin-bottom:12px;}
+.tt-pass-organizer {font-weight:750;font-size:12px;letter-spacing:.04em;text-transform:uppercase;margin:0 0 24px;color:#5c5861;}
+.tt-pass-facts {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 15px;padding:20px 0;border-top:2px solid #15141f;border-bottom:2px solid #15141f;margin-bottom:20px;}
+.tt-pass-facts div {min-width:0;}
+.tt-pass-facts span {font-weight:750;font-size:10px;letter-spacing:.10em;color:#5c5861;}
+.tt-pass-facts strong {font-size:clamp(15px,2.3vw,19px);overflow-wrap:anywhere;}
+.tt-pass-qr {position:relative;display:grid;justify-items:center;gap:10px;background:white;border:2px solid #15141f;box-shadow:4px 4px 0 #15141f;border-radius:18px;padding:20px 16px;margin:26px auto;max-width:360px;text-align:center;}
+.tt-pass-qr:before,.tt-pass-qr:after {content:"";position:absolute;width:24px;height:24px;border-radius:50%;background:#f0ebe1;border:2px solid #15141f;top:50%;transform:translateY(-50%);}
+.tt-pass-qr:before {left:-15px;border-left:0;}
+.tt-pass-qr:after {right:-15px;border-right:0;}
+.tt-pass-qr img {width:min(100%,270px);height:auto;aspect-ratio:1;}
+.tt-pass-qr strong {font-family:var(--tt-font-mono);font-size:16px;letter-spacing:.12em;color:#15141f;}
+.tt-pass-qr p {font-size:13px;margin:0;color:#5c5861;line-height:1.35;}
+.tt-pass-status {margin-bottom:22px;}
+.tt-pass-revoked {padding:20px;border:2px solid #b62c22;border-radius:12px;background:#ffe1d7;color:#b62c22;font-weight:850;text-align:center;margin:25px 0;}
+.tt-pass-wallet {background:#15141f;color:#fff;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;}
+.tt-pass-wallet:hover:not(:disabled) {background:#34313c;color:#fff;}
+.tt-pass-wallet span {font-size:25px;line-height:1;}
+@media(max-width:560px) {
+  .tt-pass-facts{grid-template-columns:minmax(0,1fr);}
+  .mode-pill.mode-pill-link{font-size:11px;padding:6px 9px;max-width:170px;white-space:normal;text-align:center;}
+  .tt-pass-body{padding:20px;}
+}
