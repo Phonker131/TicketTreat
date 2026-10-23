@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {adminTranslate} from "@/lib/admin-i18n";
 import { ReminderEditor } from "@/components/ReminderEditor";
-import { addManageEvent, getManageEvents, getManageMe } from "@/lib/api";
+import { addManageEvent, getManageEvents, getManageMe, getSupportSummary } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { LanguageCode, ManageEvent, ManageIdentity } from "@/lib/types";
 
@@ -71,6 +71,15 @@ export function AdminClient() {
   const [eventSearch,setEventSearch]=useState("");
   const [eventStatus,setEventStatus]=useState("all");
   const [sortMode,setSortMode]=useState("newest");
+  const [supportUnread,setSupportUnread]=useState<number|null>(null);
+  useEffect(()=>{
+    if(identity?.role!=="global_admin")return;
+    let active=true;
+    function load(){getSupportSummary().then(data=>{if(active)setSupportUnread(data.unread)}).catch(()=>{});}
+    load();
+    const interval=window.setInterval(()=>{if(document.visibilityState==="visible")load()},30000);
+    return()=>{active=false;window.clearInterval(interval)};
+  },[identity?.role]);
   useEffect(()=>{
     let live=true;
     const token=getWebToken();
@@ -129,7 +138,7 @@ export function AdminClient() {
         <p>{identity?.role==="global_admin"?"Полный доступ, назначение владельцев и модерация.":"Доступ только к собственным событиям."}</p>
       </div>
       {identity&&<div className="admin-event-actions">
-        {identity.role==="global_admin"&&<><Link className="button button-outline" href="/admin/accounts">{tr("Управление аккаунтами")}</Link><Link className="button button-outline" href="/admin/content">{tr("Контент сайта")}</Link><Link className="button button-outline" href="/admin/broadcasts">📢 Глобальная рассылка</Link><Link className="button button-outline" href="/admin/privacy">{tr("Запросы на удаление")}</Link><Link className="button button-outline" href="/admin/organizers">{tr("Заявки организаторов")}</Link></>}
+        {identity.role==="global_admin"&&<><Link className="button button-outline" href="/admin/accounts">{tr("Управление аккаунтами")}</Link><Link className="button button-outline" href="/admin/content">{tr("Контент сайта")}</Link><Link className="button button-outline" href="/admin/broadcasts">📢 Глобальная рассылка</Link><Link className="button button-outline" href="/admin/support">Служба поддержки{supportUnread!==null&&supportUnread>0?` · ${supportUnread} новых`:""}</Link><Link className="button button-outline" href="/admin/privacy">{tr("Запросы на удаление")}</Link><Link className="button button-outline" href="/admin/organizers">{tr("Заявки организаторов")}</Link></>}
         <Link className="button button-sun" href="/admin/check-in">Scan ticket</Link>
       </div>}
     </div>
