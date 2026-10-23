@@ -11,6 +11,7 @@ from sqlalchemy.pool import StaticPool
 
 from demo_accounts import WebAccount, WebSession, token_hash
 from demo_account_recovery import VerifiedEmail
+from demo_roles import GlobalAdminBinding, GlobalAdminDelegation, WebAccountRole
 from demo_email import EmailOutbox,render_email
 from demo_support import SupportTicket,SupportMessage,SupportAdminRead,install_support_api
 
@@ -18,6 +19,7 @@ class SupportWorkflowTests(unittest.TestCase):
     def setUp(self):
         self.engine=create_engine("sqlite://",connect_args={"check_same_thread":False},poolclass=StaticPool)
         for table in (WebAccount.__table__,WebSession.__table__,VerifiedEmail.__table__,
+                      GlobalAdminBinding.__table__,GlobalAdminDelegation.__table__,WebAccountRole.__table__,
                       SupportTicket.__table__,SupportMessage.__table__,SupportAdminRead.__table__,
                       EmailOutbox.__table__):
             table.create(self.engine)
