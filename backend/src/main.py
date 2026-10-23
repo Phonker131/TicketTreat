@@ -919,6 +919,21 @@ def event_has_started(event: Any) -> bool:
     return event_is_past(event)
 
 
+def public_event_image_url(event: Any) -> str | None:
+    """Use the public same-origin gateway for DB-backed posters, including legacy URLs.
+
+    Railway requests reach the backend on a private host. Never expose
+    that host in URLs returned to browsers. External poster URLs stay intact.
+    """
+    source = getattr(event, "image_url", None)
+    if not source:
+        return None
+    old_path = f"/demo/events/{event.id}/poster"
+    if urlsplit(source).path.rstrip("/") == old_path:
+        return f"/api/gateway{old_path}"
+    return source
+
+
 def event_to_dict(
     event: Any,
     *,
@@ -958,7 +973,7 @@ def event_to_dict(
             settings
             and settings.payment_instructions.strip()
         ),
-        "image_url": getattr(event, "image_url", None),
+        "image_url": public_event_image_url(event),
         "starts_at": event.starts_at,
         "telegram_photo_file_id": getattr(
             event,
@@ -2652,11 +2667,7 @@ def demo_admin_create_event(
 
     if image_bytes is not None and content_type is not None:
         event_id = result["id"]
-        public_base = (
-            os.getenv("DEMO_PUBLIC_API_URL", "").rstrip("/")
-            or str(request.base_url).rstrip("/")
-        )
-        poster_url = f"{public_base}/demo/events/{event_id}/poster"
+        poster_url = f"/api/gateway/demo/events/{event_id}/poster"
 
         db.add(DemoEventPoster(
             event_id=event_id,
