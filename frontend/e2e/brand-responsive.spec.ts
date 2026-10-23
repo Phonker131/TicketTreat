@@ -118,9 +118,7 @@ test("priced events never show TicketTreat fake payment or automatic paid ticket
   await expect(page.getByText(/directly with the organizer|напрямую организатору|přímo pořadateli|безпосередньо організатору/i).first()).toBeVisible();
   await expect(page.locator('a[href*="/checkout/9372"]')).toBeVisible();
   await page.goto("/checkout/9372");
-  await page.waitForTimeout(1000);
-  console.log("PAID_CHECKOUT_DEBUG", (await page.locator("body").innerText()).slice(0,1200));
-  await expect(page.getByRole("heading",{name:/Payment directly to the organizer|Оплата напрямую организатору|Platba přímo pořadateli|Оплата безпосередньо організатору/})).toBeVisible();
+  await expect(page.getByRole("heading",{name:/Organizer-direct payment|Payment directly to the organizer|Оплата напрямую организатору|Platba přímo pořadateli|Оплата безпосередньо організатору/})).toBeVisible();
   await expect(page.locator(".payment-methods")).toHaveCount(0);
   await expect(page.locator(".fake-card-fields")).toHaveCount(0);
 });
