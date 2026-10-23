@@ -139,3 +139,18 @@ body { background-image: none; }
   .language-flag-trigger { width: 51px; height: 43px; padding: 0 5px; gap: 3px; }
   .language-flag { font-size: 23px; width: 28px; height: 28px; }
 }
+
+/* Profile tickets CTA: compact, balanced inside its summary tile. */
+.profile-fact .button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: fit-content; max-width: 100%; min-height: 38px;
+  padding: 7px 13px; margin-top: 7px;
+  font-size: 13px; font-weight: 800; line-height: 1.2;
+  border-width: 1.5px; border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--tt-keyline);
+  white-space: normal; text-decoration: none;
+}
+.profile-fact .button:hover { box-shadow: 3px 3px 0 var(--tt-keyline); }
+@media (max-width: 480px) {
+  .profile-fact .button { min-height: 36px; padding: 7px 11px; font-size: 12px; }
+}
