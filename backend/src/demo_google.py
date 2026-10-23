@@ -123,6 +123,38 @@ def exchange_code(code, verifier, nonce):
         raise HTTPException(401, "google_verification_failed") from None
 
 
+
+def probe_google_credentials_once():
+    """Test the deployed ID+secret against Google without using a real user code.
+
+    An intentionally invalid OAuth code must produce 'invalid_grant' after
+    successful client authentication. Only a coarse result is logged.
+    """
+    client, secret, redirect = config()
+    try:
+        response = requests.post("https://oauth2.googleapis.com/token", data={
+            "client_id": client,
+            "client_secret": secret,
+            "redirect_uri": redirect,
+            "grant_type": "authorization_code",
+            "code": "tickettreat-invalid-diagnostic-code",
+            "code_verifier": "tickettreat-diagnostic-code-verifier-2026",
+        }, timeout=10, allow_redirects=False)
+        try:
+            kind = response.json().get("error")
+        except (ValueError, TypeError, AttributeError):
+            kind = None
+        if response.status_code == 400 and kind == "invalid_grant":
+            logger.warning("Google OAuth credential probe: accepted_by_google (bogus code rejected as expected)")
+        elif response.status_code == 401 and kind == "invalid_client":
+            logger.warning("Google OAuth credential probe: rejected_by_google_invalid_client")
+        else:
+            logger.warning("Google OAuth credential probe: inconclusive_http_%s", response.status_code)
+    except requests.RequestException as exc:
+        logger.warning("Google OAuth credential probe: transport_error_%s", type(exc).__name__)
+
+
+
 def consume_flow(db, payload):
     flow = db.query(GoogleFlow).filter(GoogleFlow.state_hash == token_hash(payload.state)).with_for_update().first()
     if (flow is None or utc(flow.expires_at) <= datetime.now(timezone.utc)
@@ -135,6 +167,12 @@ def consume_flow(db, payload):
 
 
 def install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict):
+    @app.on_event("startup")
+    def google_credentials_check():
+        # Opt-in, one-shot maintenance. No login codes or user data involved.
+        if os.getenv("GOOGLE_OAUTH_PROBE_ON_STARTUP") == "1":
+            probe_google_credentials_once()
+
     @app.get("/demo/auth/google/status")
     def status():
         try:
