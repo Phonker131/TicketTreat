@@ -321,6 +321,8 @@ def event_data(event, db, main) -> dict[str,Any]:
     data=main.event_to_dict(event,db=db,registered_count=main.get_registered_count(db,event.id))
     owner=db.query(EventOwnership).filter(EventOwnership.event_id==event.id).first()
     data["owner_account_id"]=owner.owner_account_id if owner else None
+    setting=main.get_payment_settings(db,event.id)
+    data["payment_instructions"]=setting.payment_instructions if setting else ""
     return data
 
 def validate_payload(languages: list[str]|None, currency: str|None) -> None:
