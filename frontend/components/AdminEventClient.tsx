@@ -7,7 +7,6 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {adminTranslate} from "@/lib/admin-i18n";
-import { CountryCityFields } from "@/components/CountryCityFields";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
@@ -55,7 +54,6 @@ export function AdminEventClient(){
   const [scheduleAt,setScheduleAt]=useState("");
   const [poster,setPoster]=useState<File|null>(null);
   const [title,setTitle]=useState(""),[location,setLocation]=useState("");
-  const [countryCode,setCountryCode]=useState(""),[city,setCity]=useState("");
   const [organizer,setOrganizer]=useState(""),[description,setDescription]=useState("");
   const [gallery,setGallery]=useState(""),[video,setVideo]=useState("");
   const [startsAt,setStartsAt]=useState(""),[capacity,setCapacity]=useState("30");
@@ -73,7 +71,6 @@ export function AdminEventClient(){
     void getPilotSettings(token,eventId).then(setPilotSettings).catch(()=>{});
     void getPilotStaff(token,eventId).then(setPilotStaff).catch(()=>setPilotStaff([]));
     setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"TicketTreat");
-    setCountryCode(ev.country_code||"");setCity(ev.city||"");
     setDescription(ev.description||"");setGallery((ev.external_gallery_urls||ev.gallery_urls||[]).filter(s=>!s.startsWith("/api/gateway/demo/events/")).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
     setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
@@ -114,7 +111,7 @@ export function AdminEventClient(){
       const payload:Record<string,unknown>={
         title:title.trim(),organizer:organizer.trim(),description,location,
         gallery_urls:gallery.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),video_url:video.trim(),
-        country_code:countryCode,city:city.trim(),
+        country_code:"CZ",city:"",
         max_participants:Number(capacity),price:String(price),
         currency,starts_at:startsAt+":00",languages,
       };
@@ -348,8 +345,6 @@ export function AdminEventClient(){
         <h2>{tr("Редактировать информацию")}</h2>
         <label>{tr("Название")}<input value={title} required onChange={e=>setTitle(e.target.value)}/></label>
         <label>{tr("Организатор")}<input value={organizer} onChange={e=>setOrganizer(e.target.value)}/></label>
-        <CountryCityFields countryCode={countryCode} city={city} onCountryChange={setCountryCode}
-          onCityChange={setCity} language="ru" />
         <label>{tr("Адрес или место проведения")}<input value={location} onChange={e=>setLocation(e.target.value)}/></label>
         <label>{tr("Описание")}<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>
         <label>{tr("Фото мероприятия (HTTPS, по одной ссылке на строку, до 8)")}<textarea rows={4} value={gallery} onChange={e=>setGallery(e.target.value)}/></label>
