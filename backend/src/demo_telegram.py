@@ -21,7 +21,7 @@ import time
 from urllib.parse import parse_qsl
 from typing import Any
 
-from fastapi import Depends, HTTPException, Header
+from fastapi import Depends, HTTPException, Header, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy import BigInteger, Column, Integer, UniqueConstraint
 from sqlalchemy.exc import IntegrityError
@@ -89,7 +89,8 @@ def bot_user_registrations(db: Session, telegram_id: int, main) -> list[dict]:
 
 def install_telegram_auth(app, get_db, main) -> None:
     @app.post("/demo/telegram/link")
-    def link_telegram(payload: TelegramAuthRequest, authorization: str | None = Header(None),
+    def link_telegram(payload: TelegramAuthRequest, background_tasks: BackgroundTasks,
+                      authorization: str | None = Header(None),
                       db: Session = Depends(get_db)):
         """Explicitly link separately authenticated website and Telegram identities.
 
@@ -127,8 +128,9 @@ def install_telegram_auth(app, get_db, main) -> None:
         guest = db.query(main.DemoGuest).filter(main.DemoGuest.id == account.guest_id).with_for_update().first()
         if old is None or guest is None:
             raise HTTPException(409, "identity_guest_missing")
-        web_tickets = {row.event_id for row in db.query(main.DemoTicket).filter(
-            main.DemoTicket.guest_id == guest.id).all()}
+        prior_web_tickets = db.query(main.DemoTicket).filter(
+            main.DemoTicket.guest_id == guest.id).all()
+        web_tickets = {row.event_id for row in prior_web_tickets}
         tg_tickets = db.query(main.DemoTicket).filter(main.DemoTicket.guest_id == old.id).all()
         if any(t.event_id in web_tickets for t in tg_tickets):
             raise HTTPException(409, "duplicate_event_ticket_requires_manual_resolution")
@@ -154,6 +156,24 @@ def install_telegram_auth(app, get_db, main) -> None:
             raise HTTPException(409, "telegram_link_conflict") from None
         from demo_legacy import reconcile_free_legacy
         legacy = reconcile_free_legacy(db,main,telegram_id,guest.id)
+        # After the user proves *both* identities, share their already-issued
+        # website QR passes with the Telegram chat. No secrets/QR tokens leave
+        # the backend and delivery is best effort (users may block the bot).
+        # Limit to five upcoming tickets to avoid flooding users on linking.
+        notified = 0
+        for ticket in prior_web_tickets:
+            if notified >= 5:
+                break
+            if ticket.ticket_status != "active":
+                continue
+            event = db.get(main.Event,ticket.event_id)
+            if event is None or event.is_cancelled or main.event_has_started(event):
+                continue
+            background_tasks.add_task(
+                send_miniapp_ticket_notice, telegram_id, event.title, ticket.id,
+                ticket.payment_provider in {"free","legacy_free"}, "ru",
+            )
+            notified += 1
         return {"linked": True, "already_linked": False,
                 "migrated_tickets": len(tg_tickets)+legacy["converted"],
                 "migrated_waitlists": len(tg_waitlists),
