@@ -50,7 +50,7 @@ test("homepage footer exposes Google OAuth legal links and copyright for guests"
   await page.goto("/",{waitUntil:"domcontentloaded"});
   const footer=page.locator("footer.tt-legal-footer");
   await expect(footer).toBeVisible();
-  await expect(footer.getByText(/© 20\\d\\d TicketTreat/)).toBeVisible();
+  await expect(footer.getByText(/© 20\d\d TicketTreat/)).toBeVisible();
   await expect(footer.getByRole("link",{name:"Privacy Policy"})).toHaveAttribute("href","/privacy-policy");
   await expect(footer.getByRole("link",{name:"Terms of Service"})).toHaveAttribute("href","/terms");
 });
