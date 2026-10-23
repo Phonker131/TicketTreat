@@ -23,6 +23,9 @@ function messageOf(error:unknown):string {
   return errors[raw]||raw;
 }
 
+const MIN_SUBJECT_CHARS=5;
+const MIN_MESSAGE_CHARS=20;
+
 export function BroadcastClient(){
   const [me,setMe]=useState<ManageIdentity|null>(null);
   const [events,setEvents]=useState<ManageEvent[]>([]);
@@ -78,7 +81,8 @@ export function BroadcastClient(){
   }
   async function deliver(){
     const token=getWebToken();if(!token||!preview||busy)return;
-    if(!serviceOnly || confirmed!=="SEND" || !message.trim() || !subject.trim())return;
+    // Keep the click handler and the disabled button in sync.
+    if(!canSend)return;
     if(!requestId)setRequestId(crypto.randomUUID());
     const id=requestId||crypto.randomUUID();
     setRequestId(id);
@@ -111,6 +115,18 @@ export function BroadcastClient(){
 
   const selected=events.find(event=>String(event.id)===eventId);
   const allCount=(preview?.email_recipients||0)+(preview?.telegram_recipients||0);
+  const subjectChars=subject.trim().length;
+  const messageChars=message.trim().length;
+  const blockers:string[]=[];
+  if(preview){
+    if(allCount===0)blockers.push("Нет подтверждённых получателей. Выбери другую аудиторию.");
+    if(!preview.email_available&&!preview.telegram_available)blockers.push("Сейчас недоступны оба канала рассылки.");
+    if(subjectChars<MIN_SUBJECT_CHARS)blockers.push(`Заголовок: добавь ещё ${MIN_SUBJECT_CHARS-subjectChars} симв. (минимум ${MIN_SUBJECT_CHARS}).`);
+    if(messageChars<MIN_MESSAGE_CHARS)blockers.push(`Текст рассылки: добавь ещё ${MIN_MESSAGE_CHARS-messageChars} симв. (минимум ${MIN_MESSAGE_CHARS}).`);
+    if(!serviceOnly)blockers.push("Подтверди, что это служебное сообщение.");
+    if(confirmed.trim()!=="SEND")blockers.push("Введи SEND в поле подтверждения.");
+  }
+  const canSend=Boolean(preview)&&!busy&&blockers.length===0;
   return <div className="app-shell"><AppHeader/><main className="page tt-broadcast-page">
     <Link href="/admin" className="back-link">← Панель организатора</Link>
     <div className="admin-heading">
@@ -150,7 +166,11 @@ export function BroadcastClient(){
           <textarea value={message} rows={6} minLength={20} maxLength={1000}
             placeholder="Напиши важную информацию для участников…"
             onChange={e=>{setMessage(e.target.value);invalidate();}}/>
-          <small>{message.length}/1000 символов</small>
+          <small className={messageChars<MIN_MESSAGE_CHARS?"tt-broadcast-length-warning":"tt-broadcast-length-ok"} aria-live="polite">
+            {messageChars<MIN_MESSAGE_CHARS
+              ?`Минимум ${MIN_MESSAGE_CHARS} символов. Сейчас ${messageChars} — добавь ещё ${MIN_MESSAGE_CHARS-messageChars}.`
+              :`✓ Текст готов к отправке: ${messageChars}/1000 символов.`}
+          </small>
         </label>
         <label>Ссылка на изображение (необязательно)
           <input type="url" value={imageUrl} maxLength={1000} placeholder="https://example.com/photo.jpg"
@@ -165,6 +185,7 @@ export function BroadcastClient(){
       </section>
       <section className="panel form-stack">
         <h2>3. Проверка и отправка</h2>
+        {!preview&&<p className="form-note">Сначала нажми «Посчитать получателей». После изменения заголовка или текста проверку аудитории нужно повторить. Для отправки требуется заголовок от 5 и текст от 20 символов.</p>}
         <button type="button" className="button button-outline" disabled={busy||scope==="event"&&!eventId}
           onClick={checkAudience}>{busy?"Проверяем…":"👥 Посчитать получателей"}</button>
         {preview&&<>
@@ -178,13 +199,20 @@ export function BroadcastClient(){
             <span>Подтверждаю, что это служебное сообщение, связанное с TicketTreat или участием в событии, а не рекламная рассылка без согласия получателей.</span>
           </label>
           <label>Для подтверждения введи <strong>SEND</strong>
-            <input value={confirmed} onChange={e=>setConfirmed(e.target.value)} autoComplete="off" placeholder="SEND"/>
+            <input value={confirmed} onChange={e=>setConfirmed(e.target.value.toUpperCase().slice(0,4))}
+              autoCapitalize="characters" spellCheck={false} maxLength={4} autoComplete="off" placeholder="SEND"/>
           </label>
+          {blockers.length>0
+            ?<div className="tt-broadcast-validation" role="status" aria-live="polite">
+              <strong>Что ещё нужно для отправки:</strong>
+              <ul>{blockers.map(item=><li key={item}>{item}</li>)}</ul>
+            </div>
+            :<div className="tt-broadcast-ready" role="status">✓ Все проверки пройдены. Рассылка готова к подтверждению.</div>}
           <button className="button button-primary" type="button" onClick={deliver}
-            disabled={busy||allCount===0||!serviceOnly||confirmed!=="SEND"||subject.trim().length<5||message.trim().length<20||(!preview.email_available&&!preview.telegram_available)}>
+            disabled={!canSend} aria-describedby="tt-broadcast-send-explainer">
             {busy?"Отправляем…":"📢 Подтвердить рассылку"}
           </button>
-          <small>Рассылка запускается только после подтверждения. Количество сообщений по каналам может отличаться, а один человек может получить их в обоих каналах.</small>
+          <small id="tt-broadcast-send-explainer">Рассылка запускается только после подтверждения. Количество сообщений по каналам может отличаться, а один человек может получить их в обоих каналах.</small>
         </>}
       </section>
       <section className="panel form-stack">
