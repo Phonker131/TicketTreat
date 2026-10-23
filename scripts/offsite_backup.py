@@ -20,6 +20,7 @@ import argparse
 import hashlib
 import os
 import secrets
+import subprocess
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -102,6 +103,8 @@ def perform(scratch:Path) -> str:
     except ImportError as exc:
         raise RuntimeError("Install boto3 in the dedicated backup worker") from exc
     client=boto3.client("s3",endpoint_url=os.getenv("S3_ENDPOINT_URL") or None)
+    if not os.environ.get("DATABASE_URL","").strip():
+        raise RuntimeError("DATABASE_URL missing; refusing empty backup")
     prefix=os.getenv("S3_BACKUP_PREFIX","tickettreat/database/").strip("/")
     with tempfile.TemporaryDirectory(prefix="backup-",dir=scratch) as directory:
         workspace=Path(directory)
@@ -112,15 +115,32 @@ def perform(scratch:Path) -> str:
         plain.unlink()
         plain.with_suffix(".sha256").unlink(missing_ok=True)
         object_key=f"{prefix}/{datetime.now(timezone.utc):%Y/%m/%d}/{encrypted.name}"
-        client.upload_file(str(encrypted),bucket,object_key,ExtraArgs={
-            "ServerSideEncryption":"AES256",
-            "Metadata":{"sha256":checksum,"format":"aes256gcm-ttbk1"},
-        })
+        extra={"Metadata":{"sha256":checksum,"format":"aes256gcm-ttbk1"}}
+        # S3-compatible providers can reject SSE headers. AES-GCM encryption
+        # is mandatory on the client; request SSE only when explicitly enabled.
+        if os.getenv("S3_BACKUP_SERVER_SIDE_ENCRYPTION","").lower()=="aes256":
+            extra["ServerSideEncryption"]="AES256"
+        client.upload_file(str(encrypted),bucket,object_key,ExtraArgs=extra)
         meta=client.head_object(Bucket=bucket,Key=object_key)
         if meta.get("Metadata",{}).get("sha256")!=checksum:
             raise RuntimeError("Uploaded backup checksum metadata mismatch")
+        # Download the actual remote object, compare its digest, decrypt it,
+        # and validate the PostgreSQL archive before declaring success.
+        downloaded=workspace/"downloaded.ttbk"
+        client.download_file(bucket,object_key,str(downloaded))
+        with downloaded.open("rb") as source:
+            remote_hash=hashlib.file_digest(source,"sha256").hexdigest()
+        if not secrets.compare_digest(remote_hash,checksum):
+            raise RuntimeError("Remote object checksum mismatch")
+        restored=workspace/"restore-test.dump"
+        decrypt_file(downloaded,restored,key)
+        subprocess.run(["pg_restore","--list",str(restored)],
+                       timeout=120,check=True,stdout=subprocess.DEVNULL,
+                       stderr=subprocess.PIPE)
+        restored.unlink()
+        downloaded.unlink()
         # Only object path is logged: no connection strings, secrets or PII.
-        print(f"Encrypted offsite backup uploaded and checked: s3://{bucket}/{object_key}")
+        print(f"Verified encrypted PostgreSQL backup: s3://{bucket}/{object_key}")
         return object_key
 
 
