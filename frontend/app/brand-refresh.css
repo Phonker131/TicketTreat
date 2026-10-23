@@ -280,3 +280,37 @@ body { background-image: none; }
 @media(max-width:520px) {
   .tt-broadcast-validation,.tt-broadcast-ready {padding:12px 13px;}
 }
+
+
+/* Event cancellation always appears in the viewport (not below the gallery).
+   Native <dialog> provides Escape handling, focus containment and background inertness. */
+.tt-event-cancel-dialog {
+  box-sizing:border-box;
+  width:min(600px,calc(100vw - 32px));
+  max-width:calc(100vw - 32px);
+  max-height:calc(100dvh - 48px);
+  margin:auto;
+  padding:clamp(18px,4vw,30px);
+  background:var(--tt-white);
+  color:var(--tt-keyline);
+  border:3px solid var(--tt-keyline);
+  border-radius:22px;
+  box-shadow:7px 7px 0 var(--tt-keyline);
+  overflow-x:hidden;
+  overflow-y:auto;
+}
+.tt-event-cancel-dialog:not([open]) {display:none;}
+.tt-event-cancel-dialog::backdrop {background:rgba(21,20,31,.72);}
+.tt-event-cancel-dialog h2 {font-family:var(--tt-font-display);font-size:clamp(24px,5vw,34px);margin:0;}
+.tt-event-cancel-dialog p {margin:0;line-height:1.55;overflow-wrap:anywhere;}
+.tt-event-cancel-dialog textarea {min-width:0;max-width:100%;box-sizing:border-box;resize:vertical;}
+.tt-event-cancel-dialog .status {justify-self:start;}
+.tt-cancel-required {font-weight:500;color:var(--muted);}
+.tt-cancel-counter {margin-top:-10px;text-align:right;color:var(--muted);font-size:12px;}
+.tt-event-cancel-actions {display:flex;flex-wrap:wrap;justify-content:flex-end;gap:12px;margin-top:7px;}
+.tt-event-cancel-actions .button {flex:1 1 190px;max-width:100%;white-space:normal;}
+@media(max-width:480px) {
+  .tt-event-cancel-dialog {max-height:calc(100dvh - 32px);padding:18px;border-radius:18px;box-shadow:4px 4px 0 var(--tt-keyline);}
+  .tt-event-cancel-actions {display:grid;grid-template-columns:minmax(0,1fr);}
+  .tt-event-cancel-actions .button {width:100%;min-height:48px;}
+}
