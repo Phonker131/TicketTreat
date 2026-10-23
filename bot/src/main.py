@@ -1587,6 +1587,13 @@ def show_event_details_by_id(
                 callback_data="noop",
             )
         )
+    elif event.get("payment_required") and WEB_APP_URL.startswith("https://"):
+        keyboard.add(
+            InlineKeyboardButton(
+                "⏳ Заявка на оплату — 24 часа" if spots_left != 0 else "⏳ Проверить мою заявку",
+                web_app=WebAppInfo(url=f"{WEB_APP_URL}/checkout/{event_id}"),
+            )
+        )
     elif spots_left == 0:
         keyboard.add(
             InlineKeyboardButton(
@@ -2631,6 +2638,33 @@ def handle_register(call):
         return
 
     event_id = int(call.data.split(":")[1])
+
+    # Paid applications have one canonical queue in TicketTreat Mini App.
+    # Legacy callback buttons in old Telegram messages must not create a
+    # second, separate RegistrationPayment entry on the Bot backend.
+    try:
+        target_event=backend_request("GET",f"/events/{event_id}",timeout=10)
+    except Exception:
+        target_event=None
+    if target_event is None or target_event.get("error"):
+        answer_callback(call,"Не удалось проверить мероприятие")
+        return
+    if target_event.get("payment_required"):
+        answer_callback(call,"Открой TicketTreat для заявки")
+        if not WEB_APP_URL.startswith("https://"):
+            bot.send_message(call.message.chat.id,"Платные заявки доступны только через TicketTreat Mini App.")
+            return
+        keyboard=InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton(
+            "⏳ Резерв 24 часа → TicketTreat",
+            web_app=WebAppInfo(url=f"{WEB_APP_URL}/checkout/{event_id}"),
+        ))
+        bot.send_message(call.message.chat.id,
+            "Оплата производится напрямую организатору. "
+            "Открой Mini App: место резервируется на 24 часа, "
+            "а QR-билет появится только после подтверждения оплаты организатором.",
+            reply_markup=keyboard)
+        return
 
     payload = {
         "telegram_id": telegram_id,
