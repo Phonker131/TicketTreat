@@ -39,6 +39,7 @@ export function GoogleSignIn({link=false}:{link?:boolean}) {
   }
   return <div className="form-stack">
     {message && <p role="status">{tr[message as keyof typeof tr] || tr.failed}</p>}
+    {!enabled && !embedded && <p className="form-note" role="status">{tr.unavailable}</p>}
     {enabled && (embedded ? <p className="form-note">{tr.embedded}</p> : <>
       {link && <label>{tr.password}<input type="password" autoComplete="current-password" maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}/></label>}
       <button type="button" className="button button-outline" disabled={busy || (link&&!password)} onClick={()=>void start()}>{link?tr.link:tr.login}</button>
