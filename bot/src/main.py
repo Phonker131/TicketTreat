@@ -717,17 +717,18 @@ def ui_text_matches(
     text: str | None,
     source: str,
 ) -> bool:
-    normalized = (text or "").strip()
+    # Accept both legacy emoji labels and clean TicketTreat 1.0 labels.
+    def clean_label(value: str) -> str:
+        import unicodedata
+        value = value.strip()
+        while value and (unicodedata.category(value[0]) in {"So", "Sk", "Cf"} or value[0].isspace()):
+            value = value[1:]
+        return value.strip()
 
-    if normalized == source:
-        return True
-
+    normalized = clean_label(text or "")
     return normalized in {
-        value.strip()
-        for value in UI_TRANSLATIONS.get(
-            source,
-            {},
-        ).values()
+        clean_label(source),
+        *(clean_label(value) for value in UI_TRANSLATIONS.get(source, {}).values()),
     }
 
 
@@ -1057,14 +1058,14 @@ def get_main_menu(user_id: int):
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
     keyboard.row(
-        KeyboardButton("🏠 Start"),
-        KeyboardButton("📅 Events"),
+        KeyboardButton("Start"),
+        KeyboardButton("Events"),
     )
     keyboard.row(
-        KeyboardButton("🎟 My events"),
-        KeyboardButton("👤 My profile"),
+        KeyboardButton("My events"),
+        KeyboardButton("My profile"),
     )
-    keyboard.row(KeyboardButton("🆘 Client service"))
+    keyboard.row(KeyboardButton("Client service"))
 
     # One real Mini App for web and Telegram (private chats only).
     # The frontend verifies signed initData with Demo API before linking identity.
@@ -1077,7 +1078,7 @@ def get_main_menu(user_id: int):
         )
 
     if is_admin(user_id):
-        keyboard.row(KeyboardButton("⚙️ Admin"))
+        keyboard.row(KeyboardButton("Admin"))
 
     return keyboard
 
