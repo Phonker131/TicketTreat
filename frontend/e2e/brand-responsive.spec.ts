@@ -34,7 +34,7 @@ test("mobile navigation and accessible keyboard focus",async({page})=>{
 
 test("public pilot header opens the official TicketTreat bot", async ({page}) => {
   await page.goto("/",{waitUntil:"domcontentloaded"});
-  const bot = page.getByRole("link",{name:/TicketTreat Telegram bot/i});
+  const bot = page.locator("a.mode-pill-link");
   await expect(bot).toHaveAttribute("href","https://t.me/TicketTreatBot");
   await expect(bot).toContainText("Telegram Mini App");
 });
