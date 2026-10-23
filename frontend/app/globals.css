@@ -1045,3 +1045,26 @@ input:focus, textarea:focus, select:focus {
 @media(prefers-reduced-motion:reduce) {
   .pilot-bar-track > div {transition:none!important;}
 }
+
+
+/* Loyalty passport: simple stamps and readable progress on narrow Mini App screens. */
+.loyalty-overview{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.loyalty-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:20px}
+.loyalty-card{display:flex;flex-direction:column;gap:14px;min-width:0}
+.loyalty-card h2{margin:0;overflow-wrap:anywhere}
+.loyalty-card h3{margin:6px 0 0}
+.loyalty-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.loyalty-badge{padding:8px 14px;border-radius:999px;background:var(--tickettreat-lilac-2);white-space:nowrap}
+.loyalty-badge.loyalty-regular{background:#f1d4e9;color:#79134d}
+.loyalty-badge.loyalty-insider{background:var(--tickettreat-purple);color:white}
+.loyalty-badge.loyalty-vip{background:var(--tickettreat-sun);color:var(--tickettreat-night)}
+.loyalty-levels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.loyalty-level{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 2px;border:1px solid #d9c7df;border-radius:12px;text-align:center;min-width:0;color:var(--muted)}
+.loyalty-level strong{font-size:23px}
+.loyalty-level span{font-size:11px;overflow-wrap:anywhere}
+.loyalty-level.earned{background:var(--tickettreat-lilac-2);color:var(--tickettreat-night);border-color:var(--tickettreat-purple)}
+.loyalty-progress>div{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;font-size:13px}
+.loyalty-progress progress{display:block;width:100%;height:12px;accent-color:var(--tickettreat-purple);margin-top:10px}
+.loyalty-benefit{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 0;border-top:1px solid #e5dce8;flex-wrap:wrap}
+.loyalty-benefit .status{white-space:nowrap}
+.loyalty-explanation{margin-top:22px}
