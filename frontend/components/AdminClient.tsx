@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {adminTranslate} from "@/lib/admin-i18n";
-import { CountryCityFields } from "@/components/CountryCityFields";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import { addManageEvent, getManageEvents, getManageMe } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
@@ -67,8 +66,6 @@ export function AdminClient() {
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
   const [preview,setPreview]=useState("");
-  const [countryCode,setCountryCode]=useState("");
-  const [city,setCity]=useState("");
   const [reminderMinutes,setReminderMinutes]=useState<number[]>([10080,1440,180]);
   const [reminderMessage,setReminderMessage]=useState("Your TicketTreat event starts soon.");
   const [eventSearch,setEventSearch]=useState("");
@@ -111,7 +108,7 @@ export function AdminClient() {
         gallery_urls:String(data.get("gallery_urls")||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean),
         video_url:String(data.get("video_url")||"").trim(),
         location:String(data.get("location")||"").trim(),
-        country_code:countryCode,city:city.trim(),
+        country_code:"CZ",city:"",
         max_participants:Number(data.get("max_participants")||30),
         price:String(data.get("price")||"0"),
         currency:String(data.get("currency")||"CZK"),
@@ -119,7 +116,7 @@ export function AdminClient() {
         reminder_minutes:reminderMinutes,reminder_text:reminderMessage.trim(),
       });
       setEvents(current=>[event,...current]);
-      form.reset();setPreview("");setCountryCode("");setCity("");setShowForm(false);
+      form.reset();setPreview("");setShowForm(false);
       setReminderMinutes([10080,1440,180]);setReminderMessage("Your TicketTreat event starts soon.");setNotice("Черновик создан. Заполни детали и опубликуй его из карточки мероприятия.");
     }catch(e){setError(errorText(e));}
     finally{setSaving(false);}
@@ -155,8 +152,6 @@ export function AdminClient() {
         <h2>{tr("Новый ивент")}</h2><p className="form-note">Новый ивент создаётся как приватный черновик. После редактирования его можно опубликовать или запланировать.</p>
         <label>{tr("Название")}<input required name="title" maxLength={255}/></label>
         <label>{tr("Организатор")}<input name="organizer" defaultValue="TicketTreat" /></label>
-        <CountryCityFields countryCode={countryCode} city={city} onCountryChange={setCountryCode}
-          onCityChange={setCity} language="ru" />
         <label>{tr("Адрес или место проведения")}<input name="location" required /></label>
         <label>{tr("Описание")}<textarea name="description" rows={4}/></label>
         <label>Ссылки на фото (HTTPS, не более 8, каждая с новой строки)<textarea name="gallery_urls" rows={4} placeholder="https://example.com/event-photo.jpg"/></label>
