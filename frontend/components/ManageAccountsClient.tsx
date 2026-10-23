@@ -8,6 +8,20 @@ import {getManagedAccounts,setManagedAccountRole,getGlobalAdminDelegations,grant
 import type {ManagedAccount,GlobalAdminDelegation} from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 
+function adminGrantError(error:unknown):string {
+  const message=error instanceof Error?error.message:String(error);
+  const known:Record<string,string>={
+    target_email_verification_required:"Сначала партнёр должен подтвердить свой email в личном профиле TicketTreat, затем повторите назначение.",
+    account_not_found_sign_up_first:"Аккаунт с таким адресом не найден. Проверьте email и убедитесь, что партнёр завершил регистрацию.",
+    mfa_enrollment_required:"Завершите подключение двухфакторной аутентификации для своего администраторского аккаунта.",
+    mfa_challenge_required:"Подтвердите MFA-код для своей сессии администратора и повторите действие.",
+    global_admin_only:"Назначать главных администраторов может только действующий глобальный администратор.",
+    email_verification_required:"Подтвердите ваш email в профиле TicketTreat.",
+    invalid_session:"Сессия завершилась. Войдите в TicketTreat ещё раз."
+  };
+  return known[message]||message;
+}
+
 export function ManageAccountsClient() {
   const {language}=useLanguage();
   const tr=(phrase:string)=>adminTranslate(language,phrase);
@@ -43,7 +57,7 @@ export function ManageAccountsClient() {
       const [users,grants]=await Promise.all([getManagedAccounts(token),getGlobalAdminDelegations(token)]);
       setAccounts(users);setDelegations(grants);setInviteEmail("");
       setNotice("Права назначены. Новому администратору необходимо завершить MFA и заново войти.");
-    } catch(e){setError(e instanceof Error?e.message:String(e));}
+    } catch(e){setError(adminGrantError(e));}
     finally{setBusy(null);}
   }
   async function revoke(accountId:number) {
