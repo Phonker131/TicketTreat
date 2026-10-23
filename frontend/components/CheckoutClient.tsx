@@ -89,8 +89,11 @@ export function CheckoutClient() {
 
   async function performCheckout() {
     if (!event || !guest) return;
-    if (!isFree && !bookingConfig?.demo_payment_mode){
-      setMessage("Paid event checkout is not available yet. No payment has been charged.");return;
+    if (!isFree) {
+      // Pilot contract: paid events are settled directly with the organizer.
+      // Never call the mock payment endpoint or mark an unpaid booking as paid.
+      setMessage(language==="ru"?"Оплата проводится напрямую организатору, не через TicketTreat.":language==="cs"?"Platba probíhá přímo pořadateli, nikoli přes TicketTreat.":language==="uk"?"Оплата проводиться безпосередньо організатору, а не через TicketTreat.":"Payment is handled directly by the organizer, not by TicketTreat.");
+      return;
     }
     setBusy(true);
     setMessage(null);
@@ -153,7 +156,16 @@ export function CheckoutClient() {
               <strong>{isFree ? freeLabel : price}</strong>
             </section>
 
-            {!guest ? (
+            {!isFree ? (
+              <section className="panel form-stack" role="status">
+                <h2>{language==="ru"?"Оплата напрямую организатору":language==="cs"?"Platba přímo pořadateli":language==="uk"?"Оплата безпосередньо організатору":"Payment directly to the organizer"}</h2>
+                <p>{language==="ru"?"TicketTreat не принимает деньги за это мероприятие и не обрабатывает оплату картой. Уточни у организатора порядок оплаты, получения подтверждения участия и возврата средств.":language==="cs"?"TicketTreat za tuto akci nepřijímá peníze ani nezpracovává platby kartou. Způsob platby, potvrzení účasti a případné vrácení peněz si ověř přímo u pořadatele.":language==="uk"?"TicketTreat не приймає кошти за цю подію й не обробляє оплату карткою. Уточни в організатора оплату, підтвердження участі та повернення коштів.":"TicketTreat does not collect payments or process card details for this event. Confirm payment instructions, participation and refunds directly with the organizer."}</p>
+                <p><strong>{language==="ru"?"Организатор:":language==="cs"?"Pořadatel:":language==="uk"?"Організатор:":"Organizer:"}</strong> {event.organizer || (language==="cs"?"Neuveden":"Not specified")}</p>
+                <p className="form-note">{language==="ru"?"Платная регистрация внутри TicketTreat пока отключена. QR-билет не подтверждает получение оплаты организатором.":language==="cs"?"Registrace placených akcí přes TicketTreat je nyní vypnutá. QR vstupenka nepotvrzuje, že pořadatel obdržel platbu.":language==="uk"?"Платна реєстрація через TicketTreat наразі вимкнена. QR-квиток не підтверджує оплату організатору.":"Paid registrations through TicketTreat are currently disabled. A TicketTreat QR ticket is not proof of payment to the organizer."}</p>
+                <p className="tt-legal-at-collection"><Link href="/terms">{language==="ru"?"Условия использования":language==="cs"?"Obchodní podmínky":language==="uk"?"Умови користування":"Terms of Service"}</Link> · <Link href="/privacy-policy">{language==="ru"?"Политика конфиденциальности":language==="cs"?"Ochrana osobních údajů":language==="uk"?"Політика конфіденційності":"Privacy Policy"}</Link></p>
+                <Link className="button button-outline" href={`/events/${event.id}`}>{language==="ru"?"Вернуться к мероприятию":language==="cs"?"Zpět na akci":language==="uk"?"Повернутися до події":"Back to event"}</Link>
+              </section>
+            ) : !guest ? (
               <>
               <section className="panel account-signup-banner">
                 <h2>{language === "en" ? "Create your TicketTreat profile" : language === "cs" ? "Vytvoř si profil TicketTreat" : language === "uk" ? "Створи профіль TicketTreat" : "Создай профиль TicketTreat"}</h2>
