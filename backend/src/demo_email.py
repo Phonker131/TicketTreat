@@ -318,7 +318,7 @@ def email_shell(title: str, lead: str, details: str, link: str, button: str, cap
         '<div style="font-size:30px;font-weight:900">TicketTreat <span style="color:#FFC82E">●</span></div></td></tr>'
         '<tr><td style="padding:30px"><h1 style="font-size:25px;margin:0 0 16px">'
         + html.escape(title) + '</h1><p style="font-size:15px;line-height:1.6;margin:0 0 20px">'
-        + html.escape(lead).replace("\\n", "<br>") + '</p>'
+        + html.escape(lead).replace("\n", "<br>") + '</p>'
         + details
         + ('<p style="margin:24px 0"><a href="' + html.escape(link, quote=True)
            + '" style="display:inline-block;background:#C2118A;color:#fff;text-decoration:none;'
