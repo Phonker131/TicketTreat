@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { LegalFooter } from "@/components/LegalFooter";
+import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import "./globals.css";
 import "./tickettreat-tokens.css";
 import "./brand-refresh.css";
@@ -51,6 +52,7 @@ export default function RootLayout({
           <PwaBootstrap />
           {children}
           <LegalFooter />
+          <CookieConsentBanner />
         </LanguageProvider>
       </body>
     </html>
