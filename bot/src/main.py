@@ -721,7 +721,7 @@ def ui_text_matches(
     def clean_label(value: str) -> str:
         import unicodedata
         value = value.strip()
-        while value and (unicodedata.category(value[0]) in {"So", "Sk", "Cf"} or value[0].isspace()):
+        while value and (unicodedata.category(value[0]) in {"So", "Sk", "Cf", "Mn"} or value[0].isspace()):
             value = value[1:]
         return value.strip()
 
