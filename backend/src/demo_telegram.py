@@ -20,10 +20,11 @@ import secrets
 import time
 from urllib.parse import parse_qsl
 from typing import Any
+from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException, Header, BackgroundTasks
 from pydantic import BaseModel, Field
-from sqlalchemy import BigInteger, Column, Integer, UniqueConstraint
+from sqlalchemy import BigInteger, Column, Integer, String, DateTime, UniqueConstraint
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -87,97 +88,279 @@ def bot_user_registrations(db: Session, telegram_id: int, main) -> list[dict]:
     return unresolved_bot_registrations(db,telegram_id,main)
 
 
+
+class TelegramLinkChallenge(Base):
+    """Short-lived, one-use proof of a logged-in website account."""
+    __tablename__ = "demo_telegram_link_challenges"
+    id = Column(Integer, primary_key=True)
+    code_hash = Column(String(64), nullable=False, unique=True, index=True)
+    account_id = Column(Integer, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    status = Column(String(16), nullable=False, default="pending")
+    telegram_id = Column(BigInteger, nullable=True)
+
+
+class TelegramLinkClaim(BaseModel):
+    challenge: str = Field(min_length=24, max_length=100)
+    init_data: str = Field(min_length=32, max_length=8192)
+
+
+def _link_hash(challenge: str) -> str:
+    return hashlib.sha256(challenge.encode("utf-8")).hexdigest()
+
+
+def _telegram_link(db: Session, main, account, user: dict, background_tasks: BackgroundTasks,
+                   challenge: TelegramLinkChallenge | None = None) -> dict:
+    """Merge only after website auth and Telegram's signed launch data were verified.
+
+    Never move a ticket across an event/guest unique constraint. Unambiguous
+    duplicate *free* passes are cancelled in place so their history remains
+    inspectable; money/checked-in collisions require manual reconciliation.
+    """
+    from demo_accounts import WebAccount
+    from demo_legacy import reconcile_free_legacy
+    from demo_paid_reservations import PaidReservation
+
+    telegram_id = user["id"]
+    link = db.query(DemoTelegramIdentity).filter(
+        DemoTelegramIdentity.telegram_id == telegram_id
+    ).with_for_update().first()
+    if link is None:
+        # Telegram may have used the legacy bot without ever opening Mini App.
+        old = main.DemoGuest(
+            access_token=secrets.token_urlsafe(32), telegram_id=telegram_id,
+            username=str(user.get("username") or "")[:255] or None,
+            first_name=user["first_name"].strip()[:100],
+            last_name=str(user.get("last_name") or "")[:100] or None,
+        )
+        db.add(old)
+        db.flush()
+        link = DemoTelegramIdentity(telegram_id=telegram_id, guest_id=old.id)
+        db.add(link)
+        db.flush()
+    else:
+        old = db.query(main.DemoGuest).filter(
+            main.DemoGuest.id == link.guest_id
+        ).with_for_update().first()
+
+    existing_web = db.query(WebAccount).filter(WebAccount.guest_id == link.guest_id).first()
+    if existing_web and existing_web.id != account.id:
+        raise HTTPException(409, "telegram_already_linked_to_another_account")
+    other_telegram = db.query(DemoTelegramIdentity).filter(
+        DemoTelegramIdentity.guest_id == account.guest_id,
+        DemoTelegramIdentity.telegram_id != telegram_id,
+    ).first()
+    if other_telegram:
+        raise HTTPException(409, "website_account_has_another_telegram")
+
+    if link.guest_id == account.guest_id:
+        if challenge is not None:
+            challenge.status, challenge.telegram_id = "linked", telegram_id
+            db.commit()
+        return {"linked": True, "already_linked": True, "migrated_tickets": 0}
+
+    guest = db.query(main.DemoGuest).filter(
+        main.DemoGuest.id == account.guest_id
+    ).with_for_update().first()
+    if old is None or guest is None:
+        raise HTTPException(409, "identity_guest_missing")
+
+    web_tickets = {
+        row.event_id: row for row in db.query(main.DemoTicket).filter(
+            main.DemoTicket.guest_id == guest.id
+        ).all()
+    }
+    old_tickets = db.query(main.DemoTicket).filter(
+        main.DemoTicket.guest_id == old.id
+    ).all()
+    web_waitlists = {
+        row.event_id: row for row in db.query(main.DemoWaitlist).filter(
+            main.DemoWaitlist.guest_id == guest.id
+        ).all()
+    }
+    old_waitlists = db.query(main.DemoWaitlist).filter(
+        main.DemoWaitlist.guest_id == old.id
+    ).all()
+    existing_reservations = {
+        row.event_id: row for row in db.query(PaidReservation).filter(
+            PaidReservation.guest_id == guest.id
+        ).all()
+    }
+    old_reservations = db.query(PaidReservation).filter(
+        PaidReservation.guest_id == old.id
+    ).all()
+
+    # Preflight before mutating anything. Never auto-merge paid, checked-in or
+    # operationally complex duplicates (offers/holds).
+    free_sources = {"free", "legacy_free"}
+    duplicates = []
+    for ticket in old_tickets:
+        current = web_tickets.get(ticket.event_id)
+        if current is not None:
+            if not (
+                ticket.payment_provider in free_sources
+                and current.payment_provider in free_sources
+                and ticket.checked_in_at is None
+                and current.checked_in_at is None
+                and ticket.ticket_status == "active"
+                and current.ticket_status == "active"
+            ):
+                raise HTTPException(409, "duplicate_event_ticket_requires_manual_resolution")
+            duplicates.append(ticket)
+
+    for row in old_waitlists:
+        current = web_waitlists.get(row.event_id)
+        if current is not None and not (
+            row.status == "waiting" and current.status == "waiting"
+        ):
+            raise HTTPException(409, "duplicate_waitlist_requires_manual_resolution")
+    if any(row.event_id in existing_reservations for row in old_reservations):
+        raise HTTPException(409, "duplicate_paid_reservation_requires_manual_resolution")
+
+    duplicate_ids = {row.id for row in duplicates}
+    for row in old_tickets:
+        if row.id in duplicate_ids:
+            row.ticket_status = "cancelled"
+            row.cancelled_at = datetime.now(timezone.utc)
+        else:
+            row.guest_id = guest.id
+    for row in old_waitlists:
+        if row.event_id in web_waitlists:
+            row.status = "cancelled"  # Preserve the old queue record for audit.
+        else:
+            row.guest_id = guest.id
+    for row in old_reservations:
+        row.guest_id = guest.id
+
+    # Rotate the abandoned Telegram guest bearer token.
+    old.access_token = secrets.token_urlsafe(32)
+    old.telegram_id = None
+    guest.telegram_id = telegram_id
+    guest.username = str(user.get("username") or "")[:255] or None
+    link.guest_id = guest.id
+    if challenge is not None:
+        challenge.status, challenge.telegram_id = "linked", telegram_id
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "telegram_link_conflict") from None
+    legacy = reconcile_free_legacy(db, main, telegram_id, guest.id)
+    notified = 0
+    for ticket in web_tickets.values():
+        if notified >= 5:
+            break
+        if ticket.ticket_status != "active":
+            continue
+        event = db.get(main.Event, ticket.event_id)
+        if event is None or event.is_cancelled or main.event_has_started(event):
+            continue
+        background_tasks.add_task(
+            send_miniapp_ticket_notice, telegram_id, event.title, ticket.id,
+            ticket.payment_provider in free_sources, "ru",
+        )
+        notified += 1
+    return {
+        "linked": True, "already_linked": False,
+        "migrated_tickets": len(old_tickets) - len(duplicate_ids) + legacy["converted"],
+        "deduplicated_free_tickets": len(duplicate_ids),
+        "migrated_waitlists": sum(x.event_id not in web_waitlists for x in old_waitlists),
+        "migrated_paid_reservations": len(old_reservations),
+        "legacy_unresolved": legacy["held_for_review"],
+    }
+
+
 def install_telegram_auth(app, get_db, main) -> None:
     @app.post("/demo/telegram/link")
     def link_telegram(payload: TelegramAuthRequest, background_tasks: BackgroundTasks,
                       authorization: str | None = Header(None),
                       db: Session = Depends(get_db)):
-        """Explicitly link separately authenticated website and Telegram identities.
-
-        Preserve all existing QR passes and waitlist records. Do not guess from
-        name/email. Reject conflicts instead of silently overwriting bookings.
-        """
         from demo_roles import account_lookup
-        from demo_accounts import WebAccount
         from demo_account_recovery import email_is_verified
         if not main.DEMO_ISOLATED_API:
             raise HTTPException(503, "telegram_miniapp_requires_isolated_api")
         account = account_lookup(db, authorization)
         if not email_is_verified(db, account.id):
             raise HTTPException(403, "email_verification_required")
-        user = verified_telegram_user(payload.init_data, os.getenv("TELEGRAM_MINIAPP_BOT_TOKEN", "").strip())
-        telegram_id = user["id"]
-        link = db.query(DemoTelegramIdentity).filter(
-            DemoTelegramIdentity.telegram_id == telegram_id
-        ).with_for_update().first()
-        if link is None:
-            # The Telegram account must first have been signed in via Mini App.
-            raise HTTPException(409, "telegram_login_required_first")
-        existing_web = db.query(WebAccount).filter(WebAccount.guest_id == link.guest_id).first()
-        if existing_web and existing_web.id != account.id:
-            raise HTTPException(409, "telegram_already_linked_to_another_account")
-        any_other = db.query(DemoTelegramIdentity).filter(
-            DemoTelegramIdentity.guest_id == account.guest_id,
-            DemoTelegramIdentity.telegram_id != telegram_id,
+        user = verified_telegram_user(
+            payload.init_data, os.getenv("TELEGRAM_MINIAPP_BOT_TOKEN", "").strip()
+        )
+        return _telegram_link(db, main, account, user, background_tasks)
+
+    @app.post("/demo/telegram/link/start")
+    def start_link(authorization: str | None = Header(None), db: Session = Depends(get_db)):
+        from demo_roles import account_lookup
+        from demo_account_recovery import email_is_verified
+        if not main.DEMO_ISOLATED_API:
+            raise HTTPException(503, "telegram_miniapp_requires_isolated_api")
+        account = account_lookup(db, authorization)
+        if not email_is_verified(db, account.id):
+            raise HTTPException(403, "email_verification_required")
+        # Revoke previous pending challenges from this site account.
+        db.query(TelegramLinkChallenge).filter(
+            TelegramLinkChallenge.account_id == account.id,
+            TelegramLinkChallenge.status == "pending",
+        ).update({"status": "expired"}, synchronize_session=False)
+        code = secrets.token_urlsafe(24)
+        now = datetime.now(timezone.utc)
+        db.add(TelegramLinkChallenge(
+            code_hash=_link_hash(code), account_id=account.id,
+            created_at=now, expires_at=now + timedelta(minutes=10),
+            status="pending",
+        ))
+        db.commit()
+        return {
+            "challenge": code, "expires_in_seconds": 600,
+            "bot_link": f"https://t.me/TicketTreatBot?start=link_{code}",
+        }
+
+    @app.get("/demo/telegram/link/status")
+    def link_status(challenge: str, authorization: str | None = Header(None),
+                    db: Session = Depends(get_db)):
+        from demo_roles import account_lookup
+        account = account_lookup(db, authorization)
+        if len(challenge) < 24 or len(challenge) > 100:
+            raise HTTPException(404, "link_not_found")
+        row = db.query(TelegramLinkChallenge).filter(
+            TelegramLinkChallenge.code_hash == _link_hash(challenge),
+            TelegramLinkChallenge.account_id == account.id,
         ).first()
-        if any_other:
-            raise HTTPException(409, "website_account_has_another_telegram")
-        if link.guest_id == account.guest_id:
-            return {"linked": True, "already_linked": True}
-        old = db.query(main.DemoGuest).filter(main.DemoGuest.id == link.guest_id).with_for_update().first()
-        guest = db.query(main.DemoGuest).filter(main.DemoGuest.id == account.guest_id).with_for_update().first()
-        if old is None or guest is None:
-            raise HTTPException(409, "identity_guest_missing")
-        prior_web_tickets = db.query(main.DemoTicket).filter(
-            main.DemoTicket.guest_id == guest.id).all()
-        web_tickets = {row.event_id for row in prior_web_tickets}
-        tg_tickets = db.query(main.DemoTicket).filter(main.DemoTicket.guest_id == old.id).all()
-        if any(t.event_id in web_tickets for t in tg_tickets):
-            raise HTTPException(409, "duplicate_event_ticket_requires_manual_resolution")
-        web_waitlists = {row.event_id for row in db.query(main.DemoWaitlist).filter(
-            main.DemoWaitlist.guest_id == guest.id).all()}
-        tg_waitlists = db.query(main.DemoWaitlist).filter(main.DemoWaitlist.guest_id == old.id).all()
-        if any(w.event_id in web_waitlists for w in tg_waitlists):
-            raise HTTPException(409, "duplicate_waitlist_requires_manual_resolution")
-        for row in tg_tickets:
-            row.guest_id = guest.id
-        for row in tg_waitlists:
-            row.guest_id = guest.id
-        # Invalidate the former Telegram-only guest bearer credential.
-        old.access_token = secrets.token_urlsafe(32)
-        old.telegram_id = None
-        guest.telegram_id = telegram_id
-        guest.username = str(user.get("username") or "")[:255] or None
-        link.guest_id = guest.id
-        try:
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(409, "telegram_link_conflict") from None
-        from demo_legacy import reconcile_free_legacy
-        legacy = reconcile_free_legacy(db,main,telegram_id,guest.id)
-        # After the user proves *both* identities, share their already-issued
-        # website QR passes with the Telegram chat. No secrets/QR tokens leave
-        # the backend and delivery is best effort (users may block the bot).
-        # Limit to five upcoming tickets to avoid flooding users on linking.
-        notified = 0
-        for ticket in prior_web_tickets:
-            if notified >= 5:
-                break
-            if ticket.ticket_status != "active":
-                continue
-            event = db.get(main.Event,ticket.event_id)
-            if event is None or event.is_cancelled or main.event_has_started(event):
-                continue
-            background_tasks.add_task(
-                send_miniapp_ticket_notice, telegram_id, event.title, ticket.id,
-                ticket.payment_provider in {"free","legacy_free"}, "ru",
-            )
-            notified += 1
-        return {"linked": True, "already_linked": False,
-                "migrated_tickets": len(tg_tickets)+legacy["converted"],
-                "migrated_waitlists": len(tg_waitlists),
-                "legacy_unresolved": legacy["held_for_review"]}
+        if row is None:
+            raise HTTPException(404, "link_not_found")
+        expired = row.status == "pending" and row.expires_at.replace(
+            tzinfo=timezone.utc
+        ) <= datetime.now(timezone.utc) if row.expires_at.tzinfo is None else (
+            row.status == "pending" and row.expires_at <= datetime.now(timezone.utc)
+        )
+        return {"status": "expired" if expired else row.status,
+                "linked": row.status == "linked"}
+
+    @app.post("/demo/telegram/link/claim")
+    def claim_link(payload: TelegramLinkClaim, background_tasks: BackgroundTasks,
+                   db: Session = Depends(get_db)):
+        from demo_accounts import WebAccount
+        from demo_account_recovery import email_is_verified
+        if not main.DEMO_ISOLATED_API:
+            raise HTTPException(503, "telegram_miniapp_requires_isolated_api")
+        user = verified_telegram_user(
+            payload.init_data, os.getenv("TELEGRAM_MINIAPP_BOT_TOKEN", "").strip()
+        )
+        row = db.query(TelegramLinkChallenge).filter(
+            TelegramLinkChallenge.code_hash == _link_hash(payload.challenge),
+        ).with_for_update().first()
+        if row is None:
+            raise HTTPException(404, "link_not_found")
+        if row.status != "pending":
+            raise HTTPException(409, "link_already_used_or_revoked")
+        expiry = row.expires_at
+        if (expiry.replace(tzinfo=timezone.utc) if expiry.tzinfo is None else expiry) <= datetime.now(timezone.utc):
+            raise HTTPException(410, "link_expired")
+        account = db.query(WebAccount).filter(WebAccount.id == row.account_id).first()
+        if account is None or not email_is_verified(db, account.id):
+            raise HTTPException(403, "email_verification_required")
+        return _telegram_link(db, main, account, user, background_tasks, challenge=row)
 
     @app.post("/demo/telegram/auth")
     def telegram_auth(payload: TelegramAuthRequest, db: Session = Depends(get_db)):
