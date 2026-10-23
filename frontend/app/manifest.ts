@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "TicketTreat — discover events, reserve tickets and get helpful reminders in one place.",
     start_url: "/",
     display: "standalone",
-    background_color: "#F6EEFA",
-    theme_color: "#C2118A",
+    background_color: "#F0EBE1",
+    theme_color: "#FF5533",
     orientation: "portrait",
     icons: [
       {
