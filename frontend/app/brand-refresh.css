@@ -100,3 +100,42 @@ body { background-image: none; }
 .wordmark-logo { display: block; width: clamp(142px, 20vw, 238px); height: auto; max-width: 100%; }
 @media (max-width: 480px) { .wordmark-logo { width: clamp(136px, 38vw, 172px); } }
 @media (max-width: 360px) { .wordmark-logo { width: 132px; } }
+
+/* TicketTreat flag-only language control. No native select or OS-sized labels. */
+.language-switcher { position: relative; display: inline-flex; flex: 0 0 auto; z-index: 55; }
+.language-flag-trigger {
+  appearance: none; width: 58px; height: 46px; padding: 0 8px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  background: var(--tt-white); border: 2px solid var(--tt-keyline);
+  border-radius: 13px; box-shadow: 3px 3px 0 var(--tt-ultramarine);
+  color: var(--tt-keyline); cursor: pointer; line-height: 1;
+}
+.language-flag { display: inline-flex; align-items: center; justify-content: center;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 25px; line-height: 1; width: 30px; height: 30px; }
+.language-chevron { flex: 0 0 auto; }
+.language-flag-trigger:hover, .language-flag-trigger[aria-expanded="true"] { background: var(--tt-mustard); }
+.language-flag-trigger:focus-visible, .language-flag-option:focus-visible {
+  outline: 3px solid var(--tt-ultramarine); outline-offset: 3px;
+}
+.language-flag-menu {
+  position: absolute; top: calc(100% + 9px); right: 0;
+  width: 66px; padding: 6px; display: grid; gap: 5px;
+  background: var(--tt-paper); border: 2px solid var(--tt-keyline);
+  border-radius: 15px; box-shadow: 4px 4px 0 var(--tt-keyline);
+  z-index: 80;
+}
+.language-flag-option {
+  appearance: none; position: relative; display: flex; align-items: center;
+  justify-content: center; width: 50px; min-height: 46px; padding: 5px;
+  background: var(--tt-white); border: 2px solid transparent; border-radius: 10px;
+  cursor: pointer;
+}
+.language-flag-option:hover { background: var(--tt-mustard); }
+.language-flag-option.is-selected { border-color: var(--tt-keyline); background: var(--tt-mustard); }
+.language-selected-dot { position: absolute; right: 2px; top: 2px; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--tt-tomato); border: 1px solid var(--tt-keyline); }
+@media (max-width: 480px) {
+  .language-flag-trigger { width: 51px; height: 43px; padding: 0 5px; gap: 3px; }
+  .language-flag { font-size: 23px; width: 28px; height: 28px; }
+}
