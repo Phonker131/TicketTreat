@@ -631,3 +631,12 @@ export function sendBroadcast(token:string,payload:BroadcastSend):Promise<Broadc
 export function getBroadcastHistory(token:string):Promise<BroadcastHistory[]> {
   return request("/demo/manage/broadcasts",{headers:accountHeaders(token)});
 }
+
+/** Wallet passes are available only after Apple Pass Type credentials are configured. */
+export function getWalletStatus():Promise<{enabled:boolean}>{
+  return request("/demo/wallet/status");
+}
+/** Global email transport readiness, without exposing account existence. */
+export function getMailStatus():Promise<{available:boolean}>{
+  return request("/demo/auth/email/status");
+}
