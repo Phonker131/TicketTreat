@@ -152,39 +152,50 @@ def queue_event_reminder(db: Session, *, event, guest, ticket, language: str = "
 
 
 def queue_event_notice(db:Session, *, event, kind:str, message:str) -> int:
-    """Queue event-critical changes only for verified account holders with tickets.
+    """Queue email and Telegram event notices in the organizer's transaction.
 
-    Called inside the organizer's same transaction before tickets are cancelled.
-    Never emails legacy guest addresses or unverified user-provided emails.
+    A verified email is required for email delivery. Telegram delivery is
+    restricted to the event's active, bot-registered or signed Mini App users.
+    Cancel notices must be queued before ticket status is changed.
     """
     if kind not in {"change","cancel","announcement"}:
         raise ValueError("unsupported_operational_notice")
-    if not configured():
+    from demo_telegram_notifications import configured as telegram_configured, queue_notice
+    email_ready = configured()
+    if not email_ready and not telegram_configured():
         return 0
-    from demo_accounts import WebAccount
-    from demo_account_recovery import email_is_verified
     from importlib import import_module
-    main=import_module("main")
-    tickets=db.query(main.DemoTicket).filter(
-        main.DemoTicket.event_id==event.id,
-        main.DemoTicket.ticket_status=="active",
-    ).all()
-    recipients=[]
-    for ticket in tickets:
-        account=db.query(WebAccount).filter(WebAccount.guest_id==ticket.guest_id).first()
-        if account and email_is_verified(db,account.id):
-            recipients.append((ticket,account))
-    if not recipients:
-        return 0
-    notice=EventNotice(event_id=event.id,kind=kind,message=message[:1500])
-    db.add(notice);db.flush()
-    for ticket,account in recipients:
-        queue_email(db,kind="event_notice",
-                    event_key=f"notice:{notice.id}:ticket:{ticket.id}",
-                    recipient=account.email,guest_id=ticket.guest_id,
-                    ticket_id=ticket.id,notice_id=notice.id,
-                    language=ticket_language(db,ticket.id))
-    return len(recipients)
+    main = import_module("main")
+    recipients = []
+    if email_ready:
+        from demo_accounts import WebAccount
+        from demo_account_recovery import email_is_verified
+        tickets = db.query(main.DemoTicket).filter(
+            main.DemoTicket.event_id == event.id,
+            main.DemoTicket.ticket_status == "active",
+        ).all()
+        for ticket in tickets:
+            account = db.query(WebAccount).filter(WebAccount.guest_id == ticket.guest_id).first()
+            if account and email_is_verified(db, account.id):
+                recipients.append((ticket, account))
+
+    # A notice record is shared by both channel outboxes, even when the event
+    # has Telegram participants but no verified email recipients.
+    notice = EventNotice(event_id=event.id, kind=kind, message=message[:1500])
+    db.add(notice)
+    db.flush()
+
+    for ticket, account in recipients:
+        queue_email(
+            db, kind="event_notice",
+            event_key=f"notice:{notice.id}:ticket:{ticket.id}",
+            recipient=account.email, guest_id=ticket.guest_id,
+            ticket_id=ticket.id, notice_id=notice.id,
+            language=ticket_language(db, ticket.id),
+        )
+    telegram_count = queue_notice(db, notice=notice, event=event, main=main)
+    return len(recipients) + telegram_count
+
 
 
 def ticket_language(db: Session, ticket_id: int) -> str:
