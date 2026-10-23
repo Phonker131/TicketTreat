@@ -8,6 +8,7 @@ import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {adminTranslate} from "@/lib/admin-i18n";
 import { CountryCityFields } from "@/components/CountryCityFields";
+import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
   editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,orderManageGallery,
@@ -40,6 +41,7 @@ export function AdminEventClient(){
   const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180],waitlist_offer_minutes:0,event_duration_minutes:180});
   const [pilotStaff,setPilotStaff]=useState<CheckinStaff[]>([]);
   const [staffEmail,setStaffEmail]=useState("");
+  const [reminderMessage,setReminderMessage]=useState("Your TicketTreat event starts soon.");
   const [announcementCategory,setAnnouncementCategory]=useState<"access"|"logistics"|"schedule">("logistics");
   const [announcementText,setAnnouncementText]=useState("");
   const [organizers,setOrganizers]=useState<OrganizerIdentity[]>([]);
@@ -63,6 +65,7 @@ export function AdminEventClient(){
       getManageMe(token),getManageEvent(eventId,token),getManageParticipants(token,eventId)
     ]);
     setIdentity(me);setEvent(ev);setData(tickets);
+    setReminderMessage(ev.reminder_text||"Your TicketTreat event starts soon.");
     void getEventEmailStatus(token,eventId).then(setEmailStatus).catch(()=>setEmailStatus(null));
     void getPilotInsights(token,eventId).then(setPilotInsights).catch(()=>setPilotInsights(null));
     void getPilotSettings(token,eventId).then(setPilotSettings).catch(()=>{});
@@ -188,8 +191,9 @@ export function AdminEventClient(){
     const token=getWebToken();if(!token)return;
     setBusy(true);setError("");setNotice("");
     try{
-      await updatePilotSettings(token,eventId,pilotSettings);
-      await reload();setNotice("Дедлайн регистрации и расписание напоминаний сохранены.");
+      if(!pilotSettings.reminder_minutes.length||!reminderMessage.trim())throw new Error("Укажи расписание и текст напоминания.");
+      await updatePilotSettings(token,eventId,{...pilotSettings,reminder_text:reminderMessage.trim()});
+      await reload();setNotice("Расписание напоминаний и текст организатора сохранены.");
     }catch(e){setError(formattedError(e));}
     finally{setBusy(false);}
   }
@@ -403,15 +407,9 @@ export function AdminEventClient(){
             value={pilotSettings.signup_cutoff_minutes}
             onChange={e=>setPilotSettings(s=>({...s,signup_cutoff_minutes:Number(e.target.value)}))}/>
         </label>
-        <fieldset className="event-language-fieldset"><legend>{tr("Письма-напоминания")}</legend>
-          {([[10080,"За 7 дней"],[1440,"За 24 часа"],[180,"За 3 часа"]] as const).map(([minutes,label])=>
-            <label key={minutes} style={{display:"inline-flex",gap:8,marginRight:16}}>
-              <input type="checkbox" checked={pilotSettings.reminder_minutes.includes(minutes)}
-                onChange={e=>setPilotSettings(s=>({...s,reminder_minutes:
-                  e.target.checked?[...s.reminder_minutes,minutes]:s.reminder_minutes.filter(x=>x!==minutes)}))}/>
-              {label}
-            </label>)}
-        </fieldset>
+        <ReminderEditor minutes={pilotSettings.reminder_minutes}
+          onChange={value=>setPilotSettings(current=>({...current,reminder_minutes:value}))}
+          message={reminderMessage} onMessageChange={setReminderMessage} language={language}/>
         <label>Продолжительность ивента (минуты для окончательной статистики no-show)
           <input type="number" min={15} max={1440} step={15} value={pilotSettings.event_duration_minutes||180}
             onChange={e=>setPilotSettings(s=>({...s,event_duration_minutes:Number(e.target.value)}))}/>
@@ -430,7 +428,7 @@ export function AdminEventClient(){
         <p className="form-note">В режиме предложения место удерживается для следующего участника до принятия или истечения срока. Требуется включённый воркер истечения сроков в Railway.</p>
         <p className="form-note">Письма отправляются только подтверждённым владельцам билетов, после включения Resend. Пропущенные интервалы не рассылаются задним числом.</p>
         <button className="button button-primary" type="button" disabled={busy||!pilotSettings.reminder_minutes.length}
-          onClick={savePilotPolicy}>{tr("Сохранить правила")}</button>
+          onClick={savePilotPolicy}>{tr("Сохранить правила и напоминания")}</button>
       </section>}
       <section className="panel form-stack">
         <h2>{tr("Персонал для проверки билетов")}</h2>
