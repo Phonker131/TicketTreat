@@ -48,6 +48,11 @@ export default function RootLayout({
         <LanguageProvider>
           <PwaBootstrap />
           {children}
+          <footer className="tt-support-footer">
+            <a href="https://t.me/vvladver" target="_blank" rel="noopener noreferrer" aria-label="TicketTreat support on Telegram">
+              <span aria-hidden="true">✉</span> Support / Поддержка ↗
+            </a>
+          </footer>
         </LanguageProvider>
       </body>
     </html>
