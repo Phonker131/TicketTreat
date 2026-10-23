@@ -301,33 +301,78 @@ def qr_attachment(qr_token: str, ticket_id: int) -> dict:
 
 
 def card(label: str, value: object) -> str:
+    """Readable, accessible ticket detail row with safely escaped values."""
+    actual = str(value if value is not None and value != "" else "—")
     return (
-        "<tr><td style='padding:10px 0;color:#705c78;font-size:13px;vertical-align:top'>"
-        + html.escape(label) + "</td><td style='padding:10px 0;text-align:right;font-size:14px;"
-        "font-weight:700;vertical-align:top'>" + html.escape(str(value or "—")) + "</td></tr>"
+        '<tr><td style="padding:12px 10px 12px 0;color:#5C5861;font-size:13px;'
+        'line-height:1.5;vertical-align:top;border-bottom:1px solid #E6DFD1">'
+        + html.escape(label) + '</td><td style="padding:12px 0 12px 10px;'
+        'text-align:right;color:#15141F;font-size:14px;font-weight:700;'
+        'line-height:1.5;vertical-align:top;overflow-wrap:anywhere;'
+        'border-bottom:1px solid #E6DFD1">' + html.escape(actual) + '</td></tr>'
     )
 
 
 def email_shell(title: str, lead: str, details: str, link: str, button: str, caption: str, footer: str) -> str:
-    return (
-        '<!doctype html><html><head><meta charset="UTF-8"></head>'
-        '<body style="margin:0;padding:24px;background:#F6EEFA;font-family:Arial,Helvetica,sans-serif;color:#1E0A28">'
-        '<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center">'
-        '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:580px;background:#fff;'
-        'border-radius:16px;overflow:hidden"><tr><td style="padding:26px 30px;background:#C2118A;color:#fff">'
-        '<div style="font-size:30px;font-weight:900">TicketTreat <span style="color:#FFC82E">●</span></div></td></tr>'
-        '<tr><td style="padding:30px"><h1 style="font-size:25px;margin:0 0 16px">'
-        + html.escape(title) + '</h1><p style="font-size:15px;line-height:1.6;margin:0 0 20px">'
-        + html.escape(lead).replace("\n", "<br>") + '</p>'
-        + details
-        + ('<p style="margin:24px 0"><a href="' + html.escape(link, quote=True)
-           + '" style="display:inline-block;background:#C2118A;color:#fff;text-decoration:none;'
-           'padding:15px 23px;border-radius:32px;font-weight:bold">' + html.escape(button) + '</a></p>'
-           if link else "")
-        + ('<p style="font-size:12px;color:#6f526c">' + html.escape(caption) + '</p>' if caption else '')
-        + '</td></tr><tr><td style="padding:22px 30px;background:#F6EEFA;color:#705c78;font-size:12px">'
-        + html.escape(footer) + '</td></tr></table></td></tr></table></body></html>'
+    """Professional, mobile-friendly TicketTreat email with inline styles.
+
+    Variable prose is escaped; details must be built only by trusted renderers.
+    The visual identity uses the current cream, tomato, mustard and ink colors.
+    """
+    heading = html.escape(title)
+    paragraph = html.escape(lead).replace("\n", "<br>")
+    preheader = html.escape((lead.splitlines()[0] if lead else title)[:140])
+    button_html = ""
+    if link:
+        href = html.escape(link, quote=True)
+        button_html = (
+            '<table role="presentation" cellpadding="0" cellspacing="0" border="0"'
+            ' style="margin:28px 0 14px"><tr><td bgcolor="#FF5533"'
+            ' style="border:2px solid #15141F;border-radius:10px">'
+            '<a href="' + href + '" style="display:inline-block;'
+            'padding:14px 24px;color:#15141F;font-size:15px;font-weight:700;'
+            'text-decoration:none;border-radius:10px">' + html.escape(button)
+            + '</a></td></tr></table>'
+            '<p style="margin:0;font-size:12px;line-height:1.65;color:#5C5861;'
+            'overflow-wrap:anywhere">If the button does not open, copy this link: '
+            '<a href="' + href + '" style="color:#15141F;overflow-wrap:anywhere">'
+            + href + '</a></p>'
+        )
+    note = (
+        '<p style="color:#5C5861;font-size:13px;line-height:1.65;margin:22px 0 0">'
+        + html.escape(caption) + '</p>' if caption else ''
     )
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light"><title>{heading}</title></head>
+<body style="margin:0;padding:0;background:#F0EBE1;font-family:Arial,Helvetica,sans-serif;color:#15141F">
+<div style="display:none;font-size:1px;color:#F0EBE1;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">{preheader}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#F0EBE1">
+<tr><td align="center" style="padding:24px 12px 32px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#FFFFFF;border:2px solid #15141F;border-radius:14px;overflow:hidden">
+<tr><td style="padding:22px 28px;background:#F0EBE1;border-bottom:2px solid #15141F">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>
+<td style="font-size:22px;font-weight:900;letter-spacing:-0.8px;color:#15141F">TICKET</td>
+<td style="background:#F4B400;color:#15141F;font-size:20px;font-weight:900;letter-spacing:-0.8px;border:2px solid #15141F;border-radius:4px;padding:5px 9px">TREAT</td>
+</tr></table></td></tr>
+<tr><td style="padding:34px 28px 28px">
+<p style="font-size:11px;letter-spacing:1.4px;font-weight:700;color:#5C5861;margin:0 0 14px">TICKETTREAT / NOTIFICATION</p>
+<h1 style="font-size:27px;line-height:1.28;letter-spacing:-0.5px;margin:0 0 17px;color:#15141F">{heading}</h1>
+<p style="font-size:16px;line-height:1.7;color:#302D37;margin:0 0 22px">{paragraph}</p>
+{details}
+{button_html}
+{note}
+</td></tr>
+<tr><td style="background:#F0EBE1;border-top:2px solid #15141F;padding:22px 28px">
+<p style="font-size:12px;line-height:1.7;color:#5C5861;margin:0 0 12px">{html.escape(footer)}</p>
+<p style="font-size:12px;line-height:1.6;margin:0">
+<a href="https://tickettreat.eu" style="font-weight:700;color:#15141F;text-decoration:underline">tickettreat.eu</a>
+<span style="color:#5C5861"> &nbsp;·&nbsp; </span>
+<a href="https://t.me/vvladver" style="font-weight:700;color:#15141F;text-decoration:underline">Support / Поддержка</a>
+</p></td></tr></table></td></tr></table>
+</body></html>"""
+
 
 
 def render_email(row: EmailOutbox, db: Session) -> dict | None:
@@ -451,7 +496,7 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
         button = d["button_ticket"]
         extra = (
             '<table role="presentation" style="width:100%;border-collapse:collapse;'
-            'border-top:1px solid #E9D7F1;border-bottom:1px solid #E9D7F1">'
+            'border-top:1px solid #E6DFD1;border-bottom:1px solid #E6DFD1">'
             + card(d["event"], name)
             + card(d["date"], event_date(event.starts_at))
             + card(d["location"], event.location or "—")
@@ -468,7 +513,7 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
                 return None
             attachments.append(qr_attachment(ticket.qr_token, ticket.id))
             extra += (
-                '<div style="margin:25px 0;text-align:center;background:#F6EEFA;padding:20px;border-radius:12px">'
+                '<div style="margin:25px 0;text-align:center;background:#F0EBE1;padding:20px;border-radius:12px">'
                 '<p style="font-weight:bold;margin:0 0 10px">TICKETTREAT PASS</p>'
                 '<img alt="Ticket QR" width="220" height="220" style="max-width:100%;height:auto" '
                 'src="cid:tickettreat-ticket-qr"></div>'
