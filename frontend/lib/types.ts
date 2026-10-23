@@ -24,6 +24,8 @@ export type TicketTreatEvent = {
   gallery_cover_url?:string|null;
   video_url?: string | null;
   starts_at: string | null;
+  reminder_text?: string | null;
+  reminder_minutes_before?: number | null;
   publication?: {status:"draft"|"scheduled"|"published";publish_at:string|null;visible:boolean};
   is_cancelled: boolean;
   cancellation_reason?: string | null;
