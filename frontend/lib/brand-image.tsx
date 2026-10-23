@@ -1,22 +1,13 @@
 import {ImageResponse} from "next/og";
 
-/**
- * TicketTreat brand-book style stacked wordmark for the PWA home-screen icon.
- * The previous standalone "TT" badge is deliberately not used.
- * Browser SVG favicon: public/favicon.svg.
- */
-export function ticketTreatIcon(size: number): ImageResponse {
+// Raster formats (Apple touch icon, PWA) use the same approved
+// two-line TicketTreat wordmark/ticket art as public/favicon.svg.
+const svg="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" width=\"128\" height=\"128\"><rect width=\"128\" height=\"128\" rx=\"15\" fill=\"#F0EBE1\"/><g transform=\"translate(5 8) scale(.392)\"><text x=\"5\" y=\"100\" font-family=\"Archivo Black,Arial,sans-serif\" font-size=\"105\" font-weight=\"900\" fill=\"#FF5533\" textLength=\"294\" lengthAdjust=\"spacingAndGlyphs\">TICKET</text><text x=\"0\" y=\"96\" font-family=\"Archivo Black,Arial,sans-serif\" font-size=\"105\" font-weight=\"900\" fill=\"#15141F\" textLength=\"294\" lengthAdjust=\"spacingAndGlyphs\">TICKET</text><g transform=\"translate(0 121)\"><path d=\"M6,0 L294,0 A6,6 0 0 1 300,6 L300,39 A11,11 0 0 0 300,61 L300,94 A6,6 0 0 1 294,100 L6,100 A6,6 0 0 1 0,94 L0,61 A11,11 0 0 0 0,39 L0,6 A6,6 0 0 1 6,0 Z\" transform=\"translate(6,5)\" fill=\"#F4B400\"/><path d=\"M6,0 L294,0 A6,6 0 0 1 300,6 L300,39 A11,11 0 0 0 300,61 L300,94 A6,6 0 0 1 294,100 L6,100 A6,6 0 0 1 0,94 L0,61 A11,11 0 0 0 0,39 L0,6 A6,6 0 0 1 6,0 Z\" fill=\"none\" stroke=\"#15141F\" stroke-width=\"5\"/><text x=\"20\" y=\"82\" font-family=\"Archivo Black,Arial,sans-serif\" font-size=\"94\" font-weight=\"900\" fill=\"#15141F\" textLength=\"262\" lengthAdjust=\"spacingAndGlyphs\">TREAT</text></g></g></svg>";
+export function ticketTreatIcon(size:number):ImageResponse {
+  const image="data:image/svg+xml;base64,"+btoa(svg);
   return new ImageResponse(
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",width:"100%",height:"100%",background:"#F0EBE1"}}>
-      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 128 128" role="img">
-        <rect x="1.5" y="1.5" width="125" height="125" rx="15" fill="#F0EBE1" stroke="#15141F" strokeWidth="3"/>
-        <g>
-          <text x="7" y="56" fill="#FF5533" fontFamily="Arial,sans-serif" fontWeight="900" fontSize="32" textLength="112" lengthAdjust="spacingAndGlyphs">TICKET</text>
-          <text x="5" y="54" fill="#15141F" fontFamily="Arial,sans-serif" fontWeight="900" fontSize="32" textLength="112" lengthAdjust="spacingAndGlyphs">TICKET</text>
-          <path d="M13 65H115V79C108 79 105 86 105 90C105 94 108 101 115 101V115H13V101C20 101 23 94 23 90C23 86 20 79 13 79Z" fill="#F4B400" stroke="#15141F" strokeWidth="3" strokeLinejoin="round"/>
-          <text x="30" y="101" fill="#15141F" fontFamily="Arial,sans-serif" fontWeight="900" fontSize="27" textLength="73" lengthAdjust="spacingAndGlyphs">TREAT</text>
-        </g>
-      </svg>
-    </div>,{width:size,height:size},
+    <div style={{width:size,height:size,display:"flex"}}>
+      <img src={image} alt="TicketTreat" width={size} height={size}/>
+    </div>, {width:size,height:size}
   );
 }
