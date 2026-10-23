@@ -114,5 +114,5 @@ test("Google linking explains missing TicketTreat password instead of silently d
   const button=page.getByRole("button",{name:/Link Google account|Привязать Google|Propojit účet Google|Прив’язати Google/});
   await expect(button).toBeEnabled();
   await button.click();
-  await expect(page.getByRole("alert")).toContainText(/password|пароль|heslo/i);
+  await expect(page.getByText(/Enter your TicketTreat account password first|Сначала введи пароль от аккаунта TicketTreat|Nejdříve zadej heslo TicketTreat|Спочатку введи пароль TicketTreat/)).toBeVisible();
 });
