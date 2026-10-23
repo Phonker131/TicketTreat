@@ -94,3 +94,9 @@ body { background-image: none; }
 .event-card-accent span { border-radius: 0; }
 .event-card-accent .accent-you { border-radius: 0; }
 @media(max-width:360px){ .topbar-inner{ gap:6px; } .topbar-nav{font-size:11px;} .wordmark{font-size:20px;} .topbar-actions{min-width:0;} }
+
+/* Official brand-book horizontal wordmark: preserve original aspect ratio. */
+.wordmark { flex: 0 1 auto; min-width: 0; line-height: 0; }
+.wordmark-logo { display: block; width: clamp(142px, 20vw, 238px); height: auto; max-width: 100%; }
+@media (max-width: 480px) { .wordmark-logo { width: clamp(136px, 38vw, 172px); } }
+@media (max-width: 360px) { .wordmark-logo { width: 132px; } }
