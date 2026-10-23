@@ -78,6 +78,9 @@ class QRWaitlistE2E(unittest.TestCase):
             self.assertEqual(main.get_registered_count(SessionLocal(),event_id),1)
 
             headers={"Authorization":"Bearer "+access}
+            account_data=client.get("/demo/auth/me",headers=headers)
+            self.assertEqual(account_data.status_code,200,account_data.text)
+            self.assertEqual(account_data.json()["guest"]["access_token"],"")
             self.assertEqual(client.post("/demo/manage/check-in",headers=headers,json={"qr_token":qr}).status_code,403)
             setup=client.post("/demo/auth/mfa/start",headers=headers,json={"current_password":pw})
             self.assertEqual(setup.status_code,200,setup.text)
