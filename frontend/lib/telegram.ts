@@ -39,5 +39,7 @@ export function getTelegramWebApp(): TelegramWebApp | null {
 }
 
 export function isTelegramWebApp(): boolean {
-  // The Telegram SDK can be present in an ordinary browser as well; only\n  // signed launch data distinguishes a real Telegram Mini App session.\n  return Boolean(getTelegramWebApp()?.initData);
+  // The Telegram SDK can be present in an ordinary browser as well; only
+  // signed launch data distinguishes a real Telegram Mini App session.
+  return Boolean(getTelegramWebApp()?.initData);
 }
