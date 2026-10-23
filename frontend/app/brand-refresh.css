@@ -155,12 +155,66 @@ body { background-image: none; }
   .profile-fact .button { min-height: 36px; padding: 7px 11px; font-size: 12px; }
 }
 
-/* Shared support footer on every website and Mini App page. */
-.tt-support-footer { width: min(100% - 40px, var(--tt-maxw)); margin: 28px auto 24px; padding: 18px 0 max(18px, env(safe-area-inset-bottom)); border-top: 2px solid var(--tt-keyline); display: flex; justify-content: flex-end; }
-.tt-support-footer a { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 10px 17px; background: var(--tt-mustard); color: var(--tt-keyline); border: 2px solid var(--tt-keyline); border-radius: var(--tt-radius-pill); box-shadow: 3px 3px 0 var(--tt-keyline); font-family: var(--tt-font-ui); font-size: 14px; font-weight: 800; text-decoration: none; }
-.tt-support-footer a:hover { background: var(--tt-tomato); }
-.tt-support-footer a:focus-visible { outline: 3px solid var(--tt-ultramarine); outline-offset: 4px; }
-@media (max-width: 480px) { .tt-support-footer { width: calc(100% - 28px); justify-content: center; } .tt-support-footer a { font-size: 13px; } }
+/* Shared legal footer on every public and signed-in website/Mini App page. */
+.tt-support-footer.tt-legal-footer {
+  box-sizing:border-box;
+  width:min(100% - 40px, var(--tt-maxw));
+  margin:48px auto 24px;
+  padding:28px 0 max(25px,env(safe-area-inset-bottom));
+  border-top:2px solid var(--tt-keyline);
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:24px 40px;
+  color:var(--tt-keyline);
+}
+.tt-legal-footer-brand { display:grid; gap:6px; min-width:0; }
+.tt-support-footer .tt-legal-footer-home {
+  display:inline-flex; width:fit-content; gap:10px; align-items:center; min-height:48px;
+  border:0; border-radius:0; background:transparent; box-shadow:none; padding:0;
+  color:var(--tt-keyline); font-size:22px; font-weight:900; letter-spacing:-.055em;
+  text-decoration:none;
+}
+.tt-legal-footer-home img { width:40px; height:40px; object-fit:contain; }
+.tt-support-footer .tt-legal-footer-home:hover { background:transparent; color:var(--tt-fire); }
+.tt-legal-footer-brand small { color:var(--tt-keyline); opacity:.74; font-size:13px; }
+.tt-legal-footer-brand p { margin:3px 0 0; color:var(--tt-keyline); opacity:.7; font-size:12px; line-height:1.6; }
+.tt-legal-footer-links { display:flex; flex-wrap:wrap; gap:8px 22px; align-items:center; justify-content:flex-end; max-width:100%; }
+.tt-support-footer .tt-legal-footer-links a {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:44px; padding:9px 0; background:transparent; color:var(--tt-keyline);
+  border:0; border-bottom:2px solid transparent; border-radius:0; box-shadow:none;
+  font-family:var(--tt-font-ui); font-size:14px; font-weight:750;
+  text-decoration:none; white-space:normal;
+}
+.tt-support-footer .tt-legal-footer-links a:hover {
+  color:var(--tt-fire); background:transparent; border-bottom-color:currentColor;
+}
+.tt-support-footer .tt-legal-footer-links a:last-child {
+  padding:10px 16px; min-height:44px; border:2px solid var(--tt-keyline);
+  border-radius:var(--tt-radius-pill); background:var(--tt-mustard);
+  box-shadow:3px 3px 0 var(--tt-keyline);
+}
+.tt-support-footer .tt-legal-footer-links a:last-child:hover { background:var(--tt-tomato); color:var(--tt-keyline); }
+.tt-support-footer a:focus-visible { outline:3px solid var(--tt-ultramarine); outline-offset:4px; }
+@media(max-width:700px) {
+  .tt-support-footer.tt-legal-footer { width:calc(100% - 28px); margin-top:32px; flex-direction:column; align-items:stretch; gap:12px; }
+  .tt-legal-footer-links { justify-content:flex-start; gap:4px 20px; }
+  .tt-support-footer .tt-legal-footer-links a { font-size:13px; }
+}
+
+/* Legal pages – shared readable, accessible styles matching TicketTreat brand. */
+.tt-legal-page { max-width:920px; }
+.tt-legal-page .tt-legal-title { font-family:var(--tt-font-display); font-size:clamp(32px,5vw,54px); font-weight:900; letter-spacing:-.045em; line-height:1.07; margin:16px 0 10px; }
+.tt-legal-page .tt-legal-intro { font-size:clamp(16px,2vw,19px); line-height:1.6; max-width:70ch; }
+.tt-legal-page .tt-legal-updated { font-size:13px; font-weight:700; opacity:.72; margin:0 0 24px; }
+.tt-legal-content { border:2px solid var(--tt-keyline); background:var(--tt-white); border-radius:22px; padding:clamp(18px,4vw,38px); box-shadow:4px 4px 0 var(--tt-keyline); }
+.tt-legal-content section + section { border-top:1px solid #dad6d0; margin-top:24px; padding-top:20px; }
+.tt-legal-content h2 { font-size:clamp(20px,2.6vw,24px); letter-spacing:-.025em; margin:0 0 10px; }
+.tt-legal-content p,.tt-legal-content li { line-height:1.7; overflow-wrap:anywhere; }
+.tt-legal-content p { margin:8px 0; }
+.tt-legal-content ul { padding-left:23px; margin:10px 0; }
+.tt-legal-content a { color:var(--tt-ultramarine); text-underline-offset:3px; }
 
 /* Organizer reminder controls — TicketTreat brand book inspired, touch first. */
 .tt-reminder-editor { display:grid; gap:14px; padding:20px; background:#f0ebe1; border:2px solid #151321; border-radius:22px; box-shadow:4px 4px 0 #151321; }
