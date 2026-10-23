@@ -210,7 +210,7 @@ export function AdminEventClient(){
     try{const result=await sendEventAnnouncement(token,eventId,{
       category:announcementCategory,message:announcementText.trim()});
       setAnnouncementText("");await reload();
-      setNotice(`Сообщение добавлено в очередь для ${result.eligible_verified_ticket_holders} участников.`);
+      setNotice(`В очереди: ${result.eligible_notification_deliveries} доставок через email и/или Telegram.`);
     }catch(e){setError(formattedError(e));}
     finally{setBusy(false);}
   }
