@@ -64,6 +64,23 @@ class TelegramNotificationTests(unittest.TestCase):
         self.assertEqual({r["event_key"] for r in rows}, {"tg:notice:123:111", "tg:notice:123:222"})
         self.assertEqual([r["language"] for r in rows], ["cs", "ru"])
 
+    def test_cancellation_fans_out_to_telegram_without_resend(self):
+        from demo_email import queue_event_notice, EventNotice
+        db = Mock()
+        event = example_event()
+        with patch("demo_email.configured", return_value=False), \
+             patch("demo_telegram_notifications.configured", return_value=True), \
+             patch("importlib.import_module", return_value=SimpleNamespace()), \
+             patch("demo_telegram_notifications.queue_notice", return_value=2) as enqueue:
+            count = queue_event_notice(
+                db, event=event, kind="cancel", message="Organizer unavailable"
+            )
+        self.assertEqual(count, 2)
+        self.assertIsInstance(db.add.call_args.args[0], EventNotice)
+        self.assertEqual(db.add.call_args.args[0].kind, "cancel")
+        db.flush.assert_called_once()
+        enqueue.assert_called_once()
+
     def test_future_interval_not_queued_before_due_window(self):
         now = datetime(2026, 11, 1, 12, 0, tzinfo=timezone.utc)
         event = example_event(starts_at=datetime(2026, 11, 6, 20, 0))
