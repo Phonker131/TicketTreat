@@ -58,6 +58,7 @@ export function AdminEventClient(){
   const [gallery,setGallery]=useState(""),[video,setVideo]=useState("");
   const [startsAt,setStartsAt]=useState(""),[capacity,setCapacity]=useState("30");
   const [price,setPrice]=useState("0"),[currency,setCurrency]=useState("CZK");
+  const [paymentInstructions,setPaymentInstructions]=useState("");
   const [languages,setLanguages]=useState<LanguageCode[]>(["en","ru"]);
   async function reload(){
     const token=getWebToken();if(!token)throw new Error("Сначала войди в профиль.");
@@ -74,6 +75,7 @@ export function AdminEventClient(){
     setDescription(ev.description||"");setGallery((ev.external_gallery_urls||ev.gallery_urls||[]).filter(s=>!s.startsWith("/api/gateway/demo/events/")).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
     setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
+    setPaymentInstructions(ev.payment_instructions||"");
     setOwner(ev.owner_account_id==null?"":String(ev.owner_account_id));
     if(me.role==="global_admin"){
       const [list,history]=await Promise.all([
@@ -113,6 +115,7 @@ export function AdminEventClient(){
         gallery_urls:gallery.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),video_url:video.trim(),
         country_code:"CZ",city:"",
         max_participants:Number(capacity),price:String(price),
+        payment_instructions:paymentInstructions.trim(),
         currency,starts_at:startsAt+":00",languages,
       };
       if(image)payload.poster_data_url=image;
