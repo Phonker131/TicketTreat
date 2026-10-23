@@ -154,3 +154,10 @@ body { background-image: none; }
 @media (max-width: 480px) {
   .profile-fact .button { min-height: 36px; padding: 7px 11px; font-size: 12px; }
 }
+
+/* Shared support footer on every website and Mini App page. */
+.tt-support-footer { width: min(100% - 40px, var(--tt-maxw)); margin: 28px auto 24px; padding: 18px 0 max(18px, env(safe-area-inset-bottom)); border-top: 2px solid var(--tt-keyline); display: flex; justify-content: flex-end; }
+.tt-support-footer a { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 10px 17px; background: var(--tt-mustard); color: var(--tt-keyline); border: 2px solid var(--tt-keyline); border-radius: var(--tt-radius-pill); box-shadow: 3px 3px 0 var(--tt-keyline); font-family: var(--tt-font-ui); font-size: 14px; font-weight: 800; text-decoration: none; }
+.tt-support-footer a:hover { background: var(--tt-tomato); }
+.tt-support-footer a:focus-visible { outline: 3px solid var(--tt-ultramarine); outline-offset: 4px; }
+@media (max-width: 480px) { .tt-support-footer { width: calc(100% - 28px); justify-content: center; } .tt-support-footer a { font-size: 13px; } }
