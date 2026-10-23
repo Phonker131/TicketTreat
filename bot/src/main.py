@@ -4811,7 +4811,11 @@ def handle_photo(message):
 # =========================================================
 # Start polling
 # =========================================================
-# Optional, one-shot deployment maintenance action. No changes to polling behavior.\nfrom brand_avatar import apply_avatar_on_startup\napply_avatar_on_startup()\n\nprint("BOT STARTED")
+# Optional, one-shot deployment maintenance action. No changes to polling behavior.
+from brand_avatar import apply_avatar_on_startup
+apply_avatar_on_startup()
+
+print("BOT STARTED")
 
 # Event reminders are now delivered by the durable Demo API Telegram outbox.
 # Do not run the legacy one-shot bot reminder worker: it would double-send
