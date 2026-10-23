@@ -1,16 +1,13 @@
 import {ImageResponse} from "next/og";
 
-// TicketTreat 1.0 official ticket mark; matches public/tickettreat-mark.svg.
-export function ticketTreatIcon(size: number): ImageResponse {
-  const scale = size / 192;
+// Raster formats (Apple touch icon, PWA) use the same approved
+// two-line TicketTreat wordmark/ticket art as public/favicon.svg.
+const svg="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\" width=\"128\" height=\"128\"><rect width=\"128\" height=\"128\" rx=\"15\" fill=\"#F0EBE1\"/><g transform=\"translate(5 8) scale(.392)\"><text x=\"5\" y=\"100\" font-family=\"Archivo Black,Arial,sans-serif\" font-size=\"105\" font-weight=\"900\" fill=\"#FF5533\" textLength=\"294\" lengthAdjust=\"spacingAndGlyphs\">TICKET</text><text x=\"0\" y=\"96\" font-family=\"Archivo Black,Arial,sans-serif\" font-size=\"105\" font-weight=\"900\" fill=\"#15141F\" textLength=\"294\" lengthAdjust=\"spacingAndGlyphs\">TICKET</text><g transform=\"translate(0 121)\"><path d=\"M6,0 L294,0 A6,6 0 0 1 300,6 L300,39 A11,11 0 0 0 300,61 L300,94 A6,6 0 0 1 294,100 L6,100 A6,6 0 0 1 0,94 L0,61 A11,11 0 0 0 0,39 L0,6 A6,6 0 0 1 6,0 Z\" transform=\"translate(6,5)\" fill=\"#F4B400\"/><path d=\"M6,0 L294,0 A6,6 0 0 1 300,6 L300,39 A11,11 0 0 0 300,61 L300,94 A6,6 0 0 1 294,100 L6,100 A6,6 0 0 1 0,94 L0,61 A11,11 0 0 0 0,39 L0,6 A6,6 0 0 1 6,0 Z\" fill=\"none\" stroke=\"#15141F\" stroke-width=\"5\"/><text x=\"20\" y=\"82\" font-family=\"Archivo Black,Arial,sans-serif\" font-size=\"94\" font-weight=\"900\" fill=\"#15141F\" textLength=\"262\" lengthAdjust=\"spacingAndGlyphs\">TREAT</text></g></g></svg>";
+export function ticketTreatIcon(size:number):ImageResponse {
+  const image="data:image/svg+xml;base64,"+btoa(svg);
   return new ImageResponse(
-    <div style={{display:"flex",width:"100%",height:"100%",alignItems:"center",justifyContent:"center",background:"#FF5533",borderRadius:Math.round(size*34/192),position:"relative"}}>
-      <svg width={size} height={size} viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
-        <path d="M46 61h100a12 12 0 0 1 12 12v10a13 13 0 0 0 0 26v10a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12v-10a13 13 0 0 0 0-26V73a12 12 0 0 1 12-12Z" fill="#F0EBE1" stroke="#15141F" strokeWidth="6"/>
-        <path d="M54 81h38m-19 0v37m20-37h38m-19 0v37" stroke="#15141F" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx="150" cy="41" r="18" fill="#F4B400" stroke="#15141F" strokeWidth="5"/>
-      </svg>
-    </div>,
-    {width:size,height:size}
+    <div style={{width:size,height:size,display:"flex"}}>
+      <img src={image} alt="TicketTreat" width={size} height={size}/>
+    </div>, {width:size,height:size}
   );
 }
