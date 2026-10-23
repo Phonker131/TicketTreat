@@ -459,6 +459,32 @@ export function linkTelegramToWebsite(token:string,initData:string):Promise<{lin
 }
 
 export type BookingConfig = {demo_payment_mode:boolean;real_money_charged:boolean;verified_accounts_required:boolean};
+export type PaidReservation = {
+  id:number;event_id:number;status:"pending"|"confirmed"|"expired"|"declined";
+  created_at:string;expires_at:string;confirmed_at:string|null;
+  guest?:{first_name:string;last_name:string|null;email:string|null};
+};
+export type PaidReservationStatus = {status:PaidReservation["status"]|"not_joined";
+  reservation:PaidReservation|null;payment_instructions:string|null;};
+export function requestPaidReservation(eventId:number,language:"en"|"cs"|"ru"|"uk",source="direct"):
+  Promise<{reservation:PaidReservation;payment_instructions:string|null}>{
+  return request(`/demo/me/events/${eventId}/paid-reservations`,{
+    method:"POST",body:JSON.stringify({language,source}),
+  });
+}
+export function getOwnPaidReservation(eventId:number):Promise<PaidReservationStatus>{
+  return request(`/demo/me/events/${eventId}/paid-reservations`);
+}
+export function getManagePaidReservations(token:string,eventId:number):Promise<{reservations:PaidReservation[]}>{
+  return request(`/demo/manage/events/${eventId}/paid-reservations`,{headers:accountHeaders(token)});
+}
+export function decidePaidReservation(token:string,eventId:number,reservationId:number,
+  action:"confirm"|"decline"):Promise<{status:string;ticket_id?:number}>{
+  return request(`/demo/manage/events/${eventId}/paid-reservations/${reservationId}/${action}`,{
+    method:"POST",headers:accountHeaders(token)
+  });
+}
+
 export function getBookingConfig():Promise<BookingConfig> {
   return request("/demo/config");
 }
