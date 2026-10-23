@@ -189,7 +189,7 @@ export function CheckoutClient() {
                     setMessage("Email подтверждён. Можете получить бесплатный билет.");
                   }catch(err){setMessage(err instanceof Error?err.message:"Error");}finally{setBusy(false);}}}>
                   <label>{language==="ru"?"Одноразовый код (8 цифр)":"One-time 8-digit code"}
-                    <input inputMode="numeric" pattern="[0-9]{8}" maxLength={8}
+                    <input type="text" name="one-time-code" autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{8}" maxLength={8}
                       required value={quickCode} onChange={e=>setQuickCode(e.target.value)}/>
                   </label>
                   <button className="button button-primary" disabled={busy||quickCode.length!==8}>
