@@ -180,3 +180,49 @@ body { background-image: none; }
 .tt-reminder-label textarea { resize:vertical; min-height:112px; background:#fff; color:#151321; border-radius:14px; border:2px solid #151321; padding:12px; }
 .tt-reminder-label small { text-align:right; font-size:12px; font-weight:500; }
 @media (max-width:520px) { .tt-reminder-editor { padding:14px; box-shadow:3px 3px 0 #151321; } .tt-reminder-custom { grid-template-columns:minmax(75px,1fr) minmax(90px,1fr); } .tt-reminder-custom .button { grid-column:1/-1; width:100%; } }
+
+/* Protected broadcasts: mobile-first, consistent with the printed-ticket palette. */
+.tt-broadcast-page{max-width:880px}
+.tt-broadcast-page .panel{display:grid;gap:18px}
+.tt-broadcast-scope{display:flex;flex-wrap:wrap;gap:12px}
+.tt-broadcast-scope .button{flex:1 1 190px;min-width:0;white-space:normal;text-align:center;justify-content:center}
+.tt-broadcast-preview{border:2px dashed #15141f;border-radius:18px;background:#f0ebe1;padding:16px;min-width:0}
+.tt-broadcast-preview p{white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0}
+.tt-broadcast-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tt-broadcast-stats>div{background:#f0ebe1;border:2px solid #15141f;border-radius:18px;padding:15px;display:grid;gap:4px}
+.tt-broadcast-stats strong{font-size:clamp(24px,4vw,36px);color:#15141f}
+.tt-broadcast-stats small{color:#615d62}
+.tt-broadcast-consent{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:12px;line-height:1.5;font-size:14px!important}
+.tt-broadcast-consent input{width:22px;height:22px;flex:none;margin:2px 0 0;accent-color:#ff5533}
+.tt-broadcast-history-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.tt-broadcast-history-heading h2{margin:0}
+.tt-broadcast-history{padding:16px;background:#f0ebe1;border:2px solid #15141f;border-radius:16px;min-width:0}
+.tt-broadcast-history>div{display:grid;gap:4px}
+.tt-broadcast-history strong,.tt-broadcast-history small{overflow-wrap:anywhere}
+.tt-broadcast-history p{margin:8px 0 0;font-size:14px}
+.tt-broadcast-history small{color:#5c5a63}
+/* Scanner: isolate the camera output from the form; prevent html5-qrcode inline dimensions from forcing overflow. */
+.tt-checkin-panel{display:grid;gap:18px;min-width:0}
+.tt-checkin-camera{width:100%;min-width:0;overflow:hidden;border-radius:18px;border:2px solid #15141f;background:#15141f}
+.tt-checkin-camera .scanner-box{width:100%!important;max-width:100%;min-width:0;min-height:200px;height:auto;overflow:hidden;border:0!important;border-radius:0}
+.tt-checkin-camera .scanner-box video,.tt-checkin-camera .scanner-box canvas{max-width:100%!important;height:auto!important;object-fit:cover}
+.tt-checkin-camera .scanner-box img{max-width:100%}
+.tt-checkin-camera .scanner-box button{max-width:100%;white-space:normal}
+.tt-checkin-camera-status{display:flex;align-items:center;gap:10px;min-width:0;padding:12px 14px;border:2px solid #15141f;background:#f0ebe1;border-radius:14px;font-size:14px;font-weight:750;line-height:1.4}
+.tt-checkin-camera-indicator{width:11px;height:11px;border-radius:50%;background:#f4b400;flex:none}
+.tt-checkin-controls{display:grid;gap:14px;min-width:0}
+.tt-checkin-manual{display:grid;gap:8px;min-width:0}
+.tt-checkin-manual label{font-weight:800;font-size:14px}
+.tt-checkin-manual input{width:100%;max-width:100%;min-width:0;min-height:50px}
+.tt-checkin-buttons{display:flex;align-items:stretch;flex-wrap:wrap;gap:12px}
+.tt-checkin-buttons .button{flex:1 1 170px;min-width:0;width:auto;margin:0;justify-content:center;white-space:normal;text-align:center}
+@media(max-width:520px){
+ .tt-checkin-panel{gap:13px;padding:14px}
+ .tt-checkin-buttons{display:grid;grid-template-columns:1fr;gap:10px}
+ .tt-checkin-buttons .button{width:100%;min-height:48px;flex:auto}
+ .tt-broadcast-page .panel{padding:15px}
+ .tt-broadcast-stats{gap:8px}
+ .tt-broadcast-stats>div{padding:10px}
+ .tt-broadcast-scope{display:grid;grid-template-columns:1fr}
+ .tt-broadcast-scope .button{width:100%}
+}
