@@ -70,8 +70,8 @@ class TelegramNotificationTests(unittest.TestCase):
         event = example_event()
         with patch("demo_email.configured", return_value=False), \
              patch("demo_telegram_notifications.configured", return_value=True), \
-             patch("importlib.import_module", return_value=SimpleNamespace()), \
-             patch("demo_telegram_notifications.queue_notice", return_value=2) as enqueue:
+             patch("demo_telegram_notifications.queue_notice", return_value=2) as enqueue, \
+             patch("importlib.import_module", return_value=SimpleNamespace()):
             count = queue_event_notice(
                 db, event=event, kind="cancel", message="Organizer unavailable"
             )
