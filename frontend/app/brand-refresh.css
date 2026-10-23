@@ -407,3 +407,17 @@ body { background-image: none; }
   .mode-pill.mode-pill-link{font-size:11px;padding:6px 9px;max-width:170px;white-space:normal;text-align:center;}
   .tt-pass-body{padding:20px;}
 }
+
+
+/* GDPR transparency: verified operator identity, missing-information warning, Czech notice. */
+.tt-legal-operator { border:2px solid var(--tt-keyline); background:var(--tt-paper); border-radius:16px; padding:18px 20px; margin:0 0 22px; }
+.tt-legal-operator h2 { font-size:20px; }
+.tt-legal-operator p { margin:8px 0; overflow-wrap:anywhere; }
+.tt-legal-pending { padding:13px 15px; border-left:4px solid var(--tt-tomato); background:#fff6eb; font-weight:650; }
+.tt-legal-language-note { padding:10px 0; font-size:14px; }
+.tt-legal-czech { scroll-margin-top:110px; }
+.tt-legal-czech p { margin:12px 0; }
+.tt-legal-czech p strong { color:var(--tt-keyline); }
+.tt-legal-at-collection { margin:8px 0; font-size:13px; line-height:1.55; }
+.tt-legal-at-collection a { text-decoration:underline; text-underline-offset:2px; }
+@media(max-width:480px) {.tt-legal-operator{padding:14px}.tt-legal-czech{scroll-margin-top:72px}}
