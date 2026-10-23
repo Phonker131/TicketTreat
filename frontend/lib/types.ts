@@ -118,5 +118,5 @@ export type ManageIdentity = {
   email: string;
   role: "participant" | "organizer" | "global_admin";
 };
-export type ManageEvent = TicketTreatEvent & {owner_account_id: number | null};
+export type ManageEvent = TicketTreatEvent & {owner_account_id: number | null;payment_instructions?:string};
 export type OrganizerIdentity = {account_id: number;name: string;email: string};
