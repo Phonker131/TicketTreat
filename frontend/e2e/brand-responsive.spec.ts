@@ -140,3 +140,62 @@ test("support admin page does not expose inbox to signed-out visitors",async({pa
   await expect(page.getByRole("heading",{name:"Служба поддержки"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Входящие тикеты"})).toHaveCount(0);
 });
+
+test("cookie consent is opt-in, rejecting persists and preferences can be changed",async({page})=>{
+  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  const banner=page.getByTestId("tt-cookie-banner");
+  await expect(banner).toBeVisible();
+  await expect(banner.getByRole("button",{name:"Allow Google Maps"})).toBeVisible();
+  await expect(banner.getByRole("button",{name:"Reject optional"})).toBeVisible();
+  await banner.getByRole("button",{name:"Reject optional"}).click();
+  await expect(banner).toHaveCount(0);
+  const consent=await page.evaluate(()=>JSON.parse(localStorage.getItem("tt_cookie_choice_v1")||"null"));
+  expect(consent.necessary).toBe(true);
+  expect(consent.externalMedia).toBe(false);
+  expect(consent.version).toBe("2026-10-23/maps-v1");
+  await page.reload();
+  await expect(banner).toHaveCount(0);
+  await page.locator("footer").getByRole("button",{name:"Cookie settings"}).click();
+  await expect(banner).toBeVisible();
+  await expect(banner.getByRole("checkbox",{name:"Embedded Google Maps"})).not.toBeChecked();
+  await banner.getByRole("checkbox",{name:"Embedded Google Maps"}).check();
+  await banner.getByRole("button",{name:"Save my choice"}).click();
+  await expect(banner).toHaveCount(0);
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem("tt_cookie_choice_v1")||"null").externalMedia)).toBe(true);
+  await page.goto("/cookie-policy?lang=en");
+  await expect(page.getByRole("heading",{name:"Cookie Policy / Zásady cookies"})).toBeVisible();
+  await page.getByRole("button",{name:"Cookie settings / Nastavení cookies"}).click();
+  await expect(banner).toBeVisible();
+  await banner.getByRole("button",{name:"Reject optional"}).click();
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem("tt_cookie_choice_v1")||"null").externalMedia)).toBe(false);
+});
+
+test("Google Maps iframe never loads until opt-in and is removed on withdrawal",async({page})=>{
+  const event={id:9373,title:"Venue map test",organizer:"Independent organizer",
+    location:"Prague 1",country_code:"CZ",city:"Prague",description:"Event test",
+    max_participants:20,registered_count:0,spots_left:20,
+    price:"0",currency:"CZK",languages:["en"],payment_required:false,
+    image_url:null,starts_at:"2026-12-11T18:00:00+01:00",is_cancelled:false};
+  await page.route("**/api/gateway/events/9373",route=>route.fulfill({
+    status:200,contentType:"application/json",body:JSON.stringify(event)}));
+  await page.goto("/events/9373?lang=en",{waitUntil:"domcontentloaded"});
+  await expect(page.getByTestId("tt-cookie-banner")).toBeVisible();
+  await page.getByRole("button",{name:"Reject optional"}).click();
+  await page.getByRole("button",{name:"Показать карту"}).click();
+  await expect(page.locator('iframe[src*="maps.google.com"]')).toHaveCount(0);
+  await expect(page.getByText("The embedded Google Maps frame requires optional consent.")).toBeVisible();
+  await page.getByRole("button",{name:"Manage cookie preferences"}).click();
+  await page.getByTestId("tt-cookie-banner").getByRole("button",{name:"Allow Google Maps"}).click();
+  await expect(page.locator('iframe[src*="maps.google.com"]')).toHaveCount(1);
+  await page.locator("footer").getByRole("button",{name:"Cookie settings"}).click();
+  await page.getByTestId("tt-cookie-banner").getByRole("button",{name:"Reject optional"}).click();
+  await expect(page.locator('iframe[src*="maps.google.com"]')).toHaveCount(0);
+});
+
+test("Cookie banner remains usable on 320px narrow devices",async({page})=>{
+  await page.setViewportSize({width:320,height:700});
+  await page.goto("/?lang=cs",{waitUntil:"domcontentloaded"});
+  await expect(page.getByRole("button",{name:"Odmítnout volitelné"})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Povolit Mapy Google"})).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+});
