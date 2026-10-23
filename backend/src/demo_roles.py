@@ -163,6 +163,8 @@ class CreateManageEvent(BaseModel):
     poster_data_url: str | None = Field(default=None, max_length=5700000)
     gallery_urls: list[str] = Field(default_factory=list)
     video_url: str | None = None
+    reminder_minutes: list[int] = Field(default_factory=lambda: [10080, 1440, 180], min_length=1, max_length=4)
+    reminder_text: str = Field(default="Your TicketTreat event starts soon.", max_length=1000)
 
 class UpdateManageEvent(BaseModel):
     country_code: str | None = Field(default=None, max_length=2)
@@ -179,6 +181,7 @@ class UpdateManageEvent(BaseModel):
     poster_data_url: str | None = Field(default=None, max_length=5700000)
     gallery_urls: list[str] | None = None
     video_url: str | None = None
+    reminder_text: str | None = Field(default=None, max_length=1000)
 
 class PublicationUpdate(BaseModel):
     status: str = Field(pattern="^(draft|published|scheduled)$")
@@ -379,20 +382,28 @@ def install_demo_roles(app, get_db, main):
         account: WebAccount=Depends(managing),db: Session=Depends(get_db),
     ):
         validate_payload(payload.languages,payload.currency)
+        from demo_pilot_ops import EventPilotSettings, validate_reminders
+        reminder_intervals = validate_reminders(payload.reminder_minutes)
+        reminder_message = payload.reminder_text.strip()
+        if not reminder_message:
+            raise HTTPException(422, "reminder_message_required")
         if payload.starts_at is None:
             raise HTTPException(status_code=422,detail="date_required")
         # Existing bot event-creation logic remains the source of truth.
-        values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url"})
+        values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","reminder_minutes"})
         validate_media_urls(payload.gallery_urls,payload.video_url)
         from main import EventCreate
         values["payment_instructions"]="DEMO PAYMENT — automatically confirmed" if payload.price > 0 else ""
-        values["reminder_minutes_before"]=180
-        values["reminder_text"]="Your TicketTreat event starts soon."
+        # The Telegram bot currently delivers one reminder, at the closest
+        # configured offset. Email can deliver all configured offsets.
+        values["reminder_minutes_before"]=min(reminder_intervals)
+        values["reminder_text"]=reminder_message
         created=main.create_event(EventCreate(**values),db=db)
         if not isinstance(created,dict) or "id" not in created:
             raise HTTPException(status_code=422,detail=created.get("error","create_failed") if isinstance(created,dict) else "create_failed")
         eid=created["id"]
         event=db.query(main.Event).filter(main.Event.id==eid).first()
+        db.add(EventPilotSettings(event_id=eid,reminder_minutes_json=json.dumps(reminder_intervals)))
         db.add(EventOwnership(event_id=eid,owner_account_id=account.id))
         set_publication(db,eid,"draft")
         save_place(db, DemoEventPlace, "event_id", eid, payload.country_code, payload.city)
@@ -494,6 +505,8 @@ def install_demo_roles(app, get_db, main):
             starts_at=payload.starts_at or source.starts_at,
             languages=languages,country_code=place.country_code,city=place.city,
             gallery_urls=external,video_url=video,poster_data_url=poster,
+            reminder_minutes=__import__("demo_pilot_ops").effective_settings(db, source.id)["reminder_minutes"],
+            reminder_text=(source.reminder_text or "Your TicketTreat event starts soon."),
         )
         # Copy only editorial media; fail before creating the new event if limits have changed.
         source_images=db.query(EventGalleryImage).filter(
@@ -530,6 +543,8 @@ def install_demo_roles(app, get_db, main):
         if not values and poster is None and gallery is None and video is None and geo_country is None and geo_city is None:
             raise HTTPException(status_code=422,detail="no_changes")
         validate_payload(values.get("languages"),values.get("currency"))
+        if "reminder_text" in values:
+            values["reminder_text"] = (values["reminder_text"] or "").strip() or "Your TicketTreat event starts soon."
         cap=values.get("max_participants",event.max_participants)
         if cap is not None and cap < main.get_registered_count(db,event_id):
             raise HTTPException(status_code=409,detail="capacity_below_registration_count")
