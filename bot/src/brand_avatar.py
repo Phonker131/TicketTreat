@@ -65,6 +65,8 @@ def update_bot_avatar(bot_token: str, photo_file: Path | None = None) -> bool:
 
 
 def apply_avatar_on_startup() -> None:
-    if os.getenv("TICKETTREAT_APPLY_BOT_PHOTO","").strip() != "1":
+    enabled = os.getenv("TICKETTREAT_APPLY_BOT_PHOTO","").strip() == "1"
+    print("TicketTreat avatar job enabled:", enabled, flush=True)
+    if not enabled:
         return
     update_bot_avatar(os.getenv("BOT_TOKEN","").strip())
