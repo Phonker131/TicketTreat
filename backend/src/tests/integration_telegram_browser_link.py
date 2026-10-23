@@ -107,6 +107,48 @@ class TelegramBrowserLinkTests(unittest.TestCase):
                 self.assertEqual(db.get(main.DemoGuest,web_id).telegram_id,telegram_id)
                 self.assertIsNone(db.get(main.DemoGuest,old).telegram_id)
 
+    def test_duplicate_free_passes_are_reconciled_without_double_booking(self):
+        from datetime import datetime, timezone
+        from decimal import Decimal
+        telegram_id=secrets.randbelow(10**12)+10**10
+        signed=signed_init_data(telegram_id)
+        _,web_id,bearer=website_account()
+        with TestClient(main.app) as client:
+            auth=client.post("/demo/telegram/auth",json={"init_data":signed})
+            self.assertEqual(auth.status_code,200,auth.text)
+            with SessionLocal() as db:
+                old_id=db.get(DemoTelegramIdentity,telegram_id).guest_id
+                event=main.Event(
+                    title="Duplicate CI free tickets", price=Decimal("0"),
+                    starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=3),
+                    max_participants=20,currency="CZK")
+                db.add(event);db.flush()
+                old_ticket=main.DemoTicket(
+                    event_id=event.id,guest_id=old_id,qr_token=secrets.token_urlsafe(32),
+                    ticket_status="active",payment_status="not_required",
+                    payment_provider="free",payment_amount="0",currency="CZK")
+                website_ticket=main.DemoTicket(
+                    event_id=event.id,guest_id=web_id,qr_token=secrets.token_urlsafe(32),
+                    ticket_status="active",payment_status="not_required",
+                    payment_provider="free",payment_amount="0",currency="CZK")
+                db.add_all([old_ticket,website_ticket]);db.flush()
+                old_ticket_id,website_id=old_ticket.id,website_ticket.id
+                db.commit()
+            start=client.post("/demo/telegram/link/start",
+                headers={"Authorization":"Bearer "+bearer})
+            self.assertEqual(start.status_code,200,start.text)
+            joined=client.post("/demo/telegram/link/claim",json={
+                "challenge":start.json()["challenge"],"init_data":signed})
+            self.assertEqual(joined.status_code,200,joined.text)
+            self.assertEqual(joined.json()["deduplicated_free_tickets"],1)
+            with SessionLocal() as db:
+                self.assertEqual(db.get(main.DemoTicket,website_id).ticket_status,"active")
+                self.assertEqual(db.get(main.DemoTicket,old_ticket_id).ticket_status,"cancelled")
+                active=db.query(main.DemoTicket).filter(
+                    main.DemoTicket.event_id==event.id,
+                    main.DemoTicket.ticket_status=="active").count()
+                self.assertEqual(active,1)
+
     def test_one_code_is_bound_to_website_and_expires(self):
         owner,owner_guest,bearer=website_account()
         other,other_guest,other_bearer=website_account()
