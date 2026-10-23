@@ -69,8 +69,9 @@ class SignupData(BaseModel):
     guest_token: str | None = Field(default=None, max_length=128)
     language: str = Field(default="en", max_length=8)
     account_role: str = Field(default="participant", pattern="^(participant|organizer)$")
-    country_code: str = Field(min_length=2, max_length=2)
-    city: str = Field(min_length=1, max_length=100)
+    # Czech pilot: geographic fields are not required for attendee signup.
+    country_code: str = Field(default="CZ", min_length=2, max_length=2)
+    city: str = Field(default="", max_length=100)
 
 
 class LoginData(BaseModel):
