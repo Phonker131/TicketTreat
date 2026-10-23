@@ -155,6 +155,8 @@ jobs:
           curl --retry 40 --retry-delay 2 --retry-connrefused --fail --silent http://127.0.0.1:3000/ > /dev/null
       - name: Browser registration, session and CSRF smoke tests
         working-directory: frontend
+        env:
+          TICKETTREAT_E2E_PRESTARTED_SERVER: "1"
         run: npm run test:e2e
       - name: Print only failure diagnostics
         if: failure()
