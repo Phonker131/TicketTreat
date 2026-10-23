@@ -483,7 +483,11 @@ def _send_resend(payload: dict, unique_key: str) -> str:
     headers = {
         "Authorization": "Bearer " + api_key,
         "Content-Type": "application/json",
-        "Idempotency-Key": "crowdly-" + hashlib.sha256(unique_key.encode()).hexdigest()[:48],
+        "Accept": "application/json",
+        # Explicit client identity: Python-urllib's default UA can be rejected
+        # by CDN bot protection before the provider sees the API request.
+        "User-Agent": "TicketTreat-Mailer/1.0 (+https://tickettreat.eu)",
+        "Idempotency-Key": "tickettreat-" + hashlib.sha256(unique_key.encode()).hexdigest()[:48],
     }
     req = urllib.request.Request(
         "https://api.resend.com/emails", data=body, headers=headers, method="POST",
@@ -493,8 +497,39 @@ def _send_resend(payload: dict, unique_key: str) -> str:
             data = json.loads(response.read(12000).decode("utf-8"))
             return str(data.get("id") or "")
     except urllib.error.HTTPError as exc:
-        # No sensitive message contents/API credentials in logs.
-        raise EmailDeliveryError(f"resend_http_{exc.code}_check_resend_domain_and_api_key_permissions", exc.code in {400, 401, 403, 422}) from None
+        # Classify the upstream error without ever logging tokens, recipients,
+        # message bodies or untrusted free-form provider response text.
+        reason = "unclassified"
+        try:
+            response_text = exc.read(4096).decode("utf-8", errors="replace")
+            response_type = (exc.headers.get("Content-Type") or "").lower()
+            if "error code: 1010" in response_text.lower():
+                reason = "edge_bot_signature_block"
+            elif "application/json" in response_type or response_text.lstrip().startswith("{"):
+                response_data = json.loads(response_text)
+                if isinstance(response_data, dict):
+                    description = str(response_data.get("message") or response_data.get("error") or "").lower()
+                    category = str(response_data.get("name") or "").lower()
+                    if "testing emails" in description and "own email" in description:
+                        reason = "sender_testing_only"
+                    elif "domain" in description and ("not verified" in description or "not authorized" in description):
+                        reason = "sender_domain_not_authorized"
+                    elif "api key" in description and ("permission" in description or "restricted" in description):
+                        reason = "key_permission_denied"
+                    elif category in {"validation_error", "authorization_error", "authentication_error", "rate_limit_exceeded"}:
+                        reason = category
+                    else:
+                        reason = "provider_json_rejection"
+            elif "cloudflare" in response_text.lower() or "text/html" in response_type:
+                reason = "edge_html_block"
+            else:
+                reason = "provider_non_json_rejection"
+        except (ValueError, TypeError, OSError):
+            reason = "malformed_provider_response"
+        raise EmailDeliveryError(
+            f"resend_http_{exc.code}_{reason}",
+            exc.code in {400, 401, 403, 422},
+        ) from None
     except (urllib.error.URLError, TimeoutError, ValueError) as exc:
         raise EmailDeliveryError(type(exc).__name__, False) from None
 
@@ -567,6 +602,24 @@ def install_email_worker(app, session_factory) -> None:
 
         def run():
             LOGGER.info("TicketTreat email outbox worker started.")
+            # Opt-in production smoke test, addressed ONLY to the configured
+            # first global administrator. Idempotency prevents duplicate mail
+            # if Railway restarts a container during the same test.
+            if os.getenv("EMAIL_SMOKE_TEST", "").strip().lower() in {"true", "1", "yes"}:
+                owner = os.getenv("GLOBAL_ADMIN_EMAILS", "").split(",", 1)[0].strip()
+                if "@" not in owner or not owner or len(owner) > 255:
+                    LOGGER.error("TicketTreat email smoke test skipped: no configured admin recipient")
+                else:
+                    try:
+                        smoke_id = _send_resend({
+                            "from": os.environ["EMAIL_FROM"].strip(),
+                            "to": [owner],
+                            "subject": "TicketTreat delivery integration check",
+                            "text": "Automated test of the TicketTreat production email integration. No action is needed.",
+                        }, "ticketreat-email-smoke-2026-10-23-ua-fix")
+                        LOGGER.info("TicketTreat email smoke test accepted by Resend: provider_id=%s", smoke_id)
+                    except EmailDeliveryError as exc:
+                        LOGGER.error("TicketTreat email smoke test failed: provider_error=%s", str(exc))
             while True:
                 try:
                     for _ in range(MAX_EMAILS_PER_WORKER_CYCLE):
