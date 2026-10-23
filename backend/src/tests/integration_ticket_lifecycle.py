@@ -125,6 +125,14 @@ class QRWaitlistE2E(unittest.TestCase):
             self.assertEqual(scan.json()["status"],"checked_in")
             self.assertNotIn("qr_token",scan.json()["ticket"])
             self.assertNotIn("access_token",scan.json()["ticket"].get("guest",{}))
+            # Repeated QR scans must not issue duplicate admission audit records.
+            again=client.post("/demo/manage/check-in",headers=headers,json={"qr_token":qr})
+            self.assertEqual(again.status_code,200,again.text)
+            from demo_roles import EventModerationLog
+            with SessionLocal() as audit_db:
+                self.assertEqual(audit_db.query(EventModerationLog).filter(
+                    EventModerationLog.event_id==event_id,
+                    EventModerationLog.action=="checkin").count(),1)
             attendees=client.get(f"/demo/manage/events/{event_id}/participants",headers=headers)
             self.assertEqual(attendees.status_code,200,attendees.text)
             for entry in attendees.json()["tickets"]:
