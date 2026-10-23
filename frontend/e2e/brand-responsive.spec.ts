@@ -53,6 +53,7 @@ test("homepage footer exposes Google OAuth legal links and copyright for guests"
   await expect(footer.getByText(/© 20\d\d TicketTreat/)).toBeVisible();
   await expect(footer.getByRole("link",{name:"Privacy Policy"})).toHaveAttribute("href","/privacy-policy");
   await expect(footer.getByRole("link",{name:"Terms of Service"})).toHaveAttribute("href","/terms");
+  await expect(footer.getByRole("link",{name:"Legal Notice / Provozovatel"})).toHaveAttribute("href","/legal-notice");
 });
 
 test("legal footer and documents are accessible on narrow screens without sign-in", async ({page}) => {
@@ -84,4 +85,10 @@ test("account signup shows notice at collection without bundled marketing consen
   const form=page.locator("form.panel.form-stack").first();
   await expect(form.getByRole("link",{name:/Privacy Policy|политикой конфиденциальности|zásady ochrany osobních údajů|політикою конфіденційності/})).toHaveAttribute("href","/privacy-policy");
   await expect(form.getByRole("link",{name:/Terms of Service|условиями использования|obchodní podmínky|умовами користування/})).toHaveAttribute("href","/terms");
+});
+
+test("public operator notice is available without signing in",async({page})=>{
+  await page.goto("/legal-notice",{waitUntil:"domcontentloaded"});
+  await expect(page.getByRole("heading",{name:"Legal Notice / Provozovatel"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Operator / Provozovatel a správce údajů"})).toBeVisible();
 });
