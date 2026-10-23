@@ -125,9 +125,10 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
                 : (language==="ru"?"Платёж производится напрямую организатору, не через TicketTreat. Уточни у организатора способ оплаты, регистрацию и возврат.":language==="cs"?"Platba probíhá přímo pořadateli, nikoli přes TicketTreat. Podmínky platby, registrace a vrácení peněz sdělí pořadatel.":language==="uk"?"Оплата здійснюється безпосередньо організатору, а не через TicketTreat. Уточни в організатора умови оплати, реєстрації та повернення.":"Payment is arranged directly with the organizer, not through TicketTreat. Ask the organizer about payment, registration and refunds.")}</p>
             </div>
             {Number(event.price||0)>0 ? (
-              event.spots_left===0 ? <span className="status status-danger">{t(language,"soldOut")}</span> :
               <Link className="button button-primary" href={`/checkout/${event.id}`}>
-                {language==="ru"?"Заявка на оплату — 24 часа":language==="cs"?"Rezervovat na 24 hodin":language==="uk"?"Заявка на оплату — 24 години":"Reserve for 24 hours"}
+                {event.spots_left===0
+                  ? (language==="ru"?"Проверить мою заявку":language==="cs"?"Zkontrolovat žádost":language==="uk"?"Перевірити заявку":"Check my application")
+                  : (language==="ru"?"Заявка на оплату — 24 часа":language==="cs"?"Rezervovat na 24 hodin":language==="uk"?"Заявка на оплату — 24 години":"Reserve for 24 hours")}
               </Link>
             ) : event.spots_left === 0 ? (
               <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}`}>{t(language, "waitlist")}</Link>
