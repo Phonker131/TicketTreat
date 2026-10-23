@@ -81,8 +81,7 @@ test("Czech and EU legal pages publish controller status and consumer-law detail
 test("account signup shows notice at collection without bundled marketing consent",async({page})=>{
   await page.goto("/profile",{waitUntil:"domcontentloaded"});
   await page.locator(".auth-tabs button").first().click();
-  const form=page.locator("form").filter({has:page.getByRole("button",{name:/Create account|Создать аккаунт|Vytvořit účet|Створити акаунт/})}).first();
-  const target=form.count();
+  const form=page.locator("form.panel.form-stack").first();
   await expect(form.getByRole("link",{name:/Privacy Policy|политикой конфиденциальности|zásady ochrany osobních údajů|політикою конфіденційності/})).toHaveAttribute("href","/privacy-policy");
   await expect(form.getByRole("link",{name:/Terms of Service|условиями использования|obchodní podmínky|умовами користування/})).toHaveAttribute("href","/terms");
 });
