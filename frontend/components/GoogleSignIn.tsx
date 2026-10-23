@@ -26,7 +26,7 @@ export function GoogleSignIn({link=false}:{link?:boolean}) {
   async function start() {
     setBusy(true);setMessage("");
     try {
-      const headers:Record<string,string>={"Content-Type":"application/json","X-Crowdly-Client":"1"};
+      const headers:Record<string,string>={"Content-Type":"application/json","X-TicketTreat-Client":"1"};
       if(link) headers.Authorization="Bearer "+getWebToken();
       const response=await fetch("/api/gateway/demo/auth/google/start",{method:"POST",headers,
         body:JSON.stringify({link,current_password:link?password:undefined})});
