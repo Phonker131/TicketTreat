@@ -3304,6 +3304,7 @@ def demo_admin_check_in(
     ticket = (
         db.query(DemoTicket)
         .filter(DemoTicket.qr_token == qr_token)
+        .with_for_update()
         .first()
     )
 
