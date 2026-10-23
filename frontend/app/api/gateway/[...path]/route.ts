@@ -61,7 +61,7 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   // paths only, forward the HttpOnly browser session so an event owner can
   // preview draft posters/galleries. The backend still checks ownership.
   // Never apply implicit sessions to arbitrary GET endpoints.
-  if (method === "GET" && /^\/demo\/events\/\d+\/(?:poster|gallery\/\d+)$/.test(relative)) {
+  if (method === "GET" && (/^\/demo\/events\/\d+\/(?:poster|gallery\/\d+)$/.test(relative) ||\n      /^\/demo\/me\/tickets\/\d+\/wallet$/.test(relative))) {
     const imageSession = req.cookies.get(COOKIE)?.value;
     if (imageSession && !headers.has("Authorization"))
       headers.set("Authorization", "Bearer " + imageSession);
@@ -85,6 +85,11 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   }
   const outType=upstream.headers.get("content-type")||"application/json";
   const init:ResponseInit={status:upstream.status,headers:{"Content-Type":outType,"Cache-Control":"private, no-store"}};
+  if (/^\/demo\/me\/tickets\/\d+\/wallet$/.test(relative) && upstream.ok){
+    const disposition=upstream.headers.get("content-disposition");
+    if(disposition && /^attachment; filename="tickettreat-\d+\.pkpass"$/.test(disposition))
+      (init.headers as Record<string,string>)["Content-Disposition"]=disposition;
+  }
   // Never forward Set-Cookie or upstream redirections.
   if(upstream.status>=300&&upstream.status<400)return NextResponse.json({detail:"redirect_denied"},{status:502});
   if (relative === "/demo/auth/google/start" && upstream.ok) {
