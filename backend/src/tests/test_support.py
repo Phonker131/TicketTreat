@@ -99,25 +99,23 @@ class SupportWorkflowTests(unittest.TestCase):
 
     def test_email_config_required_before_reply(self):
         tid=self.create_ticket().json()["id"]
-        with patch("demo_support.queue_email",side_effect=Exception("should not queue")):
-            # The test installer imported a configured mock; switch its return value.
-            self.config.stop()
-            try:
-                # Patch the captured mock reference used by the route closure.
-                # A new app with disabled email is more representative:
-                with patch("demo_email.configured",return_value=False):
-                    app=FastAPI()
-                    def get_db():
-                        db=self.Session()
-                        try:yield db
-                        finally:db.close()
-                    install_support_api(app,get_db)
-                    with TestClient(app) as c:
-                        response=c.post(f"/demo/manage/support/tickets/{tid}/reply",
-                             headers=self.auth(2),json={"body":"A reply without SMTP"})
-                        self.assertEqual(response.status_code,503)
-            finally:
-                self.config.start()
+        self.config.stop()
+        try:
+            # Install the routes with email disabled. A reply must fail before
+            # persisting the message, so no invisible unanswered email exists.
+            with patch("demo_email.configured",return_value=False):
+                app=FastAPI()
+                def get_db():
+                    db=self.Session()
+                    try:yield db
+                    finally:db.close()
+                install_support_api(app,get_db)
+                with TestClient(app) as c:
+                    response=c.post(f"/demo/manage/support/tickets/{tid}/reply",
+                         headers=self.auth(2),json={"body":"A reply without SMTP"})
+                    self.assertEqual(response.status_code,503)
+        finally:
+            self.config.start()
         self.assertEqual(self.db.query(SupportMessage).filter(SupportMessage.author_role=="admin").count(),0)
 
     def test_ticket_rate_limit(self):
