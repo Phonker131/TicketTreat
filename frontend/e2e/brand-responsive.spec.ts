@@ -100,3 +100,25 @@ test("Czech pilot legal terms clearly disclose organizer-direct payments",async(
   await page.goto("/privacy-policy",{waitUntil:"domcontentloaded"});
   await expect(page.getByText(/does not collect attendees' card details/)).toBeVisible();
 });
+
+test("priced events never show TicketTreat fake payment or automatic paid tickets",async({page})=>{
+  const event={id:9372,title:"Direct organizer payment test",organizer:"Independent organizer",
+    location:"Prague",country_code:"CZ",city:"Prague",description:"Event test",
+    max_participants:30,registered_count:2,spots_left:28,
+    price:"350",currency:"CZK",languages:["cs"],payment_required:true,
+    image_url:null,starts_at:"2026-12-10T18:00:00+01:00",is_cancelled:false};
+  await page.route("**/api/gateway/events/9372",route=>route.fulfill({
+    status:200,contentType:"application/json",body:JSON.stringify(event)}));
+  // Force legacy demo flag on to prove the public UI still cannot
+  // simulate a paid TicketTreat checkout.
+  await page.route("**/api/gateway/demo/config",route=>route.fulfill({
+    status:200,contentType:"application/json",body:JSON.stringify({
+      demo_payment_mode:true,verified_accounts_required:true})}));
+  await page.goto("/events/9372");
+  await expect(page.getByText(/directly with the organizer|напрямую организатору|přímo pořadateli|безпосередньо організатору/i).first()).toBeVisible();
+  await expect(page.locator('a[href*="/checkout/9372"]')).toHaveCount(0);
+  await page.goto("/checkout/9372");
+  await expect(page.getByRole("heading",{name:/Payment directly to the organizer|Оплата напрямую организатору|Platba přímo pořadateli|Оплата безпосередньо організатору/})).toBeVisible();
+  await expect(page.locator(".payment-methods")).toHaveCount(0);
+  await expect(page.locator(".fake-card-fields")).toHaveCount(0);
+});
