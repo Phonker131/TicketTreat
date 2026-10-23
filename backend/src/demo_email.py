@@ -342,7 +342,7 @@ def email_shell(title: str, lead: str, details: str, link: str, button: str, cap
             + '</a></td></tr></table>'
             '<p style="margin:0;font-size:12px;line-height:1.65;color:#5C5861;'
             'overflow-wrap:anywhere">' + html.escape(ui[0])
-            + '<a href="' + href + '"' style="color:#15141F;overflow-wrap:anywhere">'
+            + '<a href="' + href + '" style="color:#15141F;overflow-wrap:anywhere">'
             + href + '</a></p>'
         )
     note = (
