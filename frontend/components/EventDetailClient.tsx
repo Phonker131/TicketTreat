@@ -120,9 +120,13 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
           <section className="join-card">
             <div>
               <h2>{event.spots_left === 0 ? t(language, "soldOut") : t(language, "join")}</h2>
-              <p>{Number(event.price||0)<=0 ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.") : demoPayments?t(language,"demoHint"):(language==="ru"?"Продажа платных билетов пока недоступна.":language==="cs"?"Prodej placených vstupenek zatím není dostupný.":language==="uk"?"Продаж платних квитків поки недоступний.":"Paid ticket sales are not available yet.")}</p>
+              <p>{Number(event.price||0)<=0
+                ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.")
+                : (language==="ru"?"Платёж производится напрямую организатору, не через TicketTreat. Уточни у организатора способ оплаты, регистрацию и возврат.":language==="cs"?"Platba probíhá přímo pořadateli, nikoli přes TicketTreat. Podmínky platby, registrace a vrácení peněz sdělí pořadatel.":language==="uk"?"Оплата здійснюється безпосередньо організатору, а не через TicketTreat. Уточни в організатора умови оплати, реєстрації та повернення.":"Payment is arranged directly with the organizer, not through TicketTreat. Ask the organizer about payment, registration and refunds.")}</p>
             </div>
-            {event.spots_left === 0 ? (
+            {Number(event.price||0)>0 ? (
+              <span className="status">{language==="ru"?"Оплата у организатора":language==="cs"?"Platba u pořadatele":language==="uk"?"Оплата в організатора":"Pay organizer directly"}</span>
+            ) : event.spots_left === 0 ? (
               <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}`}>{t(language, "waitlist")}</Link>
             ) : (
               <Link className="button button-primary" href={`/checkout/${event.id}${attributed?`?utm_source=${encodeURIComponent(source)}`:""}`}>{t(language, "join")}</Link>
