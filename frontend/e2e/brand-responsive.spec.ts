@@ -116,7 +116,7 @@ test("priced events never show TicketTreat fake payment or automatic paid ticket
       demo_payment_mode:true,verified_accounts_required:true})}));
   await page.goto("/events/9372");
   await expect(page.getByText(/directly with the organizer|напрямую организатору|přímo pořadateli|безпосередньо організатору/i).first()).toBeVisible();
-  await expect(page.locator('a[href*="/checkout/9372"]')).toHaveCount(0);
+  await expect(page.locator('a[href*="/checkout/9372"]')).toBeVisible();
   await page.goto("/checkout/9372");
   await expect(page.getByRole("heading",{name:/Payment directly to the organizer|Оплата напрямую организатору|Platba přímo pořadateli|Оплата безпосередньо організатору/})).toBeVisible();
   await expect(page.locator(".payment-methods")).toHaveCount(0);
