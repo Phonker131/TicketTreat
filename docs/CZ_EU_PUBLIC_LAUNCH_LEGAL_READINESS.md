@@ -13,6 +13,14 @@ Status: **NOT LEGALLY SIGNED OFF**. Updated 2026-10-23. Applies to the Czechia p
 - [ ] Provide additional mandatory seller/trader identification (and where applicable company register, taxes, VAT and contact information) at checkout and in terms before any paid tickets. The responsible person may differ from the data controller or event organizer.
 - [ ] Confirm web support contact `https://t.me/vvladver` is owned, monitored, and suitable; do not rely on Telegram as the only GDPR contact channel.
 
+## Pilot commercial model (confirmed by founders, 2026-10-23)
+- Free events: TicketTreat supplies registration, QR tickets, reminders and check-in.
+- Priced events: the participant pays **the organizer directly**, outside TicketTreat. The pilot platform does not charge or receive participant money, does not process payment card details, and does not reimburse money it never received. Do not present a mock credit-card/Apple Pay/Google Pay checkout as real.
+- Where payment is required, any organizer contract, organizer identity, contact, full price, payment instructions, refund/complaint handling, admission confirmation and applicable taxes are determined by the responsible seller/organizer. Do not mark an attendee as paid based on a TicketTreat registration alone.
+- In the current public web UI, free ticket checkout is maintained. Priced-event checkout and any fake payment UI are withheld pending an explicit organizer-direct registration/payment-confirmation design. If this model changes, review legal texts, roles and backend before enabling it.
+- This does **not** eliminate the possibility of Czech online-marketplace, EU DSA/P2B or consumer-law obligations. Applicability depends on whether contracts between organizers and users can be concluded on TicketTreat and on the platform's actual activities; direct-to-organizer payment alone is not a blanket exemption. See ČOI explanation https://coi.gov.cz/faq/6-jak-funguji-on-line-trziste/ and https://e-sbirka.gov.cz/sb/1992/634.
+- If TicketTreat charges an organizer separately for platform services, commercial obligations, invoicing and tax treatment of **that B2B arrangement** still need legal/accounting review.
+
 ## 1. GDPR (Regulation (EU) 2016/679) + Czech Act No. 110/2019 Sb.
 - [ ] Map personal-data flows and who decides purposes. Create/approve a **record of processing activities** (Art. 30 applicability to assess; exemption isn't automatic, especially for non-occasional processing).
 - [ ] For each data category (account, emails, login, tickets, check-in, organizers, security, marketing, bot data), document purpose, legal basis (Art. 6), necessary fields, recipients, transfer safeguards and retention/deletion rule.
@@ -31,11 +39,11 @@ Status: **NOT LEGALLY SIGNED OFF**. Updated 2026-10-23. Applies to the Czechia p
 
 ## 3. Ticket sales and consumer information (Czech Civil Code 89/2012 Sb.; Consumer Protection Act 634/1992 Sb.)
 - [ ] Before any **paid** ticket sale, name the actual contracting trader/seller, organizer and their roles; display the event schedule, admission terms, total price including mandatory fees and taxes, payment options, cancellation/refund/complaint terms and contact.
-- [ ] Ensure the final binding-payment button clearly states a **payment obligation**; paid flows may require additional technical and legal review (do not rely on demo payment UI).
+- [ ] Keep the on-platform paid checkout disabled in the pilot. If introduced later, the payment obligation must be conspicuous and the seller/processor/relevant contract and payment confirmation must be disclosed correctly.
 - [ ] Explain the **specific-date leisure service exception** for ordinary 14-day no-reason withdrawal (Czech Civil Code § 1837(j)) where it really applies; don't claim that all tickets and services have no cancellation/consumer rights.
 - [ ] Add legally required consumer complaint channels and **ADR** notice where the operator/trader is subject to it; ČOI normally covers many consumer service disputes, but check the actual contractual seller and type of dispute.
 - [ ] Confirm event terms can be kept/read in a durable format where required, and consumer information is appropriately available in the language used in the contracting flow. Czech page text is supplied alongside English; get a native Czech legal review.
-- [ ] Verify where **Digital Services Act** platform/intermediary obligations apply when independent organizers can publish offers, including notice-and-action/trader verification/terms transparency, before expanding into a marketplace. Obligations depend on the actual service model and exemptions.
+- [ ] Check **Digital Services Act** platform/intermediary rules, trader traceability where applicable, notice-and-action and contract transparency when independent organizers publish event offers. Direct payment outside TicketTreat alone does not exclude obligations. Separately assess EU P2B when TicketTreat facilitates direct business-to-consumer transactions on contractual terms with organizers.
 
 ## 4. Google and launch communications
 - [ ] `/privacy-policy` and `/terms` are public over HTTPS without login, correct canonical domain and no 404; verify in incognito and Google Cloud Branding.
@@ -47,7 +55,7 @@ Status: **NOT LEGALLY SIGNED OFF**. Updated 2026-10-23. Applies to the Czechia p
 - Public Privacy Policy and Terms with English and Czech information, GDPR identity disclosure, Google/Telegram, Czech dated-events withdrawal and conditional ADR.
 - Public operator metadata from server-only Frontend env variables with **explicit warning if missing**.
 - GDPR links at account signup and checkout; legal footer visible without login.
-- No changes to payment processing or storage deletion rules; those are **not** compliance-ready just because legal pages exist.
+- Pilot participant checkout for priced events is withheld in the web UI; existing backend payment and ticket APIs still require a separate audit and a production configuration gate. No changes to storage deletion rules; legal pages alone are **not** compliance-ready.
 
 ## Sources for legal review
 - GDPR arts. 5, 6, 12–15, 17–22, 24–26, 28, 30, 32–35, 44–49 (EUR-Lex Regulation (EU) 2016/679).
