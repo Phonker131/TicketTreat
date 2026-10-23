@@ -51,10 +51,10 @@ test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({
   await expect(page.locator(".checkout-summary")).toContainText("CI browser free event");
   await page.locator(".panel button.button-primary.button-wide").click();
   await page.waitForURL(/\/tickets\/\d+/);
-  await expect(page.locator(".qr-wrap img")).toBeVisible();
+  await expect(page.locator(".tt-pass-qr img")).toBeVisible();
   page.once("dialog",d=>d.accept());
   await page.locator("button.button-outline.button-wide").click();
-  await expect(page.locator(".qr-wrap img")).toHaveCount(0);
+  await expect(page.locator(".tt-pass-qr img")).toHaveCount(0);
 });
 
 test("mutating API requires a genuine browser Origin and app header",async({request})=>{
