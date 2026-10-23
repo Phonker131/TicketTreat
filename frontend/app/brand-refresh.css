@@ -256,3 +256,27 @@ body { background-image: none; }
 @media(max-width:380px) {
   .tt-publication-schedule input[type="datetime-local"] {font-size:14px;padding:10px 6px}
 }
+
+/* Broadcast preflight: explain precisely why confirmation is unavailable. */
+.tt-broadcast-validation,
+.tt-broadcast-ready {
+  min-width:0;
+  border:2px solid var(--tt-keyline);
+  border-radius:16px;
+  padding:14px 16px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.tt-broadcast-validation {background:#FFF3E8;}
+.tt-broadcast-validation strong {display:block;font-size:15px;margin-bottom:7px;}
+.tt-broadcast-validation ul {margin:0;padding-left:22px;font-size:14px;}
+.tt-broadcast-validation li + li {margin-top:4px;}
+.tt-broadcast-ready {background:#EDF4E9;font-weight:750;font-size:14px;}
+.tt-broadcast-length-warning {color:#AF2F23;font-weight:700;}
+.tt-broadcast-length-ok {color:#245A32;font-weight:700;}
+.tt-broadcast-page .form-stack > label,
+.tt-broadcast-page input,
+.tt-broadcast-page textarea {min-width:0;max-width:100%;box-sizing:border-box;}
+@media(max-width:520px) {
+  .tt-broadcast-validation,.tt-broadcast-ready {padding:12px 13px;}
+}
