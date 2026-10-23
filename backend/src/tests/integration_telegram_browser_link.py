@@ -15,7 +15,6 @@ if not os.getenv("DATABASE_URL", "").endswith("/tickettreat_ci"):
     raise RuntimeError("Never run Telegram pairing integration against live user data")
 
 BOT_TOKEN = "ci-telegram-link-only-not-real"
-os.environ["TELEGRAM_MINIAPP_BOT_TOKEN"] = BOT_TOKEN
 
 import main
 from db.session import SessionLocal
@@ -56,6 +55,16 @@ def website_account():
 
 
 class TelegramBrowserLinkTests(unittest.TestCase):
+    def setUp(self):
+        self.previous_token=os.environ.get("TELEGRAM_MINIAPP_BOT_TOKEN")
+        os.environ["TELEGRAM_MINIAPP_BOT_TOKEN"]=BOT_TOKEN
+
+    def tearDown(self):
+        if self.previous_token is None:
+            os.environ.pop("TELEGRAM_MINIAPP_BOT_TOKEN",None)
+        else:
+            os.environ["TELEGRAM_MINIAPP_BOT_TOKEN"]=self.previous_token
+
     def test_browser_pairs_legacy_tg_identity_and_consumes_code_once(self):
         telegram_id=secrets.randbelow(10**12)+10**10
         signed=signed_init_data(telegram_id)
