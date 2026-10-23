@@ -1,0 +1,32 @@
+name: TicketTreat Frontend Quality
+on:
+  push:
+    branches:
+      - feature/crowdly-release-preparation
+  workflow_dispatch:
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --grep 'responsive shell|mobile navigation'
+        env:
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:8080
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: responsive-screenshots
+          path: frontend/test-results/
+          retention-days: 7
