@@ -49,7 +49,7 @@ Keep prior Git commit/deployment and verified backup. Reverse **application code
 
 ## Encrypted offsite backups — deploy checklist (implementation added)
 
-The repository now has `scripts/offsite_backup.py` and `scripts/restore_offsite_backup.py`. These use streaming AES-256-GCM to protect a database dump before upload to S3-compatible private object storage; server-side S3 AES-256 encryption and an uploaded SHA-256 metadata check provide extra controls. **No Railway cron worker, destination credentials or backup schedule has been enabled.** Do not count this as an operating backup until a complete restore is rehearsed.
+The repository now has `scripts/offsite_backup.py` and `scripts/restore_offsite_backup.py`. These use streaming AES-256-GCM to protect a database dump before upload to S3-compatible private object storage; server-side S3 AES-256 encryption and an uploaded SHA-256 metadata check provide extra controls. **As of 2026-10-23 a private EU-region encrypted backup cron worker is active.** The first production archive was uploaded and downloaded again for decryption and PostgreSQL archive-format verification. A full restore into an isolated database is still pending.
 
 Provision a dedicated PRIVATE backup worker with no public domain, no reuse of bot credentials and a dedicated read-only PostgreSQL backup user. Install `boto3`, `cryptography` and PostgreSQL client binaries matching the database major version. Set these as private worker secrets: `DATABASE_URL`, `TT_BACKUP_KEY_HEX` (a randomly generated 64-character hex value stored separately from the backups), `S3_BACKUP_BUCKET`, `S3_BACKUP_PREFIX`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` and optionally `S3_ENDPOINT_URL`.
 
@@ -73,3 +73,14 @@ pg_restore --no-owner --no-acl --dbname 'postgresql://STAGING_HOST/STAGING_DB' \
 ```
 
 Review row counts, linked ticket claims, old bot identities, role grants and migration-ledger state. Destroy the temporary plaintext file securely, record the successful restoration and test rollback. The S3 permissions, key escrow, backup object lifecycle, retention periods and provider/data-processing approvals are operator decisions.
+
+
+## Backup rollout verified 2026-10-23
+
+- Private Railway service: Encrypted DB Backups (ID 44e8896d-db50-4e45-be8b-9f19a2f72b1a). No public domain. Uses PostgreSQL 18 client, encrypted backup scripts, CPU cap 0.5 vCPU and RAM cap 0.5 GB.
+- Private Railway bucket: tickettreat-db-backups (ID 3153b0e1-95c3-469a-89b5-728aec6e169a) in Amsterdam (AMS). This is a separate storage resource but still in the same Railway project/account; not independent-provider disaster recovery.
+- Schedule: 0 3,15 * * * (03:00 and 15:00 UTC). After each successful upload the worker downloads the exact object, verifies SHA-256 checksum, decrypts AES-256-GCM and checks the PostgreSQL archive with pg_restore --list.
+- First real verified object: tickettreat/database/2026/10/23/tickettreat-20261023T211453Z-291036.dump.ttbk. The plaintext pg_dump size was approximately 8.9 MB; only the AES-GCM encrypted archive was uploaded.
+- Backup database URL: a Railway private-network variable reference to Postgres.DATABASE_URL; bucket keys are references, and TT_BACKUP_KEY_HEX is stored only on the worker. Keep a separate protected offline/key-manager copy: losing this key makes backups unrecoverable.
+- Public PostgreSQL TCP proxy nozomi.proxy.rlwy.net:21803 was deleted; subsequent Railway proxy inventory returned no public TCP proxies. Public Internet psql connections relying on that hostname will no longer work. Existing Railway application services remained online.
+- **Outstanding:** perform actual restoration into a new isolated staging PostgreSQL instance and compare critical table counts. Confirm alerting on cron failures, set a documented retention/expiration policy (currently not confirmed), and replicate backups to a separate account/provider when business critical. Never run pg_restore against live production.
