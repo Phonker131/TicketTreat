@@ -94,3 +94,9 @@ test("calendar ICS DTSTART uses a valid venue-local DATE-TIME",()=>{
   expect(ics).toContain("URL:https://tickettreat.eu/events/42");
   expect(ics).toContain("END:VCALENDAR");
 });
+
+test("existing Google-email accounts return to login, not registration",async({page})=>{
+  await page.goto("/profile?google=link_required");
+  await expect(page.locator(".auth-tabs button").last()).toHaveClass(/active/);
+  await expect(page.getByText(/Войди по паролю и привяжи Google|Sign in with your password/i).first()).toBeVisible();
+});
