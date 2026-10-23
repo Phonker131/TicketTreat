@@ -15,7 +15,7 @@ from demo_accounts import WebAccount, WebSession, token_hash
 from demo_account_recovery import VerifiedEmail
 from demo_auth_security import hash_password
 from demo_roles import WebAccountRole, GlobalAdminDelegation
-from demo_google import GoogleIdentity, GoogleFlow, install_google_auth, validate_claims, exchange_code
+from demo_google import GoogleIdentity, GoogleFlow, install_google_auth, validate_claims, exchange_code, probe_google_credentials_once
 
 
 class OAuthTestGuest(Base):
@@ -162,5 +162,23 @@ class GoogleAuthTests(unittest.TestCase):
             self.assertIn("ValueError", str(warning.call_args))
             self.assertNotIn("secret user details", str(warning.call_args))
 
+
+    def test_google_probe_never_logs_secrets(self):
+        with patch("demo_google.requests.post") as post, patch("demo_google.logger.warning") as warning:
+            post.return_value.status_code=400
+            post.return_value.json.return_value={"error":"invalid_grant"}
+            probe_google_credentials_once()
+            self.assertIn("accepted_by_google",str(warning.call_args))
+            self.assertNotIn("test-secret",str(warning.call_args))
+            self.assertEqual(post.call_args.kwargs["data"]["client_id"],"test-client")
+            self.assertEqual(post.call_args.kwargs["data"]["client_secret"],"test-secret")
+
+    def test_google_probe_detects_rejected_client(self):
+        with patch("demo_google.requests.post") as post, patch("demo_google.logger.warning") as warning:
+            post.return_value.status_code=401
+            post.return_value.json.return_value={"error":"invalid_client"}
+            probe_google_credentials_once()
+            self.assertIn("rejected_by_google_invalid_client",str(warning.call_args))
+            self.assertNotIn("test-secret",str(warning.call_args))
 
 if __name__ == "__main__": unittest.main()
