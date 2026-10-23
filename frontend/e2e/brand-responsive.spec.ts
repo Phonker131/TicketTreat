@@ -31,3 +31,17 @@ test("mobile navigation and accessible keyboard focus",async({page})=>{
   await page.keyboard.press("Tab");
   await expect.poll(async()=>page.evaluate(()=>document.activeElement?.tagName === "A" || document.activeElement?.tagName === "BUTTON" || document.activeElement?.tagName === "SELECT")).toBe(true);
 });
+
+test("public pilot header opens the official TicketTreat bot", async ({page}) => {
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  const bot = page.getByRole("link",{name:/TicketTreat Telegram bot/i});
+  await expect(bot).toHaveAttribute("href","https://t.me/TicketTreatBot");
+  await expect(bot).toContainText("Telegram Mini App");
+});
+
+test("registration does not reveal platform-owner recovery or JSON export", async ({page}) => {
+  await page.goto("/profile",{waitUntil:"domcontentloaded"});
+  await expect(page.getByText("Global administrator permissions can only be assigned by the platform owner.")).toHaveCount(0);
+  await expect(page.getByText("Recover global admin access")).toHaveCount(0);
+  await expect(page.getByText("Скачать мои данные (JSON)")).toHaveCount(0);
+});
