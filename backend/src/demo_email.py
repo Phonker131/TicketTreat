@@ -88,7 +88,7 @@ def queue_email(
     """
     if not configured() or not recipient:
         return
-    if kind not in {"welcome", "ticket", "checkin", "reminder", "event_notice", "waitlist_offer"}:
+    if kind not in {"welcome", "ticket", "checkin", "reminder", "event_notice", "waitlist_offer", "broadcast_notice"}:
         raise ValueError("unknown_email_kind")
     if kind in {"ticket", "checkin", "reminder", "event_notice", "waitlist_offer"}:
         # Only mail registered website accounts during the public demo.
@@ -350,6 +350,9 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             return None
         subject, title, lead = d["welcome_subject"], d["welcome_title"], d["welcome_body"]
         link, button = f"{web_url}/profile", d["button_profile"]
+    elif row.kind == "broadcast_notice":
+        from demo_broadcast import render_broadcast_email
+        return render_broadcast_email(row, db)
     elif row.kind == "waitlist_offer":
         from demo_waitlist_offers import WaitlistOffer, utc
         from importlib import import_module
