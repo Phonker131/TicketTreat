@@ -92,3 +92,11 @@ test("public operator notice is available without signing in",async({page})=>{
   await expect(page.getByRole("heading",{name:"Legal Notice / Provozovatel"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Operator / Provozovatel a správce údajů"})).toBeVisible();
 });
+
+test("Czech pilot legal terms clearly disclose organizer-direct payments",async({page})=>{
+  await page.goto("/terms",{waitUntil:"domcontentloaded"});
+  await expect(page.getByText(/does not accept, collect or transfer participant payments/)).toBeVisible();
+  await expect(page.getByText(/Platba probíhá mimo platební systém TicketTreat/)).toBeVisible();
+  await page.goto("/privacy-policy",{waitUntil:"domcontentloaded"});
+  await expect(page.getByText(/does not collect attendees' card details/)).toBeVisible();
+});
