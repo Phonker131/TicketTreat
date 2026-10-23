@@ -80,28 +80,78 @@ def code_digest(account_id: int, purpose: str, code: str) -> str:
 
 
 def send_code(email: str, purpose: str, code: str):
+    """Deliver a security challenge using the TicketTreat branded template."""
     if not configured():
         raise HTTPException(503, "email_provider_unavailable")
     templates = {
-        "verify": ("Verify your TicketTreat email", "Your TicketTreat verification code"),
-        "reset": ("Reset your TicketTreat password", "Your TicketTreat password reset code"),
-        "login": ("Sign in to TicketTreat", "Your one-time TicketTreat sign-in code"),
-        "quick": ("Confirm your TicketTreat registration", "Your one-time TicketTreat signup code"),
+        "verify": (
+            "Confirm your TicketTreat email address",
+            "Please confirm your email",
+            "To complete your email verification, enter the security code below in TicketTreat.",
+        ),
+        "reset": (
+            "TicketTreat password reset request",
+            "Reset your password",
+            "We received a request to reset your TicketTreat password. Enter the following code to continue.",
+        ),
+        "login": (
+            "Your TicketTreat sign-in code",
+            "Sign in securely",
+            "Use the security code below to finish signing in to your TicketTreat account.",
+        ),
+        "quick": (
+            "Confirm your TicketTreat registration",
+            "Complete your registration",
+            "Thank you for choosing TicketTreat. Enter this code to verify your email and complete registration.",
+        ),
     }
     if purpose not in templates:
         raise ValueError("unsupported_challenge_purpose")
-    title, msg = templates[purpose]
+    subject, title, lead = templates[purpose]
+    # Code is exactly eight digits, but escape it as defense in depth.
+    # Never put one-time codes in subjects, links, log entries or previews.
+    code_html = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"'
+        ' style="margin:22px 0;border:2px solid #15141F;border-radius:12px;'
+        'background:#F0EBE1"><tr><td align="center" style="padding:20px 12px">'
+        '<p style="font-size:12px;color:#5C5861;letter-spacing:1px;'
+        'text-transform:uppercase;font-weight:700;margin:0 0 10px">'
+        'One-time verification code</p>'
+        '<p style="font-size:clamp(25px,6vw,34px);font-weight:800;'
+        'letter-spacing:5px;color:#15141F;margin:0">'
+        + code + '</p>'
+        '</td></tr></table>'
+    )
+    instructions = (
+        "This code is valid for 10 minutes and can only be used once. "
+        "If you did not request it, you can safely ignore this email. "
+        "Never share your verification code with anyone."
+    )
+    footer = (
+        "This is an automated security notification from TicketTreat. "
+        "If you have any questions, please contact our support team."
+    )
+    from demo_email import email_shell
     try:
         _send_resend({
             "from": os.environ["EMAIL_FROM"].strip(),
             "to": [email],
-            "subject": title,
-            "html": "<p>" + msg + ": <strong>" + code + "</strong></p><p>This code expires in 10 minutes. If you did not request it, ignore this message.</p>",
-            "text": msg + ": " + code + "\nCode expires in 10 minutes.",
+            "subject": subject,
+            "html": email_shell(title, lead, code_html, "", "", instructions, footer),
+            "text": (
+                title + "\n\n" + lead + "\n\n" + code
+                + "\n\nValid for 10 minutes. Single use only. "
+                "If you did not request this email, please ignore it. "
+                "Never share this code."
+            ),
         }, "authcode:" + purpose + ":" + secrets.token_hex(16))
     except EmailDeliveryError as exc:
-        LOGGER.warning("TicketTreat auth email delivery failed: purpose=%s provider_error=%s", purpose, str(exc))
+        LOGGER.warning(
+            "TicketTreat auth email delivery failed: purpose=%s provider_error=%s",
+            purpose, str(exc),
+        )
         raise HTTPException(503, "email_delivery_failed")
+
 
 
 def create_challenge(db: Session, account: WebAccount, purpose: str):
