@@ -24,6 +24,20 @@ def update_bot_avatar(bot_token: str, photo_file: Path | None = None) -> bool:
     if not source.is_file():
         print("TicketTreat avatar image missing from deployment")
         return False
+    # Never change the avatar of an old Crowdly bot even if Railway still has
+    # an obsolete BOT_TOKEN. Telegram's authenticated getMe is authoritative.
+    try:
+        me = requests.get(
+            f"https://api.telegram.org/bot{bot_token}/getMe",
+            timeout=10,
+        )
+        info = me.json() if me.status_code == 200 else {}
+        if not info.get("ok") or (info.get("result") or {}).get("username", "").casefold() != "tickettreatbot":
+            print("TicketTreat avatar update skipped: BOT_TOKEN belongs to another bot")
+            return False
+    except (requests.RequestException, ValueError):
+        print("TicketTreat avatar update skipped: unable to verify bot identity")
+        return False
     # Telegram Bot API accepts a JPG InputProfilePhotoStatic, not an SVG
     # or a bare PNG; convert the approved TT image to 512x512 JPEG.
     with Image.open(source) as image:
