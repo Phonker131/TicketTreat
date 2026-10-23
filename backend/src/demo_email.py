@@ -313,12 +313,19 @@ def card(label: str, value: object) -> str:
     )
 
 
-def email_shell(title: str, lead: str, details: str, link: str, button: str, caption: str, footer: str) -> str:
+def email_shell(title: str, lead: str, details: str, link: str, button: str, caption: str, footer: str, language: str = "en") -> str:
     """Professional, mobile-friendly TicketTreat email with inline styles.
 
     Variable prose is escaped; details must be built only by trusted renderers.
     The visual identity uses the current cream, tomato, mustard and ink colors.
     """
+    locale = language_code(language)
+    ui = {
+        "en": ("If the button does not open, copy this link: ", "Support", "SERVICE NOTIFICATION"),
+        "cs": ("Pokud tlačítko nefunguje, zkopírujte tento odkaz: ", "Podpora", "SERVISNÍ OZNÁMENÍ"),
+        "ru": ("Если кнопка не работает, скопируйте эту ссылку: ", "Поддержка", "СЛУЖЕБНОЕ УВЕДОМЛЕНИЕ"),
+        "uk": ("Якщо кнопка не працює, скопіюйте це посилання: ", "Підтримка", "СЛУЖБОВЕ СПОВІЩЕННЯ"),
+    }[locale]
     heading = html.escape(title)
     paragraph = html.escape(lead).replace("\n", "<br>")
     preheader = html.escape((lead.splitlines()[0] if lead else title)[:140])
@@ -334,8 +341,8 @@ def email_shell(title: str, lead: str, details: str, link: str, button: str, cap
             'text-decoration:none;border-radius:10px">' + html.escape(button)
             + '</a></td></tr></table>'
             '<p style="margin:0;font-size:12px;line-height:1.65;color:#5C5861;'
-            'overflow-wrap:anywhere">If the button does not open, copy this link: '
-            '<a href="' + href + '" style="color:#15141F;overflow-wrap:anywhere">'
+            'overflow-wrap:anywhere">' + html.escape(ui[0])
+            + '<a href="' + href + '"' style="color:#15141F;overflow-wrap:anywhere">'
             + href + '</a></p>'
         )
     note = (
@@ -343,7 +350,7 @@ def email_shell(title: str, lead: str, details: str, link: str, button: str, cap
         + html.escape(caption) + '</p>' if caption else ''
     )
     return f"""<!doctype html>
-<html lang="en"><head><meta charset="UTF-8">
+<html lang="{locale}"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light"><title>{heading}</title></head>
 <body style="margin:0;padding:0;background:#F0EBE1;font-family:Arial,Helvetica,sans-serif;color:#15141F">
@@ -357,7 +364,7 @@ def email_shell(title: str, lead: str, details: str, link: str, button: str, cap
 <td style="background:#F4B400;color:#15141F;font-size:20px;font-weight:900;letter-spacing:-0.8px;border:2px solid #15141F;border-radius:4px;padding:5px 9px">TREAT</td>
 </tr></table></td></tr>
 <tr><td style="padding:34px 28px 28px">
-<p style="font-size:11px;letter-spacing:1.4px;font-weight:700;color:#5C5861;margin:0 0 14px">TICKETTREAT / NOTIFICATION</p>
+<p style="font-size:11px;letter-spacing:1.4px;font-weight:700;color:#5C5861;margin:0 0 14px">TICKETTREAT / {html.escape(ui[2])}</p>
 <h1 style="font-size:27px;line-height:1.28;letter-spacing:-0.5px;margin:0 0 17px;color:#15141F">{heading}</h1>
 <p style="font-size:16px;line-height:1.7;color:#302D37;margin:0 0 22px">{paragraph}</p>
 {details}
@@ -369,7 +376,7 @@ def email_shell(title: str, lead: str, details: str, link: str, button: str, cap
 <p style="font-size:12px;line-height:1.6;margin:0">
 <a href="https://tickettreat.eu" style="font-weight:700;color:#15141F;text-decoration:underline">tickettreat.eu</a>
 <span style="color:#5C5861"> &nbsp;·&nbsp; </span>
-<a href="https://t.me/vvladver" style="font-weight:700;color:#15141F;text-decoration:underline">Support / Поддержка</a>
+<a href="https://t.me/vvladver" style="font-weight:700;color:#15141F;text-decoration:underline">{html.escape(ui[1])}</a>
 </p></td></tr></table></td></tr></table>
 </body></html>"""
 
@@ -379,7 +386,7 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
     from demo_accounts import WebAccount
 
     d = COPY.get(row.language) or COPY["en"]
-    web_url = (os.getenv("WEB_APP_URL", "").strip() or "https://frontend-production-81ea.up.railway.app").rstrip("/")
+    web_url = (os.getenv("WEB_APP_URL", "").strip() or "https://tickettreat.eu").rstrip("/")
     extra = ""
     subject = ""
     title = ""
@@ -526,7 +533,7 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
         "from": os.environ["EMAIL_FROM"].strip(),
         "to": [row.recipient],
         "subject": subject,
-        "html": email_shell(title, lead, extra, link, button, caption, d["footer"]),
+        "html": email_shell(title, lead, extra, link, button, caption, d["footer"], row.language),
         "text": f"{title}\n\n{lead}\n\n{link}\n\n{caption}",
         **({"attachments": attachments} if attachments else {}),
     }
