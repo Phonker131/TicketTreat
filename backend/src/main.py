@@ -2568,15 +2568,8 @@ def promote_demo_waitlist(
         maybe_offer_next(db,event,registered)
         return None
 
-    waitlist_entry = (
-        db.query(DemoWaitlist)
-        .filter(
-            DemoWaitlist.event_id == event_id,
-            DemoWaitlist.status == "waiting",
-        )
-        .order_by(DemoWaitlist.created_at.asc(), DemoWaitlist.id.asc())
-        .first()
-    )
+    from demo_loyalty import priority_waitlist_entry
+    waitlist_entry = priority_waitlist_entry(db, event, __import__("sys").modules[__name__])
 
     if waitlist_entry is None:
         return None
