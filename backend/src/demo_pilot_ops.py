@@ -40,6 +40,7 @@ class EventCheckinStaff(Base):
 class PilotSettingsUpdate(BaseModel):
     signup_cutoff_minutes: int = Field(ge=0, le=10080)
     reminder_minutes: list[int] = Field(min_length=1, max_length=4)
+    reminder_text: str | None = Field(default=None, max_length=1000)
     waitlist_offer_minutes: int = Field(default=0, ge=0, le=1440)
     event_duration_minutes: int = Field(default=180, ge=15, le=1440)
 
@@ -171,8 +172,14 @@ def install_pilot_ops(app, get_db, main):
         if event.is_cancelled:
             raise HTTPException(409, "event_is_cancelled")
         intervals = validate_reminders(payload.reminder_minutes)
+        previous_intervals = effective_settings(db, event_id)["reminder_minutes"]
         if 0 < payload.waitlist_offer_minutes < 15:
-            raise HTTPException(422,"waitlist_offer_must_be_at_least_15_minutes")
+            raise HTTPException(422, "waitlist_offer_must_be_at_least_15_minutes")
+        if payload.reminder_text is not None:
+            message = payload.reminder_text.strip()
+            if not message:
+                raise HTTPException(422, "reminder_message_required")
+            event.reminder_text = message
         row = db.get(EventPilotSettings, event_id)
         if row is None:
             row = EventPilotSettings(event_id=event_id)
@@ -181,24 +188,32 @@ def install_pilot_ops(app, get_db, main):
         row.waitlist_offer_minutes = payload.waitlist_offer_minutes
         row.event_duration_minutes = payload.event_duration_minutes
         row.reminder_minutes_json = json.dumps(intervals)
-        # Existing pending reminders belong to the old policy. Rebuild using
-        # the same event/ticket transactional boundaries as other edits.
-        from demo_email import EmailOutbox, queue_event_reminder, ticket_language
-        pending_ticket_ids = db.query(main.DemoTicket.id).filter(
-            main.DemoTicket.event_id == event_id
-        )
-        db.query(EmailOutbox).filter(
-            EmailOutbox.kind == "reminder", EmailOutbox.state == "pending",
-            EmailOutbox.ticket_id.in_(pending_ticket_ids),
-        ).update({EmailOutbox.state: "skipped"}, synchronize_session=False)
-        db.flush()
-        for ticket in db.query(main.DemoTicket).filter(
-                main.DemoTicket.event_id == event_id,
-                main.DemoTicket.ticket_status == "active").all():
-            guest = db.get(main.DemoGuest, ticket.guest_id)
-            if guest:
-                queue_event_reminder(db, event=event, guest=guest, ticket=ticket,
-                                     language=ticket_language(db, ticket.id))
+        # The Telegram bot supports one reminder per event; choose the closest
+        # organizer-selected interval. Email queues all selected intervals.
+        chosen_telegram_offset = min(intervals)
+        if event.reminder_minutes_before != chosen_telegram_offset:
+            event.reminder_minutes_before = chosen_telegram_offset
+            event.reminder_sent = False
+
+        # If only editorial text/cutoffs changed, keep the current queue
+        # intact. The worker renders the latest message when sending.
+        if intervals != previous_intervals:
+            from demo_email import EmailOutbox, queue_event_reminder, ticket_language
+            pending_ticket_ids = db.query(main.DemoTicket.id).filter(
+                main.DemoTicket.event_id == event_id
+            )
+            db.query(EmailOutbox).filter(
+                EmailOutbox.kind == "reminder", EmailOutbox.state == "pending",
+                EmailOutbox.ticket_id.in_(pending_ticket_ids),
+            ).update({EmailOutbox.state: "skipped"}, synchronize_session=False)
+            db.flush()
+            for ticket in db.query(main.DemoTicket).filter(
+                    main.DemoTicket.event_id == event_id,
+                    main.DemoTicket.ticket_status == "active").all():
+                guest = db.get(main.DemoGuest, ticket.guest_id)
+                if guest:
+                    queue_event_reminder(db, event=event, guest=guest, ticket=ticket,
+                                         language=ticket_language(db, ticket.id))
         audit(db, event_id, account.id, "pilot_settings", "cutoff/reminders")
         db.commit()
         return effective_settings(db, event_id)
