@@ -5,7 +5,7 @@ import {test,expect} from "@playwright/test";
 test("catalogue renders upcoming events through the live FastAPI gateway",async({page})=>{
   await page.goto("/");
   await expect(page.getByText("CI browser free event").first()).toBeVisible();
-  await expect(page.locator("header .wordmark")).toContainText("TicketTreat");
+  await expect(page.locator("header .wordmark")).toHaveAttribute("aria-label","TicketTreat");
   await expect(page.locator(".hero .eyebrow")).toHaveText("TICKETTREAT");
 });
 
