@@ -129,6 +129,17 @@ def queue_notice(db: Session, *, notice, event, main) -> int:
     return len(rows)
 
 
+def reminder_offsets(db: Session, event) -> list[int]:
+    """Use modern multi-offset settings, preserving legacy bot custom reminders."""
+    from demo_pilot_ops import EventPilotSettings, effective_settings
+    configured_settings = db.get(EventPilotSettings, event.id)
+    if configured_settings is None:
+        legacy = getattr(event, "reminder_minutes_before", None)
+        if isinstance(legacy, int) and 15 <= legacy <= 10080:
+            return [legacy]
+    return effective_settings(db, event.id)["reminder_minutes"]
+
+
 def queue_reminders_for_event(db: Session, *, event, main, now: datetime | None = None) -> int:
     """Materialize selected future reminder times in a durable, idempotent queue.
 
@@ -142,8 +153,7 @@ def queue_reminders_for_event(db: Session, *, event, main, now: datetime | None 
     start = venue_start(event)
     if start is None or start <= now + timedelta(minutes=15):
         return 0
-    from demo_pilot_ops import effective_settings
-    offsets = effective_settings(db, event.id)["reminder_minutes"]
+    offsets = reminder_offsets(db, event)
     # Queue only when an interval becomes due. Batches prevent replaying tens
     # of thousands of inserts every minute for the next seven days.
     upcoming = [
@@ -317,9 +327,8 @@ def _deliver_one(db: Session, main) -> bool:
         if event is None:
             row.state = "skipped"
         elif row.kind == "reminder":
-            from demo_pilot_ops import effective_settings
             start = venue_start(event)
-            offsets = effective_settings(db, event.id)["reminder_minutes"]
+            offsets = reminder_offsets(db, event)
             if (
                 event.is_cancelled or start is None or now >= start
                 or int(start.timestamp()) != row.start_epoch
