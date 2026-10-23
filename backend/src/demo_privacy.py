@@ -210,7 +210,7 @@ def install_privacy_routes(app, get_db, main):
                 SupportMessage.ticket_id.in_(support_ids)).delete(synchronize_session=False)
             db.query(SupportTicket).filter(
                 SupportTicket.id.in_(support_ids)).delete(synchronize_session=False)
-                db.query(EmailOutbox).filter(EmailOutbox.guest_id==guest.id).delete(synchronize_session=False)
+        db.query(EmailOutbox).filter(EmailOutbox.guest_id==guest.id).delete(synchronize_session=False)
         db.query(main.DemoTicket).filter(main.DemoTicket.guest_id==guest.id).delete(synchronize_session=False)
         db.query(main.DemoWaitlist).filter(main.DemoWaitlist.guest_id==guest.id).delete(synchronize_session=False)
         session_hashes=[x[0] for x in db.query(WebSession.token_hash).filter(
