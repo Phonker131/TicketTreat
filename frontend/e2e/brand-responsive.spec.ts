@@ -67,3 +67,22 @@ test("legal footer and documents are accessible on narrow screens without sign-i
   await expect(page.getByRole("heading",{name:"Privacy Policy",exact:true})).toBeVisible();
   await expect(page.getByRole("heading",{name:"What Google sign-in accesses"})).toBeVisible();
 });
+
+test("Czech and EU legal pages publish controller status and consumer-law details",async({page})=>{
+  await page.goto("/privacy-policy",{waitUntil:"domcontentloaded"});
+  await expect(page.getByRole("heading",{name:"Operator / Provozovatel a správce údajů"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:/Úplné informace o zpracování osobních údajů/})).toBeVisible();
+  await expect(page.getByText(/openid/).first()).toBeVisible();
+  await page.goto("/terms",{waitUntil:"domcontentloaded"});
+  await expect(page.getByRole("heading",{name:/Obchodní podmínky – české znění/})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Complaints and alternative dispute resolution"})).toBeVisible();
+});
+
+test("account signup shows notice at collection without bundled marketing consent",async({page})=>{
+  await page.goto("/profile",{waitUntil:"domcontentloaded"});
+  await page.locator(".auth-tabs button").first().click();
+  const form=page.locator("form").filter({has:page.getByRole("button",{name:/Create account|Создать аккаунт|Vytvořit účet|Створити акаунт/})}).first();
+  const target=form.count();
+  await expect(form.getByRole("link",{name:/Privacy Policy|политикой конфиденциальности|zásady ochrany osobních údajů|політикою конфіденційності/})).toHaveAttribute("href","/privacy-policy");
+  await expect(form.getByRole("link",{name:/Terms of Service|условиями использования|obchodní podmínky|умовами користування/})).toHaveAttribute("href","/terms");
+});
