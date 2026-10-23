@@ -45,3 +45,25 @@ test("registration does not reveal platform-owner recovery or JSON export", asyn
   await expect(page.getByText("Recover global admin access")).toHaveCount(0);
   await expect(page.getByText("Скачать мои данные (JSON)")).toHaveCount(0);
 });
+
+test("homepage footer exposes Google OAuth legal links and copyright for guests", async ({page}) => {
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  const footer=page.locator("footer.tt-legal-footer");
+  await expect(footer).toBeVisible();
+  await expect(footer.getByText(/© 20\\d\\d TicketTreat/)).toBeVisible();
+  await expect(footer.getByRole("link",{name:"Privacy Policy"})).toHaveAttribute("href","/privacy-policy");
+  await expect(footer.getByRole("link",{name:"Terms of Service"})).toHaveAttribute("href","/terms");
+});
+
+test("legal footer and documents are accessible on narrow screens without sign-in", async ({page}) => {
+  await page.setViewportSize({width:320,height:700});
+  for(const location of ["/","/privacy-policy","/terms"]){
+    await page.goto(location,{waitUntil:"domcontentloaded"});
+    await expect(page.locator("footer.tt-legal-footer")).toBeVisible();
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  }
+  await expect(page.getByRole("heading",{name:"Terms of Service"})).toBeVisible();
+  await page.goto("/privacy-policy");
+  await expect(page.getByRole("heading",{name:"Privacy Policy",exact:true})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"What Google sign-in accesses"})).toBeVisible();
+});
