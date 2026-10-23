@@ -157,6 +157,7 @@ class CreateManageEvent(BaseModel):
     description: str | None = None
     max_participants: int | None = Field(default=None, ge=1)
     price: Decimal = Field(default=Decimal("0"), ge=0)
+    payment_instructions: str = Field(default="", max_length=2000)
     currency: str = "CZK"
     starts_at: datetime
     languages: list[str] = Field(min_length=1)
@@ -175,6 +176,7 @@ class UpdateManageEvent(BaseModel):
     description: str | None = None
     max_participants: int | None = Field(default=None, ge=1)
     price: Decimal | None = Field(default=None, ge=0)
+    payment_instructions: str | None = Field(default=None,max_length=2000)
     currency: str | None = None
     starts_at: datetime | None = None
     languages: list[str] | None = None
@@ -393,7 +395,9 @@ def install_demo_roles(app, get_db, main):
         values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","reminder_minutes"})
         validate_media_urls(payload.gallery_urls,payload.video_url)
         from main import EventCreate
-        values["payment_instructions"]="DEMO PAYMENT — automatically confirmed" if payload.price > 0 else ""
+        values["payment_instructions"]=payload.payment_instructions.strip() if payload.price > 0 else ""
+        if payload.price > 0 and not values["payment_instructions"]:
+            raise HTTPException(422,"organizer_payment_instructions_required")
         # The Telegram bot currently delivers one reminder, at the closest
         # configured offset. Email can deliver all configured offsets.
         values["reminder_minutes_before"]=min(reminder_intervals)
@@ -434,11 +438,17 @@ def install_demo_roles(app, get_db, main):
                 main.DemoTicket.event_id==event_id,
                 main.DemoTicket.ticket_status=="active",
             ).first()
+            from demo_paid_reservations import PaidReservation
+            has_paid=db.query(PaidReservation.id).filter(
+                PaidReservation.event_id==event_id,
+                PaidReservation.status=="pending",
+                PaidReservation.expires_at>datetime.now(timezone.utc),
+            ).first()
             has_waiters=db.query(main.DemoWaitlist.id).filter(
                 main.DemoWaitlist.event_id==event_id,
                 main.DemoWaitlist.status=="waiting",
             ).first()
-            if has_tickets or has_waiters or main.get_registered_count(db,event_id)>0:
+            if has_tickets or has_waiters or has_paid or main.get_registered_count(db,event_id)>0:
                 raise HTTPException(409,"cannot_unpublish_with_attendees")
         else:
             if not event.title or not event.title.strip() or not event.description or not event.description.strip():
@@ -455,7 +465,9 @@ def install_demo_roles(app, get_db, main):
             if not main.get_event_languages(db,event_id):
                 raise HTTPException(422,"publish_requires_languages")
             if main.price_decimal(event.price)>0:
-                raise HTTPException(409,"paid_event_publication_disabled")
+                setting=main.get_payment_settings(db,event_id)
+                if not setting or not setting.payment_instructions.strip():
+                    raise HTTPException(422,"organizer_payment_instructions_required")
             if payload.status=="scheduled":
                 if payload.publish_at is None or payload.publish_at.tzinfo is None:
                     raise HTTPException(422,"publish_at_timezone_required")
@@ -507,6 +519,8 @@ def install_demo_roles(app, get_db, main):
             gallery_urls=external,video_url=video,poster_data_url=poster,
             reminder_minutes=__import__("demo_pilot_ops").effective_settings(db, source.id)["reminder_minutes"],
             reminder_text=(source.reminder_text or "Your TicketTreat event starts soon."),
+            payment_instructions=(main.get_payment_settings(db,event_id).payment_instructions
+                if main.get_payment_settings(db,event_id) else ""),
         )
         # Copy only editorial media; fail before creating the new event if limits have changed.
         source_images=db.query(EventGalleryImage).filter(
