@@ -1,6 +1,6 @@
 """One-shot official TicketTreat bot profile photo maintenance.
 
-Enable with TICKETTREAT_APPLY_BOT_PHOTO=1 *for one deployment only*, then
+The Railway root requirements.txt provides Pillow for image conversion.\nEnable with TICKETTREAT_APPLY_BOT_PHOTO=1 *for one deployment only*, then
 remove/disable it after observing 'TicketTreat avatar successfully updated'.
 Do not print BOT_TOKEN, Telegram responses or image bytes.
 """
