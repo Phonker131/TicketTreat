@@ -27,6 +27,7 @@ export function CheckInClient() {
   const scanBusy = useRef(false);
   const [scanCycle,setScanCycle]=useState(0);
   const [scanning,setScanning]=useState(false);
+  const [cameraError,setCameraError]=useState(false);
 
   async function submit(value: string) {
     const token = extractToken(value);
@@ -55,7 +56,10 @@ export function CheckInClient() {
       try {
         await scanner.start(
           {facingMode: "environment"},
-          {fps: 10, qrbox: {width: 240, height: 240}},
+          {fps: 10, qrbox: (width:number,height:number) => {
+            const side=Math.max(150,Math.min(250,Math.floor(Math.min(width,height)*0.70)));
+            return {width:side,height:side};
+          }},
           async (decodedText) => {
             if(scanBusy.current)return;
             await scanner.stop().catch(() => {});
@@ -64,9 +68,9 @@ export function CheckInClient() {
           },
           () => {},
         );
-        setScanning(true);
+        setScanning(true);setCameraError(false);
       } catch {
-        setScanning(false);
+        setScanning(false);setCameraError(true);
         setMessage("Camera unavailable. You can paste the QR token manually.");
       }
     });
@@ -83,16 +87,31 @@ export function CheckInClient() {
       <AppHeader />
       <main className="page narrow-page">
         <div className="admin-heading"><div><span className="status status-demo">CHECK-IN</span><h1>{tr("Scan TicketTreat ticket")}</h1><p>{tr("Camera scanner + manual fallback.")}</p></div></div>
-        <section className="panel">
-          <div id="tickettreat-qr-reader" className="scanner-box" />
-          <div className="manual-checkin">
-            <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Paste QR token" />
-            <button className="button button-primary" disabled={!manual.trim()} onClick={() => submit(manual)}>{tr("Check in")}</button>
+        <section className="panel tt-checkin-panel" aria-label="Сканер билетов">
+          <div className="tt-checkin-camera">
+            <div id="tickettreat-qr-reader" className="scanner-box" />
           </div>
-          <button type="button" className="button button-outline" disabled={scanning}
-            onClick={()=>{setResult(null);setMessage("");setScanCycle(s=>s+1)}}>
-            {scanning?"Камера сканирует":"Сканировать следующий билет"}
-          </button>
+          <div className="tt-checkin-camera-status" role="status" aria-live="polite">
+            <span className="tt-checkin-camera-indicator" aria-hidden="true"/>
+            <span>{scanning?"📷 Камера сканирует QR-код":cameraError?"Камера недоступна — используй ручной ввод":"Подключение камеры…"}</span>
+          </div>
+          <div className="tt-checkin-controls">
+            <div className="tt-checkin-manual">
+              <label htmlFor="tickettreat-manual-token">QR-код билета — ручной ввод</label>
+              <input id="tickettreat-manual-token" value={manual}
+                onChange={(e) => setManual(e.target.value)}
+                placeholder="Вставь токен из QR-кода"
+                autoComplete="off" />
+            </div>
+            <div className="tt-checkin-buttons">
+              <button type="button" className="button button-primary"
+                disabled={!manual.trim()} onClick={() => submit(manual)}>{tr("Check in")}</button>
+              <button type="button" className="button button-outline" disabled={scanning}
+                onClick={()=>{setResult(null);setMessage("");setCameraError(false);setScanCycle(v=>v+1);}}>
+                {scanning?"Камера активна":"↻ Перезапустить камеру"}
+              </button>
+            </div>
+          </div>
         </section>
         {message && <div className={result&&message==="Check-in successful" ? "success-banner" : "state-card state-error"}>{message}</div>}
         {result && (
