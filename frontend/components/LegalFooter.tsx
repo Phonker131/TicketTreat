@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {useLanguage} from "@/components/LanguageProvider";
+import {openCookieSettings} from "@/lib/cookie-consent";
 
 const labels = {
   en: {tagline:"Tickets and events across Czechia",rights:"All rights reserved.",support:"Support"},
@@ -25,6 +26,8 @@ export function LegalFooter(){
       </div>
       <nav className="tt-legal-footer-links" aria-label="Legal and support links">
         <Link href="/privacy-policy">Privacy Policy</Link>
+        <Link href="/cookie-policy">Cookie Policy</Link>
+        <button type="button" className="tt-cookie-settings-link" onClick={openCookieSettings}>{language==="ru"?"Настройки cookies":language==="cs"?"Nastavení cookies":language==="uk"?"Налаштування cookies":"Cookie settings"}</button>
         <Link href="/terms">Terms of Service</Link>
         <Link href="/legal-notice">Legal Notice / Provozovatel</Link>
         <Link href="/support">{tr.support}</Link>
