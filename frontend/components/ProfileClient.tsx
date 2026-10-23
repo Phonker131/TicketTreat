@@ -71,7 +71,7 @@ type ContactPreference = "email" | "phone" | "telegram" | "instagram";
 export function ProfileClient() {
   const {language} = useLanguage();
   const tr = COPY[language];
-  const [mode, setMode] = useState<"login"|"signup">("signup");
+  const [mode, setMode] = useState<"login"|"signup">("login");
   const [telegramProfile, setTelegramProfile] = useState<TelegramAuthResult|null>(null);
   const [profile, setProfile] = useState<WebProfile|null>(null);
   const [loading, setLoading] = useState(true);
