@@ -36,7 +36,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(PROJECT_ROOT / ".env", override=False, encoding="utf-8-sig")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-BOT_USERNAME = os.getenv("BOT_USERNAME")
+BOT_USERNAME = "TicketTreatBot"  # Official bot; legacy BOT_USERNAME env must not redirect users to Crowdly
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 BOT_API_KEY = os.getenv("BOT_API_KEY", "").strip()
 CLIENT_SERVICE_URL = os.getenv("CLIENT_SERVICE_URL", "").strip()
