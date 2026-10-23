@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {useEffect,useState} from "react";
 
 import { useLanguage } from "@/components/LanguageProvider";
 import {
@@ -71,6 +72,8 @@ export function EventCard({
   event: TicketTreatEvent;
 }) {
   const { language } = useLanguage();
+  const [posterUnavailable,setPosterUnavailable]=useState(false);
+  useEffect(()=>setPosterUnavailable(false),[event.image_url]);
 
   const eventLanguages =
     event.languages?.length > 0
@@ -84,9 +87,9 @@ export function EventCard({
 
   return (
     <article className="event-card">
-      {event.image_url ? (
+      {event.image_url && !posterUnavailable ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img className="event-card-poster" src={event.image_url} alt={`Poster: ${event.title}`} loading="lazy" />
+        <img className="event-card-poster" src={event.image_url} alt={`Poster: ${event.title}`} loading="lazy" onError={()=>setPosterUnavailable(true)}/>
       ) : (
         <div className="event-card-accent">
           <span />
