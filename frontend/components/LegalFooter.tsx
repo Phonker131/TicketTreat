@@ -27,7 +27,8 @@ export function LegalFooter(){
         <Link href="/privacy-policy">Privacy Policy</Link>
         <Link href="/terms">Terms of Service</Link>
         <Link href="/legal-notice">Legal Notice / Provozovatel</Link>
-        <a href="https://t.me/vvladver" target="_blank" rel="noopener noreferrer" aria-label="TicketTreat support on Telegram">{tr.support} ↗</a>
+        <Link href="/support">{tr.support}</Link>
+        <a href="https://t.me/TicketTreatBot" target="_blank" rel="noopener noreferrer" aria-label="Official TicketTreat Telegram bot">Telegram ↗</a>
       </nav>
     </footer>
   );
