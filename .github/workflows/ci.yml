@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, feature/crowdly-release-preparation]
+    branches: [main, feature/crowdly-release-preparation, feature/telegram-unified-link-20261023]
   pull_request:
-    branches: [main]
+    branches: [main, feature/crowdly-release-preparation]
     types: [opened, reopened, synchronize, edited]
 
 permissions:

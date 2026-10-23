@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { getVerifiedTelegramSession } from "@/lib/session";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite } from "@/lib/api";
+import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -95,6 +95,11 @@ export function ProfileClient() {
   const [resetCode,setResetCode]=useState("");
   const [resetPassword,setResetPassword]=useState("");
   const [accountRole, setAccountRole] = useState<"participant"|"organizer">("participant");
+  const [linkRequest, setLinkRequest] = useState<{challenge:string;bot_link:string}|null>(null);
+  const [incomingLink, setIncomingLink] = useState("");
+  const [linkConfirmed, setLinkConfirmed] = useState(false);
+  const [linkBusy, setLinkBusy] = useState(false);
+
 
   useEffect(() => {
     let mounted = true;
@@ -102,6 +107,8 @@ export function ProfileClient() {
       if (mounted) setTelegramProfile(tg);
     }).catch(() => { /* Signed Telegram login is optional for browser users. */ });
     void getMailStatus().then(data=>{if(mounted)setMailReady(data.available===true);}).catch(()=>{if(mounted)setMailReady(false);});
+    const pendingLink = new URLSearchParams(window.location.search).get("telegram_link") || "";
+    if (/^[a-zA-Z0-9_-]{24,100}$/.test(pendingLink)) setIncomingLink(pendingLink);
     // The Google OAuth callback writes an HttpOnly cookie and redirects here.
     // The browser-session marker is not a credential; it merely asks the
     // gateway to validate that cookie. A missing/invalid cookie is rejected
@@ -115,6 +122,62 @@ export function ProfileClient() {
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
+
+  // Browser tab checks the one-time handshake until Telegram confirms it.
+  useEffect(() => {
+    if (!linkRequest) return;
+    let mounted=true;
+    let checking=false;
+    const check=async()=>{
+      if(checking)return;
+      const token=getWebToken();if(!token)return;
+      checking=true;
+      try {
+        const result=await getTelegramAccountLinkStatus(token,linkRequest.challenge);
+        if(!mounted)return;
+        if(result.linked) {
+          setLinkRequest(null);
+          const updated=await getWebProfile(token);
+          if(mounted) {loadProfile(updated);setNotice("Telegram successfully linked.");}
+        } else if(result.status!=="pending") {
+          setLinkRequest(null);
+          setError("Telegram link expired. Start again.");
+        }
+      } catch { /* A transient network error does not consume the challenge. */ }
+      finally {checking=false;}
+    };
+    void check();
+    const interval=window.setInterval(()=>{void check();},2500);
+    return ()=>{mounted=false;window.clearInterval(interval);};
+  },[linkRequest]);
+
+  async function beginTelegramLink(){
+    const token=getWebToken();if(!token)return;
+    setLinkBusy(true);setError("");setNotice("");
+    try {
+      const result=await startTelegramAccountLink(token);
+      setLinkRequest({challenge:result.challenge,bot_link:result.bot_link});
+      window.open(result.bot_link,"_blank","noopener,noreferrer");
+    }catch(e){setError(readableError(e));}
+    finally{setLinkBusy(false);}
+  }
+
+  async function approveTelegramLink(){
+    const initData=(await import("@/lib/telegram")).getTelegramWebApp()?.initData;
+    if(!initData||!incomingLink||!telegramProfile) {
+      setError("Open this confirmation inside @TicketTreatBot.");
+      return;
+    }
+    setLinkBusy(true);setError("");
+    try {
+      const result=await claimTelegramAccountLink(incomingLink,initData);
+      if(result.linked){
+        setLinkConfirmed(true);
+        setNotice("Telegram and website accounts are connected. All available tickets are shared.");
+      }
+    }catch(e){setError(readableError(e));}
+    finally{setLinkBusy(false);}
+  }
 
   function loadProfile(p: WebProfile) {
     setProfile(p);
@@ -252,6 +315,16 @@ export function ProfileClient() {
       <AppHeader />
       <main className="page auth-container">
         <Link href="/" className="back-link">← {tr.back}</Link>
+        {incomingLink && <section className="panel form-stack" aria-label="Telegram account linking">
+          <h2>{language==="ru"?"Подтверждение Telegram":"Confirm Telegram account"}</h2>
+          {linkConfirmed ? <p role="status">{language==="ru"?"✓ Аккаунты связаны. Вернись на сайт и открой «Мои билеты».":"✓ Accounts linked. Return to the website to see your tickets."}</p> : <>
+            <p className="form-note">{language==="ru"?"Подтверди привязку этого Telegram к веб-аккаунту TicketTreat. Не передавай ссылку другим.":"Confirm linking this Telegram account to your TicketTreat website account. Never share the link."}</p>
+            {!telegramProfile && <p className="form-note">{language==="ru"?"Открой эту ссылку внутри @TicketTreatBot, чтобы Telegram подтвердил твою личность.":"Open this link from @TicketTreatBot to verify your Telegram identity."}</p>}
+            <button type="button" className="button button-primary" disabled={!telegramProfile||linkBusy}
+              onClick={()=>{void approveTelegramLink();}}>{linkBusy?"…":language==="ru"?"Подтвердить привязку":"Confirm link"}</button>
+          </>}
+        </section>}
+
         {loading ? <div className="state-card">{tr.loading}</div> : profile ? (
           <>
             <section className="panel profile-overview">
@@ -271,21 +344,31 @@ export function ProfileClient() {
                 <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
                 <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">→ {tr.tickets}</Link></div>
               </div>
-              {telegramProfile && profile.email_verified && <section className="panel form-stack">
-                <h3>{language==="ru"?"Связь с Telegram":"Connect Telegram"}</h3>
-                <p className="form-note">{language==="ru"?"Привяжи Telegram к веб-аккаунту, чтобы видеть общие билеты. Если на одно мероприятие есть две регистрации, потребуется ручное разрешение конфликта.":"Link your Telegram and website accounts using both verified sessions. Duplicate tickets require manual resolution."}</p>
-                <button className="button button-outline" type="button" disabled={busy || telegramProfile.accounts_linked}
-                  onClick={async()=>{
-                    const token=getWebToken();if(!token)return;
-                    const initData=(await import("@/lib/telegram")).getTelegramWebApp()?.initData;
-                    if(!initData)return;
-                    setBusy(true);setError("");
-                    try{
-                      await linkTelegramToWebsite(token,initData);
-                      loadProfile(await getWebProfile(token));
-                      setNotice("Telegram successfully linked.");
-                    }catch(e){setError(readableError(e));}finally{setBusy(false);}
-                  }}>{telegramProfile.accounts_linked?"Telegram linked":"Link Telegram account"}</button>
+              {profile.email_verified && <section className="panel form-stack">
+                <h3>{language==="ru"?"Telegram и TicketTreat":"Telegram and TicketTreat"}</h3>
+                {profile.guest.telegram_id ? <p className="form-note">✓ {language==="ru"?"Telegram привязан. Сайт и бот используют одни билеты и регистрации.":"Telegram linked. Website and bot share your tickets and bookings."}</p> : <>
+                  <p className="form-note">{language==="ru"?"Свяжи старый аккаунт Telegram с сайтом — билеты и очереди перенесутся без повторной регистрации. Понадобится подтвердить владение Telegram.":"Connect your existing Telegram account to this website profile without losing tickets. Telegram confirmation is required."}</p>
+                  {telegramProfile && <button className="button button-outline" type="button" disabled={busy}
+                    onClick={async()=>{
+                      const token=getWebToken();if(!token)return;
+                      const initData=(await import("@/lib/telegram")).getTelegramWebApp()?.initData;
+                      if(!initData)return;
+                      setBusy(true);setError("");
+                      try {
+                        await linkTelegramToWebsite(token,initData);
+                        loadProfile(await getWebProfile(token));
+                        setNotice("Telegram successfully linked.");
+                      }catch(e){setError(readableError(e));}finally{setBusy(false);}
+                    }}>{language==="ru"?"Привязать текущий Telegram":"Link current Telegram"}</button>}
+                  <button className="button button-primary" type="button" disabled={linkBusy}
+                    onClick={()=>{void beginTelegramLink();}}>
+                    {linkBusy?"…":language==="ru"?"Привязать через Telegram-бота":"Connect through Telegram bot"}
+                  </button>
+                  {linkRequest && <div className="form-stack">
+                    <p className="form-note">{language==="ru"?"В Telegram нажми «Подтвердить привязку». Ссылка действует 10 минут. Статус обновится автоматически.":"In Telegram, tap Confirm link. This link expires in 10 minutes; the status updates automatically."}</p>
+                    <a className="button button-outline" href={linkRequest.bot_link} target="_blank" rel="noopener noreferrer">↗ @TicketTreatBot</a>
+                  </div>}
+                </>}
               </section>}
               {!profile.email_verified && <div className="panel form-stack">
                 <h3>{language==="ru"?"Подтвердить email":language==="uk"?"Підтвердити email":language==="cs"?"Ověřit e-mail":"Verify email"}</h3>

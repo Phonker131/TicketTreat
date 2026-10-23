@@ -458,6 +458,24 @@ export function linkTelegramToWebsite(token:string,initData:string):Promise<{lin
   });
 }
 
+export type TelegramLinkStart = {challenge:string; bot_link:string; expires_in_seconds:number};
+export function startTelegramAccountLink(token:string):Promise<TelegramLinkStart> {
+  return request("/demo/telegram/link/start",{
+    method:"POST",headers:{Authorization:`Bearer ${token}`}
+  });
+}
+export function getTelegramAccountLinkStatus(token:string, challenge:string):Promise<{status:string;linked:boolean}> {
+  return request(`/demo/telegram/link/status?challenge=${encodeURIComponent(challenge)}`,{
+    headers:{Authorization:`Bearer ${token}`}
+  });
+}
+/** This endpoint takes ONLY Telegram-signed initData and a short-lived browser link code. */
+export function claimTelegramAccountLink(challenge:string,initData:string):Promise<{linked:boolean;already_linked:boolean;migrated_tickets?:number;legacy_unresolved?:number}> {
+  return request("/demo/telegram/link/claim",{
+    method:"POST",body:JSON.stringify({challenge,init_data:initData})
+  });
+}
+
 export type BookingConfig = {demo_payment_mode:boolean;real_money_charged:boolean;verified_accounts_required:boolean};
 export type PaidReservation = {
   id:number;event_id:number;status:"pending"|"confirmed"|"expired"|"declined";

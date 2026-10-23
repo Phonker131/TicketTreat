@@ -1546,6 +1546,17 @@ def show_event_details_by_id(
     user_id: int,
     event_id: int,
 ):
+    # Canonical published event details, media, pricing and booking rules
+    # live in the unified website/Mini App, not the legacy bot endpoints.
+    if WEB_APP_URL.startswith("https://"):
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton("🎟 Открыть событие в TicketTreat",
+            web_app=WebAppInfo(url=f"{WEB_APP_URL}/events/{event_id}")))
+        bot.send_message(chat_id,
+            "Описание, фотографии, билеты и актуальная доступность мест "
+            "отображаются в TicketTreat Mini App.",
+            reply_markup=keyboard)
+        return
     if not is_profile_complete(user_id):
         pending_event_after_registration[user_id] = (
             event_id
@@ -1730,6 +1741,31 @@ def start(message):
     if len(parts) > 1:
         payload = parts[1].strip()
 
+        if payload.startswith("link_"):
+            code = payload[5:]
+            # Deep-link payload is an opaque secret, never a Telegram ID or email.
+            if (message.chat.type != "private" or not 24 <= len(code) <= 100
+                    or any(ch not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-" for ch in code)):
+                bot.send_message(message.chat.id, "Ссылка на привязку недействительна.")
+                return
+            if not WEB_APP_URL.startswith("https://"):
+                bot.send_message(message.chat.id, "Привязка пока недоступна. Попробуй позже.")
+                return
+            keyboard = InlineKeyboardMarkup()
+            keyboard.add(InlineKeyboardButton(
+                "🔗 Подтвердить привязку TicketTreat",
+                web_app=WebAppInfo(url=f"{WEB_APP_URL}/profile?telegram_link={code}"),
+            ))
+            bot.send_message(
+                message.chat.id,
+                "🔐 Ты собираешься связать этот Telegram с аккаунтом TicketTreat на сайте. "
+                "Открой подтверждение ниже. На сайте должно быть начато подключение "
+                "этого аккаунта. Ссылка действует 10 минут; никому её не пересылай. "
+                "Никакие аккаунты не объединяются без твоего подтверждения.",
+                reply_markup=keyboard,
+            )
+            return
+
         if payload.startswith("event_"):
             try:
                 event_id = int(payload.split("_", maxsplit=1)[1])
@@ -1753,7 +1789,18 @@ def start(message):
         "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.",
         reply_markup=get_main_menu(message.from_user.id),
     )
-    if not is_profile_complete(message.from_user.id):
+    # Mini App is the primary UI and uses signed Telegram identity; legacy
+    # profile registration remains optional for backwards compatibility.
+    if WEB_APP_URL.startswith("https://"):
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton(
+            "🌐 Открыть TicketTreat", web_app=WebAppInfo(url=WEB_APP_URL)
+        ))
+        bot.send_message(message.chat.id,
+            "События, QR-билеты, очереди и поддержка доступны в Mini App. "
+            "Для объединения с аккаунтом сайта открой профиль на сайте и выбери «Привязать через Telegram-бота».",
+            reply_markup=keyboard)
+    elif not is_profile_complete(message.from_user.id):
         ask_to_register(message.chat.id)
 
 
@@ -1784,6 +1831,40 @@ def open_tickettreat_mini_app(message):
         "Существующие записи через бота также будут доступны в разделе билетов.",
         reply_markup=keyboard,
     )
+
+
+@bot.message_handler(commands=["link", "connect"])
+def connect_account(message):
+    if not WEB_APP_URL.startswith("https://"):
+        bot.send_message(message.chat.id, "Профиль TicketTreat пока не настроен.")
+        return
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton("👤 Профиль TicketTreat",
+        web_app=WebAppInfo(url=f"{WEB_APP_URL}/profile")))
+    bot.send_message(message.chat.id,
+        "Чтобы связать старые регистрации бота с сайтом, войди на сайт в свой "
+        "аккаунт, подтверди email и выбери «Привязать через Telegram-бота». "
+        "Затем вернись сюда по ссылке и подтверди подключение.",
+        reply_markup=keyboard)
+
+
+@bot.message_handler(commands=["help", "support"])
+def user_help(message):
+    cmd=(message.text or "").split()[0].split("@")[0].lower()
+    if not WEB_APP_URL.startswith("https://"):
+        bot.send_message(message.chat.id, "Используй /events, /myevents или /profile.")
+        return
+    target = "/support" if cmd == "/support" else "/"
+    keyboard=InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton(
+        "🆘 Поддержка TicketTreat" if cmd == "/support" else "🌐 TicketTreat Mini App",
+        web_app=WebAppInfo(url=f"{WEB_APP_URL}{target}")
+    ))
+    bot.send_message(message.chat.id,
+        "В TicketTreat доступны мероприятия, бронирования, очередь, QR-билеты "
+        "и обращения в поддержку. Команды: /app, /tickets, /myevents, "
+        "/events, /profile, /link, /support.",
+        reply_markup=keyboard)
 
 
 @bot.message_handler(commands=["myid"])
@@ -2558,6 +2639,18 @@ def handle_profile_edit(message):
 def events(message):
     telegram_id = message.from_user.id
 
+    if WEB_APP_URL.startswith("https://"):
+        keyboard=InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton(
+            "📅 Все доступные события TicketTreat",
+            web_app=WebAppInfo(url=WEB_APP_URL+"/")))
+        bot.send_message(message.chat.id,
+            "Список опубликованных мероприятий, актуальные свободные места и "
+            "регистрация доступны в TicketTreat Mini App. "
+            "Старые записи в боте сохраняются.",
+            reply_markup=keyboard)
+        return
+
     if not is_profile_complete(telegram_id):
         ask_to_register(message.chat.id)
         return
@@ -2628,6 +2721,25 @@ def event_details(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("reg:"))
 def handle_register(call):
     telegram_id = call.from_user.id
+
+    # Legacy buttons must not create a second registration in a separate
+    # backend. The canonical Mini App issues the real QR ticket or waitlist.
+    if WEB_APP_URL.startswith("https://"):
+        answer_callback(call, "Открой TicketTreat для регистрации")
+        try:
+            event_id = int(call.data.split(":")[1])
+        except (IndexError, ValueError):
+            bot.send_message(call.message.chat.id, "Неверная ссылка на событие.")
+            return
+        keyboard=InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton(
+            "🎟 Записаться через TicketTreat",
+            web_app=WebAppInfo(url=f"{WEB_APP_URL}/checkout/{event_id}")))
+        bot.send_message(call.message.chat.id,
+            "Регистрация и QR-билеты теперь едины для сайта и бота. "
+            "Открой Mini App, чтобы не создавать дублирующую запись.",
+            reply_markup=keyboard)
+        return
 
     if not is_profile_complete(telegram_id):
         answer_callback(
@@ -2759,7 +2871,7 @@ def my_events(message):
     except Exception as error:
         bot.send_message(
             message.chat.id,
-            f"Ошибка получения твоих ивентов: {error}",
+            "Не удалось загрузить мероприятия. Попробуй ещё раз позже.",
             reply_markup=get_main_menu(telegram_id),
         )
         return
