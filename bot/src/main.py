@@ -1546,6 +1546,17 @@ def show_event_details_by_id(
     user_id: int,
     event_id: int,
 ):
+    # Canonical published event details, media, pricing and booking rules
+    # live in the unified website/Mini App, not the legacy bot endpoints.
+    if WEB_APP_URL.startswith("https://"):
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton("🎟 Открыть событие в TicketTreat",
+            web_app=WebAppInfo(url=f"{WEB_APP_URL}/events/{event_id}")))
+        bot.send_message(chat_id,
+            "Описание, фотографии, билеты и актуальная доступность мест "
+            "отображаются в TicketTreat Mini App.",
+            reply_markup=keyboard)
+        return
     if not is_profile_complete(user_id):
         pending_event_after_registration[user_id] = (
             event_id
@@ -2628,6 +2639,18 @@ def handle_profile_edit(message):
 def events(message):
     telegram_id = message.from_user.id
 
+    if WEB_APP_URL.startswith("https://"):
+        keyboard=InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton(
+            "📅 Все доступные события TicketTreat",
+            web_app=WebAppInfo(url=WEB_APP_URL+"/")))
+        bot.send_message(message.chat.id,
+            "Список опубликованных мероприятий, актуальные свободные места и "
+            "регистрация доступны в TicketTreat Mini App. "
+            "Старые записи в боте сохраняются.",
+            reply_markup=keyboard)
+        return
+
     if not is_profile_complete(telegram_id):
         ask_to_register(message.chat.id)
         return
@@ -2698,6 +2721,25 @@ def event_details(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("reg:"))
 def handle_register(call):
     telegram_id = call.from_user.id
+
+    # Legacy buttons must not create a second registration in a separate
+    # backend. The canonical Mini App issues the real QR ticket or waitlist.
+    if WEB_APP_URL.startswith("https://"):
+        answer_callback(call, "Открой TicketTreat для регистрации")
+        try:
+            event_id = int(call.data.split(":")[1])
+        except (IndexError, ValueError):
+            bot.send_message(call.message.chat.id, "Неверная ссылка на событие.")
+            return
+        keyboard=InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton(
+            "🎟 Записаться через TicketTreat",
+            web_app=WebAppInfo(url=f"{WEB_APP_URL}/checkout/{event_id}")))
+        bot.send_message(call.message.chat.id,
+            "Регистрация и QR-билеты теперь едины для сайта и бота. "
+            "Открой Mini App, чтобы не создавать дублирующую запись.",
+            reply_markup=keyboard)
+        return
 
     if not is_profile_complete(telegram_id):
         answer_callback(
