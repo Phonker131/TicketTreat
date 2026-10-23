@@ -4799,10 +4799,10 @@ def handle_photo(message):
 # =========================================================
 print("BOT STARTED")
 
-threading.Thread(
-    target=notification_worker,
-    daemon=True,
-).start()
+# Event reminders are now delivered by the durable Demo API Telegram outbox.
+# Do not run the legacy one-shot bot reminder worker: it would double-send
+# notices to Telegram registrants and ignore organizer-custom intervals.
+# Keep the old function above temporarily for rollback/reference only.
 
 bot.remove_webhook()
 time.sleep(1)
