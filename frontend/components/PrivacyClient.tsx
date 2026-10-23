@@ -47,6 +47,7 @@ export function PrivacyClient(){
   return <div className="app-shell"><AppHeader/><main className="page">
     <Link href="/profile" className="back-link">← Back to profile</Link>
     <h1>Privacy and personal data</h1>
+    <p className="form-note">Read our <Link href="/privacy-policy">Privacy Policy</Link> for a description of how information is processed.</p>
     <section className="panel form-stack">
       <h2>Account erasure request</h2>
       <p className="form-note">You can request the deletion of your TicketTreat account and personal information. Requests are reviewed before fulfillment because event-registration records, organizer activity or legally required data may need to be retained.</p>
@@ -67,7 +68,7 @@ export function PrivacyClient(){
           <button type="submit" className="button button-primary" disabled={pending||!getWebToken()}>Submit erasure request</button>
         </form>
       }
-      <p className="form-note">Submitting a request does not instantly cancel event registrations or delete financial records. Your other account privacy rights, including data export, are available from your profile.</p>
+      <p className="form-note">Submitting a request does not instantly cancel event registrations or delete financial records. For other privacy rights, including requests for access to your information, please contact TicketTreat support through the link in the site footer.</p>
     </section>
   </main></div>;
 }
