@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {adminTranslate} from "@/lib/admin-i18n";
 import { CountryCityFields } from "@/components/CountryCityFields";
+import { ReminderEditor } from "@/components/ReminderEditor";
 import { addManageEvent, getManageEvents, getManageMe } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { LanguageCode, ManageEvent, ManageIdentity } from "@/lib/types";
@@ -68,6 +69,8 @@ export function AdminClient() {
   const [preview,setPreview]=useState("");
   const [countryCode,setCountryCode]=useState("");
   const [city,setCity]=useState("");
+  const [reminderMinutes,setReminderMinutes]=useState<number[]>([10080,1440,180]);
+  const [reminderMessage,setReminderMessage]=useState("Your TicketTreat event starts soon.");
   const [eventSearch,setEventSearch]=useState("");
   const [eventStatus,setEventStatus]=useState("all");
   const [sortMode,setSortMode]=useState("newest");
@@ -100,6 +103,7 @@ export function AdminClient() {
       if(!langs.length)throw new Error("Выбери хотя бы один язык.");
       const starts=String(data.get("starts_at")||"");
       if(!starts)throw new Error("Введи дату и время.");
+      if(!reminderMinutes.length||!reminderMessage.trim())throw new Error("Укажи время и текст напоминания.");
       const event=await addManageEvent(token,{
         title:String(data.get("title")||"").trim(),
         organizer:String(data.get("organizer")||"TicketTreat").trim(),
@@ -112,9 +116,11 @@ export function AdminClient() {
         price:String(data.get("price")||"0"),
         currency:String(data.get("currency")||"CZK"),
         starts_at:starts+":00",languages:langs,poster_data_url,
+        reminder_minutes:reminderMinutes,reminder_text:reminderMessage.trim(),
       });
       setEvents(current=>[event,...current]);
-      form.reset();setPreview("");setCountryCode("");setCity("");setShowForm(false);setNotice("Черновик создан. Заполни детали и опубликуй его из карточки мероприятия.");
+      form.reset();setPreview("");setCountryCode("");setCity("");setShowForm(false);
+      setReminderMinutes([10080,1440,180]);setReminderMessage("Your TicketTreat event starts soon.");setNotice("Черновик создан. Заполни детали и опубликуй его из карточки мероприятия.");
     }catch(e){setError(errorText(e));}
     finally{setSaving(false);}
   }
@@ -166,6 +172,8 @@ export function AdminClient() {
         </div></fieldset>
         <div className="two-col"><label>{tr("Начало")}<input name="starts_at" type="datetime-local" required/></label>
         <label>{tr("Мест")}<input name="max_participants" type="number" min="1" defaultValue="30" required/></label></div>
+        <ReminderEditor minutes={reminderMinutes} onChange={setReminderMinutes}
+          message={reminderMessage} onMessageChange={setReminderMessage} language={language}/>
         <div className="two-col"><label>{tr("Цена")}<input name="price" type="number" min="0" step="0.01" defaultValue="0"/></label>
         <label>{tr("Валюта")}<select name="currency" defaultValue="CZK"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option></select></label></div>
         <button className="button button-primary" disabled={saving}>{saving?"Сохраняем…":"Создать черновик"}</button>
