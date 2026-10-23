@@ -602,3 +602,29 @@ export function declineWaitlistOffer(eventId:number):Promise<{status:string}>{
 export function getMyAttendance():Promise<AttendanceHistory>{
   return request("/demo/me/attendance");
 }
+
+export type BroadcastAudience = {
+  scope:"global"|"event";event_id:number|null;role:"global_admin"|"organizer"|"participant";
+  email_recipients:number;telegram_recipients:number;
+  email_available:boolean;telegram_available:boolean;service_only:true;
+};
+export type BroadcastHistory = {
+  id:number;scope:"global"|"event";event_id:number|null;
+  subject:string;created_at:string;email_count:number;telegram_count:number;
+  emails:Record<string,number>;telegram:Record<string,number>;
+};
+export type BroadcastDraft = {scope:"global"|"event";event_id:number|null};
+export type BroadcastSend = BroadcastDraft & {
+  request_id:string;subject:string;message:string;image_url:string|null;
+  expected_email_recipients:number;expected_telegram_recipients:number;
+  confirm:"SEND";service_only:true;
+};
+export function previewBroadcast(token:string,draft:BroadcastDraft):Promise<BroadcastAudience> {
+  return request("/demo/manage/broadcasts/preview",{method:"POST",headers:accountHeaders(token),body:JSON.stringify(draft)});
+}
+export function sendBroadcast(token:string,payload:BroadcastSend):Promise<BroadcastHistory> {
+  return request("/demo/manage/broadcasts",{method:"POST",headers:accountHeaders(token),body:JSON.stringify(payload)});
+}
+export function getBroadcastHistory(token:string):Promise<BroadcastHistory[]> {
+  return request("/demo/manage/broadcasts",{headers:accountHeaders(token)});
+}
