@@ -303,6 +303,9 @@ export type EventEmailStatus = {
   verified_ticket_holders:number;
   message_states:Record<string,number>;
   scope:string;
+  telegram_enabled:boolean;
+  telegram_recipients:number;
+  telegram_message_states:Record<string,number>;
 };
 export function getEventEmailStatus(token:string,eventId:number):Promise<EventEmailStatus> {
   return request(`/demo/manage/events/${eventId}/email-status`,{headers:accountHeaders(token)});
