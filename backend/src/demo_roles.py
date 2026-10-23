@@ -149,8 +149,8 @@ def save_media(db, event_id, gallery_urls=None, video_url=None):
 
 
 class CreateManageEvent(BaseModel):
-    country_code: str = Field(min_length=2, max_length=2)
-    city: str = Field(min_length=1, max_length=100)
+    country_code: str = Field(default="CZ", min_length=2, max_length=2)
+    city: str = Field(default="", max_length=100)
     title: str = Field(min_length=1, max_length=255)
     organizer: str | None = None
     location: str | None = None
@@ -446,8 +446,8 @@ def install_demo_roles(app, get_db, main):
             if not event.location or not event.location.strip():
                 raise HTTPException(422,"publish_requires_venue")
             place=db.query(DemoEventPlace).filter(DemoEventPlace.event_id==event_id).first()
-            if not place or not place.country_code or not place.city:
-                raise HTTPException(422,"publish_requires_country_and_city")
+            if not place or not place.country_code:
+                raise HTTPException(422,"publish_requires_country")
             if not event.starts_at or main.event_is_past(event):
                 raise HTTPException(422,"publish_requires_future_start")
             if not event.max_participants or event.max_participants<1:
@@ -482,8 +482,8 @@ def install_demo_roles(app, get_db, main):
         if source is None:
             raise HTTPException(404,"event_not_found")
         place=db.query(DemoEventPlace).filter(DemoEventPlace.event_id==event_id).first()
-        if place is None or not place.city or not place.country_code:
-            raise HTTPException(422,"set_source_country_and_city_first")
+        if place is None or not place.country_code:
+            raise HTTPException(422,"set_source_country_first")
         original=db.query(EventMedia).filter(EventMedia.event_id==event_id).first()
         external=json.loads(original.gallery_json or "[]") if original else []
         video=original.video_url if original else None
