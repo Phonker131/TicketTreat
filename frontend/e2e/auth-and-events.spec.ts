@@ -100,3 +100,16 @@ test("existing Google-email accounts return to login, not registration",async({p
   await expect(page.locator(".auth-tabs button").last()).toHaveClass(/active/);
   await expect(page.getByText(/Войди по паролю и привяжи Google|Sign in with your password/i).first()).toBeVisible();
 });
+
+test("Google linking explains missing TicketTreat password instead of silently disabling its button",async({page})=>{
+  await page.goto("/profile");
+  await page.locator(".auth-tabs button").last().click();
+  await page.locator('form input[type="email"]').first().fill("browser-e2e@example.invalid");
+  await page.locator('form input[type="password"]').first().fill("Browser-only-testing-passphrase-2026");
+  await page.locator('form button[type="submit"]').first().click();
+  await expect(page.locator(".profile-overview")).toBeVisible();
+  const button=page.getByRole("button",{name:/Link Google account|Привязать Google|Propojit účet Google|Прив’язати Google/});
+  await expect(button).toBeEnabled();
+  await button.click();
+  await expect(page.getByRole("alert")).toContainText(/password|пароль|heslo/i);
+});
