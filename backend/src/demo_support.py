@@ -94,10 +94,17 @@ def rate_limit(db,account_id,for_new):
             SupportMessage.author_account_id==account_id,
             SupportMessage.author_role=="customer",
             SupportMessage.created_at>=current-timedelta(days=1)).scalar() or 0
-        latest=db.query(SupportMessage.created_at).filter(
+        latest=db.query(SupportMessage).filter(
             SupportMessage.author_account_id==account_id,
             SupportMessage.author_role=="customer").order_by(SupportMessage.created_at.desc()).first()
-        if count>=30 or (latest and utc(latest[0])>current-timedelta(seconds=20)):
+        recent=(latest is not None and utc(latest.created_at)>current-timedelta(seconds=20))
+        # Let the customer clarify a brand-new ticket immediately once.
+        # Rate-limit subsequent messages to prevent flooding support.
+        is_initial=(latest is not None and
+            (db.query(func.count(SupportMessage.id)).filter(
+                SupportMessage.ticket_id==latest.ticket_id,
+                SupportMessage.author_role=="customer").scalar() or 0)<=1)
+        if count>=30 or (recent and not is_initial):
             raise HTTPException(429,"support_rate_limit")
 
 def global_admin(db,account,session):
