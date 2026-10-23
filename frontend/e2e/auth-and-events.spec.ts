@@ -102,6 +102,9 @@ test("existing Google-email accounts return to login, not registration",async({p
 });
 
 test("Google linking explains missing TicketTreat password instead of silently disabling its button",async({page})=>{
+  // CI intentionally has no live Google credentials. Stub only capability status;
+  // actual OAuth and account mutations still use the disposable CI backend.
+  await page.route("**/api/gateway/demo/auth/google/status",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({enabled:true})}));
   await page.goto("/profile");
   await page.locator(".auth-tabs button").last().click();
   await page.locator('form input[type="email"]').first().fill("browser-e2e@example.invalid");
