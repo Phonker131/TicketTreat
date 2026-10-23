@@ -630,6 +630,21 @@ export function scanPilotTicket(token:string,qrToken:string):Promise<{status:"ch
   return request("/demo/pilot/check-in",{method:"POST",headers:accountHeaders(token),
     body:JSON.stringify({qr_token:qrToken})});
 }
+export type LoyaltyTier = "newcomer"|"regular"|"insider"|"vip";
+export type LoyaltyStudio = {
+  organizer_id:number;organizer_name:string;
+  season_visits:number;lifetime_visits:number;
+  tier:LoyaltyTier;threshold:number;next_threshold:number|null;
+  remaining:number;progress_percent:number;
+  perks:{key:string;required_visits:number;available:boolean;operational:boolean}[];
+};
+export type LoyaltyPassport = {
+  season:string;season_starts_at:string;season_ends_at:string;
+  scope:"per_organizer";total_lifetime_visits:number;studios:LoyaltyStudio[];
+};
+export function getMyLoyalty():Promise<LoyaltyPassport>{
+  return request("/demo/me/loyalty");
+}
 export type AttendanceHistory = {visit_count:number;limited_to:number;
   history:{event_id:number;title:string;checked_in_at:string;location:string|null}[]};
 export type WaitlistOfferStatus = {status:string;expires_at:string|null;position:number|null};
