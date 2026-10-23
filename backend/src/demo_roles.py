@@ -742,8 +742,21 @@ def install_demo_roles(app, get_db, main):
         states=db.query(EmailOutbox.state,func.count(EmailOutbox.id)).join(
             main.DemoTicket,main.DemoTicket.id==EmailOutbox.ticket_id
         ).filter(main.DemoTicket.event_id==event_id).group_by(EmailOutbox.state).all()
+        from demo_telegram_notifications import (
+            TelegramNotificationOutbox, configured as telegram_configured, recipient_ids,
+        )
+        # Owner-scoped aggregate telemetry; no Telegram IDs exposed.
+        telegram_users = len(recipient_ids(db,event_id,main)) if telegram_configured() else 0
+        telegram_states = db.query(
+            TelegramNotificationOutbox.state,func.count(TelegramNotificationOutbox.id)
+        ).filter(
+            TelegramNotificationOutbox.event_id == event_id
+        ).group_by(TelegramNotificationOutbox.state).all()
         return {"email_enabled":configured(),"verified_ticket_holders":verified,
                 "message_states":{state:count for state,count in states},
+                "telegram_enabled":telegram_configured(),
+                "telegram_recipients":telegram_users,
+                "telegram_message_states":{state:count for state,count in telegram_states},
                 "scope":"operational event notifications only; marketing requires consent"}
 
     @app.get("/demo/manage/events/{event_id}/participants")
