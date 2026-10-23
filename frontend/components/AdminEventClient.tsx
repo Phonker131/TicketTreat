@@ -14,10 +14,11 @@ import {
   setManagePublication,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
   getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
+  getManagePaidReservations,decidePaidReservation,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
-import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff} from "@/lib/api";
+import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff,PaidReservation} from "@/lib/api";
 
 function asLocal(value: string|null): string {
   if(!value)return "";
@@ -39,6 +40,7 @@ export function AdminEventClient(){
   const [pilotInsights,setPilotInsights]=useState<PilotInsights|null>(null);
   const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180],waitlist_offer_minutes:0,event_duration_minutes:180});
   const [pilotStaff,setPilotStaff]=useState<CheckinStaff[]>([]);
+  const [paidReservations,setPaidReservations]=useState<PaidReservation[]>([]);
   const [staffEmail,setStaffEmail]=useState("");
   const [reminderMessage,setReminderMessage]=useState("Your TicketTreat event starts soon.");
   const [announcementCategory,setAnnouncementCategory]=useState<"access"|"logistics"|"schedule">("logistics");
@@ -66,6 +68,9 @@ export function AdminEventClient(){
       getManageMe(token),getManageEvent(eventId,token),getManageParticipants(token,eventId)
     ]);
     setIdentity(me);setEvent(ev);setData(tickets);
+    if(Number(ev.price||0)>0){
+      void getManagePaidReservations(token,eventId).then(r=>setPaidReservations(r.reservations)).catch(()=>setPaidReservations([]));
+    }else setPaidReservations([]);
     setReminderMessage(ev.reminder_text||"Your TicketTreat event starts soon.");
     void getEventEmailStatus(token,eventId).then(setEmailStatus).catch(()=>setEmailStatus(null));
     void getPilotInsights(token,eventId).then(setPilotInsights).catch(()=>setPilotInsights(null));
@@ -168,6 +173,20 @@ export function AdminEventClient(){
       await reload();setNotice("Владелец ивента обновлён.");
     }catch(e){setError(formattedError(e));}finally{setBusy(false);}
   }
+  async function decidePaid(id:number,action:"confirm"|"decline"){
+    const token=getWebToken();if(!token)return;
+    if(!window.confirm(action==="confirm"?
+      "Подтверди только после фактического получения денег организатором. Выдать билет?":
+      "Отклонить заявку? Резерв места будет освобождён."))return;
+    setBusy(true);setError("");setNotice("");
+    try{
+      await decidePaidReservation(token,eventId,id,action);
+      await reload();
+      setNotice(action==="confirm"?"Оплата подтверждена, QR-билет выдан.":"Заявка отклонена, место освобождено.");
+    }catch(e){setError(formattedError(e))}
+    finally{setBusy(false)}
+  }
+
   async function uploadPhotos(files: FileList|null) {
     const token=getWebToken();if(!token||!files?.length)return;
     setBusy(true);setError("");setNotice("");
@@ -329,7 +348,7 @@ export function AdminEventClient(){
       </div>
       {!event.is_cancelled&&<section className="panel form-stack">
         <h2>{tr("Публикация мероприятия")}</h2>
-        <p className="form-note">Статус: <strong>{event.publication?.status==="draft"?"Черновик":event.publication?.status==="scheduled"?"Запланировано":"Опубликовано"}</strong>. Новые ивенты скрыты до публикации. Публиковать можно только бесплатные будущие мероприятия с заполненными названием, описанием, адресом, городом и вместимостью.</p>
+        <p className="form-note">Статус: <strong>{event.publication?.status==="draft"?"Черновик":event.publication?.status==="scheduled"?"Запланировано":"Опубликовано"}</strong>. Новые ивенты скрыты до публикации. Для платных ивентов укажи инструкцию прямой оплаты организатору; подтверждение оплаченных заявок доступно ниже.</p>
         {event.publication?.publish_at&&<p>Автопубликация: {new Date(event.publication.publish_at).toLocaleString("ru-RU")}</p>}
         <div className="admin-event-actions">
           {!event.publication?.visible&&<button type="button" className="button button-primary" disabled={busy} onClick={()=>publication("published")}>{tr("Опубликовать сейчас")}</button>}
@@ -357,6 +376,9 @@ export function AdminEventClient(){
         <div className="two-col"><label>{tr("Цена")}<input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}/></label>
           <label>{tr("Валюта")}<select value={currency} onChange={e=>setCurrency(e.target.value)}>
           <option>CZK</option><option>EUR</option><option>USD</option></select></label></div>
+        <label>Инструкция по оплате организатору (обязательно для платных мероприятий)
+          <textarea value={paymentInstructions} maxLength={2000} rows={4} onChange={e=>setPaymentInstructions(e.target.value)} placeholder="Способ и реквизиты прямого платежа, контакт организатора; TicketTreat платежи не принимает."/>
+        </label>
         <fieldset className="event-language-fieldset"><legend>{tr("Языки")}</legend>
         <div className="event-language-options">
           {([["en","🇬🇧 English"],["cs","🇨🇿 Čeština"],["ru","🇷🇺 Русский"],["uk","🇺🇦 Українська"]] as const).map(([id,label])=>
@@ -542,6 +564,26 @@ export function AdminEventClient(){
         {audit.map((a,i)=><div className="participant-row" key={i}>
           <div><strong>{a.action}</strong><small>Admin/Organizer #{a.actor_account_id}</small><small>{a.details}</small></div>
           <small>{new Date(a.at).toLocaleString()}</small>
+        </div>)}
+      </section>}
+      {Number(event.price||0)>0&&<section className="panel form-stack">
+        <h2>Заявки на платное мероприятие — подтверждение в течение 24 часов</h2>
+        <p className="form-note">Деньги поступают напрямую организатору. Подтверждай заявку только после проверки фактического поступления. До подтверждения QR-билет не выдаётся. Не подтверждённые заявки автоматически истекают через 24 часа.</p>
+        {!paidReservations.length&&<p>Заявок пока нет.</p>}
+        {paidReservations.map(r=><div className="participant-row" key={r.id}>
+          <div>
+            <strong>{r.guest?.first_name||"Участник"} {r.guest?.last_name||""}</strong>
+            <small>{r.guest?.email||"—"}</small>
+            <small>Заявка #{r.id} · {r.status==="pending"?"Ожидает оплаты":r.status==="confirmed"?"Подтверждено":r.status==="expired"?"Истекло":"Отклонено"}</small>
+            <small>{r.status==="pending"?"Крайний срок: ":"Дата истечения: "}{new Date(r.expires_at).toLocaleString()}</small>
+          </div>
+          <div className="participant-actions">
+            {r.status==="pending"&&<>
+              <button type="button" className="button button-primary" disabled={busy} onClick={()=>void decidePaid(r.id,"confirm")}>Подтвердить оплату</button>
+              <button type="button" className="button button-outline" disabled={busy} onClick={()=>void decidePaid(r.id,"decline")}>Отклонить</button>
+            </>}
+            {r.status!=="pending"&&<span className="status">{r.status}</span>}
+          </div>
         </div>)}
       </section>}
       {data&&<>
