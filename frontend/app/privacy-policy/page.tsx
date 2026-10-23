@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type {Metadata} from "next";
 import {AppHeader} from "@/components/AppHeader";
+import {LegalOperatorIdentity} from "@/components/LegalOperatorIdentity";
 
 export const metadata:Metadata={
   title:"Privacy Policy",
@@ -17,10 +18,12 @@ export default function PrivacyPolicyPage(){
       <p className="tt-legal-intro">How we handle personal information when you use TicketTreat to find events, register and manage tickets.</p>
       <p className="tt-legal-updated">Last updated: 23 October 2026</p>
       <article className="tt-legal-content">
+        <LegalOperatorIdentity/>
+        <p className="tt-legal-language-note">The English information appears below. <a href="#ceska-verze">Úplné informace v češtině ↓</a></p>
         <section>
-          <h2>1. Who operates TicketTreat?</h2>
-          <p>TicketTreat is an independently operated event-platform pilot in Czechia, currently before incorporation as a company. This notice concerns data processed to provide the TicketTreat website, participant accounts, tickets and Telegram integration.</p>
-          <p>For questions about the responsible project operators, personal data and privacy requests, contact <a href="https://t.me/vvladver" target="_blank" rel="noopener noreferrer">TicketTreat support on Telegram</a>. You can also request information identifying the relevant data controller through this channel.</p>
+          <h2>1. Controller and scope</h2>
+          <p>TicketTreat is a brand for an event-platform pilot in Czechia, not an incorporated legal entity by itself. The person or entity identified in the operator box above must be the actual GDPR controller for platform accounts, authentication, security and platform support. Event organizers may separately determine purposes and means of processing participant data for their own events; their identity and obligations must be clarified before public event sales.</p>
+          <p>Use the verified privacy email in the operator box above for data protection requests, or Telegram support for general help. If the operator box is incomplete, the service is not yet ready for public launch: a brand or support username alone is not enough to identify the data controller.</p>
         </section>
         <section>
           <h2>2. Information we process</h2>
@@ -47,29 +50,45 @@ export default function PrivacyPolicyPage(){
             <li>Prevent fraud, enforce access controls, investigate incidents and maintain security.</li>
             <li>Handle support, privacy requests and compliance with applicable legal obligations.</li>
           </ul>
-          <p>We rely on the grounds appropriate to each activity under applicable data-protection law, including provision of a requested service, legitimate interests in security, a legal obligation or consent where required. Optional promotional communications require an appropriate legal basis and, where necessary, an unsubscribe option.</p>
+          <p><strong>Legal bases under GDPR Article 6:</strong> account registration, ticket delivery and essential service messages are generally necessary for the requested contract or steps before it (Art. 6(1)(b)); access security, abuse detection and basic operational logging are generally based on legitimate interests subject to balancing (Art. 6(1)(f)); legally mandated records rely on a legal obligation where one exists (Art. 6(1)(c)). Optional non-essential tracking and promotional mail require a separately documented lawful basis and any consent or opt-out required by Czech electronic communications law. We do not treat acceptance of these terms as blanket consent to marketing.</p>
         </section>
         <section>
           <h2>5. Who receives information</h2>
           <p>Relevant event organizers can access participant information necessary for their event, such as registration and check-in records. We use infrastructure and service providers, including Railway for hosting and databases and Resend for transactional email delivery when enabled. Google processes authentication on its own systems when you choose Google sign-in; Telegram handles messages and account linkage when you choose to use Telegram.</p>
-          <p>Providers may process information in countries outside Czechia. Where required, transfers are handled under applicable data-protection safeguards. We do not sell your personal information to advertisers.</p>
+          <p>Data may be processed outside Czechia or the European Economic Area, depending on a provider's configuration. The responsible operator must verify processor agreements, locations, subprocessors and any GDPR Chapter V transfer mechanism (such as an adequacy decision or appropriate safeguards) before making the service publicly available. We do not sell your personal information to advertisers.</p>
         </section>
         <section>
           <h2>6. Cookies and device storage</h2>
-          <p>TicketTreat uses essential authentication and security cookies to maintain your session. Your device may also store your selected interface language and a non-secret login-state indicator. The site can load Telegram integration software for Mini App functionality. Any future optional analytics or advertising cookies will require a separate assessment and any consent required by law.</p>
+          <p>TicketTreat uses essential authentication and security cookies to maintain your session, and browser storage for language and a non-secret login indicator. The site loads Telegram integration software for Mini App functionality and Google's authentication pages when you choose Google sign-in. External providers may process network metadata when these integrations load. The operator must inventory deployed cookies/scripts and document their purposes and durations.</p><p>Non-essential analytics, advertising or other optional tracking must not be enabled until valid prior consent and an equally easy rejection/withdrawal mechanism are implemented where Czech law requires it. Essential cookies needed for the service do not require such consent, but must still be explained.</p>
         </section>
         <section>
           <h2>7. How long information is kept</h2>
-          <p>We retain active account and event details while needed to provide the service, manage bookings and handle support. Security, organizer and communication records are kept as necessary for operational security, dispute handling and applicable legal obligations. Relevant records may remain for a longer period where law requires it. Backups may persist until their rotation period ends. Retention categories and periods are reviewed as the Czech pilot develops.</p>
+          <p>We retain an active account while it is needed to provide login and ticket services, or until a valid erasure request is fulfilled. Registrations and check-in information are used for event participation and, after an event, only as needed for related claims, security or applicable legal duties. Authentication and operational logs are retained only for the minimum period necessary for incident response and service protection. Statutory accounting records, if payments are activated, follow the applicable legal requirements. Backups are removed under the approved rotation policy rather than instantly when an active account is erased.</p><p><strong>Before public launch:</strong> the controller must approve and publish a retention schedule with concrete periods or sufficiently precise criteria for each category, configure deletion/backup rotation, and ensure the live text matches actual practices. This pilot notice does not claim an unverified fixed retention period.</p>
         </section>
         <section>
           <h2>8. Your data protection rights</h2>
           <p>Subject to applicable conditions, you can request access, rectification, erasure, restriction, portability or object to processing; where consent is used, you can withdraw it. Signed-in users can submit an <Link href="/privacy">account-erasure request</Link>. For other privacy enquiries or if you cannot sign in, <a href="https://t.me/vvladver" target="_blank" rel="noopener noreferrer">contact support</a>.</p>
-          <p>Requests are generally answered within one month, subject to extensions permitted by law. You may contact the Czech Data Protection Authority (<a href="https://uoou.gov.cz/" target="_blank" rel="noopener noreferrer">Úřad pro ochranu osobních údajů</a>) about your rights.</p>
+          <p>Requests are answered without undue delay and ordinarily within one month; in complex cases this may be extended by up to two more months if the individual is told within the first month. You can withdraw consent where consent is the basis, and you may object to legitimate-interest processing. If a request is refused, reasons and remedies must be explained. You may contact the Czech Data Protection Authority (<a href="https://uoou.gov.cz/" target="_blank" rel="noopener noreferrer">Úřad pro ochranu osobních údajů</a>) about your rights.</p>
         </section>
         <section>
-          <h2>9. Policy updates</h2>
+          <h2>9. Automated decisions and mandatory information</h2>
+          <p>We do not currently use personal data for solely automated decisions producing legal or similarly significant effects. Required registration data is marked in account or event forms; without it, we cannot authenticate an account or issue its ticket. Optional data is not required for these services. Where information is obtained from an organizer rather than directly from you, we must provide an appropriate notice under GDPR Article 14.</p>
+        </section>
+        <section>
+          <h2>10. Policy updates</h2>
           <p>We may update this notice as TicketTreat introduces new features, payment processing or additional service providers. Material changes will be communicated through the service as appropriate; the latest effective version remains available at this URL.</p>
+        </section>
+        <section lang="cs" id="ceska-verze" className="tt-legal-czech">
+          <h2>Úplné informace o zpracování osobních údajů (česky)</h2>
+          <p><strong>1. Správce údajů:</strong> TicketTreat je značka projektu, nikoliv samostatná právnická osoba. Skutečným správcem osobních údajů musí být konkrétní fyzická nebo právnická osoba uvedená v identifikačním bloku v horní části této stránky. Není-li identifikace doplněna, nejde o dokončené informace podle čl. 13 GDPR a veřejné spuštění musí počkat. Organizátor akce může být samostatným správcem pro účely vlastní akce; rozdělení odpovědností musí být určeno před zpřístupněním placených akcí.</p>
+          <p><strong>2. Rozsah údajů:</strong> jméno, e-mail, případně telefon, přihlašovací a bezpečnostní údaje, propojení účtu Google (identifikátor, ověřený e-mail a jméno), dobrovolné propojení Telegramu, registrace na akce, rezervace, QR vstupenky, stav odbavení, stornování, čekací listiny a potřebné servisní zprávy.</p>
+          <p><strong>3. Účely a právní základ:</strong> vedení účtu, rezervace, vystavení vstupenek a nezbytná oznámení jsou zpravidla nezbytná pro smlouvu nebo jednání o jejím uzavření (čl. 6 odst. 1 písm. b) GDPR). Ochrana účtů a předcházení zneužití může vycházet z oprávněného zájmu po provedení posouzení (písm. f). Zákonné evidence z právní povinnosti (písm. c). Volitelné marketingové zprávy a netechnické cookies vyžadují samostatně doložený právní základ a případný předchozí souhlas podle českých předpisů. Přijetí obchodních podmínek není souhlasem s marketingem.</p>
+          <p><strong>4. Google a Telegram:</strong> Google přihlášení žádá pouze rozsahy <code>openid</code>, <code>email</code>, <code>profile</code>; TicketTreat nepožaduje přístup k obsahu Gmailu či Disku Google a nezískává heslo Google. Při dobrovolném použití Telegramu se zpracovává identifikátor a údaje potřebné pro propojení a zasílání provozních zpráv.</p>
+          <p><strong>5. Příjemci a přenosy:</strong> údaje nezbytné pro pořádání konkrétní akce mohou být zpřístupněny jejímu organizátorovi. K poskytování služby mohou být zapojeny hosting a databáze Railway, transakční doručování e-mailů přes Resend a poskytovatelé Google a Telegram podle použitých funkcí. Před veřejným provozem musí správce ověřit zpracovatelské smlouvy, seznam příjemců, umístění dat a případné přenosy mimo EHP podle kapitoly V GDPR.</p>
+          <p><strong>6. Cookies a úložiště:</strong> používají se nezbytné přihlašovací a bezpečnostní cookies a lokální nastavení jazyka. Web může načítat integrační skript Telegramu. Netechnické analytické a reklamní technologie smějí být použity pouze po splnění požadavků na předchozí souhlas, jednoduché odmítnutí i odvolání a transparentní popis použitých technologií. Seznam technologií a jejich trvání musí odpovídat skutečnému nasazení.</p>
+          <p><strong>7. Doba uložení:</strong> účet se zpracovává po dobu poskytování služby nebo do oprávněného výmazu. Údaje o účasti se uchovávají pro zajištění akce a případné související nároky; bezpečnostní údaje jen po nezbytnou dobu. Případné účetní doklady podle právních lhůt a zálohy podle schváleného cyklu mazání. Konkrétní lhůty nebo přesná kritéria musí správce schválit a doložit před veřejným spuštěním.</p>
+          <p><strong>8. Práva:</strong> máte právo na přístup, opravu, výmaz, omezení zpracování, přenositelnost tam, kde se uplatní, námitku a odvolání souhlasu. Žádost lze podat prostřednictvím kontaktního e-mailu správce nebo po přihlášení v <a href="/privacy">nastavení soukromí</a>. Správce odpovídá bez zbytečného odkladu, zpravidla nejpozději do měsíce; za podmínek GDPR lze lhůtu prodloužit. Stížnost lze podat u <a href="https://uoou.gov.cz/">Úřadu pro ochranu osobních údajů</a>.</p>
+          <p><strong>9. Povinné údaje a automatizace:</strong> bez povinných údajů nelze vytvořit účet ani vystavit vstupenku; volitelné údaje povinné nejsou. Neprovádíme výhradně automatizované rozhodování s právními nebo obdobně významnými účinky. Informace o změnách této politiky jsou zveřejňovány na této stránce.</p>
         </section>
       </article>
     </main>
