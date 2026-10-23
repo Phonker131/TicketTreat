@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 from demo_telegram_notifications import (
     TelegramNotificationOutbox,
-    queue_notice, queue_reminders_for_event, render_message, venue_start,
+    queue_notice, queue_reminders_for_event, reminder_offsets, render_message, venue_start,
 )
 
 
@@ -81,6 +81,21 @@ class TelegramNotificationTests(unittest.TestCase):
         self.assertEqual(db.add.call_args.args[0].kind, "cancel")
         db.flush.assert_called_once()
         enqueue.assert_called_once()
+
+    def test_legacy_bot_reminder_offset_is_respected(self):
+        event = example_event(reminder_minutes_before=45)
+        db = Mock()
+        db.get.return_value = None
+        with patch("demo_pilot_ops.effective_settings") as settings:
+            self.assertEqual(reminder_offsets(db, event), [45])
+            settings.assert_not_called()
+
+    def test_site_reminders_override_legacy_offset(self):
+        event = example_event(reminder_minutes_before=45)
+        db = Mock()
+        db.get.return_value = object()
+        with patch("demo_pilot_ops.effective_settings", return_value={"reminder_minutes": [1440, 180]}):
+            self.assertEqual(reminder_offsets(db, event), [1440, 180])
 
     def test_future_interval_not_queued_before_due_window(self):
         now = datetime(2026, 11, 1, 12, 0, tzinfo=timezone.utc)
