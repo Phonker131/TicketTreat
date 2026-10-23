@@ -149,7 +149,7 @@ export function AdminEventClient(){
       setCancelError("Причина отмены должна содержать не менее 8 символов.");
       return;
     }
-    if(!window.confirm("Окончательно отменить мероприятие? Регистрация будет закрыта, активные билеты аннулированы, а участники получат уведомления."))return;
+    if(!window.confirm("Окончательно отменить мероприятие? Регистрация закроется, активные билеты будут аннулированы. Уведомления подтверждённым участникам будут поставлены в очередь."))return;
     setBusy(true);setCancelError("");setError("");setNotice("");
     try{
       await cancelManageEvent(token,eventId,reason.trim());
@@ -399,7 +399,7 @@ export function AdminEventClient(){
           <span className="status status-danger">EVENT #{event.id} · CANCELLATION</span>
           <h2 id="tt-event-cancel-title">{tr("Отмена ивента")}</h2>
           <p id="tt-event-cancel-description">Ты собираешься отменить <strong>{event.title}</strong>.
-            Новые регистрации закроются, действующие билеты будут аннулированы, а участники получат уведомления.
+            Новые регистрации закроются, действующие билеты будут аннулированы, а уведомления подтверждённым владельцам билетов будут поставлены в очередь.
             Это действие нельзя отменить через панель организатора.</p>
           <label>{tr("Причина отмены")} <span className="tt-cancel-required">(обязательно, минимум 8 символов)</span>
             <textarea required minLength={8} maxLength={1000} rows={4} autoFocus
