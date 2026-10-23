@@ -46,7 +46,7 @@ export function GoogleSignIn({link=false}:{link?:boolean}) {
         language==="uk"?"Це не нова реєстрація. Увійди з наявним паролем, потім прив’яжи Google у налаштуваннях безпеки.":
         "You don't need to sign up again. Sign in below with your existing password, then use Account security → Link Google. Your tickets stay in the same account."}
       </p>}
-    </div>
+    </div>}
     {!enabled && !embedded && <p className="form-note" role="status">{tr.unavailable}</p>}
     {enabled && (embedded ? <p className="form-note">{tr.embedded}</p> : <>
       {link && <label>{tr.password}<input type="password" autoComplete="current-password" maxLength={128} value={password} onChange={e=>setPassword(e.target.value)}/></label>}
