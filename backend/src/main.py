@@ -2327,6 +2327,7 @@ def get_event_participants(
 def get_user_events(
     telegram_id: int,
     include_past: bool = False,
+    include_web_tickets: bool = False,
     db: Session = Depends(get_db),
 ):
     user = (
@@ -2337,9 +2338,8 @@ def get_user_events(
         .first()
     )
 
-    if user is None:
-        return []
-
+    # A web/Telegram ticket can exist without a legacy bot User row.
+    # Do not return early before checking the signed Mini App identity map.
     events = (
         db.query(Event)
         .join(
@@ -2355,7 +2355,7 @@ def get_user_events(
             DemoTicket.id == LegacyTicketClaim.ticket_id,
         )
         .filter(
-            Registration.user_id == user.id,
+            Registration.user_id == (user.id if user else -1),
             or_(
                 LegacyTicketClaim.registration_id.is_(None),
                 DemoTicket.ticket_status == "active",
@@ -2381,18 +2381,51 @@ def get_user_events(
             and not event_is_past(event)
         ]
 
-    return [
+    legacy = [
         event_to_dict(
             event,
             db=db,
-            registered_count=get_registered_count(
-                db,
-                event.id,
-            ),
-            registration_user_id=user.id,
+            registered_count=get_registered_count(db,event.id),
+            registration_user_id=user.id if user else None,
         )
         for event in events
     ]
+    # The legacy endpoint historically lists only bot Registration rows.
+    # Only the trusted bot-service caller can request canonical website/Mini
+    # App tickets, resolved from Telegram's *verified* identity map.
+    # Email, username and unverified DemoGuest.telegram_id are never used.
+    if not include_web_tickets:
+        return legacy
+
+    identity=db.get(DemoTelegramIdentity,telegram_id)
+    if identity is None:
+        return legacy
+    tickets=(db.query(DemoTicket,Event)
+             .join(Event,DemoTicket.event_id==Event.id)
+             .filter(DemoTicket.guest_id==identity.guest_id,
+                     DemoTicket.ticket_status=="active")
+             .all())
+    by_event={item["id"]:item for item in legacy}
+    for ticket,event in tickets:
+        if not include_past and (
+            event.starts_at is None or getattr(event,"is_cancelled",False)
+            or event_is_past(event)
+        ):
+            continue
+        item=event_to_dict(event,db=db,
+                           registered_count=get_registered_count(db,event.id))
+        # Identifiers only: no QR tokens, browser cookies, guest credentials,
+        # raw email addresses or access tokens may reach the legacy bot.
+        item.update({
+            "source":"website_ticket",
+            "ticket_id":ticket.id,
+            "ticket_status":ticket.ticket_status,
+            "payment_status":ticket.payment_status,
+            "payment_provider":ticket.payment_provider,
+        })
+        by_event[event.id]=item
+    return sorted(by_event.values(),
+                  key=lambda item: (item.get("starts_at") or "",item["id"]))
 
 
 # =========================================================
