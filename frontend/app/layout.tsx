@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import Link from "next/link";
 import "./globals.css";
 import "./tickettreat-tokens.css";
 import "./brand-refresh.css";
@@ -50,6 +51,8 @@ export default function RootLayout({
           <PwaBootstrap />
           {children}
           <footer className="tt-support-footer">
+            <Link href="/privacy-policy">Privacy Policy</Link>
+            <Link href="/terms">Terms of Service</Link>
             <a href="https://t.me/vvladver" target="_blank" rel="noopener noreferrer" aria-label="TicketTreat support on Telegram">
               <span aria-hidden="true">✉</span> Support / Поддержка ↗
             </a>
