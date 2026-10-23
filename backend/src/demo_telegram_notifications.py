@@ -30,6 +30,15 @@ MAX_ATTEMPTS = 6
 MAX_RECIPIENTS = 50000
 
 
+class TelegramReminderBatch(Base):
+    """One atomic queueing pass per event, start time and selected interval."""
+    __tablename__ = "demo_telegram_reminder_batches"
+    event_id = Column(Integer, primary_key=True)
+    start_epoch = Column(BigInteger, primary_key=True)
+    reminder_minutes = Column(Integer, primary_key=True)
+    queued_at = Column(DateTime(timezone=True), nullable=False)
+
+
 class TelegramNotificationOutbox(Base):
     __tablename__ = "demo_telegram_notification_outbox"
 
@@ -135,11 +144,13 @@ def queue_reminders_for_event(db: Session, *, event, main, now: datetime | None 
         return 0
     from demo_pilot_ops import effective_settings
     offsets = effective_settings(db, event.id)["reminder_minutes"]
+    # Queue only when an interval becomes due. Batches prevent replaying tens
+    # of thousands of inserts every minute for the next seven days.
     upcoming = [
         (int(minutes), start - timedelta(minutes=int(minutes)))
         for minutes in offsets
         if 15 <= int(minutes) <= 10080
-        and start - timedelta(minutes=int(minutes)) >= now - timedelta(minutes=2)
+        and now - timedelta(minutes=15) <= start - timedelta(minutes=int(minutes)) <= now + timedelta(seconds=75)
     ]
     if not upcoming:
         return 0
@@ -148,23 +159,35 @@ def queue_reminders_for_event(db: Session, *, event, main, now: datetime | None 
         return 0
     languages = _recipient_languages(db, ids, main)
     epoch = int(start.timestamp())
-    rows = [
-        {
-            "event_key": f"tg:reminder:{event.id}:{epoch}:{minutes}:{tg_id}",
-            "kind": "reminder",
-            "telegram_id": tg_id,
-            "event_id": event.id,
-            "start_epoch": epoch,
-            "reminder_minutes": minutes,
-            "language": languages.get(tg_id, "ru"),
-            "state": "pending",
-            "attempts": 0,
-            "next_attempt_at": at,
-        }
-        for minutes, at in upcoming for tg_id in ids
-    ]
-    _insert_rows(db, rows)
-    return len(rows)
+    queued = 0
+    for minutes, at in upcoming:
+        inserted = db.execute(
+            pg_insert(TelegramReminderBatch.__table__).values(
+                event_id=event.id, start_epoch=epoch, reminder_minutes=minutes, queued_at=now
+            ).on_conflict_do_nothing(
+                index_elements=["event_id", "start_epoch", "reminder_minutes"]
+            ).returning(TelegramReminderBatch.event_id)
+        ).scalar_one_or_none()
+        if inserted is None:
+            continue
+        rows = [
+            {
+                "event_key": f"tg:reminder:{event.id}:{epoch}:{minutes}:{tg_id}",
+                "kind": "reminder",
+                "telegram_id": tg_id,
+                "event_id": event.id,
+                "start_epoch": epoch,
+                "reminder_minutes": minutes,
+                "language": languages.get(tg_id, "ru"),
+                "state": "pending",
+                "attempts": 0,
+                "next_attempt_at": at if at > now else now,
+            }
+            for tg_id in ids
+        ]
+        _insert_rows(db, rows)
+        queued += len(rows)
+    return queued
 
 
 def _still_registered(db: Session, *, telegram_id: int, event_id: int, main) -> bool:
@@ -344,7 +367,7 @@ def _materialize_upcoming(db: Session, main) -> int:
         main.Event.starts_at >= local + timedelta(minutes=15),
         main.Event.starts_at <= local + timedelta(days=8),
         or_(main.Event.is_cancelled.is_(False), main.Event.is_cancelled.is_(None)),
-    ).order_by(main.Event.starts_at, main.Event.id).limit(250).all()
+    ).order_by(main.Event.starts_at, main.Event.id).limit(5000).all()
     total = 0
     for event in events:
         total += queue_reminders_for_event(db, event=event, main=main, now=now)
