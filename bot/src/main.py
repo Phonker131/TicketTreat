@@ -1058,14 +1058,14 @@ def get_main_menu(user_id: int):
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 
     keyboard.row(
-        KeyboardButton("Start"),
-        KeyboardButton("Events"),
+        KeyboardButton("🏠 Start"),
+        KeyboardButton("📅 Events"),
     )
     keyboard.row(
-        KeyboardButton("My events"),
-        KeyboardButton("My profile"),
+        KeyboardButton("🎟 My events"),
+        KeyboardButton("👤 My profile"),
     )
-    keyboard.row(KeyboardButton("Client service"))
+    keyboard.row(KeyboardButton("🆘 Client service"))
 
     # One real Mini App for web and Telegram (private chats only).
     # The frontend verifies signed initData with Demo API before linking identity.
@@ -1078,7 +1078,7 @@ def get_main_menu(user_id: int):
         )
 
     if is_admin(user_id):
-        keyboard.row(KeyboardButton("Admin"))
+        keyboard.row(KeyboardButton("⚙️ Admin"))
 
     return keyboard
 
