@@ -143,7 +143,7 @@ def install_privacy_routes(app, get_db, main):
         from demo_mfa import MFAFactor,MFASession
         from demo_email import EmailOutbox
         from demo_geography import DemoAccountPlace
-        from demo_telegram import DemoTelegramIdentity
+        from demo_telegram import DemoTelegramIdentity, TelegramLinkChallenge
         from demo_legacy import LegacyTicketClaim
         from demo_support import SupportTicket, SupportMessage, SupportAdminRead
 
@@ -218,6 +218,8 @@ def install_privacy_routes(app, get_db, main):
         if session_hashes:
             db.query(MFASession).filter(MFASession.session_hash.in_(session_hashes)).delete(synchronize_session=False)
         db.query(WebSession).filter(WebSession.account_id==account.id).delete(synchronize_session=False)
+        # Revoke pending browser-to-Telegram linking challenges on erasure.
+        db.query(TelegramLinkChallenge).filter(TelegramLinkChallenge.account_id==account.id).delete(synchronize_session=False)
         db.query(MFAFactor).filter(MFAFactor.account_id==account.id).delete(synchronize_session=False)
         db.query(VerifiedEmail).filter(VerifiedEmail.account_id==account.id).delete(synchronize_session=False)
         db.query(EmailChallenge).filter(EmailChallenge.account_id==account.id).delete(synchronize_session=False)

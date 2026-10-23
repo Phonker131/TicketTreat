@@ -2,6 +2,7 @@
 from __future__ import annotations
 import hashlib
 import hmac
+import secrets
 from datetime import datetime, timedelta, timezone
 from argon2 import PasswordHasher, Type
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
@@ -13,6 +14,9 @@ from db.base import Base
 
 # OWASP Argon2id baseline: memory 19 MiB, iterations 2, parallelism 1.
 HASHER = PasswordHasher(time_cost=2, memory_cost=19*1024, parallelism=1, hash_len=32, salt_len=16, type=Type.ID)
+# A per-process, valid Argon2id hash used for absent users, so unknown emails
+# do not skip the password verification work and reveal account existence.
+DUMMY_PASSWORD_HASH = HASHER.hash(secrets.token_urlsafe(32))
 
 class AuthRateBucket(Base):
     __tablename__ = "demo_auth_rate_buckets"

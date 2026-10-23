@@ -800,7 +800,8 @@ def install_demo_roles(app, get_db, main):
         return route.endpoint(event_id=event_id,_admin_key="",db=db)
 
     def _secure_checkin(qr_token: str, account: WebAccount, db: Session):
-        ticket=db.query(main.DemoTicket).filter(main.DemoTicket.qr_token==qr_token).first()
+        ticket=(db.query(main.DemoTicket).filter(main.DemoTicket.qr_token==qr_token)
+                .with_for_update().first())
         if ticket is None:
             raise HTTPException(status_code=404,detail="ticket_not_found")
         ensure_owner(db,ticket.event_id,account)

@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from db.base import Base
 from demo_geography import DemoAccountPlace, clean_location, place_dict, save_place
 from demo_email import queue_email
-from demo_auth_security import AuthRateBucket, hash_password, verify_password, needs_rehash, validate_new_password, guard_rate, record_rate, clear_rate
+from demo_auth_security import AuthRateBucket, DUMMY_PASSWORD_HASH, hash_password, verify_password, needs_rehash, validate_new_password, guard_rate, record_rate, clear_rate
 
 SESSION_DAYS = 7
 MAX_ACTIVE_SESSIONS = 5
@@ -217,7 +217,7 @@ def install_demo_accounts(
                 **place_dict(db, DemoAccountPlace, "account_id", account.id),
             },
             "guest": {
-                "id": guest.id, "access_token": guest.access_token,
+                "id": guest.id, "access_token": ("" if os.getenv("APP_ENV", "development").strip().lower() == "production" else guest.access_token),
                 "telegram_id": guest.telegram_id, "username": guest.username,
                 "email": guest.email, "first_name": guest.first_name,
                 "last_name": guest.last_name, "visits": int(checkins),
@@ -311,7 +311,10 @@ def install_demo_accounts(
         guard_rate(db, "login_ip", source_ip, 200, 900)
         guard_rate(db, "login_email", email, 12, 900)
         account = db.query(WebAccount).filter(WebAccount.email == email).first()
-        if account is None or not verify_password(payload.password, account.password_hash):
+        # Run the same expensive password verifier for missing accounts to reduce
+        # email/account enumeration through login timing differences.
+        matches = verify_password(payload.password, account.password_hash if account is not None else DUMMY_PASSWORD_HASH)
+        if account is None or not matches:
             record_rate(db, "login_ip", source_ip, 900)
             record_rate(db, "login_email", email, 900)
             raise HTTPException(status_code=401, detail="invalid_credentials")
