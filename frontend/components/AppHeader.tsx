@@ -37,8 +37,7 @@ export function AppHeader() {
     <header className="topbar">
       <div className="topbar-inner">
         <Link href="/" className="wordmark" aria-label="TicketTreat">
-          <img src="/tickettreat-mark.svg" className="wordmark-icon" width="36" height="36" alt="" aria-hidden="true" />
-          <span>TicketTreat</span>
+          <img src="/tickettreat-wordmark.svg" className="wordmark-logo" width="584" height="120" alt="TicketTreat" />
         </Link>
 
         <nav className="topbar-nav">
