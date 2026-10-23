@@ -22,6 +22,8 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
   const [error, setError] = useState<string | null>(null);
   const [demoPayments,setDemoPayments]=useState(false);
   const [mapOpen,setMapOpen]=useState(false);
+  const [posterUnavailable,setPosterUnavailable]=useState(false);
+  useEffect(()=>setPosterUnavailable(false),[event?.image_url]);
 
   useEffect(() => {
     if (!params?.id) return;
@@ -61,9 +63,9 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
         {preview&&<div className="state-card" role="status"><strong>Предпросмотр — доступен только организатору.</strong> {event.publication?.visible?"Ивент также опубликован.":"Черновик пока не виден гостям и не принимает регистрации."}</div>}
 
         <section className="event-hero">
-          {posterUrl ? (
+          {posterUrl && !posterUnavailable ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="event-image" src={posterUrl} alt="" />
+            <img className="event-image" src={posterUrl} alt="" onError={()=>setPosterUnavailable(true)} />
           ) : (
             <div className="event-image event-image-placeholder"><div className="mini-crowd"><span/><span/><span className="mini-you"/><span/><span/></div></div>
           )}
