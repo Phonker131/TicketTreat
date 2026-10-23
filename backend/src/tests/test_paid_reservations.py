@@ -1,0 +1,87 @@
+"""Database regression coverage for the 24h organizer-direct payment queue."""
+import unittest
+from datetime import datetime,timedelta,timezone
+from decimal import Decimal
+from types import SimpleNamespace
+from unittest.mock import patch
+from sqlalchemy import create_engine, Column,Integer,String,DateTime
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+from db.base import Base
+from demo_paid_reservations import PaidReservation,apply,pending_count,expire_for_event,now_utc
+
+class TestEvent(Base):
+    __tablename__="test_paid_event"
+    id=Column(Integer,primary_key=True)
+    price=Column(String(16),nullable=False)
+    max_participants=Column(Integer,nullable=False)
+    starts_at=Column(DateTime(timezone=True),nullable=False)
+    is_cancelled=Column(Integer,default=0)
+
+class TestGuest(Base):
+    __tablename__="test_paid_guest"
+    id=Column(Integer,primary_key=True)
+    first_name=Column(String(80),default="Participant")
+    last_name=Column(String(80),nullable=True)
+    email=Column(String(120),nullable=True)
+
+class TestTicket(Base):
+    __tablename__="test_paid_ticket"
+    id=Column(Integer,primary_key=True)
+    event_id=Column(Integer)
+    guest_id=Column(Integer)
+    ticket_status=Column(String(20),default="active")
+
+class ReservationTests(unittest.TestCase):
+    def setUp(self):
+        engine=create_engine("sqlite://",connect_args={"check_same_thread":False},poolclass=StaticPool)
+        for table in (TestEvent.__table__,TestGuest.__table__,TestTicket.__table__,PaidReservation.__table__):
+            table.create(engine)
+        self.db=sessionmaker(bind=engine)()
+        self.engine=engine
+        self.db.add(TestEvent(id=1,price="200",max_participants=1,starts_at=now_utc()+timedelta(days=5),is_cancelled=0))
+        self.db.add_all([TestGuest(id=1,email="one@example.invalid"),TestGuest(id=2,email="two@example.invalid")])
+        self.db.commit()
+        self.main=SimpleNamespace(Event=TestEvent,DemoGuest=TestGuest,DemoTicket=TestTicket,
+            price_decimal=lambda value:Decimal(value),get_payment_settings=lambda db,eid:SimpleNamespace(payment_instructions="Pay the organizer"),
+            normalize_event_datetime=lambda dt:dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt,
+            event_has_started=lambda event:False,telegram_guest_has_bot_registration=lambda *a:False,
+            get_registered_count=lambda db,eid:pending_count(db,eid))
+        self.published=patch("demo_publication.require_published")
+        self.cutoff=patch("demo_pilot_ops.booking_cutoff_reached",return_value=False)
+        self.offers=patch("demo_waitlist_offers.offer_count",return_value=0)
+        self.published.start();self.cutoff.start();self.offers.start()
+
+    def tearDown(self):
+        self.offers.stop();self.cutoff.stop();self.published.stop()
+        self.db.close();self.engine.dispose()
+
+    def test_pending_24h_hold_blocks_second_guest_and_is_idempotent(self):
+        guest=self.db.get(TestGuest,1)
+        first=apply(self.db,self.main,1,guest,"ru")
+        again=apply(self.db,self.main,1,guest,"ru")
+        self.assertEqual(first["reservation"]["id"],again["reservation"]["id"])
+        self.assertEqual(first["reservation"]["status"],"pending")
+        self.assertEqual(pending_count(self.db,1),1)
+        expires=datetime.fromisoformat(first["reservation"]["expires_at"])
+        self.assertTrue(timedelta(hours=23,minutes=59)<expires-now_utc()<=timedelta(hours=24))
+        with self.assertRaises(Exception) as err:
+            apply(self.db,self.main,1,self.db.get(TestGuest,2))
+        self.assertIn("event_full",str(err.exception))
+
+    def test_expired_hold_releases_capacity_and_keeps_audit_row(self):
+        apply(self.db,self.main,1,self.db.get(TestGuest,1))
+        row=self.db.query(PaidReservation).one()
+        row.expires_at=now_utc()-timedelta(seconds=10)
+        self.db.commit()
+        self.assertEqual(pending_count(self.db,1),0)
+        self.assertEqual(expire_for_event(self.db,1),1)
+        self.db.commit()
+        self.assertEqual(row.status,"expired")
+        new=apply(self.db,self.main,1,self.db.get(TestGuest,2))
+        self.assertEqual(new["reservation"]["status"],"pending")
+        self.assertEqual(self.db.query(PaidReservation).count(),2)
+
+    def test_no_ticket_issued_when_application_created(self):
+        apply(self.db,self.main,1,self.db.get(TestGuest,1))
+        self.assertEqual(self.db.query(TestTicket).count(),0)
