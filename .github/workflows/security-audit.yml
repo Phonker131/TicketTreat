@@ -1,0 +1,44 @@
+name: Dependency security audit
+
+on:
+  pull_request:
+    branches: [main, feature/crowdly-release-preparation]
+    paths:
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - "backend/src/requirements.txt"
+      - ".github/workflows/security-audit.yml"
+  schedule:
+    - cron: "23 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    name: Production npm vulnerabilities
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci --no-audit --no-fund
+      - name: Fail on high or critical production npm advisories
+        run: npm audit --omit=dev --audit-level=high
+
+  python:
+    name: Python vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip pip-audit
+      - name: Fail on known PyPI security advisories
+        run: python -m pip_audit -r backend/src/requirements.txt --progress-spinner off
