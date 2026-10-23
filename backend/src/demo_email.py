@@ -135,7 +135,9 @@ def queue_event_reminder(db: Session, *, event, guest, ticket, language: str = "
     start = start.replace(tzinfo=PRAGUE) if start.tzinfo is None else start.astimezone(PRAGUE)
     start = start.astimezone(timezone.utc)
     current = datetime.now(timezone.utc)
-    if start <= current + timedelta(hours=1):
+    # Custom 30/45 minute reminders remain valid for late registrations
+    # provided their delivery window is still in the future.
+    if start <= current + timedelta(minutes=15):
         return
     from demo_pilot_ops import effective_settings
     for minutes in effective_settings(db, event.id)["reminder_minutes"]:
@@ -316,7 +318,7 @@ def email_shell(title: str, lead: str, details: str, link: str, button: str, cap
         '<div style="font-size:30px;font-weight:900">TicketTreat <span style="color:#FFC82E">●</span></div></td></tr>'
         '<tr><td style="padding:30px"><h1 style="font-size:25px;margin:0 0 16px">'
         + html.escape(title) + '</h1><p style="font-size:15px;line-height:1.6;margin:0 0 20px">'
-        + html.escape(lead) + '</p>'
+        + html.escape(lead).replace("\\n", "<br>") + '</p>'
         + details
         + ('<p style="margin:24px 0"><a href="' + html.escape(link, quote=True)
            + '" style="display:inline-block;background:#C2118A;color:#fff;text-decoration:none;'
@@ -412,6 +414,11 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             title = d[f"{row.kind}_title"].format(event=name)
             lead = d[f"{row.kind}_body"]
             if row.kind == "reminder":
+                # Organizer-authored operational instructions replace the
+                # generic reminder body. email_shell escapes untrusted text.
+                organizer_message = (getattr(event, "reminder_text", None) or "").strip()
+                if organizer_message:
+                    lead = organizer_message
                 try:
                     minutes = int(row.event_key.rsplit(":", 1)[-1])
                     locale = row.language if row.language in {"ru", "uk", "cs", "en"} else "en"
