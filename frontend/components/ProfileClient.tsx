@@ -170,7 +170,7 @@ export function ProfileClient() {
         first_name:firstName.trim(), last_name:lastName.trim(),
         phone:phone.trim()||null, instagram:instagram.trim()||null,
         contact_preference:contact,
-        country_code:countryCode,city:city.trim(),
+        country_code:"CZ",city:"",
       });
       loadProfile(result);
       setNotice(tr.updated);
