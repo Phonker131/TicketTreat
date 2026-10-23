@@ -25,6 +25,9 @@ export async function GET(req: NextRequest) {
         token = data.token;
         result = "success";
       } else if (data.detail === "google_link_required") result = "link_required";
+      else if (data.detail === "google_exchange_failed" ||
+               data.detail === "google_verification_failed" ||
+               data.detail === "invalid_google_identity") result = "provider_failed";
       else if (data.detail === "google_already_linked" || data.detail === "google_account_conflict") result = "conflict";
     } catch { /* Keep provider details and credentials out of redirects/logs. */ }
   }
