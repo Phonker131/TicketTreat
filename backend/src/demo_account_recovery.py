@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -22,6 +23,9 @@ from demo_auth_security import (
 )
 from demo_email import configured, _send_resend, EmailDeliveryError
 from demo_accounts import WebAccount, WebSession, token_hash, normalize_email
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class VerifiedEmail(Base):
@@ -95,7 +99,8 @@ def send_code(email: str, purpose: str, code: str):
             "html": "<p>" + msg + ": <strong>" + code + "</strong></p><p>This code expires in 10 minutes. If you did not request it, ignore this message.</p>",
             "text": msg + ": " + code + "\nCode expires in 10 minutes.",
         }, "authcode:" + purpose + ":" + secrets.token_hex(16))
-    except EmailDeliveryError:
+    except EmailDeliveryError as exc:
+        LOGGER.warning("TicketTreat auth email delivery failed: purpose=%s provider_error=%s", purpose, str(exc))
         raise HTTPException(503, "email_delivery_failed")
 
 
