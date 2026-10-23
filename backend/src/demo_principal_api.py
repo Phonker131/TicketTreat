@@ -6,7 +6,7 @@ paths or payloads; all identity mapping is performed server-side.
 """
 from __future__ import annotations
 import os
-from fastapi import BackgroundTasks,Depends,Header,HTTPException
+from fastapi import BackgroundTasks,Depends,Header,HTTPException,Response
 from pydantic import BaseModel,Field
 from sqlalchemy.orm import Session
 
@@ -78,6 +78,24 @@ def install_principal_api(app,get_db,main):
             main.DemoTicket.guest_id==guest.id).first()
         if ticket is None:raise HTTPException(404,"ticket_not_found")
         return main.demo_ticket_to_dict(ticket,db)
+
+    @app.get("/demo/wallet/status")
+    def wallet_status():
+        from demo_wallet import configured
+        return {"enabled": configured()}
+
+    @app.get("/demo/me/tickets/{ticket_id}/wallet")
+    def download_wallet(ticket_id:int,guest=Depends(guest_for),db:Session=Depends(get_db)):
+        from demo_wallet import build_pass
+        ticket=db.query(main.DemoTicket).filter(
+            main.DemoTicket.id==ticket_id,
+            main.DemoTicket.guest_id==guest.id).first()
+        if ticket is None:raise HTTPException(404,"ticket_not_found")
+        event=db.get(main.Event,ticket.event_id)
+        package=build_pass(ticket,event)
+        return Response(package,media_type="application/vnd.apple.pkpass",
+            headers={"Content-Disposition":f'attachment; filename="tickettreat-{ticket_id}.pkpass"',
+                     "Cache-Control":"private, no-store"})
 
     @app.delete("/demo/me/tickets/{ticket_id}")
     def cancel_own_ticket(ticket_id:int,
