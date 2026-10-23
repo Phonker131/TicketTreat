@@ -117,9 +117,14 @@ def send_code(email: str, purpose: str, code: str):
         '<p style="font-size:12px;color:#5C5861;letter-spacing:1px;'
         'text-transform:uppercase;font-weight:700;margin:0 0 10px">'
         'One-time verification code</p>'
-        '<p style="font-size:clamp(25px,6vw,34px);font-weight:800;'
-        'letter-spacing:5px;color:#15141F;margin:0">'
+        '<p style="font-size:14px;color:#15141F;margin:0 0 8px">Your TicketTreat code is:</p>'
+        '<p style="font-size:32px;font-weight:800;letter-spacing:2px;'
+        'font-family:Arial,Helvetica,sans-serif;color:#15141F;margin:0;'
+        'user-select:text;-webkit-user-select:text"'
+        ' aria-label="TicketTreat verification code">'
         + code + '</p>'
+        '<p style="font-size:12px;color:#5C5861;margin:12px 0 0">'
+        'Tap and hold the eight digits to copy them.</p>'
         '</td></tr></table>'
     )
     instructions = (
@@ -139,7 +144,7 @@ def send_code(email: str, purpose: str, code: str):
             "subject": subject,
             "html": email_shell(title, lead, code_html, "", "", instructions, footer),
             "text": (
-                title + "\n\n" + lead + "\n\n" + code
+                title + "\n\n" + lead + "\n\nYour TicketTreat code is: " + code + "\n" + code
                 + "\n\nValid for 10 minutes. Single use only. "
                 "If you did not request this email, please ignore it. "
                 "Never share this code."
@@ -243,6 +248,11 @@ def install_email_account_security(app, get_db):
         db.commit()
         return {"email_verified": True}
 
+    @app.get("/demo/auth/email/status")
+    def public_mail_status():
+        # Readiness only; never reveal whether a particular email is registered.
+        return {"available": configured()}
+
     @app.post("/demo/auth/password/forgot")
     def forgot_password(payload: EmailRequest, request: Request, db: Session = Depends(get_db)):
         ip = request.client.host if request.client else "unknown"
@@ -254,8 +264,9 @@ def install_email_account_security(app, get_db):
         if not configured():
             raise HTTPException(503, "email_provider_unavailable")
         account = db.query(WebAccount).filter(WebAccount.email == email).first()
-        # Never send a reset code for an account whose email is unverified.
-        if account and email_is_verified(db, account.id):
+        # A completed password reset itself proves mailbox ownership. Let
+        # users recover accounts even if they never completed verification.
+        if account:
             try:
                 create_challenge(db, account, "reset")
             except HTTPException as exc:
@@ -274,10 +285,12 @@ def install_email_account_security(app, get_db):
         record_rate(db, "password_reset_submit_ip", ip, 3600)
         validate_new_password(payload.new_password)
         account = db.query(WebAccount).filter(WebAccount.email == email).first()
-        if not account or not email_is_verified(db, account.id):
+        if not account:
             raise HTTPException(400, "invalid_or_expired_code")
         consume_challenge(db, account, "reset", payload.code)
         account.password_hash = hash_password(payload.new_password)
+        if not email_is_verified(db, account.id):
+            db.add(VerifiedEmail(account_id=account.id, verified_at=now()))
         db.query(WebSession).filter(WebSession.account_id == account.id).delete(synchronize_session=False)
         db.commit()
         return {"status": "password_reset", "sessions_revoked": True}
