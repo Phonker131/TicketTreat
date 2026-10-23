@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/LanguageProvider";
-import { isTelegramWebApp } from "@/lib/telegram";
+import { isTelegramWebApp, getTelegramWebApp } from "@/lib/telegram";
 import { t } from "@/lib/i18n";
 import { getManageMe,getBookingConfig } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
@@ -14,6 +14,8 @@ export function AppHeader() {
   const [insideTelegram, setInsideTelegram] = useState(false);
   const [canOrganize, setCanOrganize] = useState(false);
   const [demoEnabled,setDemoEnabled] = useState(false);
+  const botUsername = (process.env.NEXT_PUBLIC_BOT_USERNAME || "").trim().replace(/^@/, "");
+  const botUrl = /^[a-zA-Z0-9_]{5,32}$/.test(botUsername) ? `https://t.me/${botUsername}` : null;
   useEffect(()=>{getBookingConfig().then(config=>setDemoEnabled(config.demo_payment_mode)).catch(()=>{});},[]);
 
   useEffect(() => setInsideTelegram(isTelegramWebApp()), []);
@@ -49,9 +51,11 @@ export function AppHeader() {
 
         <div className="topbar-actions">
           {demoEnabled&&<span className="demo-pill">{t(language, "demo")}</span>}
-          <span className="mode-pill">
-            {insideTelegram ? t(language, "telegramMode") : t(language, "webMode")}
-          </span>
+          {botUrl && <a className="mode-pill mode-pill-link" href={botUrl} target="_blank" rel="noopener noreferrer"
+            aria-label={language==="ru"?"Открыть бота TicketTreat в Telegram":"Open TicketTreat Telegram bot"}
+            onClick={e=>{const telegram=getTelegramWebApp();if(insideTelegram && telegram?.openTelegramLink){e.preventDefault();telegram.openTelegramLink(botUrl);}}}>
+            Telegram Mini App ↗
+          </a>}
           <LanguageSwitcher />
         </div>
       </div>
