@@ -139,4 +139,28 @@ class GoogleAuthTests(unittest.TestCase):
             self.assertEqual(verify.call_args.kwargs["audience"],"test-client")
             self.assertEqual(post.call_args.kwargs["data"]["code_verifier"],"verifier")
 
+    def test_provider_invalid_client_is_logged_without_secrets(self):
+        with patch("demo_google.requests.post") as post, patch("demo_google.logger.warning") as warning:
+            post.return_value.status_code = 401
+            post.return_value.json.return_value = {"error": "invalid_client", "error_description": "Secret with sensitive details"}
+            with self.assertRaises(HTTPException) as result:
+                exchange_code("confidential-one-time-code", "confidential-verifier", "nonce")
+            self.assertEqual(result.exception.status_code, 401)
+            self.assertEqual(result.exception.detail, "google_exchange_failed")
+            self.assertIn("invalid_client", str(warning.call_args))
+            self.assertNotIn("confidential-one-time-code", str(warning.call_args))
+            self.assertNotIn("confidential-verifier", str(warning.call_args))
+            self.assertNotIn("Secret with sensitive details", str(warning.call_args))
+
+    def test_google_verification_failure_logs_only_exception_type(self):
+        with patch("demo_google.requests.post") as post, patch("demo_google.verify_oauth2_token", side_effect=ValueError("secret user details")), patch("demo_google.logger.warning") as warning:
+            post.return_value.status_code = 200
+            post.return_value.json.return_value = {"id_token": "opaque"}
+            with self.assertRaises(HTTPException) as result:
+                exchange_code("sensitive-code", "sensitive-verifier", "nonce")
+            self.assertEqual(result.exception.detail, "google_verification_failed")
+            self.assertIn("ValueError", str(warning.call_args))
+            self.assertNotIn("secret user details", str(warning.call_args))
+
+
 if __name__ == "__main__": unittest.main()
