@@ -132,7 +132,7 @@ class TelegramBrowserLinkTests(unittest.TestCase):
                     ticket_status="active",payment_status="not_required",
                     payment_provider="free",payment_amount="0",currency="CZK")
                 db.add_all([old_ticket,website_ticket]);db.flush()
-                old_ticket_id,website_id=old_ticket.id,website_ticket.id
+                old_ticket_id,website_id,event_id=old_ticket.id,website_ticket.id,event.id
                 db.commit()
             start=client.post("/demo/telegram/link/start",
                 headers={"Authorization":"Bearer "+bearer})
@@ -145,7 +145,7 @@ class TelegramBrowserLinkTests(unittest.TestCase):
                 self.assertEqual(db.get(main.DemoTicket,website_id).ticket_status,"active")
                 self.assertEqual(db.get(main.DemoTicket,old_ticket_id).ticket_status,"cancelled")
                 active=db.query(main.DemoTicket).filter(
-                    main.DemoTicket.event_id==event.id,
+                    main.DemoTicket.event_id==event_id,
                     main.DemoTicket.ticket_status=="active").count()
                 self.assertEqual(active,1)
 
