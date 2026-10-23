@@ -237,8 +237,7 @@ def install_pilot_ops(app, get_db, main):
                                  message=f"[{payload.category.upper()}] {payload.message.strip()}")
         audit(db,event_id,account.id,"announcement",f"{payload.category};recipients:{count}")
         db.commit()
-        return {"status":"queued","eligible_verified_ticket_holders":count,
-                "eligible_notification_deliveries":count}
+        return {"status":"queued","eligible_notification_deliveries":count}
 
     @app.get("/demo/manage/events/{event_id}/checkin-staff")
     def list_staff(event_id: int, account=Depends(current), db: Session=Depends(get_db)):
