@@ -20,8 +20,8 @@ export const metadata: Metadata = {
     title: "TicketTreat",
   },
   icons: {
-    icon: [{url:"/favicon.svg?v=20261023b",type:"image/svg+xml",sizes:"any"},{url:"/icon",type:"image/svg+xml",sizes:"128x128"}],
-    shortcut: "/favicon.svg?v=20261023b",
+    icon: [{url:"/favicon-32.png?v=20261023c",type:"image/png",sizes:"32x32"},{url:"/favicon-48.png?v=20261023c",type:"image/png",sizes:"48x48"},{url:"/icon",type:"image/png",sizes:"48x48"}],
+    shortcut: "/favicon-48.png?v=20261023c",
     apple: "/apple-icon",
   },
 };
