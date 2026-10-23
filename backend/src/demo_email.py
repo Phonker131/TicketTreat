@@ -395,6 +395,7 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
     button = ""
     caption = ""
     attachments = []
+    details_plain = ""
 
     if row.kind == "welcome":
         account = db.query(WebAccount).filter(WebAccount.guest_id == row.guest_id).first()
@@ -511,6 +512,13 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             + card(d["price"], f"{ticket.payment_amount} {ticket.currency}")
             + '</table>'
         )
+        details_plain = "\n".join([
+            f'{d["event"]}: {name}',
+            f'{d["date"]}: {event_date(event.starts_at)}',
+            f'{d["location"]}: {event.location or "—"}',
+            f'{d["number"]}: CRD-{ticket.id:06d}',
+            f'{d["price"]}: {ticket.payment_amount} {ticket.currency}',
+        ])
         if row.kind == "ticket":
             # No QR for cancelled tickets or reissued tickets (stale messages).
             if ticket.ticket_status != "active":
@@ -534,7 +542,7 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
         "to": [row.recipient],
         "subject": subject,
         "html": email_shell(title, lead, extra, link, button, caption, d["footer"], row.language),
-        "text": f"{title}\n\n{lead}\n\n{link}\n\n{caption}",
+        "text": f"{title}\n\n{lead}\n\n{details_plain}\n\n{link}\n\n{caption}\n\nSupport: https://t.me/vvladver",
         **({"attachments": attachments} if attachments else {}),
     }
 
