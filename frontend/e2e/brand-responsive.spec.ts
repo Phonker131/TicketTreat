@@ -124,3 +124,21 @@ test("priced events never show TicketTreat fake payment or automatic paid ticket
   await expect(page.locator(".payment-methods")).toHaveCount(0);
   await expect(page.locator(".fake-card-fields")).toHaveCount(0);
 });
+
+test("support center is linked publicly, does not permit anonymous complaints and works on mobile",async({page})=>{
+  await page.setViewportSize({width:375,height:812});
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator(".topbar-nav").getByRole("link",{name:/Support|Поддержка|Podpora|Підтримка/})).toHaveAttribute("href","/support");
+  await expect(page.locator("footer").getByRole("link",{name:/Support|Поддержка|Podpora|Підтримка/})).toHaveAttribute("href","/support");
+  await page.goto("/support",{waitUntil:"domcontentloaded"});
+  await expect(page.getByRole("heading",{name:/Служба поддержки|Support|Podpora|Служба підтримки/})).toBeVisible();
+  await expect(page.getByRole("link",{name:/Войти|Sign in|Přihlásit se|Увійти/})).toBeVisible();
+  await expect(page.locator("form").filter({has:page.getByRole("button",{name:/Отправить обращение|Send ticket|Odeslat|Надіслати/})})).toHaveCount(0);
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+});
+
+test("support admin page does not expose inbox to signed-out visitors",async({page})=>{
+  await page.goto("/admin/support",{waitUntil:"domcontentloaded"});
+  await expect(page.getByRole("heading",{name:"Служба поддержки"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Входящие тикеты"})).toHaveCount(0);
+});
