@@ -494,7 +494,7 @@ def _send_resend(payload: dict, unique_key: str) -> str:
             return str(data.get("id") or "")
     except urllib.error.HTTPError as exc:
         # No sensitive message contents/API credentials in logs.
-        raise EmailDeliveryError(f"resend_http_{exc.code}", exc.code in {400, 401, 403, 422}) from None
+        raise EmailDeliveryError(f"resend_http_{exc.code}_check_resend_domain_and_api_key_permissions", exc.code in {400, 401, 403, 422}) from None
     except (urllib.error.URLError, TimeoutError, ValueError) as exc:
         raise EmailDeliveryError(type(exc).__name__, False) from None
 
