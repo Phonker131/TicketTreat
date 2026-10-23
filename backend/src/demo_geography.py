@@ -22,7 +22,9 @@ def clean_location(country,city):
     if not re.fullmatch("[A-Z]{2}",code):
         raise HTTPException(status_code=422,detail="country_code_required")
     name=" ".join(unicodedata.normalize("NFKC",city or "").strip().split())
-    if not 1<=len(name)<=100 or any(unicodedata.category(c).startswith("C") for c in name):
+    # Empty city is valid for Czech pilot accounts/events. The venue address
+    # remains mandatory when publishing a public event.
+    if not (0<=len(name)<=100 if code=="CZ" else 1<=len(name)<=100) or any(unicodedata.category(c).startswith("C") for c in name):
         raise HTTPException(status_code=422,detail="city_required")
     return code,name
 
