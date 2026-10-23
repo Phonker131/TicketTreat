@@ -145,7 +145,7 @@ export function CheckoutClient() {
           {bookingConfig?.demo_payment_mode && <p>{t(language, "demoHint")}</p>}
         </div>
 
-        {!event || loadingGuest ? (
+        {!event || (isFree && loadingGuest) ? (
           <div className="state-card">{t(language, "loading")}</div>
         ) : (
           <>
