@@ -3,6 +3,7 @@
 No Railway credentials, live Telegram API calls or production database access.
 """
 import unittest
+import sys
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -71,7 +72,7 @@ class TelegramNotificationTests(unittest.TestCase):
         with patch("demo_email.configured", return_value=False), \
              patch("demo_telegram_notifications.configured", return_value=True), \
              patch("demo_telegram_notifications.queue_notice", return_value=2) as enqueue, \
-             patch("importlib.import_module", return_value=SimpleNamespace()):
+             patch.dict(sys.modules, {"main": SimpleNamespace()}):
             count = queue_event_notice(
                 db, event=event, kind="cancel", message="Organizer unavailable"
             )
