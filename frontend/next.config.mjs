@@ -23,7 +23,7 @@ const nextConfig = {
         {key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=()"},
         {key: "X-DNS-Prefetch-Control", value: "off"},
       ]},
-      ...["/profile", "/admin/:path*", "/tickets/:path*", "/checkout/:path*"].map(source => ({
+      ...["/profile", "/admin/:path*", "/tickets/:path*", "/checkout/:path*", "/loyalty", "/security/:path*", "/support", "/privacy"].map(source => ({
         source,
         headers: [{key: "Cache-Control", value: "private, no-store, max-age=0"}],
       })),
