@@ -5,10 +5,9 @@ import {GoogleSignIn} from "@/components/GoogleSignIn";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { getVerifiedTelegramSession } from "@/lib/session";
-import {CountryCityFields} from "@/components/CountryCityFields";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, requestMagicLogin, confirmMagicLogin, exportAccountData, linkTelegramToWebsite } from "@/lib/api";
+import { claimWebGlobalAdmin, getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, exportAccountData, linkTelegramToWebsite } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -90,14 +89,9 @@ export function ProfileClient() {
   const [phone, setPhone] = useState("");
   const [instagram, setInstagram] = useState("");
   const [contact, setContact] = useState<ContactPreference>("email");
-  const [countryCode,setCountryCode]=useState("");
-  const [city,setCity]=useState("");
   const [claimKey, setClaimKey] = useState("");
   const [verificationCode,setVerificationCode]=useState("");
   const [resetOpen,setResetOpen]=useState(false);
-  const [magicOpen,setMagicOpen]=useState(false);
-  const [magicCode,setMagicCode]=useState("");
-  const [magicSent,setMagicSent]=useState(false);
   const [resetCode,setResetCode]=useState("");
   const [resetPassword,setResetPassword]=useState("");
   const [showClaim, setShowClaim] = useState(false);
@@ -127,8 +121,6 @@ export function ProfileClient() {
     setContact(p.account.contact_preference);
     const token = getWebToken();
     if (token) void getWebSessions(token).then(result => setSessionCount(result.sessions.length)).catch(() => setSessionCount(null));
-    setCountryCode(p.account.country_code||"");
-    setCity(p.account.city||"");
   }
 
   function readableError(err: unknown): string {
@@ -153,7 +145,7 @@ export function ProfileClient() {
             phone: phone.trim() || null, instagram: instagram.trim() || null,
             contact_preference: contact,
             account_role: accountRole,
-            country_code:countryCode,city:city.trim(),
+            country_code:"CZ",city:"",
             guest_token: getStoredGuestToken(),
             language,
           })
@@ -272,8 +264,6 @@ export function ProfileClient() {
       </div>
       <label>{tr.phone}<input type="tel" maxLength={40} autoComplete="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+420 ..." /></label>
       <label>{tr.instagram}<input maxLength={100} value={instagram} onChange={e=>setInstagram(e.target.value)} placeholder="@username" /></label>
-      <CountryCityFields countryCode={countryCode} city={city} onCountryChange={setCountryCode}
-        onCityChange={setCity} language={language} />
       <label>{tr.contact}
         <select value={contact} onChange={e=>setContact(e.target.value as ContactPreference)}>
           <option value="email">Email</option>
@@ -334,7 +324,7 @@ export function ProfileClient() {
                   onClick={async()=>{const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await requestEmailVerification(token);setNotice("Verification code sent.");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
                   {language==="ru"?"Отправить код":"Send code"}</button>
                 <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await confirmAccountEmail(token,profile.account.email,verificationCode);loadProfile(await getWebProfile(token));setVerificationCode("");setNotice("Email verified.");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
-                  <label>{language==="ru"?"Код из письма":"Email code"}<input type="text" autoComplete="one-time-code" inputMode="numeric" required minLength={8} maxLength={8} value={verificationCode} onChange={e=>setVerificationCode(e.target.value)}/></label>
+                  <label>{language==="ru"?"Код из письма":"Email code"}<input type="text" autoComplete="one-time-code" name="one-time-code" inputMode="numeric" pattern="[0-9]{8}" required minLength={8} maxLength={8} value={verificationCode} onChange={e=>setVerificationCode(e.target.value)}/></label>
                   <button type="submit" className="button button-primary" disabled={busy}>{language==="ru"?"Подтвердить email":"Confirm email"}</button>
                 </form>
               </div>}
@@ -489,36 +479,6 @@ export function ProfileClient() {
               <p className="form-note">{mode==="signup"?tr.passwordHint:tr.note}</p>
               <button className="button button-primary" type="submit" disabled={busy}>{busy?tr.loading:mode==="signup"?tr.create:tr.login}</button>
             </form>
-            {mode==="login"&&<section className="panel form-stack">
-              <button type="button" className="button button-outline"
-                onClick={()=>setMagicOpen(v=>!v)}>
-                {language==="ru"?"Войти по коду из email":language==="cs"?"Přihlásit se e-mailovým kódem":language==="uk"?"Увійти за кодом із пошти":"Sign in with an email code"}
-              </button>
-              {magicOpen&&<>
-                <p className="form-note">{language==="ru"?
-                  "Доступно для ранее подтверждённых аккаунтов. Код действует 10 минут и используется только один раз.":
-                  "For existing verified accounts. The one-time code expires after 10 minutes."}</p>
-                <label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
-                <button className="button button-outline" type="button" disabled={busy||!email.includes("@")}
-                  onClick={async()=>{setBusy(true);setError("");try{
-                    await requestMagicLogin(email);setMagicSent(true);
-                    setNotice(language==="ru"?"Если аккаунт подтверждён, код отправлен.":"A code was sent if the account exists.");
-                  }catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
-                  {language==="ru"?"Отправить код входа":"Send sign-in code"}
-                </button>
-                {magicSent&&<form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setError("");
-                  try{const result=await confirmMagicLogin(email,magicCode);setWebAuth(result);loadProfile(result.profile);
-                    setMagicCode("");setMagicOpen(false);setMagicSent(false);setNotice(tr.welcome);
-                  }catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
-                  <label>{language==="ru"?"Код из письма":"Email code"}
-                    <input required inputMode="numeric" pattern="[0-9]{8}" maxLength={8} value={magicCode} onChange={e=>setMagicCode(e.target.value)}/>
-                  </label>
-                  <button className="button button-primary" type="submit" disabled={busy||magicCode.length!==8}>
-                    {tr.login}
-                  </button>
-                </form>}
-              </>}
-            </section>}
             <button type="button" className="button button-outline" onClick={()=>setResetOpen(v=>!v)}>
               {language==="ru"?"Забыли пароль?":language==="uk"?"Забули пароль?":language==="cs"?"Zapomenuté heslo?":"Forgot password?"}
             </button>
@@ -530,7 +490,7 @@ export function ProfileClient() {
                 {language==="ru"?"Отправить код":"Send reset code"}
               </button>
               <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setError("");try{await confirmPasswordReset(email,resetCode,resetPassword);setResetOpen(false);setResetCode("");setResetPassword("");setNotice(language==="ru"?"Пароль изменён. Войди с новым паролем.":"Password changed. Sign in with the new password.");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
-                <label>{language==="ru"?"Код из письма":"Email code"}<input required minLength={8} maxLength={8} inputMode="numeric" value={resetCode} onChange={e=>setResetCode(e.target.value)}/></label>
+                <label>{language==="ru"?"Код из письма":"Email code"}<input required minLength={8} maxLength={8} pattern="[0-9]{8}" autoComplete="one-time-code" name="one-time-code" inputMode="numeric" value={resetCode} onChange={e=>setResetCode(e.target.value)}/></label>
                 <label>{language==="ru"?"Новый пароль (12+ символов)":"New password (12+ characters)"}<input type="password" required minLength={12} maxLength={128} value={resetPassword} onChange={e=>setResetPassword(e.target.value)}/></label>
                 <button type="submit" className="button button-primary" disabled={busy}>{language==="ru"?"Сбросить пароль":"Reset password"}</button>
               </form>
