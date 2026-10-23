@@ -74,9 +74,9 @@ def maybe_offer_next(db, event, registered_count):
     expire_for_event(db, event.id, now)
     if event.max_participants is None or registered_count + offer_count(db, event.id, now=now) >= event.max_participants:
         return None
-    entry = db.query(DemoWaitlist).filter(
-        DemoWaitlist.event_id == event.id, DemoWaitlist.status == "waiting"
-    ).order_by(DemoWaitlist.created_at, DemoWaitlist.id).first()
+    from demo_loyalty import priority_waitlist_entry
+    import main
+    entry = priority_waitlist_entry(db, event, main)
     if entry is None:
         return None
     expires = min(now + timedelta(minutes=minutes), utc(normalize_event_datetime(event.starts_at)) - timedelta(minutes=10))

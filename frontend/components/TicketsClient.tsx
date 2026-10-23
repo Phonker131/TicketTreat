@@ -76,6 +76,7 @@ export function TicketsClient() {
               </Link>
             ))}
           </div>}
+          <p><Link href="/loyalty" className="button button-outline">{language==="ru"?"Мои награды и уровни →":language==="cs"?"Moje odměny a úrovně →":language==="uk"?"Мої нагороди та рівні →":"My rewards and tiers →"}</Link></p>
           {attendance&&<section className="panel" style={{marginTop:20}}>
             <h2>{language==="ru"?"История посещений":language==="cs"?"Historie návštěv":language==="uk"?"Історія відвідувань":"Attendance history"}</h2>
             <p>{attendance.visit_count} check-ins {attendance.visit_count>=attendance.limited_to?"(последние 100)":""}</p>

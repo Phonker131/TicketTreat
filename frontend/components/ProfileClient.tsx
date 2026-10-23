@@ -393,6 +393,7 @@ export function ProfileClient() {
               </div>
               <div className="profile-facts">
                 <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
+                <div className="profile-fact"><span>{language==="ru"?"Мои награды":language==="cs"?"Moje odměny":language==="uk"?"Мої нагороди":"My rewards"}</span><Link href="/loyalty" className="button button-outline">→ {language==="ru"?"Паспорт":language==="cs"?"Pas":language==="uk"?"Паспорт":"Passport"}</Link></div>
                 <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">→ {tr.tickets}</Link></div>
               </div>
               {profile.email_verified && <section className="panel form-stack">

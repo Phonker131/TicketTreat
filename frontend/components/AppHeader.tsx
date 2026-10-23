@@ -45,6 +45,7 @@ export function AppHeader() {
         <nav className="topbar-nav">
           <Link href="/">{t(language, "home")}</Link>
           <Link href="/tickets">{t(language, "tickets")}</Link>
+          <Link href="/loyalty">{language==="ru"?"Награды":language==="cs"?"Odměny":language==="uk"?"Нагороди":"Rewards"}</Link>
           <Link href="/profile">{t(language, "profile")}</Link>
           <Link href="/support">{language==="ru"?"Поддержка":language==="cs"?"Podpora":language==="uk"?"Підтримка":"Support"}</Link>
           {canOrganize && <Link href="/admin">{t(language, "admin")}</Link>}

@@ -56,6 +56,9 @@ def install_principal_api(app,get_db,main):
         from demo_paid_reservations import get_own
         return get_own(db,main,event_id,guest)
 
+    from demo_loyalty import install_loyalty_api
+    install_loyalty_api(app, get_db, main, guest_for)
+
     @app.get("/demo/me/attendance")
     def own_attendance(guest=Depends(guest_for), db:Session=Depends(get_db)):
         """Privacy-scoped history; never exposes other guests or QR secrets."""
