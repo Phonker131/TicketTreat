@@ -493,7 +493,22 @@ export function AdminEventClient(){
         <p className="form-note">{emailStatus?.email_enabled?
           "Отправка подключена. Зарегистрированные пользователи получают письма с билетами, напоминаниями и важными изменениями.":
           "Отправка отключена до подтверждения домена и настройки Resend. Новые письма пока не отправляются."}</p>
-        {emailStatus&&<p className="form-note">Доставлено: {emailStatus.message_states.sent||0} · В очереди: {emailStatus.message_states.pending||0} · Ошибок: {emailStatus.message_states.failed||0}</p>}
+        {emailStatus&&<>
+          <div className="stats-grid" aria-label="Статус служебных уведомлений">
+            <div className="stat-card">
+              <strong>✉️ Email</strong>
+              <span>Доставлено провайдеру: {emailStatus.message_states.sent||0}</span>
+              <span>В очереди: {emailStatus.message_states.pending||0} · Ошибок: {emailStatus.message_states.failed||0}</span>
+            </div>
+            <div className="stat-card">
+              <strong>✈️ Telegram</strong>
+              <span>Зарегистрированных получателей: {emailStatus.telegram_recipients??0}</span>
+              <span>Отправлено: {emailStatus.telegram_message_states?.sent||0} · В очереди: {emailStatus.telegram_message_states?.pending||0} · Ошибок: {emailStatus.telegram_message_states?.failed||0}</span>
+              <span>{emailStatus.telegram_enabled?"Канал подключён. Напоминания отправляются по расписанию.":"Канал сейчас не настроен."}</span>
+            </div>
+          </div>
+          <p className="form-note">В Telegram бот может написать только тем, кто ранее открыл чат с TicketTreat. Подтверждения входа и пароли по этому каналу не отправляются.</p>
+        </>}
         {!event.is_cancelled&&event.publication?.visible&&<section className="form-stack">
           <h3>{tr("Служебное сообщение по мероприятию")}</h3>
           <label>{tr("Тип уведомления")}<select value={announcementCategory} onChange={e=>
