@@ -66,11 +66,268 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
   },
 };
 
+const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
+  "en": {
+    "roleParticipant": "Participant",
+    "roleOrganizer": "Organizer",
+    "confirmTelegram": "Confirm Telegram account",
+    "linkConfirmed": "✓ Accounts linked. Return to the website to see your tickets.",
+    "linkExplain": "Confirm linking this Telegram account to your TicketTreat website account. Never share the link.",
+    "linkInsideBot": "Open this link from @TicketTreatBot to verify your Telegram identity.",
+    "confirmLink": "Confirm link",
+    "telegramTitle": "Telegram and TicketTreat",
+    "telegramLinked": "Telegram linked. Website and bot share your tickets and bookings.",
+    "telegramNotLinked": "Connect your existing Telegram account to this website profile without losing tickets. Telegram confirmation is required.",
+    "linkCurrent": "Link current Telegram",
+    "linkViaBot": "Connect through Telegram bot",
+    "linkWaiting": "In Telegram, tap Confirm link. This link expires in 10 minutes; the status updates automatically.",
+    "securityConfirmation": "Security confirmation",
+    "mfaExplanation": "Linking Telegram to an organizer account requires two-factor authentication to protect your account and tickets.",
+    "mfaSetupFirst": "Set up your authenticator first, then retry linking.",
+    "mfaSetup": "Set up two-factor authentication",
+    "mfaCode": "Six-digit authenticator code",
+    "mfaVerifyLink": "Verify and link Telegram",
+    "mfaManage": "Manage two-factor authentication",
+    "verifyEmailTitle": "Verify email",
+    "verifyEmailHelp": "Request a code and enter it here. Existing accounts can verify without losing tickets.",
+    "sendCode": "Send code",
+    "emailCode": "Email code",
+    "confirmEmail": "Confirm email",
+    "emailVerified": "Email verified",
+    "organizerDashboard": "Organizer dashboard",
+    "accountSecurity": "Account security",
+    "passwordWarning": "Changing your password signs out all other devices.",
+    "currentPassword": "Current password",
+    "newPassword": "New password (12+ characters)",
+    "confirmPassword": "Confirm new password",
+    "changePassword": "Change password",
+    "googlePasswordHint": "For a Google-created account, set a password through email recovery before enrolling in two-factor authentication.",
+    "twoFactor": "Two-factor authentication",
+    "becomeOrganizer": "Become an organizer",
+    "activeSessions": "Active sessions",
+    "signOutEverywhere": "Sign out everywhere",
+    "telegramVerified": "Telegram verified",
+    "telegramSignedIn": "You are signed in through Telegram and can book events in Mini App. Existing bot registrations appear in My tickets.",
+    "telegramSeparate": "Email accounts are separate. To use TicketTreat on the web, sign up or log in below; accounts are not automatically merged.",
+    "passwordRecovery": "Password recovery",
+    "recoveryHint": "If the account exists, a reset code will be sent to this address. This also verifies the email.",
+    "mailUnavailable": "Email sending is unavailable. TicketTreat support must verify Resend, sender domain and email environment variables.",
+    "sendResetCode": "Send reset code",
+    "resetPassword": "Reset password",
+    "telegramSuccessfullyLinked": "Telegram successfully linked.",
+    "telegramExpired": "Telegram link expired. Start again.",
+    "telegramOpenBot": "Open the account link inside @TicketTreatBot while signed into the website.",
+    "mfaInvalidCode": "Invalid or already used code. Enter a new code from your authenticator.",
+    "telegramOpenConfirm": "Open this confirmation inside @TicketTreatBot.",
+    "telegramAccountsConnected": "Telegram and website accounts are connected. All available tickets are shared.",
+    "connectionFailed": "Connection to the profile service failed.",
+    "verificationSent": "Verification code sent.",
+    "emailVerifiedNotice": "Email verified.",
+    "passwordChanged": "Password updated. All other devices were signed out.",
+    "passwordTooShort": "New password must be 12–128 characters.",
+    "passwordMismatch": "Passwords do not match.",
+    "sessionsConfirm": "Sign out of all devices?",
+    "resetSent": "If an eligible account exists, a code was sent.",
+    "resetComplete": "Password changed. Sign in with the new password."
+  },
+  "cs": {
+    "roleParticipant": "Účastník",
+    "roleOrganizer": "Pořadatel",
+    "confirmTelegram": "Potvrzení účtu Telegram",
+    "linkConfirmed": "✓ Účty jsou propojeny. Vraťte se na web a otevřete vstupenky.",
+    "linkExplain": "Potvrďte propojení Telegramu s účtem TicketTreat. Odkaz nikomu neposílejte.",
+    "linkInsideBot": "Otevřete tento odkaz v @TicketTreatBot pro ověření identity.",
+    "confirmLink": "Potvrdit propojení",
+    "telegramTitle": "Telegram a TicketTreat",
+    "telegramLinked": "Telegram je propojen. Web i bot sdílejí vaše vstupenky a rezervace.",
+    "telegramNotLinked": "Propojte stávající účet Telegram s webovým profilem bez ztráty vstupenek. Propojení musíte v Telegramu potvrdit.",
+    "linkCurrent": "Propojit aktuální Telegram",
+    "linkViaBot": "Propojit přes Telegram bota",
+    "linkWaiting": "V Telegramu klepněte na Potvrdit propojení. Odkaz platí 10 minut a stav se aktualizuje automaticky.",
+    "securityConfirmation": "Bezpečnostní ověření",
+    "mfaExplanation": "Propojení Telegramu s účtem pořadatele vyžaduje dvoufaktorové ověření, které chrání účet i vstupenky.",
+    "mfaSetupFirst": "Nejprve nastavte ověřovací aplikaci a pak propojení opakujte.",
+    "mfaSetup": "Nastavit dvoufaktorové ověření",
+    "mfaCode": "Šestimístný kód z ověřovací aplikace",
+    "mfaVerifyLink": "Ověřit a propojit Telegram",
+    "mfaManage": "Spravovat dvoufaktorové ověření",
+    "verifyEmailTitle": "Ověřit e-mail",
+    "verifyEmailHelp": "Vyžádejte si kód a zadejte ho zde. Ověření stávajícího účtu zachová vaše vstupenky.",
+    "sendCode": "Odeslat kód",
+    "emailCode": "Kód z e-mailu",
+    "confirmEmail": "Potvrdit e-mail",
+    "emailVerified": "E-mail ověřen",
+    "organizerDashboard": "Panel pořadatele",
+    "accountSecurity": "Zabezpečení účtu",
+    "passwordWarning": "Změna hesla odhlásí všechna ostatní zařízení.",
+    "currentPassword": "Současné heslo",
+    "newPassword": "Nové heslo (min. 12 znaků)",
+    "confirmPassword": "Potvrdit nové heslo",
+    "changePassword": "Změnit heslo",
+    "googlePasswordHint": "U účtu vytvořeného přes Google si před zapnutím dvoufaktorového ověření nastavte heslo prostřednictvím obnovení e-mailem.",
+    "twoFactor": "Dvoufaktorové ověření",
+    "becomeOrganizer": "Stát se pořadatelem",
+    "activeSessions": "Aktivní relace",
+    "signOutEverywhere": "Odhlásit všechna zařízení",
+    "telegramVerified": "Telegram ověřen",
+    "telegramSignedIn": "Jste přihlášeni přes Telegram a můžete se registrovat na akce v Mini App. Registrace přes bota najdete v sekci Moje vstupenky.",
+    "telegramSeparate": "Účty s e-mailem jsou samostatné. Chcete-li používat TicketTreat na webu, níže se zaregistrujte nebo přihlaste; účty se automaticky neslučují.",
+    "passwordRecovery": "Obnovení hesla",
+    "recoveryHint": "Pokud účet existuje, odešleme na tuto adresu kód pro obnovení hesla, který také ověří e-mail.",
+    "mailUnavailable": "Odesílání e-mailů není dostupné. Podpora TicketTreat musí zkontrolovat Resend, doménu odesílatele a konfiguraci e-mailů.",
+    "sendResetCode": "Odeslat obnovovací kód",
+    "resetPassword": "Obnovit heslo",
+    "telegramSuccessfullyLinked": "Telegram byl úspěšně propojen.",
+    "telegramExpired": "Platnost odkazu Telegram vypršela. Zkuste to znovu.",
+    "telegramOpenBot": "Otevřete odkaz na propojení v @TicketTreatBot a přihlaste se na webu.",
+    "mfaInvalidCode": "Neplatný nebo již použitý kód. Zadejte nový kód z ověřovací aplikace.",
+    "telegramOpenConfirm": "Otevřete toto potvrzení v @TicketTreatBot.",
+    "telegramAccountsConnected": "Účty Telegram a webu jsou propojeny. Dostupné vstupenky jsou společné.",
+    "connectionFailed": "Připojení ke službě profilu se nezdařilo.",
+    "verificationSent": "Ověřovací kód byl odeslán.",
+    "emailVerifiedNotice": "E-mail byl ověřen.",
+    "passwordChanged": "Heslo bylo změněno. Ostatní zařízení byla odhlášena.",
+    "passwordTooShort": "Nové heslo musí obsahovat 12–128 znaků.",
+    "passwordMismatch": "Hesla se neshodují.",
+    "sessionsConfirm": "Odhlásit všechna zařízení?",
+    "resetSent": "Pokud existuje odpovídající účet, byl odeslán kód.",
+    "resetComplete": "Heslo bylo změněno. Přihlaste se novým heslem."
+  },
+  "ru": {
+    "roleParticipant": "Участник",
+    "roleOrganizer": "Организатор",
+    "confirmTelegram": "Подтверждение Telegram",
+    "linkConfirmed": "✓ Аккаунты связаны. Вернись на сайт и открой «Мои билеты».",
+    "linkExplain": "Подтверди привязку этого Telegram к веб-аккаунту TicketTreat. Не передавай ссылку другим.",
+    "linkInsideBot": "Открой эту ссылку внутри @TicketTreatBot, чтобы Telegram подтвердил твою личность.",
+    "confirmLink": "Подтвердить привязку",
+    "telegramTitle": "Telegram и TicketTreat",
+    "telegramLinked": "Telegram привязан. Сайт и бот используют одни билеты и регистрации.",
+    "telegramNotLinked": "Свяжи старый аккаунт Telegram с сайтом — билеты и очереди перенесутся без повторной регистрации. Понадобится подтвердить владение Telegram.",
+    "linkCurrent": "Привязать текущий Telegram",
+    "linkViaBot": "Привязать через Telegram-бота",
+    "linkWaiting": "В Telegram нажми «Подтвердить привязку». Ссылка действует 10 минут. Статус обновится автоматически.",
+    "securityConfirmation": "Подтверждение безопасности",
+    "mfaExplanation": "Для привязки Telegram к аккаунту организатора необходимо подтвердить двухфакторную аутентификацию. Это защищает аккаунт и билеты.",
+    "mfaSetupFirst": "Сначала подключи приложение-аутентификатор в настройках безопасности, затем повтори привязку.",
+    "mfaSetup": "Настроить двухфакторную защиту",
+    "mfaCode": "Шестизначный код из приложения-аутентификатора",
+    "mfaVerifyLink": "Подтвердить и привязать Telegram",
+    "mfaManage": "Управление двухфакторной защитой",
+    "verifyEmailTitle": "Подтвердить email",
+    "verifyEmailHelp": "Отправь код подтверждения на почту и введи его здесь.",
+    "sendCode": "Отправить код",
+    "emailCode": "Код из письма",
+    "confirmEmail": "Подтвердить email",
+    "emailVerified": "Email подтверждён",
+    "organizerDashboard": "Панель организатора",
+    "accountSecurity": "Безопасность аккаунта",
+    "passwordWarning": "После смены пароля все другие устройства будут разлогинены.",
+    "currentPassword": "Текущий пароль",
+    "newPassword": "Новый пароль (минимум 12 символов)",
+    "confirmPassword": "Повтори новый пароль",
+    "changePassword": "Сменить пароль",
+    "googlePasswordHint": "Если аккаунт создан через Google, задай пароль через восстановление по email, чтобы включить двухфакторную защиту.",
+    "twoFactor": "Двухфакторная аутентификация",
+    "becomeOrganizer": "Стать организатором",
+    "activeSessions": "Активных сессий",
+    "signOutEverywhere": "Выйти на всех устройствах",
+    "telegramVerified": "Telegram подтверждён",
+    "telegramSignedIn": "Ты уже авторизован через Telegram и можешь записываться на ивенты в Mini App. Твои записи через бота доступны в разделе билетов.",
+    "telegramSeparate": "Веб-аккаунт с email существует отдельно. Для доступа с компьютера используй регистрацию или вход ниже; автоматического объединения аккаунтов пока нет.",
+    "passwordRecovery": "Восстановление пароля",
+    "recoveryHint": "Если аккаунт существует, на эту почту придёт код для сброса пароля. Код также подтверждает владение почтой.",
+    "mailUnavailable": "Отправка писем сейчас недоступна. Поддержке TicketTreat нужно проверить Resend, домен отправителя и настройки почты.",
+    "sendResetCode": "Отправить код",
+    "resetPassword": "Сбросить пароль",
+    "telegramSuccessfullyLinked": "Telegram успешно привязан.",
+    "telegramExpired": "Срок действия ссылки Telegram истёк. Начни заново.",
+    "telegramOpenBot": "Открой привязку внутри @TicketTreatBot, войдя в аккаунт на сайте.",
+    "mfaInvalidCode": "Неверный или уже использованный код. Введи новый код из приложения-аутентификатора.",
+    "telegramOpenConfirm": "Открой подтверждение внутри @TicketTreatBot.",
+    "telegramAccountsConnected": "Аккаунты Telegram и сайта связаны. Все доступные билеты общие.",
+    "connectionFailed": "Не удалось подключиться к сервису профиля.",
+    "verificationSent": "Код подтверждения отправлен.",
+    "emailVerifiedNotice": "Email подтверждён.",
+    "passwordChanged": "Пароль изменён. Все другие устройства вышли из аккаунта.",
+    "passwordTooShort": "Новый пароль должен содержать 12–128 символов.",
+    "passwordMismatch": "Пароли не совпадают.",
+    "sessionsConfirm": "Завершить все сессии?",
+    "resetSent": "Если адрес подтверждён, письмо отправлено.",
+    "resetComplete": "Пароль изменён. Войди с новым паролем."
+  },
+  "uk": {
+    "roleParticipant": "Учасник",
+    "roleOrganizer": "Організатор",
+    "confirmTelegram": "Підтвердження Telegram",
+    "linkConfirmed": "✓ Акаунти пов’язані. Повернися на сайт і відкрий «Мої квитки».",
+    "linkExplain": "Підтвердь прив’язку Telegram до вебакаунта TicketTreat. Нікому не передавай посилання.",
+    "linkInsideBot": "Відкрий це посилання в @TicketTreatBot, щоб підтвердити особу.",
+    "confirmLink": "Підтвердити прив’язку",
+    "telegramTitle": "Telegram і TicketTreat",
+    "telegramLinked": "Telegram підключено. Сайт і бот використовують спільні квитки та реєстрації.",
+    "telegramNotLinked": "Пов’яжи наявний акаунт Telegram із сайтом без втрати квитків. Потрібно підтвердити володіння Telegram.",
+    "linkCurrent": "Прив’язати поточний Telegram",
+    "linkViaBot": "Прив’язати через Telegram-бота",
+    "linkWaiting": "У Telegram натисни «Підтвердити прив’язку». Посилання діє 10 хвилин, стан оновиться автоматично.",
+    "securityConfirmation": "Підтвердження безпеки",
+    "mfaExplanation": "Для прив’язки Telegram до акаунта організатора потрібне двофакторне підтвердження задля захисту акаунта та квитків.",
+    "mfaSetupFirst": "Спочатку налаштуй застосунок-автентифікатор, а потім повтори прив’язку.",
+    "mfaSetup": "Налаштувати двофакторний захист",
+    "mfaCode": "Шестизначний код із застосунку-автентифікатора",
+    "mfaVerifyLink": "Підтвердити й прив’язати Telegram",
+    "mfaManage": "Керування двофакторним захистом",
+    "verifyEmailTitle": "Підтвердити email",
+    "verifyEmailHelp": "Замов код підтвердження електронною поштою та введи його тут. Квитки залишаться доступними.",
+    "sendCode": "Надіслати код",
+    "emailCode": "Код із листа",
+    "confirmEmail": "Підтвердити email",
+    "emailVerified": "Email підтверджено",
+    "organizerDashboard": "Панель організатора",
+    "accountSecurity": "Безпека акаунта",
+    "passwordWarning": "Після зміни пароля всі інші пристрої буде від’єднано.",
+    "currentPassword": "Поточний пароль",
+    "newPassword": "Новий пароль (щонайменше 12 символів)",
+    "confirmPassword": "Повтори новий пароль",
+    "changePassword": "Змінити пароль",
+    "googlePasswordHint": "Якщо акаунт створено через Google, встанови пароль за допомогою відновлення через email перед увімкненням двофакторного захисту.",
+    "twoFactor": "Двофакторна автентифікація",
+    "becomeOrganizer": "Стати організатором",
+    "activeSessions": "Активних сеансів",
+    "signOutEverywhere": "Вийти на всіх пристроях",
+    "telegramVerified": "Telegram підтверджено",
+    "telegramSignedIn": "Ти вже ввійшов через Telegram і можеш реєструватися на події в Mini App. Реєстрації через бота доступні в розділі «Мої квитки».",
+    "telegramSeparate": "Вебакаунт з email існує окремо. Для доступу через сайт зареєструйся або ввійди нижче; акаунти автоматично не об’єднуються.",
+    "passwordRecovery": "Відновлення пароля",
+    "recoveryHint": "Якщо акаунт існує, на цю адресу надійде код для скидання пароля, який також підтвердить пошту.",
+    "mailUnavailable": "Надсилання листів недоступне. Підтримка TicketTreat має перевірити Resend, домен відправника та налаштування пошти.",
+    "sendResetCode": "Надіслати код",
+    "resetPassword": "Скинути пароль",
+    "telegramSuccessfullyLinked": "Telegram успішно прив’язано.",
+    "telegramExpired": "Термін дії посилання Telegram минув. Спробуй знову.",
+    "telegramOpenBot": "Відкрий посилання на прив’язку в @TicketTreatBot, увійшовши до акаунта на сайті.",
+    "mfaInvalidCode": "Невірний або вже використаний код. Введи новий код із застосунку-автентифікатора.",
+    "telegramOpenConfirm": "Відкрий підтвердження в @TicketTreatBot.",
+    "telegramAccountsConnected": "Акаунти Telegram і сайту пов’язані. Усі доступні квитки спільні.",
+    "connectionFailed": "Не вдалося підключитися до сервісу профілю.",
+    "verificationSent": "Код підтвердження надіслано.",
+    "emailVerifiedNotice": "Email підтверджено.",
+    "passwordChanged": "Пароль змінено. Інші пристрої вийшли з акаунта.",
+    "passwordTooShort": "Новий пароль має містити 12–128 символів.",
+    "passwordMismatch": "Паролі не збігаються.",
+    "sessionsConfirm": "Завершити всі сеанси?",
+    "resetSent": "Якщо відповідний акаунт існує, код надіслано.",
+    "resetComplete": "Пароль змінено. Увійди з новим паролем."
+  }
+};
+
 type ContactPreference = "email" | "phone" | "telegram" | "instagram";
 
 export function ProfileClient() {
   const {language} = useLanguage();
   const tr = COPY[language];
+  const ui = PROFILE_UI[language];
+  const displayMessage = (value:string) => value.startsWith('ui:') ? (ui[value.slice(3)] || tr[value.slice(3)] || value) : value;
   const [mode, setMode] = useState<"login"|"signup">("login");
   const [telegramProfile, setTelegramProfile] = useState<TelegramAuthResult|null>(null);
   const [profile, setProfile] = useState<WebProfile|null>(null);
@@ -122,7 +379,7 @@ export function ProfileClient() {
     }
     restoreWebProfile()
       .then((p) => { if(mounted && p) loadProfile(p); })
-      .catch(() => { if (mounted) setError("Connection to the profile service failed."); })
+      .catch(() => { if (mounted) setError('ui:connectionFailed'); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
@@ -142,10 +399,10 @@ export function ProfileClient() {
         if(result.linked) {
           setLinkRequest(null);
           const updated=await getWebProfile(token);
-          if(mounted) {loadProfile(updated);setNotice("Telegram successfully linked.");}
+          if(mounted) {loadProfile(updated);setNotice('ui:telegramSuccessfullyLinked');}
         } else if(result.status!=="pending") {
           setLinkRequest(null);
-          setError("Telegram link expired. Start again.");
+          setError('ui:telegramExpired');
         }
       } catch { /* A transient network error does not consume the challenge. */ }
       finally {checking=false;}
@@ -172,13 +429,13 @@ export function ProfileClient() {
   async function linkCurrentTelegram(){
     const token=getWebToken();
     const initData=(await import("@/lib/telegram")).getTelegramWebApp()?.initData;
-    if(!token||!initData){setError("Open the account link inside @TicketTreatBot while signed into the website.");return;}
+    if(!token||!initData){setError('ui:telegramOpenBot');return;}
     setBusy(true);setError("");setNotice("");
     try{
       await linkTelegramToWebsite(token,initData);
       loadProfile(await getWebProfile(token));
       setMfaLinkAction(null);
-      setNotice(language==="ru"?"Telegram успешно привязан.":"Telegram successfully linked.");
+      setNotice('ui:telegramSuccessfullyLinked');
     }catch(e){handleTelegramLinkError(e,"current");}
     finally{setBusy(false);}
   }
@@ -197,7 +454,7 @@ export function ProfileClient() {
       else await beginTelegramLink();
     }catch(err){
       const detail=err instanceof Error?err.message:String(err);
-      if(detail==="invalid_mfa_code")setError(language==="ru"?"Неверный или уже использованный код. Введи новый код из приложения-аутентификатора.":"Invalid or already used code. Enter a new code from your authenticator.");
+      if(detail==="invalid_mfa_code")setError('ui:mfaInvalidCode');
       else handleTelegramLinkError(err,action);
     }finally{setMfaLinkBusy(false);}
   }
@@ -216,7 +473,7 @@ export function ProfileClient() {
   async function approveTelegramLink(){
     const initData=(await import("@/lib/telegram")).getTelegramWebApp()?.initData;
     if(!initData||!incomingLink||!telegramProfile) {
-      setError("Open this confirmation inside @TicketTreatBot.");
+      setError('ui:telegramOpenConfirm');
       return;
     }
     setLinkBusy(true);setError("");
@@ -224,7 +481,7 @@ export function ProfileClient() {
       const result=await claimTelegramAccountLink(incomingLink,initData);
       if(result.linked){
         setLinkConfirmed(true);
-        setNotice("Telegram and website accounts are connected. All available tickets are shared.");
+        setNotice('ui:telegramAccountsConnected');
       }
     }catch(e){setError(readableError(e));}
     finally{setLinkBusy(false);}
@@ -246,11 +503,11 @@ export function ProfileClient() {
   function readableError(err: unknown): string {
     const raw = err instanceof Error ? err.message : "Error";
     const code = (err as {status?:number})?.status;
-    if (raw === "email_already_registered") return tr.emailUsed;
-    if (raw === "invalid_credentials") return tr.credentials;
-    if (code === 429) return tr.rate;
-    if (code === 401) return tr.authExpired;
-    if (code === 422) return tr.required;
+    if (raw === "email_already_registered") return "ui:emailUsed";
+    if (raw === "invalid_credentials") return "ui:credentials";
+    if (code === 429) return "ui:rate";
+    if (code === 401) return "ui:authExpired";
+    if (code === 422) return "ui:required";
     return raw;
   }
 
@@ -272,7 +529,7 @@ export function ProfileClient() {
         : await loginWebAccount(email.trim(), password);
       setWebAuth(result);
       loadProfile(result.profile);
-      setNotice(mode === "signup" ? tr.accountCreated : tr.welcome);
+      setNotice(mode === "signup" ? "ui:accountCreated" : "ui:welcome");
       setPassword("");
     } catch(err) { setError(readableError(err)); }
     finally { setBusy(false); }
@@ -281,7 +538,7 @@ export function ProfileClient() {
   async function submitProfile(e: FormEvent) {
     e.preventDefault();
     const token = getWebToken();
-    if (!token) { setError(tr.authExpired); return; }
+    if (!token) { setError("ui:authExpired"); return; }
     setBusy(true); setError(""); setNotice("");
     try {
       const result = await updateWebProfile(token, {
@@ -291,7 +548,7 @@ export function ProfileClient() {
         country_code:"CZ",city:"",
       });
       loadProfile(result);
-      setNotice(tr.updated);
+      setNotice("ui:updated");
     } catch(err) { setError(readableError(err)); }
     finally { setBusy(false); }
   }
@@ -299,13 +556,13 @@ export function ProfileClient() {
   async function updatePassword(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const token = getWebToken();
-    if (!token) {setError(tr.authExpired);return;}
+    if (!token) {setError("ui:authExpired");return;}
     if(newPassword.length < 12 || newPassword.length > 128) {
-      setError(language === "ru" ? "Новый пароль должен содержать 12–128 символов." : "New password must be 12–128 characters.");
+      setError("ui:passwordTooShort");
       return;
     }
     if(newPassword !== confirmPassword) {
-      setError(language === "ru" ? "Пароли не совпадают." : "Passwords do not match.");
+      setError("ui:passwordMismatch");
       return;
     }
     setBusy(true);setError("");setNotice("");
@@ -314,10 +571,7 @@ export function ProfileClient() {
       setWebAuth(auth);
       loadProfile(auth.profile);
       setOldPassword("");setNewPassword("");setConfirmPassword("");
-      setNotice(language === "ru" ? "Пароль изменён. Все другие устройства вышли из аккаунта." :
-        language === "cs" ? "Heslo bylo změněno. Ostatní zařízení byla odhlášena." :
-        language === "uk" ? "Пароль змінено. Інші пристрої вийшли з акаунта." :
-        "Password updated. All other devices were signed out.");
+      setNotice("ui:passwordChanged");
     }catch(err){setError(readableError(err));}
     finally{setBusy(false);}
   }
@@ -325,7 +579,7 @@ export function ProfileClient() {
   async function signOutAllDevices() {
     const token=getWebToken();
     if(!token)return;
-    if(!window.confirm(language === "ru" ? "Завершить все сессии?" : "Sign out of all devices?"))return;
+    if(!window.confirm(ui.sessionsConfirm))return;
     setBusy(true);setError("");setNotice("");
     try{
       await logoutAllWebSessions(token);
@@ -367,12 +621,12 @@ export function ProfileClient() {
       <main className="page auth-container">
         <Link href="/" className="back-link">← {tr.back}</Link>
         {incomingLink && <section className="panel form-stack" aria-label="Telegram account linking">
-          <h2>{language==="ru"?"Подтверждение Telegram":"Confirm Telegram account"}</h2>
-          {linkConfirmed ? <p role="status">{language==="ru"?"✓ Аккаунты связаны. Вернись на сайт и открой «Мои билеты».":"✓ Accounts linked. Return to the website to see your tickets."}</p> : <>
-            <p className="form-note">{language==="ru"?"Подтверди привязку этого Telegram к веб-аккаунту TicketTreat. Не передавай ссылку другим.":"Confirm linking this Telegram account to your TicketTreat website account. Never share the link."}</p>
-            {!telegramProfile && <p className="form-note">{language==="ru"?"Открой эту ссылку внутри @TicketTreatBot, чтобы Telegram подтвердил твою личность.":"Open this link from @TicketTreatBot to verify your Telegram identity."}</p>}
+          <h2>{ui.confirmTelegram}</h2>
+          {linkConfirmed ? <p role="status">{ui.linkConfirmed}</p> : <>
+            <p className="form-note">{ui.linkExplain}</p>
+            {!telegramProfile && <p className="form-note">{ui.linkInsideBot}</p>}
             <button type="button" className="button button-primary" disabled={!telegramProfile||linkBusy}
-              onClick={()=>{void approveTelegramLink();}}>{linkBusy?"…":language==="ru"?"Подтвердить привязку":"Confirm link"}</button>
+              onClick={()=>{void approveTelegramLink();}}>{linkBusy?"…":ui.confirmLink}</button>
           </>}
         </section>}
 
@@ -388,7 +642,7 @@ export function ProfileClient() {
               </div>
               <div className="profile-identity-meta">
                 <span className="profile-role-chip">
-                  {profile.account.role === "participant" ? "Participant" : "Organizer"}
+                  {profile.account.role === "participant" ? ui.roleParticipant : ui.roleOrganizer}
                 </span>
               </div>
               <div className="profile-facts">
@@ -397,55 +651,53 @@ export function ProfileClient() {
                 <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">→ {tr.tickets}</Link></div>
               </div>
               {profile.email_verified && <section className="panel form-stack">
-                <h3>{language==="ru"?"Telegram и TicketTreat":"Telegram and TicketTreat"}</h3>
-                {profile.guest.telegram_id ? <p className="form-note">✓ {language==="ru"?"Telegram привязан. Сайт и бот используют одни билеты и регистрации.":"Telegram linked. Website and bot share your tickets and bookings."}</p> : <>
-                  <p className="form-note">{language==="ru"?"Свяжи старый аккаунт Telegram с сайтом — билеты и очереди перенесутся без повторной регистрации. Понадобится подтвердить владение Telegram.":"Connect your existing Telegram account to this website profile without losing tickets. Telegram confirmation is required."}</p>
+                <h3>{ui.telegramTitle}</h3>
+                {profile.guest.telegram_id ? <p className="form-note">✓ {ui.telegramLinked}</p> : <>
+                  <p className="form-note">{ui.telegramNotLinked}</p>
                   {telegramProfile && <button className="button button-outline" type="button" disabled={busy||mfaLinkBusy}
-                    onClick={()=>{void linkCurrentTelegram();}}>{language==="ru"?"Привязать текущий Telegram":"Link current Telegram"}</button>}
+                    onClick={()=>{void linkCurrentTelegram();}}>{ui.linkCurrent}</button>}
                   <button className="button button-primary" type="button" disabled={linkBusy}
                     onClick={()=>{void beginTelegramLink();}}>
-                    {linkBusy?"…":language==="ru"?"Привязать через Telegram-бота":"Connect through Telegram bot"}
+                    {linkBusy?"…":ui.linkViaBot}
                   </button>
                   {linkRequest && <div className="form-stack">
-                    <p className="form-note">{language==="ru"?"В Telegram нажми «Подтвердить привязку». Ссылка действует 10 минут. Статус обновится автоматически.":"In Telegram, tap Confirm link. This link expires in 10 minutes; the status updates automatically."}</p>
+                    <p className="form-note">{ui.linkWaiting}</p>
                     <a className="button button-outline" href={linkRequest.bot_link} target="_blank" rel="noopener noreferrer">↗ @TicketTreatBot</a>
                   </div>}
                 </>}
               </section>}
               {mfaLinkAction && <section className="panel form-stack" aria-label="Confirm account security">
-                <h3>{language==="ru"?"Подтверждение безопасности":"Security confirmation"}</h3>
-                <p className="form-note">{language==="ru"
-                  ?"Для привязки Telegram к аккаунту организатора необходимо подтвердить двухфакторную аутентификацию. Это защищает аккаунт и билеты."
-                  :"Linking Telegram to an organizer account requires two-factor authentication to protect your account and tickets."}</p>
+                <h3>{ui.securityConfirmation}</h3>
+                <p className="form-note">{ui.mfaExplanation}</p>
                 {mfaLinkSetup ? <>
-                  <p className="form-note">{language==="ru"?"Сначала подключи приложение-аутентификатор в настройках безопасности, затем повтори привязку.":"Set up your authenticator first, then retry linking."}</p>
-                  <Link href="/security/mfa" className="button button-outline">{language==="ru"?"Настроить двухфакторную защиту":"Set up two-factor authentication"}</Link>
+                  <p className="form-note">{ui.mfaSetupFirst}</p>
+                  <Link href="/security/mfa" className="button button-outline">{ui.mfaSetup}</Link>
                 </> : <form className="form-stack" onSubmit={e=>{void verifyMfaAndResumeLink(e);}}>
-                  <label>{language==="ru"?"Шестизначный код из приложения-аутентификатора":"Six-digit authenticator code"}
+                  <label>{ui.mfaCode}
                     <input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required
                       value={mfaLinkCode} onChange={e=>setMfaLinkCode(e.target.value)}/>
                   </label>
-                  <button type="submit" className="button button-primary" disabled={mfaLinkBusy||mfaLinkCode.length!==6}>{mfaLinkBusy?"…":language==="ru"?"Подтвердить и привязать Telegram":"Verify and link Telegram"}</button>
-                  <Link href="/security/mfa" className="button button-outline">{language==="ru"?"Управление двухфакторной защитой":"Manage two-factor authentication"}</Link>
+                  <button type="submit" className="button button-primary" disabled={mfaLinkBusy||mfaLinkCode.length!==6}>{mfaLinkBusy?"…":ui.mfaVerifyLink}</button>
+                  <Link href="/security/mfa" className="button button-outline">{ui.mfaManage}</Link>
                 </form>}
               </section>}
               {!profile.email_verified && <div className="panel form-stack">
-                <h3>{language==="ru"?"Подтвердить email":language==="uk"?"Підтвердити email":language==="cs"?"Ověřit e-mail":"Verify email"}</h3>
-                <p className="form-note">{language==="ru"?"Отправь код подтверждения на почту и введи его здесь.": "Request a code and enter it here. Existing accounts can verify without losing tickets."}</p>
+                <h3>{ui.verifyEmailTitle}</h3>
+                <p className="form-note">{ui.verifyEmailHelp}</p>
                 <button type="button" className="button button-outline" disabled={busy||mailReady===false}
-                  onClick={async()=>{const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await requestEmailVerification(token);setNotice("Verification code sent.");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
-                  {language==="ru"?"Отправить код":"Send code"}</button>
-                <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await confirmAccountEmail(token,profile.account.email,verificationCode);loadProfile(await getWebProfile(token));setVerificationCode("");setNotice("Email verified.");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
-                  <label>{language==="ru"?"Код из письма":"Email code"}<input type="text" autoComplete="one-time-code" name="one-time-code" inputMode="numeric" pattern="[0-9]{8}" required minLength={8} maxLength={8} value={verificationCode} onChange={e=>setVerificationCode(e.target.value)}/></label>
-                  <button type="submit" className="button button-primary" disabled={busy}>{language==="ru"?"Подтвердить email":"Confirm email"}</button>
+                  onClick={async()=>{const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await requestEmailVerification(token);setNotice("ui:verificationSent");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
+                  {ui.sendCode}</button>
+                <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await confirmAccountEmail(token,profile.account.email,verificationCode);loadProfile(await getWebProfile(token));setVerificationCode("");setNotice("ui:emailVerifiedNotice");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
+                  <label>{ui.emailCode}<input type="text" autoComplete="one-time-code" name="one-time-code" inputMode="numeric" pattern="[0-9]{8}" required minLength={8} maxLength={8} value={verificationCode} onChange={e=>setVerificationCode(e.target.value)}/></label>
+                  <button type="submit" className="button button-primary" disabled={busy}>{ui.confirmEmail}</button>
                 </form>
               </div>}
-              {profile.email_verified&&<p className="form-note">✓ {language==="ru"?"Email подтверждён":"Email verified"}</p>}
+              {profile.email_verified&&<p className="form-note">✓ {ui.emailVerified}</p>}
               <p className="form-note">{tr.note}</p>
-              {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary">Organizer dashboard →</Link>}
+              {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary"> {ui.organizerDashboard} →</Link>}
             </section>
-            {error && <div className="state-card state-error" role="alert">{error}</div>}
-            {notice && <div className="success-banner" role="status">{notice}</div>}
+            {error && <div className="state-card state-error" role="alert">{displayMessage(error)}</div>}
+            {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
             <form className="panel form-stack" onSubmit={submitProfile}>
               <h2>{tr.profile}</h2>
               <label>{tr.email}<input type="email" autoComplete="email" value={email} disabled readOnly /></label>
@@ -453,36 +705,32 @@ export function ProfileClient() {
               <button type="submit" className="button button-primary" disabled={busy}>{busy ? tr.saving : tr.save}</button>
             </form>
             <section className="panel form-stack">
-              <h2>{language === "ru" ? "Безопасность аккаунта" :
-                language === "cs" ? "Zabezpečení účtu" :
-                language === "uk" ? "Безпека акаунта" : "Account security"}</h2>
-              <p className="form-note">{language === "ru" ?
-                "После смены пароля все другие устройства будут разлогинены." :
-                "Changing your password signs out all other devices."}</p>
+              <h2>{ui.accountSecurity}</h2>
+              <p className="form-note">{ui.passwordWarning}</p>
               <form className="form-stack" onSubmit={updatePassword}>
-                <label>{language === "ru" ? "Текущий пароль" : "Current password"}
+                <label>{ui.currentPassword}
                   <input required type="password" autoComplete="current-password" value={oldPassword}
                     onChange={e=>setOldPassword(e.target.value)}/></label>
-                <label>{language === "ru" ? "Новый пароль (минимум 12 символов)" : "New password (12+ characters)"}
+                <label>{ui.newPassword}
                   <input required type="password" autoComplete="new-password" minLength={12} maxLength={128}
                     value={newPassword} onChange={e=>setNewPassword(e.target.value)}/></label>
-                <label>{language === "ru" ? "Повтори новый пароль" : "Confirm new password"}
+                <label>{ui.confirmPassword}
                   <input required type="password" autoComplete="new-password" minLength={12} maxLength={128}
                     value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)}/></label>
                 <button type="submit" className="button button-primary" disabled={busy}>
-                  {language === "ru" ? "Сменить пароль" : "Change password"}</button>
+                  {ui.changePassword}</button>
               </form>
               <GoogleSignIn link />
-              <p className="form-note">{language==="ru"?"Если аккаунт создан через Google, задай пароль через восстановление по email, чтобы включить двухфакторную защиту.":"For a Google-created account, set a password through email recovery before enrolling in two-factor authentication."}</p>
-              <Link href="/security/mfa" className="button button-outline">Two-factor authentication</Link>
-              {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">Become an organizer</Link>}
+              <p className="form-note">{ui.googlePasswordHint}</p>
+              <Link href="/security/mfa" className="button button-outline">{ui.twoFactor}</Link>
+              {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
               <Link href="/privacy" className="button button-outline">
                 {language==="ru"?"Мои данные и запрос на удаление":language==="uk"?"Мої дані та запит на видалення":language==="cs"?"Moje údaje a žádost o výmaz":"My data and erasure request"}
               </Link>
               <div className="security-session-row">
-                <p>{language === "ru" ? "Активных сессий" : "Active sessions"}: <strong>{sessionCount ?? "—"}</strong></p>
+                <p>{ui.activeSessions}: <strong>{sessionCount ?? "—"}</strong></p>
                 <button type="button" className="button button-outline" onClick={signOutAllDevices}
-                  disabled={busy}>{language === "ru" ? "Выйти на всех устройствах" : "Sign out everywhere"}</button>
+                  disabled={busy}>{ui.signOutEverywhere}</button>
               </div>
             </section>
             <div className="profile-actions"><button type="button" className="button button-outline" onClick={logOut}>{tr.logout}</button></div>
@@ -491,23 +739,19 @@ export function ProfileClient() {
           <>
             <h1>{tr.title}</h1>
             {telegramProfile && <section className="panel telegram-verified-profile">
-              <span className="status status-success">✓ Telegram verified</span>
+              <span className="status status-success">✓ {ui.telegramVerified}</span>
               <h2>{telegramProfile.telegram.first_name}</h2>
-              <p>{language === "ru" ?
-                "Ты уже авторизован через Telegram и можешь записываться на ивенты в Mini App. Твои записи через бота доступны в разделе билетов." :
-                "You are signed in through Telegram and can book events in Mini App. Existing bot registrations appear in My tickets."}</p>
+              <p>{ui.telegramSignedIn}</p>
               <Link href="/tickets" className="button button-outline">{language === "ru" ? "Мои билеты" : language === "cs" ? "Moje vstupenky" : language === "uk" ? "Мої квитки" : "My tickets"}</Link>
-              <small>{language === "ru" ?
-                "Веб-аккаунт с email существует отдельно. Для доступа с компьютера используй регистрацию или вход ниже; автоматического объединения аккаунтов пока нет." :
-                "Email accounts are separate. To use TicketTreat on the web, sign up or log in below; accounts are not automatically merged."}</small>
+              <small>{ui.telegramSeparate}</small>
             </section>}
             <p className="form-note">{tr.need}</p>
             <div className="auth-tabs" role="tablist">
               <button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setError("");}}>{tr.signup}</button>
               <button type="button" className={mode==="login"?"active":""} onClick={()=>{setMode("login");setError("");}}>{tr.login}</button>
             </div>
-            {error && <div className="state-card state-error" role="alert">{error}</div>}
-            {notice && <div className="success-banner" role="status">{notice}</div>}
+            {error && <div className="state-card state-error" role="alert">{displayMessage(error)}</div>}
+            {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
             <form className="panel form-stack" onSubmit={submitAuth}>
               <h2>{mode==="signup"?tr.create:tr.login}</h2>
               <GoogleSignIn />
@@ -539,20 +783,19 @@ export function ProfileClient() {
               {language==="ru"?"Забыли пароль?":language==="uk"?"Забули пароль?":language==="cs"?"Zapomenuté heslo?":"Forgot password?"}
             </button>
             {resetOpen&&<section className="panel form-stack">
-              <h3>{language==="ru"?"Восстановление пароля":"Password recovery"}</h3>
-              <p className="form-note">{language==="ru"?"Если аккаунт существует, на эту почту придёт код для сброса пароля. Код также подтверждает владение почтой.":"If the account exists, a reset code will be sent to this address. This also verifies the email."}</p>
+              <h3>{ui.passwordRecovery}</h3>
+              <p className="form-note">{ui.recoveryHint}</p>
               {mailReady===false&&<p role="alert" className="state-card state-error">{
-                language==="ru"?"Отправка писем сейчас недоступна. Администратору TicketTreat нужно проверить Resend, домен отправителя и переменные EMAIL_NOTIFICATIONS_ENABLED / EMAIL_FROM / RESEND_API_KEY.":
-                "Email sending is unavailable. TicketTreat support must verify Resend, sender domain and email environment variables."
+                ui.mailUnavailable
               }</p>}
               <label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
-              <button type="button" className="button button-outline" disabled={busy||mailReady===false||!email.includes("@")} onClick={async()=>{setBusy(true);setError("");try{await requestPasswordReset(email);setNotice(language==="ru"?"Если адрес подтверждён, письмо отправлено.":"If an eligible account exists, a code was sent.");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
-                {language==="ru"?"Отправить код":"Send reset code"}
+              <button type="button" className="button button-outline" disabled={busy||mailReady===false||!email.includes("@")} onClick={async()=>{setBusy(true);setError("");try{await requestPasswordReset(email);setNotice("ui:resetSent");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
+                {ui.sendResetCode}
               </button>
-              <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setError("");try{await confirmPasswordReset(email,resetCode,resetPassword);setResetOpen(false);setResetCode("");setResetPassword("");setNotice(language==="ru"?"Пароль изменён. Войди с новым паролем.":"Password changed. Sign in with the new password.");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
-                <label>{language==="ru"?"Код из письма":"Email code"}<input required minLength={8} maxLength={8} pattern="[0-9]{8}" autoComplete="one-time-code" name="one-time-code" inputMode="numeric" value={resetCode} onChange={e=>setResetCode(e.target.value)}/></label>
-                <label>{language==="ru"?"Новый пароль (12+ символов)":"New password (12+ characters)"}<input type="password" required minLength={12} maxLength={128} value={resetPassword} onChange={e=>setResetPassword(e.target.value)}/></label>
-                <button type="submit" className="button button-primary" disabled={busy}>{language==="ru"?"Сбросить пароль":"Reset password"}</button>
+              <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setError("");try{await confirmPasswordReset(email,resetCode,resetPassword);setResetOpen(false);setResetCode("");setResetPassword("");setNotice("ui:resetComplete");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
+                <label>{ui.emailCode}<input required minLength={8} maxLength={8} pattern="[0-9]{8}" autoComplete="one-time-code" name="one-time-code" inputMode="numeric" value={resetCode} onChange={e=>setResetCode(e.target.value)}/></label>
+                <label>{ui.newPassword}<input type="password" required minLength={12} maxLength={128} value={resetPassword} onChange={e=>setResetPassword(e.target.value)}/></label>
+                <button type="submit" className="button button-primary" disabled={busy}>{ui.resetPassword}</button>
               </form>
             </section>}
             <p className="form-note">{tr.note}</p>
