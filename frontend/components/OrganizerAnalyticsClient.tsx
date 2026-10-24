@@ -29,6 +29,7 @@ export function OrganizerAnalyticsClient(){
   const [data,setData]=useState<OrganizerAnalytics|null>(null);
   const [error,setError]=useState(""),[loading,setLoading]=useState(true);
   const [search,setSearch]=useState(""),[status,setStatus]=useState("all");
+  const [shareSource,setShareSource]=useState("direct");
   const [notice,setNotice]=useState("");
   async function reload(){
     setLoading(true);setError("");
@@ -65,8 +66,9 @@ export function OrganizerAnalyticsClient(){
   ]:[];
   async function copyEvent(event:OrganizerAnalyticsEvent){
     if(event.publication!=="published"||event.is_cancelled)return;
-    try{await navigator.clipboard.writeText(`${window.location.origin}/events/${event.event_id}`);setNotice(t.copied);}
-    catch{setNotice(`${window.location.origin}/events/${event.event_id}`);}
+    const url=`${window.location.origin}/events/${event.event_id}${shareSource==="direct"?"":`?utm_source=${encodeURIComponent(shareSource)}`}`;
+    try{await navigator.clipboard.writeText(url);setNotice(t.copied);}
+    catch{setNotice(url);}
   }
   return <div className="app-shell"><AppHeader/><main className="page tt-analytics-dashboard">
     <Link href="/admin" className="back-link">← {t.back}</Link>
@@ -114,6 +116,7 @@ export function OrganizerAnalyticsClient(){
           <select value={status} onChange={e=>setStatus(e.target.value)} aria-label={t.events}>
             {["all","upcoming","finished","cancelled"].map(x=><option value={x} key={x}>{t[x]}</option>)}
           </select>
+          <label className="tt-analytics-share-label">{language==="ru"?"Источник ссылки":language==="cs"?"Zdroj odkazu":language==="uk"?"Джерело посилання":"Share link source"} <select value={shareSource} onChange={e=>setShareSource(e.target.value)}><option value="direct">Direct</option><option value="telegram">Telegram</option><option value="instagram">Instagram</option><option value="partner">Partner</option></select></label>
         </div>
         <div className="tt-analytics-scroll"><table className="tt-analytics-table">
           <thead><tr><th>{t.name}</th><th>{t.bookings}</th><th>{t.arrivals}</th><th>{t.waitlist}</th><th>{t.payments}</th><th>{t.actions}</th></tr></thead>
