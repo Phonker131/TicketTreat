@@ -1001,6 +1001,60 @@ const messages: Array<[string,string,string,string]> = [
     "Payment not required",
     "Platba není vyžadována",
     "Оплата не потрібна"
+  ],
+  [
+    "Этот аккаунт зарегистрирован как участник. Для создания ивентов нужен аккаунт организатора.",
+    "This is a participant account. An organizer account is required to create events.",
+    "Toto je účet účastníka. Pro vytváření akcí potřebuješ účet pořadatele.",
+    "Це акаунт учасника. Для створення подій потрібен акаунт організатора."
+  ],
+  [
+    "Не удалось прочитать постер.",
+    "Could not read the poster.",
+    "Plakát se nepodařilo načíst.",
+    "Не вдалося прочитати афішу."
+  ],
+  [
+    "Максимальный размер постера — 4 МБ.",
+    "Maximum poster size is 4 MB.",
+    "Maximální velikost plakátu je 4 MB.",
+    "Максимальний розмір афіші — 4 МБ."
+  ],
+  [
+    "Только PNG, JPEG или WebP.",
+    "Only PNG, JPEG or WebP files are supported.",
+    "Podporovány jsou pouze soubory PNG, JPEG nebo WebP.",
+    "Підтримуються лише PNG, JPEG або WebP."
+  ],
+  [
+    "Выбери хотя бы один язык.",
+    "Select at least one language.",
+    "Vyber alespoň jeden jazyk.",
+    "Обери хоча б одну мову."
+  ],
+  [
+    "Введи дату и время.",
+    "Enter a date and time.",
+    "Zadej datum a čas.",
+    "Укажи дату й час."
+  ],
+  [
+    "Укажи время и текст напоминания.",
+    "Set the reminder time and message.",
+    "Zadej čas a text připomínky.",
+    "Укажи час і текст нагадування."
+  ],
+  [
+    "Главный администратор",
+    "Global administrator",
+    "Hlavní administrátor",
+    "Головний адміністратор"
+  ],
+  [
+    "Фильтрация мероприятий",
+    "Event filters",
+    "Filtry akcí",
+    "Фільтри подій"
   ]
 ];
 const dictionary = new Map(messages.map(([ru,en,cs,uk]) => [ru,{ru,en,cs,uk}]));
