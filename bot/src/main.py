@@ -180,6 +180,7 @@ UI_TRANSLATIONS = {
     "🏠 Start": _tr("🏠 Start", "🏠 Hlavní", "🏠 Главная", "🏠 Головна"),
     "📅 Events": _tr("📅 Events", "📅 Události", "📅 Ивенты", "📅 Події"),
     "🎟 My events": _tr("🎟 My events", "🎟 Moje události", "🎟 Мои ивенты", "🎟 Мої події"),
+    "🎟 My tickets": _tr("🎟 My tickets", "🎟 Moje vstupenky", "🎟 Мои билеты", "🎟 Мої квитки"),
     "👤 My profile": _tr("👤 My profile", "👤 Můj profil", "👤 Мой профиль", "👤 Мій профіль"),
     "📝 Registration": _tr("📝 Registration", "📝 Registrace", "📝 Регистрация", "📝 Реєстрація"),
     "🆘 Client service": _tr("🆘 Client service", "🆘 Zákaznická podpora", "🆘 Поддержка", "🆘 Підтримка"),
@@ -1235,32 +1236,42 @@ def require_admin_message(message) -> bool:
     return False
 
 
+# Bounded cache: get_main_menu() is called by many message handlers,
+# so avoid a database request on every keyboard refresh.
+_menu_registration_cache: dict[int, tuple[float, bool]] = {}
+MENU_REGISTRATION_TTL_SECONDS = 90
+
+
+def menu_profile_complete(user_id: int) -> bool:
+    now = time.monotonic()
+    cached = _menu_registration_cache.get(int(user_id))
+    if cached is not None and now - cached[0] < MENU_REGISTRATION_TTL_SECONDS:
+        return cached[1]
+    try:
+        data = backend_request("GET", f"/profile/{int(user_id)}", timeout=4)
+        complete = bool(data.get("complete"))
+        _menu_registration_cache[int(user_id)] = (now, complete)
+        return complete
+    except Exception:
+        # A temporary API issue should not erase a known registered state.
+        return cached[1] if cached is not None else False
+
+
 def get_main_menu(user_id: int):
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    registered = menu_profile_complete(user_id)
 
-    keyboard.row(
-        KeyboardButton("🏠 Start"),
-        KeyboardButton("📅 Events"),
-    )
-    keyboard.row(
-        KeyboardButton("🎟 My events"),
-        KeyboardButton("👤 My profile"),
-    )
-    keyboard.row(KeyboardButton("🆘 Client service"))
+    if registered:
+        keyboard.row(KeyboardButton("📅 Events"), KeyboardButton("🎟 My tickets"))
+        keyboard.row(KeyboardButton("👤 My profile"), KeyboardButton("🆘 Client service"))
+    else:
+        keyboard.row(KeyboardButton("🏠 Start"), KeyboardButton("📅 Events"))
+        keyboard.row(KeyboardButton("📝 Registration"), KeyboardButton("🆘 Client service"))
 
-    # One real Mini App for web and Telegram (private chats only).
-    # The frontend verifies signed initData with Demo API before linking identity.
-    if WEB_APP_URL.startswith("https://"):
-        keyboard.row(
-            KeyboardButton(
-                "🌐 TicketTreat Mini App",
-                web_app=WebAppInfo(url=WEB_APP_URL),
-            )
-        )
-
+    # The global blue Telegram menu button already launches TicketTreat Mini App.
+    # Keep only ONE app entry rather than duplicating it in the reply keyboard.
     if is_admin(user_id):
         keyboard.row(KeyboardButton("⚙️ Admin"))
-
     return keyboard
 
 
@@ -1697,6 +1708,7 @@ def save_profile_to_backend(message):
 
     user_state.pop(telegram_id, None)
     user_temp.pop(telegram_id, None)
+    _menu_registration_cache[telegram_id] = (time.monotonic(), True)
 
     bot.send_message(
         message.chat.id,
@@ -1988,10 +2000,12 @@ def start(message):
             )
             return
 
-    copy_send(
-        message,
-        welcome_text(lang, getattr(message.from_user, "first_name", None)),
-        [(copy["buttons"][0], "/"), (copy["buttons"][1], "/tickets")],
+    # Refresh the actual bottom keyboard in the SAME message. Previously
+    # /start only sent an inline keyboard, leaving obsolete reply buttons visible.
+    bot.send_message(
+        message.chat.id,
+        preserve_custom(welcome_text(lang, getattr(message.from_user, "first_name", None))),
+        reply_markup=get_main_menu(message.from_user.id),
     )
 
 @bot.message_handler(commands=["app", "tickets"])
@@ -2065,7 +2079,7 @@ def events_button(message):
     events(message)
 
 
-@bot.message_handler(func=lambda message: ui_text_matches(message.text, "🎟 My events"))
+@bot.message_handler(func=lambda message: ui_text_matches(message.text, "🎟 My events") or ui_text_matches(message.text, "🎟 My tickets"))
 def my_events_button(message):
     my_events(message)
 
@@ -2077,27 +2091,19 @@ def registration_button(message):
 
 @bot.message_handler(func=lambda message: ui_text_matches(message.text, "🆘 Client service"))
 def client_service_button(message):
+    lang = remember_telegram_language(message.from_user)
+    copy = get_copy(lang)
     if not CLIENT_SERVICE_URL:
-        bot.send_message(
-            message.chat.id,
-            "Client service пока не настроен.",
-            reply_markup=get_main_menu(message.from_user.id),
-        )
+        bot.send_message(message.chat.id, preserve_custom(copy["unavailable"]),
+                         reply_markup=get_main_menu(message.from_user.id))
         return
-
     keyboard = InlineKeyboardMarkup()
-    keyboard.add(
-        InlineKeyboardButton(
-            "💬 Написать в Client service",
-            web_app=WebAppInfo(url=CLIENT_SERVICE_URL),
-        )
-    )
-
-    bot.send_message(
-        message.chat.id,
-        "Если нужна помощь, напиши нашему Client service:",
-        reply_markup=keyboard,
-    )
+    keyboard.add(copy_webapp_button(
+        copy["open"], "/support",
+        private=getattr(message.chat, "type", "") == "private",
+    ))
+    bot.send_message(message.chat.id, preserve_custom(copy["support_intro"]),
+                     reply_markup=keyboard)
 
 
 @bot.message_handler(func=lambda message: ui_text_matches(message.text, "⚙️ Admin"))
@@ -2213,8 +2219,10 @@ def begin_registration(
         bot.send_message(chat_id, "⚠️ TicketTreat is temporarily unavailable. Please try again later.", reply_markup=get_main_menu(telegram_id))
         return
     if profile_data.get("complete"):
+        _menu_registration_cache[telegram_id] = (time.monotonic(), True)
         bot.send_message(chat_id, "✅ Ты уже зарегистрирован. Данные можно изменить в профиле.", reply_markup=get_main_menu(telegram_id))
         return
+    _menu_registration_cache[telegram_id] = (time.monotonic(), False)
     user_state[telegram_id] = "WAIT_LANGUAGE"
     user_temp[telegram_id] = {}
 
