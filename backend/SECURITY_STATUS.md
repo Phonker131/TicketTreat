@@ -1,6 +1,6 @@
 # TicketTreat — security implementation and remaining risks
 
-**Status:** engineering implementation in progress; not a security certification. The chosen release branch is `feature/crowdly-release-preparation`.
+**Status:** TicketTreat is deployed in production; this engineering note is not a security certification. The maintained release branch is `release/tickettreat-production`. See `docs/SECURITY_AUDIT_2026-10-23.md` and `docs/PRODUCTION_OPERATIONS.md` for the latest verified controls and remaining work.
 
 ## Implemented and covered by source/CI
 
