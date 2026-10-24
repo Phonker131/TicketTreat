@@ -24,7 +24,7 @@ export default function LegalNoticePage(){
         </section>
         <section>
           <h2>Help, complaints and privacy / Podpora, reklamace a ochrana údajů</h2>
-          <p>For platform help, use <a href="https://t.me/vvladver" target="_blank" rel="noopener noreferrer">TicketTreat support</a>. For data requests, contact the verified controller privacy email displayed above. For problems with the event or a paid ticket, the relevant organizer/trader, identified at checkout, is the primary contract contact.</p>
+          <p>For platform help, use <Link href="/support">TicketTreat Support Center</Link>. For data requests, contact the verified controller privacy email displayed above. For problems with the event or a paid ticket, the relevant organizer/trader, identified at checkout, is the primary contract contact.</p>
           <p lang="cs">S požadavky týkajícími se účtu kontaktujte podporu TicketTreat. Pro výkon práv podle GDPR použijte ověřený kontakt správce uvedený výše. Za konkrétní akci nebo placenou vstupenku odpovídá skutečný pořadatel či prodávající určený před uzavřením smlouvy.</p>
           <p>Where Czech consumer ADR rules apply to the contracting trader, information on the competent body must be provided. For many service disputes it is <a href="https://coi.gov.cz/informace-o-adr/" target="_blank" rel="noopener noreferrer">Česká obchodní inspekce (ČOI)</a>.</p>
         </section>
