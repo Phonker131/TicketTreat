@@ -80,7 +80,7 @@ export function AppHeader() {
         <div className="topbar-actions">
           {demoEnabled&&<span className="demo-pill">{t(language, "demo")}</span>}
           {<a className="mode-pill mode-pill-link" href={botUrl} target="_blank" rel="noopener noreferrer"
-            aria-label={language==="ru"?"Открыть бота TicketTreat в Telegram":"Open TicketTreat Telegram bot"}
+            aria-label={language==="ru"?"Открыть бота TicketTreat в Telegram":language==="cs"?"Otevřít bota TicketTreat na Telegramu":language==="uk"?"Відкрити бота TicketTreat у Telegram":"Open TicketTreat Telegram bot"}
             onClick={e=>{const telegram=getTelegramWebApp();if(insideTelegram && telegram?.openTelegramLink){e.preventDefault();telegram.openTelegramLink(botUrl);}}}>
             Telegram Mini App ↗
           </a>}
