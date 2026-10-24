@@ -50,7 +50,7 @@ class TelegramNotificationOutbox(Base):
     notice_id = Column(Integer, nullable=True)
     start_epoch = Column(BigInteger, nullable=True)
     reminder_minutes = Column(Integer, nullable=True)
-    language = Column(String(2), nullable=False, default="ru")
+    language = Column(String(2), nullable=False, default="en")
     state = Column(String(20), nullable=False, default="pending", index=True)
     attempts = Column(Integer, nullable=False, default=0)
     next_attempt_at = Column(DateTime(timezone=True), nullable=False)
@@ -91,7 +91,7 @@ def _recipient_languages(db: Session, ids: list[int], main) -> dict[int, str]:
             main.UserLanguageSetting.telegram_id.in_(ids[offset:offset + 500])
         ).all()
         for tg_id, lang in rows:
-            languages[int(tg_id)] = lang if lang in {"ru", "uk", "cs", "en"} else "ru"
+            languages[int(tg_id)] = lang if lang in {"ru", "uk", "cs", "en"} else "en"
     return languages
 
 
@@ -117,7 +117,7 @@ def queue_notice(db: Session, *, notice, event, main) -> int:
             "telegram_id": tg_id,
             "event_id": event.id,
             "notice_id": notice.id,
-            "language": languages.get(tg_id, "ru"),
+            "language": languages.get(tg_id, "en"),
             "state": "pending",
             "attempts": 0,
             "next_attempt_at": now,
@@ -188,7 +188,7 @@ def queue_reminders_for_event(db: Session, *, event, main, now: datetime | None 
                 "event_id": event.id,
                 "start_epoch": epoch,
                 "reminder_minutes": minutes,
-                "language": languages.get(tg_id, "ru"),
+                "language": languages.get(tg_id, "en"),
                 "state": "pending",
                 "attempts": 0,
                 "next_attempt_at": at if at > now else now,
@@ -246,7 +246,7 @@ COPY = {
 
 def render_message(row: TelegramNotificationOutbox, event, notice) -> tuple[str, dict]:
     """HTML escape event/organizer input before passing to Telegram."""
-    lang = row.language if row.language in COPY else "ru"
+    lang = row.language if row.language in COPY else "en"
     cancel, change, announcement, reminder, reason, message, date, location, button = COPY[lang]
     title = html.escape(str(event.title or "Event")[:180])
     if row.kind == "event_notice":
