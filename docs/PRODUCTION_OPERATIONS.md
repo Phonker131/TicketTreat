@@ -83,4 +83,14 @@ Review row counts, linked ticket claims, old bot identities, role grants and mig
 - First real verified object: tickettreat/database/2026/10/23/tickettreat-20261023T211453Z-291036.dump.ttbk. The plaintext pg_dump size was approximately 8.9 MB; only the AES-GCM encrypted archive was uploaded.
 - Backup database URL: a Railway private-network variable reference to Postgres.DATABASE_URL; bucket keys are references, and TT_BACKUP_KEY_HEX is stored only on the worker. Keep a separate protected offline/key-manager copy: losing this key makes backups unrecoverable.
 - Public PostgreSQL TCP proxy nozomi.proxy.rlwy.net:21803 was deleted; subsequent Railway proxy inventory returned no public TCP proxies. Public Internet psql connections relying on that hostname will no longer work. Existing Railway application services remained online.
-- **Outstanding:** perform actual restoration into a new isolated staging PostgreSQL instance and compare critical table counts. Confirm alerting on cron failures, set a documented retention/expiration policy (currently not confirmed), and replicate backups to a separate account/provider when business critical. Never run pg_restore against live production.
+- **Verified on 2026-10-24:** Restored the real 03:00 UTC production backup into an ephemeral, isolated PostgreSQL 18 cluster using a private Unix socket; verified critical tables and migration ledger. The temporary Railway restore service was deleted immediately afterward (no persistent volume). This is a real archive restore drill, not just `pg_restore --list`. See below.
+- **Still outstanding:** secure an independent backup encryption-key escrow, confirm alerting on cron failures, adopt documented object-expiration/retention rules, and maintain a separate-provider/account DR copy. Never run pg_restore against live production.
+
+
+### Real encrypted production backup restore drill — 2026-10-24
+
+- Source archive: `tickettreat/database/2026/10/24/tickettreat-20261024T030004Z-cd2900.dump.ttbk` in the private Amsterdam bucket.
+- Disposable Railway `Temporary DB Restore Drill` ran `scripts/staging_restore_drill.py` using PostgreSQL 18, without `DATABASE_URL`, a public domain, a network listener, or attached volumes.
+- Remote object downloaded, AES-256-GCM authenticated/decrypted, restored with `pg_restore --exit-on-error --no-owner --no-acl`, and queried with `psql` over a local-only Unix socket. Key table counts were read and verified; no PII was logged.
+- Runtime log: `Isolated PostgreSQL 18 restore verified`; Railway reported `SUCCESS`. The temporary service was then deleted.
+- This validates the **current backup's restorable format and records**, but is not a guarantee of zero data loss or independent-provider resilience. Keep the key escrow, DR access, alerting and retention work items open.
