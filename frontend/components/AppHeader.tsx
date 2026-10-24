@@ -13,6 +13,7 @@ import { getWebToken } from "@/lib/session";
 export function AppHeader() {
   const { language } = useLanguage();
   const pathname = usePathname();
+  const isCurrent = (route: string) => route === "/" ? pathname === "/" : pathname === route || pathname?.startsWith(route + "/");
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuReady, setMenuReady] = useState(false);
   const menuLabel = language==="ru"?"Меню":language==="cs"?"Menu":language==="uk"?"Меню":"Menu";
@@ -67,12 +68,12 @@ export function AppHeader() {
         <nav id="tt-primary-nav" aria-label={language==="ru"?"Основная навигация":language==="cs"?"Hlavní navigace":language==="uk"?"Основна навігація":"Main navigation"} className={`topbar-nav${menuOpen ? " is-open" : ""}`} onClick={(event) => {
           if ((event.target as HTMLElement).closest("a")) setMenuOpen(false);
         }}>
-          <Link href="/">{t(language, "home")}</Link>
-          <Link href="/tickets">{t(language, "tickets")}</Link>
-          <Link href="/loyalty">{language==="ru"?"Награды":language==="cs"?"Odměny":language==="uk"?"Нагороди":"Rewards"}</Link>
-          <Link href="/profile">{t(language, "profile")}</Link>
-          <Link href="/support">{language==="ru"?"Поддержка":language==="cs"?"Podpora":language==="uk"?"Підтримка":"Support"}</Link>
-          {canOrganize && <Link href="/admin">{t(language, "admin")}</Link>}
+          <Link href="/" aria-current={isCurrent("/") ? "page" : undefined}>{t(language, "home")}</Link>
+          <Link href="/tickets" aria-current={isCurrent("/tickets") ? "page" : undefined}>{t(language, "tickets")}</Link>
+          <Link href="/loyalty" aria-current={isCurrent("/loyalty") ? "page" : undefined}>{language==="ru"?"Награды":language==="cs"?"Odměny":language==="uk"?"Нагороди":"Rewards"}</Link>
+          <Link href="/profile" aria-current={isCurrent("/profile") ? "page" : undefined}>{t(language, "profile")}</Link>
+          <Link href="/support" aria-current={isCurrent("/support") ? "page" : undefined}>{language==="ru"?"Поддержка":language==="cs"?"Podpora":language==="uk"?"Підтримка":"Support"}</Link>
+          {canOrganize && <Link href="/admin" aria-current={isCurrent("/admin") ? "page" : undefined}>{t(language, "admin")}</Link>}
         </nav>
 
         <div className="topbar-actions">
@@ -83,10 +84,8 @@ export function AppHeader() {
             Telegram Mini App ↗
           </a>}
           <button type="button" className="topbar-menu-toggle" disabled={!menuReady} aria-controls="tt-primary-nav" aria-expanded={menuOpen} aria-label={menuAction} onClick={() => setMenuOpen(open => !open)}>
-            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round">
-              {menuOpen ? <path d="M5 5l14 14M19 5L5 19" /> : <path d="M4 6h16M4 12h16M4 18h16" />}
-            </svg>
-            <span>{menuLabel}</span>
+            <span className="topbar-menu-icon" aria-hidden="true"><span /><span /><span /></span>
+            <span className="topbar-menu-label">{menuLabel}</span>
           </button>
           <LanguageSwitcher />
         </div>
