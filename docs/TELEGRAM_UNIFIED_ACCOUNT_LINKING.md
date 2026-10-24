@@ -54,7 +54,7 @@ The old bot's legacy records are deliberately not bulk deleted.
 ## Release checklist
 
 - Apply `20261031_telegram_browser_link.sql` once via the versioned migration
-  runner; the Demo API's pre-deploy migration runs before app startup.
+  runner; the TicketTreat API's pre-deploy migration runs before app startup.
 - Verify a production PostgreSQL backup and restore procedure before merge.
 - CI: Python syntax/unit, PostgreSQL integration including replay/collision,
   Next.js typecheck/build, Chromium e2e and SQL migration checksum.
