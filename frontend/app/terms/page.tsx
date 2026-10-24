@@ -59,7 +59,7 @@ export default function TermsPage(){
         </section>
         <section>
           <h2>9. Questions and updates</h2>
-          <p>For platform questions, contact <a href="https://t.me/vvladver" target="_blank" rel="noopener noreferrer">TicketTreat support</a>. These terms may be updated as the pilot evolves. The current version and update date are published at this URL.</p>
+          <p>For platform questions, contact <Link href="/support">TicketTreat Support Center</Link>. These terms may be updated as the pilot evolves. The current version and update date are published at this URL.</p>
         </section>
         <section id="obchodni-podminky-cz" lang="cs" className="tt-legal-czech">
           <h2>Obchodní podmínky – české znění</h2>
