@@ -4992,8 +4992,13 @@ bot.remove_webhook()
 time.sleep(1)
 
 print("STARTING POLLING")
+# Telegram updates received while the bot is restarting are real user actions:
+# do not silently discard them. A shorter long-poll timeout leaves generous
+# headroom for proxy/network latency and the HTTP read timeout.
+# Telegram 409 conflicts still indicate an *external* competing poller:
+# do not suppress those diagnostics; remove the duplicate process.
 bot.infinity_polling(
-    skip_pending=True,
+    skip_pending=False,
     timeout=30,
-    long_polling_timeout=30,
+    long_polling_timeout=20,
 )
