@@ -2,7 +2,7 @@ name: Dependency security audit
 
 on:
   pull_request:
-    branches: [main, feature/crowdly-release-preparation]
+    branches: [main, release/tickettreat-production]
     paths:
       - "frontend/package.json"
       - "frontend/package-lock.json"
