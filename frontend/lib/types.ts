@@ -1,9 +1,22 @@
 export type LanguageCode = "en" | "cs" | "ru" | "uk";
 
+
+/** Explicitly published, non-sensitive organizer identity; never account email. */
+export type OrganizerPublicSummary = {
+  slug:string; display_name:string; bio:string; city:string;
+  website_url:string; instagram:string; logo_url:string|null; cover_url:string|null;
+};
+export type OrganizerPublicDetail = OrganizerPublicSummary & {
+  upcoming_events:TicketTreatEvent[]; past_events:TicketTreatEvent[];
+  upcoming_count:number; past_count:number;
+};
+export type EditableOrganizerProfile = OrganizerPublicSummary & {published:boolean};
+
 export type TicketTreatEvent = {
   id: number;
   title: string;
   organizer: string | null;
+  organizer_profile?: OrganizerPublicSummary|null;
   location: string | null;
   country_code: string | null;
   city: string | null;
