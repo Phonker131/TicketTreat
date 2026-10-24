@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     try {
       const base = process.env.BACKEND_API_URL?.replace(/\/+$/, "");
       if (!base) throw new Error("Missing backend");
-      const upstream = await fetch(base+"/demo/auth/google/finish", {
+      const upstream = await fetch(base+"/api/v1/auth/google/finish", {
         method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",
         redirect:"error",signal:AbortSignal.timeout(30000),
         body:JSON.stringify({code,state,browser_token:browserToken}),
