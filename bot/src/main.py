@@ -1891,7 +1891,9 @@ def copy_send(message, text: str, buttons):
 
 @bot.message_handler(commands=["start"])
 def start(message):
-    parts = message.text.split(maxsplit=1)
+    lang = remember_telegram_language(message.from_user)
+    copy = get_copy(lang)
+    parts = (message.text or '').split(maxsplit=1)
 
     if len(parts) > 1:
         payload = parts[1].strip()
@@ -1901,22 +1903,19 @@ def start(message):
             # Deep-link payload is an opaque secret, never a Telegram ID or email.
             if (message.chat.type != "private" or not 24 <= len(code) <= 100
                     or any(ch not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-" for ch in code)):
-                bot.send_message(message.chat.id, "Ссылка на привязку недействительна.")
+                copy_send(message, copy["link_invalid"], [])
                 return
             if not WEB_APP_URL.startswith("https://"):
-                bot.send_message(message.chat.id, "Привязка пока недоступна. Попробуй позже.")
+                copy_send(message, copy["link_offline"], [])
                 return
             keyboard = InlineKeyboardMarkup()
             keyboard.add(InlineKeyboardButton(
-                "🔗 Подтвердить привязку TicketTreat",
+                copy["link_confirm"],
                 web_app=WebAppInfo(url=f"{WEB_APP_URL}/profile?telegram_link={code}"),
             ))
             bot.send_message(
                 message.chat.id,
-                "🔐 Ты собираешься связать этот Telegram с аккаунтом TicketTreat на сайте. "
-                "Открой подтверждение ниже. На сайте должно быть начато подключение "
-                "этого аккаунта. Ссылка действует 10 минут; никому её не пересылай. "
-                "Никакие аккаунты не объединяются без твоего подтверждения.",
+                preserve_custom(copy["link_challenge"]),
                 reply_markup=keyboard,
             )
             return
@@ -1939,8 +1938,6 @@ def start(message):
             )
             return
 
-    lang = remember_telegram_language(message.from_user)
-    copy = get_copy(lang)
     copy_send(
         message,
         welcome_text(lang, getattr(message.from_user, "first_name", None)),
@@ -1957,7 +1954,7 @@ def open_tickettreat_mini_app(message):
     command = (message.text or "").split(maxsplit=1)[0].split("@")[0].lower()
     route = "/tickets" if command == "/tickets" else "/"
     label = copy["buttons"][1] if command == "/tickets" else copy["open"]
-    copy_send(message, copy["help"] if command == "/tickets" else copy["open"], [(label, route)])
+    copy_send(message, copy["tickets_intro"] if command == "/tickets" else copy["events_intro"], [(label, route)])
 
 
 @bot.message_handler(commands=["loyalty", "rewards", "passport"])
@@ -1970,7 +1967,7 @@ def open_loyalty_passport(message):
     if not WEB_APP_URL.startswith("https://"):
         copy_send(message, copy["unavailable"], [])
         return
-    copy_send(message, copy["help"], [(copy["passport_button"], "/loyalty")])
+    copy_send(message, copy["passport_intro"], [(copy["passport_button"], "/loyalty")])
 
 
 @bot.message_handler(commands=["reminders"])
@@ -1982,17 +1979,11 @@ def reminders_command(message):
 
 @bot.message_handler(commands=["link", "connect"])
 def connect_account(message):
+    copy = get_copy(remember_telegram_language(message.from_user))
     if not WEB_APP_URL.startswith("https://"):
-        bot.send_message(message.chat.id, "Профиль TicketTreat пока не настроен.")
+        copy_send(message, copy["link_unavailable"], [])
         return
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("👤 Профиль TicketTreat",
-        web_app=WebAppInfo(url=f"{WEB_APP_URL}/profile")))
-    bot.send_message(message.chat.id,
-        "Чтобы связать старые регистрации бота с сайтом, войди на сайт в свой "
-        "аккаунт, подтверди email и выбери «Привязать через Telegram-бота». "
-        "Затем вернись сюда по ссылке и подтверди подключение.",
-        reply_markup=keyboard)
+    copy_send(message, copy["link_intro"], [(copy["link_button"], "/profile")])
 
 
 @bot.message_handler(commands=["help", "support"])
@@ -2002,14 +1993,14 @@ def user_help(message):
     cmd = (message.text or "").split(maxsplit=1)[0].split("@")[0].lower()
     route = "/support" if cmd == "/support" else "/"
     label = copy["open"] if cmd == "/support" else copy["help_button"]
-    copy_send(message, copy["help"], [(label, route)])
+    copy_send(message, copy["support_intro"] if cmd == "/support" else copy["help"], [(label, route)])
 
 
 @bot.message_handler(commands=["myid"])
 def my_id(message):
     bot.send_message(
         message.chat.id,
-        f"Твой Telegram ID: {message.from_user.id}",
+        preserve_custom(get_copy(remember_telegram_language(message.from_user))["myid"] + str(message.from_user.id)),
         reply_markup=get_main_menu(message.from_user.id),
     )
 
@@ -2780,7 +2771,7 @@ def events(message):
     lang = remember_telegram_language(message.from_user)
     if WEB_APP_URL.startswith("https://"):
         copy = get_copy(lang)
-        copy_send(message, copy["help"], [(copy["buttons"][0], "/")])
+        copy_send(message, copy["events_intro"], [(copy["buttons"][0], "/")])
         return
 
     if not is_profile_complete(telegram_id):
@@ -5121,7 +5112,10 @@ def configure_telegram_mini_app_menu() -> None:
 from brand_avatar import apply_avatar_on_startup
 apply_avatar_on_startup()
 configure_telegram_mini_app_menu()
-configure_botfather_profile(BOT_TOKEN, requests)
+threading.Thread(
+    target=configure_botfather_profile, args=(BOT_TOKEN, requests),
+    daemon=True, name="tickettreat-botfather-copy",
+).start()
 
 print("BOT STARTED")
 
