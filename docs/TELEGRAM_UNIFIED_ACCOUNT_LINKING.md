@@ -1,5 +1,8 @@
 # TicketTreat — unified website / Google / Telegram identities
 
+**Deployment update (2026-10-24):** Website↔Telegram identity linking, organizer MFA step-up and Telegram HTTPS webhook delivery are in production. The canonical new API namespace is `/api/v1/*`; legacy `/demo/*` links are still accepted. Verify with a real linked account before public pilot.
+
+
 **Goal:** A registered website user can attach the existing @TicketTreatBot
 identity without creating another account, paying twice or losing bookings.
 The site's verified web account remains the owner of email, password, Google
@@ -13,8 +16,8 @@ OAuth and roles; the Telegram identity points to that same canonical guest.
    Only SHA-256(challenge) is written to PostgreSQL.
 4. The deep link opens @TicketTreatBot in a private conversation.
 5. Tap **Confirm link** to open the Telegram Mini App. It sends signed
-   Telegram WebApp.initData and the challenge to Demo API.
-6. Demo API validates Telegram's HMAC, challenge status, expiration and
+   Telegram WebApp.initData and the challenge to the production TicketTreat API.
+6. TicketTreat API validates Telegram's HMAC, challenge status, expiration and
    canonical account verification, then moves non-conflicting bookings
    and marks the challenge consumed inside the same transaction.
 7. The original browser checks the link status and reloads the account.

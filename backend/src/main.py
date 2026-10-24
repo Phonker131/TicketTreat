@@ -3402,3 +3402,11 @@ install_notification_worker(app, SessionLocal, __import__("sys").modules[__name_
 
 # Opt-in dedicated expiry worker. Configure on only one Railway backend instance.
 install_waitlist_offer_worker(app, SessionLocal, __import__("sys").modules[__name__])
+
+# TicketTreat uses /api/v1/* as its canonical production namespace.
+# Keep /demo/* working for previously issued links, mobile apps and tests.
+# This middleware is installed LAST so it executes BEFORE authorization,
+# allowing existing production guards to evaluate the translated /demo path.
+from api_versioning import TicketTreatApiVersioning
+app.add_middleware(TicketTreatApiVersioning)
+

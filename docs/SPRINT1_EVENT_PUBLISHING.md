@@ -1,7 +1,6 @@
 # TicketTreat — Sprint 1: preparing, publishing and promoting events
 
-Implemented in draft PR #5 on `feature/crowdly-release-preparation`. This is
-source code, not yet a Railway production deployment.
+**Status (2026-10-24):** Event publishing, previews, duplication and organizer management are implemented and deployed in TicketTreat production. This document describes the original Sprint 1 workflow, not a pending release. Check [engineering status](FREE_PILOT_ENGINEERING_STATUS.md) for outstanding acceptance tests.
 
 ## Organizer workflow
 

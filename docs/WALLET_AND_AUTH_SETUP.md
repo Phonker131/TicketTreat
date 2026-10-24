@@ -1,6 +1,6 @@
 # TicketTreat: Czech pilot, participant sign-in and Apple Wallet
 
-This branch is **not production** until reviewed, migrations rehearsed and deployed.
+**Status (2026-10-24):** Website, Telegram bot, Google sign-in and ticket flows are deployed. This setup guide is retained for credential provisioning and regression testing; Apple Wallet pass signing requires valid certificates, and a feature's presence in code does not prove real-device acceptance.
 
 ## Pilot interface
 
@@ -19,7 +19,7 @@ The implementation exists but needs a real OAuth application with HTTPS:
    and add your pilot testers if in Testing mode.
 2. Authorize the exact `https://tickettreat.eu/api/auth/google/callback`
    redirect if **that domain has working HTTPS and points to the frontend**.
-3. Railway **Demo API**: set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
+3. Railway **TicketTreat API**: set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
    `GOOGLE_REDIRECT_URI`. Railway **Frontend**: set `GOOGLE_REDIRECT_URI`.
    Never use `NEXT_PUBLIC_` for the secret.
 4. Run the repository's additive Google SQL migration and verify a real
