@@ -34,7 +34,7 @@ async function request<T>(
     typeof window !== "undefined"
       ? (window as Window & {Telegram?: {WebApp?: {initData?: string}}}).Telegram?.WebApp?.initData
       : undefined;
-  const response = await fetch(`${API_URL}${path}`, {
+  // Production TicketTreat API v1; previously deployed clients using /demo\n  // remain supported by the server during the migration.\n  const route = path.startsWith("/demo/") ? "/api/v1/" + path.slice("/demo/".length) : path;\n  const response = await fetch(`${API_URL}${route}`, {
     cache: "no-store",
     ...init,
     headers: {
