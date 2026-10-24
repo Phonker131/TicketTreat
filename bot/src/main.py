@@ -1035,12 +1035,126 @@ def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
 
 
-def require_admin_callback(call) -> bool:
-    if is_admin(call.from_user.id):
-        return True
+# The Telegram admin entry is the SAME authenticated organizer dashboard
+# used by the website / Mini App. Legacy bot endpoints only see a subset of
+# participants and bypass modern ownership, paid holds, and notification rules.
+# Redirect all previously issued admin callbacks rather than executing old
+# write operations or showing stale data.
+ADMIN_DASHBOARD_LABELS = {
+    "ru": {
+        "heading": "⚙️ Управление TicketTreat",
+        "intro": "Единая админ-панель: сайт, билеты, участники, QR, оплаты и статистика.",
+        "dashboard": "🏠 Админ-панель и создание ивентов",
+        "analytics": "📊 Аналитика организатора",
+        "checkin": "🎟 Проверка QR-билетов",
+        "broadcast": "📢 Рассылки и уведомления",
+        "support": "🆘 Служба поддержки",
+        "notice": "Вся актуальная информация об участниках доступна в единой админ-панели. Войдите в аккаунт организатора и подтвердите MFA, если потребуется.",
+        "missing": "Не настроен безопасный адрес Mini App. Обратитесь к администратору.",
+    },
+    "en": {
+        "heading": "⚙️ TicketTreat management",
+        "intro": "One dashboard for events, attendees, QR tickets, payment holds and analytics.",
+        "dashboard": "🏠 Dashboard and event creation",
+        "analytics": "📊 Organizer analytics",
+        "checkin": "🎟 QR ticket check-in",
+        "broadcast": "📢 Announcements",
+        "support": "🆘 Support desk",
+        "notice": "Current attendee information is available in the unified dashboard. Sign in with your organizer account and complete MFA if requested.",
+        "missing": "Secure Mini App URL is not configured. Contact an administrator.",
+    },
+    "cs": {
+        "heading": "⚙️ Správa TicketTreat",
+        "intro": "Jednotný panel pro akce, účastníky, vstupenky, platby a analytiku.",
+        "dashboard": "🏠 Správa a tvorba akcí",
+        "analytics": "📊 Analytika pořadatele",
+        "checkin": "🎟 Kontrola QR vstupenek",
+        "broadcast": "📢 Oznámení",
+        "support": "🆘 Podpora",
+        "notice": "Aktuální účastníci jsou v jednotném panelu. Přihlaste se jako pořadatel a případně potvrďte MFA.",
+        "missing": "Bezpečná adresa Mini App není nastavena. Kontaktujte správce.",
+    },
+    "uk": {
+        "heading": "⚙️ Керування TicketTreat",
+        "intro": "Єдина панель для подій, учасників, QR-квитків, оплат та аналітики.",
+        "dashboard": "🏠 Панель і створення подій",
+        "analytics": "📊 Аналітика організатора",
+        "checkin": "🎟 Перевірка QR-квитків",
+        "broadcast": "📢 Оголошення",
+        "support": "🆘 Служба підтримки",
+        "notice": "Актуальні учасники доступні в єдиній адмін-панелі. Увійдіть як організатор і підтвердьте MFA за потреби.",
+        "missing": "Безпечна адреса Mini App не налаштована. Зверніться до адміністратора.",
+    },
+}
 
-    answer_callback(call, "Нет доступа")
-    return False
+
+def admin_locale(telegram_id: int) -> dict[str, str]:
+    return ADMIN_DASHBOARD_LABELS.get(
+        get_interface_language(telegram_id), ADMIN_DASHBOARD_LABELS["ru"]
+    )
+
+
+def admin_target_button(label: str, path: str, *, private: bool = True):
+    # This is a navigation action, not a privileged bot API call; the website
+    # enforces its own session, scoped ownership and fresh MFA assurance.
+    url = f"{WEB_APP_URL}{path}"
+    if private:
+        return InlineKeyboardButton(label, web_app=WebAppInfo(url=url))
+    return InlineKeyboardButton(label, url=url)
+
+
+def admin_dashboard_markup(telegram_id: int, *, private: bool = True):
+    t = admin_locale(telegram_id)
+    keyboard = InlineKeyboardMarkup()
+    for label, path in (
+        (t["dashboard"], "/admin"),
+        (t["analytics"], "/admin/analytics"),
+        (t["checkin"], "/admin/check-in"),
+        (t["broadcast"], "/admin/broadcasts"),
+        (t["support"], "/admin/support"),
+    ):
+        keyboard.add(admin_target_button(label, path, private=private))
+    return keyboard
+
+
+def legacy_admin_destination(data: str) -> str:
+    # An old inline keyboard may still exist in a user's chat history.
+    # Direct them to the exact canonical event page whenever possible.
+    import re as _re
+    if data.startswith("broadcast:"):
+        return "/admin/broadcasts"
+    if data == "admin:events" or data == "admin:add_event":
+        return "/admin"
+    m = _re.match(
+        r"^admin:(?:event|participants|export_participants|confirm_payment|"
+        r"edit|edit_field|edit_lang|cancel):(\\d+)(?::|$)",
+        data,
+    )
+    return f"/admin/events/{m.group(1)}" if m else "/admin"
+
+
+def redirect_legacy_admin_callback(call) -> None:
+    t = admin_locale(call.from_user.id)
+    target = legacy_admin_destination(call.data or "")
+    answer_callback(call, t["notice"][:190], show_alert=False)
+    if not WEB_APP_URL.startswith("https://"):
+        bot.send_message(call.message.chat.id, t["missing"])
+        return
+    private = getattr(call.message.chat, "type", "") == "private"
+    keyboard = InlineKeyboardMarkup()
+    label = t["broadcast"] if target == "/admin/broadcasts" else t["dashboard"]
+    keyboard.add(admin_target_button(label, target, private=private))
+    bot.send_message(call.message.chat.id, t["notice"], reply_markup=keyboard)
+
+
+def require_admin_callback(call) -> bool:
+    if not is_admin(call.from_user.id):
+        answer_callback(call, "Нет доступа")
+        return False
+    if (call.data or "").startswith(("admin:", "broadcast:")):
+        redirect_legacy_admin_callback(call)
+        return False
+    return True
 
 
 def require_admin_message(message) -> bool:
@@ -3036,37 +3150,17 @@ def noop(call):
 def admin_panel(message):
     if not require_admin_message(message):
         return
-
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(
-        InlineKeyboardButton(
-            "📅 Ивенты",
-            callback_data="admin:events",
-        )
-    )
-    keyboard.add(
-        InlineKeyboardButton(
-            "➕ Add new event",
-            callback_data="admin:add_event",
-        )
-    )
-    keyboard.add(
-        InlineKeyboardButton(
-            "📢 Broadcast text",
-            callback_data="broadcast:start:text",
-        )
-    )
-    keyboard.add(
-        InlineKeyboardButton(
-            "🖼 Broadcast photo",
-            callback_data="broadcast:start:photo",
-        )
-    )
-
+    t = admin_locale(message.from_user.id)
+    if not WEB_APP_URL.startswith("https://"):
+        bot.send_message(message.chat.id, t["missing"])
+        return
     bot.send_message(
         message.chat.id,
-        "Админ-панель:",
-        reply_markup=keyboard,
+        t["heading"] + "\n\n" + t["intro"] + "\n\n" + t["notice"],
+        reply_markup=admin_dashboard_markup(
+            message.from_user.id,
+            private=getattr(message.chat, "type", "") == "private",
+        ),
     )
 
 
@@ -4617,28 +4711,31 @@ def handle_admin_cancel_reason(message):
 # =========================================================
 # Broadcasts
 # =========================================================
+def show_broadcast_dashboard(message):
+    t = admin_locale(message.from_user.id)
+    if not WEB_APP_URL.startswith("https://"):
+        bot.send_message(message.chat.id, t["missing"])
+        return
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(admin_target_button(
+        t["broadcast"], "/admin/broadcasts",
+        private=getattr(message.chat, "type", "") == "private",
+    ))
+    bot.send_message(message.chat.id, t["notice"], reply_markup=keyboard)
+
+
 @bot.message_handler(commands=["broadcast"])
 def broadcast_command(message):
     if not require_admin_message(message):
         return
-
-    start_broadcast_selection(
-        message.chat.id,
-        message.from_user.id,
-        "text",
-    )
+    show_broadcast_dashboard(message)
 
 
 @bot.message_handler(commands=["broadcast_photo"])
 def broadcast_photo_command(message):
     if not require_admin_message(message):
         return
-
-    start_broadcast_selection(
-        message.chat.id,
-        message.from_user.id,
-        "photo",
-    )
+    show_broadcast_dashboard(message)
 
 
 @bot.callback_query_handler(
