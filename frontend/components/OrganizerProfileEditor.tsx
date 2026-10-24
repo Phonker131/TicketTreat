@@ -73,7 +73,7 @@ export function OrganizerProfileEditor(){
       {notice&&<div className="state-card" role="status">{notice}</div>}
       <form className="panel form-stack" onSubmit={save}>
         <label>{tr.name}<input value={profile.display_name} onChange={e=>change("display_name",e.target.value)} maxLength={100} required/></label>
-        <label>{tr.slug}<input value={profile.slug} onChange={e=>change("slug",e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,""))} pattern="[a-z0-9][a-z0-9-]{1,69}[a-z0-9]" minLength={3} maxLength={75} required/></label>
+        <label>{tr.slug}<input value={profile.slug} onChange={e=>change("slug",e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,""))} pattern="[a-z0-9][a-z0-9-]{1,69}[a-z0-9]" minLength={3} maxLength={75} disabled={profile.published} required/></label>
         <label>{tr.bio}<textarea value={profile.bio} onChange={e=>change("bio",e.target.value)} maxLength={2000} rows={6}/></label>
         <label>{tr.city}<input value={profile.city} onChange={e=>change("city",e.target.value)} maxLength={100}/></label>
         <label>{tr.website}<input type="url" value={profile.website_url} onChange={e=>change("website_url",e.target.value)} placeholder="https://example.com" maxLength={400}/></label>
