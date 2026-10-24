@@ -10,6 +10,15 @@ import { LanguageProvider } from "@/components/LanguageProvider";
 import { PwaBootstrap } from "@/components/PwaBootstrap";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://tickettreat.eu"),
+  applicationName: "TicketTreat",
+  robots: {index: true, follow: true},
+  openGraph: {
+    siteName: "TicketTreat",
+    locale: "ru_RU",
+    type: "website",
+  },
+  twitter: {card: "summary"},
   title: {
     default: "TicketTreat",
     template: "%s · TicketTreat",
