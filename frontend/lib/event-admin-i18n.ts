@@ -1055,6 +1055,12 @@ const messages: Array<[string,string,string,string]> = [
     "Event filters",
     "Filtry akcí",
     "Фільтри подій"
+  ],
+  [
+    "Your TicketTreat event starts soon.",
+    "Your TicketTreat event starts soon.",
+    "Akce TicketTreat brzy začíná.",
+    "Подія TicketTreat незабаром почнеться."
   ]
 ];
 const dictionary = new Map(messages.map(([ru,en,cs,uk]) => [ru,{ru,en,cs,uk}]));
