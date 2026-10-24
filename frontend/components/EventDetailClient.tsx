@@ -108,7 +108,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         <section className="detail-grid">
           <div className="detail-item"><span>{t(language, "startsAt")}</span><strong>{formatDate(event.starts_at, language)}</strong></div>
           <div className="detail-item"><span>{t(language, "location")}</span><strong>{event.location || "—"}</strong></div>
-          <div className="detail-item"><span>{t(language, "organizer")}</span><strong>{event.organizer === "Crowdly" ? "TicketTreat" : (event.organizer || "TicketTreat")}</strong></div>
+          <div className="detail-item"><span>{t(language, "organizer")}</span><strong>{event.organizer_profile ? <Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-organizer-link">{event.organizer_profile.display_name} ↗</Link> : (event.organizer === "Crowdly" ? "TicketTreat" : (event.organizer || "TicketTreat"))}</strong></div>
           <div className="detail-item"><span>{t(language, "price")}</span><strong>{formatPrice(event, language)}</strong></div>
           <div className="detail-item"><span>{t(language, "spots")}</span><strong>{event.spots_left ?? "∞"}</strong></div>
           <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
