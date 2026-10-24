@@ -23,7 +23,7 @@ export default function PrivacyPolicyPage(){
         <section>
           <h2>1. Controller and scope</h2>
           <p>TicketTreat is a brand for an event-platform pilot in Czechia, not an incorporated legal entity by itself. The person or entity identified in the operator box above must be the actual GDPR controller for platform accounts, authentication, security and platform support. Event organizers may separately determine purposes and means of processing participant data for their own events; their identity and obligations must be clarified before public event sales.</p>
-          <p>Use the verified privacy email in the operator box above for data protection requests, or Telegram support for general help. If the operator box is incomplete, the service is not yet ready for public launch: a brand or support username alone is not enough to identify the data controller.</p>
+          <p>Use the verified privacy email in the operator box above for data protection requests, or the <Link href="/support">TicketTreat Support Center</Link> for general help. If the operator box is incomplete, the service is not yet ready for public launch: a brand or support username alone is not enough to identify the data controller.</p>
         </section>
         <section>
           <h2>2. Information we process</h2>
@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage(){
         </section>
         <section>
           <h2>8. Your data protection rights</h2>
-          <p>Subject to applicable conditions, you can request access, rectification, erasure, restriction, portability or object to processing; where consent is used, you can withdraw it. Signed-in users can submit an <Link href="/privacy">account-erasure request</Link>. For other privacy enquiries or if you cannot sign in, <a href="https://t.me/vvladver" target="_blank" rel="noopener noreferrer">contact support</a>.</p>
+          <p>Subject to applicable conditions, you can request access, rectification, erasure, restriction, portability or object to processing; where consent is used, you can withdraw it. Signed-in users can submit an <Link href="/privacy">account-erasure request</Link>. For other privacy enquiries or if you cannot sign in, <Link href="/support">contact our support team</Link>.</p>
           <p>Requests are answered without undue delay and ordinarily within one month; in complex cases this may be extended by up to two more months if the individual is told within the first month. You can withdraw consent where consent is the basis, and you may object to legitimate-interest processing. If a request is refused, reasons and remedies must be explained. You may contact the Czech Data Protection Authority (<a href="https://uoou.gov.cz/" target="_blank" rel="noopener noreferrer">Úřad pro ochranu osobních údajů</a>) about your rights.</p>
         </section>
         <section>
