@@ -36,6 +36,7 @@ Book a spot at events in Prague, get your ticket and don't forget to show up.
 
 Pick an event, tap "Book a spot" and your ticket arrives here.""",
         "buttons": ("Show events", "My tickets"),
+        "start_actions": "Choose what to open:",
         "commands": (
             ("events", "Upcoming events"),
             ("tickets", "My tickets"),
@@ -75,6 +76,7 @@ Pick an event, tap "Book a spot" and your ticket arrives here.""",
 
 Выбери ивент, нажми «Записаться» — билет придёт сюда.""",
         "buttons": ("Показать ивенты", "Мои билеты"),
+        "start_actions": "Выбери, что открыть:",
         "commands": (
             ("events", "Ближайшие ивенты"),
             ("tickets", "Мои билеты"),
@@ -114,6 +116,7 @@ Rezervuj si místo na akcích v Praze, získej vstupenku a nenech si ujít zač�
 
 Vyber akci, klepni na „Rezervovat místo“ a vstupenku najdeš přímo tady.""",
         "buttons": ("Zobrazit akce", "Moje vstupenky"),
+        "start_actions": "Vyber, co chceš otevřít:",
         "commands": (
             ("events", "Nadcházející akce"),
             ("tickets", "Moje vstupenky"),
@@ -153,6 +156,7 @@ Vyber akci, klepni na „Rezervovat místo“ a vstupenku najdeš přímo tady."
 
 Обери подію, натисни «Забронювати місце» — квиток надійде сюди.""",
         "buttons": ("Показати події", "Мої квитки"),
+        "start_actions": "Обери, що відкрити:",
         "commands": (
             ("events", "Найближчі події"),
             ("tickets", "Мої квитки"),
