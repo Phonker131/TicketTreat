@@ -116,6 +116,7 @@ export function EventCard({
         </div>
 
         <h2>{event.title}</h2>
+        {event.organizer_profile&&<Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-event-organizer-link">{event.organizer_profile.display_name} ↗</Link>}
 
         <p className="event-card-location">
           {event.location || "—"}
