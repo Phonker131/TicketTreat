@@ -419,7 +419,7 @@ const translations: Array<[string,string,string,string]> = [
     "Не вдалося виконати дію. Спробуй ще раз."
   ]
 ];
-const dictionary = new Map(translations.map(([ru,en,cs,uk])=>[ru,{ru,en,cs,uk}]));
+const dictionary = new Map(translations.map(([ru,en,cs,uk])=>[ru,{ru,en,cs,uk}] as const));
 export function broadcastText(language: LanguageCode, source: string): string {
   return dictionary.get(source)?.[language] ?? source;
 }
