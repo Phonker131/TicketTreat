@@ -1,5 +1,6 @@
 import type {MetadataRoute} from "next";
 import {publicEvents,isUpcomingEvent} from "@/lib/public-events";
+import {publicOrganizers} from "@/lib/public-organizers";
 
 const root="https://tickettreat.eu";
 // Next.js caches metadata routes at build time by default. Production event
