@@ -1,5 +1,8 @@
 # Telegram Mini App integration
 
+**Production state (24 October 2026):** TicketTreat's Telegram bot uses a secret-authenticated HTTPS webhook and the same Mini App/website backend. New API clients should use `/api/v1/*` (website gateway `/api/gateway/api/v1/*`); old `/demo/*` is retained for existing clients.
+
+
 The **same Next.js application** supports normal browsers and Telegram Mini App. Telegram is an optional distribution and notification channel; the bot's commands remain a fallback.
 
 ## Authentication and account linking
@@ -21,7 +24,7 @@ Mini App access requires an HTTPS website and the BotFather Web App/menu URL con
 | Service | Variable | Purpose |
 | --- | --- | --- |
 | FastAPI | `TELEGRAM_MINIAPP_BOT_TOKEN` | Private secret matching the actual Telegram bot token |
-| FastAPI | `DEMO_ISOLATED_API=true` | Maintain existing Bot/Backend deployment isolation |
+| TicketTreat API | `DEMO_ISOLATED_API=true` (legacy config key) | Keep public Website API separate from private Bot Backend |
 | FastAPI | `DATABASE_URL` | Shared PostgreSQL source of truth for the web API |
 | Next.js | `BACKEND_API_URL` | Server-only upstream API URL for the same-origin gateway |
 | FastAPI + bot | `WEB_APP_URL` | HTTPS public URL of the frontend |
