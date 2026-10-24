@@ -45,6 +45,7 @@ from demo_site_content import SiteLanding, install_site_content
 from demo_telegram import DemoTelegramIdentity, install_telegram_auth, verified_telegram_id_for_guest, verified_telegram_user, send_miniapp_ticket_notice
 from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
 from demo_roles import WebAccountRole, OrganizerApplication, GlobalAdminDelegation, EventGalleryImage, EventOwnership, EventModerationLog, AccountAdminAudit, install_demo_roles, install_account_moderation
+from demo_organizer_profiles import OrganizerPublicProfile, install_organizer_public_profiles, profile_for_event
 from demo_email import EmailOutbox, EventNotice, queue_email, queue_event_reminder, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
 from demo_broadcast import BroadcastCampaign, BroadcastTelegramOutbox, install_broadcast_api, install_broadcast_worker
 from demo_telegram_notifications import TelegramNotificationOutbox, install_notification_worker
@@ -1028,6 +1029,7 @@ def event_to_dict(
         cover=next((item["url"] for item in data["uploaded_gallery"] if item["is_cover"]),None)
         data["gallery_cover_url"]=cover
         data["video_url"] = media.video_url if media else None
+        data["organizer_profile"] = profile_for_event(db, event.id)
     else:
         data.update({"country_code": None, "city": None})
 
@@ -3365,6 +3367,7 @@ def demo_email_status(
 
 # All owner/role authorization on server; no shared admin key for organizers.
 install_demo_roles(app, get_db, __import__("sys").modules[__name__])
+install_organizer_public_profiles(app, get_db, __import__("sys").modules[__name__])
 
 install_account_moderation(app, get_db)
 install_email_account_security(app, get_db)
