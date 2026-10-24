@@ -141,6 +141,7 @@ export function AdminClient() {
         <p>{identity?.role==="global_admin"?ui.full:ui.mineHelp}</p>
       </div>
       {identity&&<div className="admin-event-actions">
+        <Link className="button button-outline" href="/admin/organizer-profile">{language==="ru"?"Профиль организатора":language==="cs"?"Profil pořadatele":language==="uk"?"Профіль організатора":"Organizer profile"}</Link>
         {identity.role==="global_admin"&&<><Link className="button button-outline" href="/admin/accounts">{tr("Управление аккаунтами")}</Link><Link className="button button-outline" href="/admin/content">{tr("Контент сайта")}</Link><Link className="button button-outline" href="/admin/broadcasts">📢 {ui.broadcast}</Link><Link className="button button-outline" href="/admin/support">{ui.support}{supportUnread!==null&&supportUnread>0?` · ${supportUnread} ${ui.newCount}`:""}</Link><Link className="button button-outline" href="/admin/privacy">{tr("Запросы на удаление")}</Link><Link className="button button-outline" href="/admin/organizers">{tr("Заявки организаторов")}</Link></>}
         <Link className="button button-sun" href="/admin/check-in">{ui.scan}</Link>
       </div>}
