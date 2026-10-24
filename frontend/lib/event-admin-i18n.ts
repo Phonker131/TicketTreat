@@ -989,6 +989,18 @@ const messages: Array<[string,string,string,string]> = [
     "↻ Restart camera",
     "↻ Restartovat kameru",
     "↻ Перезапустити камеру"
+  ],
+  [
+    "Free",
+    "Free",
+    "Zdarma",
+    "Безкоштовно"
+  ],
+  [
+    "Оплата не требуется",
+    "Payment not required",
+    "Platba není vyžadována",
+    "Оплата не потрібна"
   ]
 ];
 const dictionary = new Map(messages.map(([ru,en,cs,uk]) => [ru,{ru,en,cs,uk}]));
