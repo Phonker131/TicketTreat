@@ -1,0 +1,59 @@
+name: TicketTreat one-time merged branch cleanup
+on:
+  push:
+    branches:
+      - release/tickettreat-production
+    paths:
+      - .github/workflows/branch-cleanup-once.yml
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  remove-merged-branches:
+    name: Delete merged, unreferenced historical branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate and remove merged-only branches
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const production = "release/tickettreat-production";
+            const candidates = ["chore/tickettreat-api-release-docs-20261024","crowdly-demo-mvp-20261020","docs/verified-restore-20261024","feature/crowdly-release-preparation","feature/telegram-unified-link-20261023","feature/tickettreat-loyalty-v1-20261023","fix/mobile-navigation-20261024","fix/pilot-background-and-bot-runtime-20261024","fix/telegram-link-mfa-miniapp-20261023","fix/telegram-webhook-delivery-20261024","ops/encrypted-postgres-backups-20261023","ops/isolated-backup-restore-drill-20261024","security/prepilot-hardening-20261023"];
+            // Never touch default, production, or the open UX draft.
+            const exempt = new Set(["main",production,"feature/bot-mvp-ux-registration-guard"]);
+            const openPRs=await github.paginate(github.rest.pulls.list,{
+              owner,repo,state:"open",per_page:100
+            });
+            let removed=0;
+            for(const branch of candidates){
+              if(exempt.has(branch))throw new Error("Unexpected protected branch: "+branch);
+              if(openPRs.some(pr=>pr.head.ref===branch||pr.base.ref===branch)){
+                core.warning("Preserving active PR branch: "+branch);
+                continue;
+              }
+              let comparison;
+              try{
+                comparison=await github.rest.repos.compareCommits({
+                  owner,repo,base:production,head:branch
+                });
+              }catch(err){
+                core.warning("Unable to compare "+branch+": "+err.message);
+                continue;
+              }
+              if(comparison.data.ahead_by!==0){
+                core.warning("Preserving unmerged commits in "+branch);
+                continue;
+              }
+              const current=await github.rest.repos.getBranch({owner,repo,branch});
+              const actualSha=current.data.commit.sha;
+              const comparedSha=comparison.data.commits?.at(-1)?.sha;
+              core.info("Deleting fully merged branch "+branch+" at "+actualSha);
+              await github.rest.git.deleteRef({owner,repo,ref:"heads/"+branch});
+              removed++;
+            }
+            core.summary.addHeading("TicketTreat merged-branch cleanup")
+              .addRaw("Deleted "+removed+" of "+candidates.length+" historical refs. "+
+                      "Preserved main, production and the open Telegram UX draft.")
+              .write();
