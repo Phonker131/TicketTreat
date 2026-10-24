@@ -7,11 +7,11 @@ import type {TicketTreatEvent} from "@/lib/types";
  */
 const backend = (process.env.BACKEND_API_URL || "").trim().replace(/\/+$/, "");
 
-async function publicFetch(path: string): Promise<unknown> {
+async function publicFetch(path: string, fresh = false): Promise<unknown> {
   if (!/^https?:\/\//.test(backend)) return null;
   try {
     const response = await fetch(backend + path, {
-      next: {revalidate: 180},
+      ...(fresh ? {cache:"no-store" as const} : {next:{revalidate:180}}),
       signal: AbortSignal.timeout(4500),
       redirect: "error",
     });
@@ -38,7 +38,8 @@ export async function publicEvents(): Promise<TicketTreatEvent[] | null> {
 
 export async function publicEvent(id: string): Promise<TicketTreatEvent | null> {
   if (!/^[1-9][0-9]{0,8}$/.test(id)) return null;
-  const result = await publicFetch(`/events/${id}`);
+  // No caching for a detail: unpublishing an event must hide its HTML immediately.
+  const result = await publicFetch(`/events/${id}`, true);
   if (!isPublicEvent(result) || result.id !== Number(id)) return null;
   return result;
 }
