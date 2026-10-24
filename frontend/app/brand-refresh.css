@@ -521,7 +521,7 @@ button.tt-support-unread{border-left:7px solid var(--tt-tomato);}
 /* Mobile navigation: a real disclosure menu instead of a clipped horizontal
    link strip. Preserve desktop navigation and the Telegram Mini App header. */
 .topbar-menu-toggle { display: none; }
-@media (max-width: 850px) {
+@media (max-width: 1199px) {
   .topbar-inner { flex-wrap: wrap; min-width: 0; }
   .topbar-actions { margin-left: auto; min-width: 0; flex-shrink: 0; }
   .topbar-actions .demo-pill { display: none; }
