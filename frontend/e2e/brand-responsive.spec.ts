@@ -182,7 +182,7 @@ test("account signup shows notice at collection without bundled marketing consen
 
 test("public operator notice is available without signing in",async({page})=>{
   await page.goto("/legal-notice",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("heading",{name:"Legal Notice / Operator"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Legal Notice / Provozovatel"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Operator / Provozovatel a správce údajů"})).toBeVisible();
 });
 
