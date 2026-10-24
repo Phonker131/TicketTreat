@@ -23,7 +23,9 @@ function messageOf(error:unknown,language: "en"|"cs"|"ru"|"uk"):string {
     broadcast_providers_unavailable:"Не настроены каналы доставки. Проверь Resend и Telegram.",
     audience_exceeds_50000_per_channel:"Аудитория превышает допустимый размер рассылки.",
   };
-  return broadcastText(language,errors[raw]||raw);
+  const text = errors[raw] || raw;
+  if (/^[a-z][a-z0-9_]{2,}$/.test(text)) return broadcastText(language,"Не удалось выполнить действие. Попробуй ещё раз.");
+  return broadcastText(language,text);
 }
 
 const MIN_SUBJECT_CHARS=5;
@@ -67,7 +69,7 @@ export function BroadcastClient(){
         setScope(who.role==="global_admin"?"global":"event");
         setEventId(list.length?String(list[0].id):"");
       }
-    }).catch(e=>{if(live)setError(messageOf(e,language));}).finally(()=>{if(live)setLoading(false);});
+    }).catch(e=>{if(live)setError(e instanceof Error?e.message:String(e));}).finally(()=>{if(live)setLoading(false);});
     return()=>{live=false;};
   },[]);
 
@@ -81,7 +83,7 @@ export function BroadcastClient(){
     try {
       const results=await previewBroadcast(token,draft());
       setPreview(results);setConfirmed("");setRequestId("");setSent(null);
-    }catch(e){setError(messageOf(e,language));setPreview(null);}
+    }catch(e){setError(e instanceof Error?e.message:String(e));setPreview(null);}
     finally{setBusy(false);}
   }
   async function deliver(){
@@ -104,7 +106,7 @@ export function BroadcastClient(){
       setHistory(current=>[campaign,...current.filter(row=>row.id!==campaign.id)]);
       setSuccess(tr("Рассылка добавлена в очередь. Статусы доставки будут обновляться."));
       setPreview(null);setConfirmed("");
-    }catch(e){setError(messageOf(e,language));}
+    }catch(e){setError(e instanceof Error?e.message:String(e));}
     finally{setBusy(false);}
   }
   async function refresh(){
@@ -114,7 +116,7 @@ export function BroadcastClient(){
       const items=await getBroadcastHistory(token);
       setHistory(items);
       if(sent){setSent(items.find(item=>item.id===sent.id)||sent);}
-    }catch(e){setError(messageOf(e,language));}
+    }catch(e){setError(e instanceof Error?e.message:String(e));}
     finally{setBusy(false);}
   }
 
@@ -140,8 +142,8 @@ export function BroadcastClient(){
         <p>{tr("Служебные объявления по платформе или отдельному ивенту.")}</p>
       </div>
     </div>
-    {error&&<div className="state-card state-error" role="alert">{error}</div>}
-    {success&&<div className="success-banner" role="status">{success}</div>}
+    {error&&<div className="state-card state-error" role="alert">{messageOf(error,language)}</div>}
+    {success&&<div className="success-banner" role="status">{tr(success)}</div>}
     {loading&&<div className="state-card">{tr("Загрузка…")}</div>}
     {!loading&&me&&me.role!=="participant"&&<>
       <section className="panel form-stack">
@@ -225,7 +227,7 @@ export function BroadcastClient(){
           <button className="button button-outline" type="button" disabled={busy} onClick={refresh}>{tr("↻ Обновить")}</button></div>
         {!history.length&&<p>{tr("История рассылок пока пустая.")}</p>}
         {history.map(c=><article className="tt-broadcast-history" key={c.id}>
-          <div><strong>{c.subject}</strong><small>#{c.id} · {c.scope==="global"?tr("Все пользователи"):tr("Ивент #")+c.event_id} · {new Date(c.created_at).toLocaleString()}</small></div>
+          <div><strong>{c.subject}</strong><small>#{c.id} · {c.scope==="global"?tr("Все пользователи"):tr("Ивент #")+c.event_id} · {new Date(c.created_at).toLocaleString(localeForLanguage(language))}</small></div>
           <p>📧 Email: {c.emails.sent||0}/{c.email_count} {tr("отправлено")} · {c.emails.failed||0} {tr("ошибок")}</p>
           <p>✈️ Telegram: {c.telegram.sent||0}/{c.telegram_count} {tr("отправлено")} · {c.telegram.failed||0} {tr("ошибок")} · {c.telegram.skipped||0} {tr("недоступно")}</p>
         </article>)}
