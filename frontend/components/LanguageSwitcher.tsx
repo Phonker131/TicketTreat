@@ -33,12 +33,14 @@ export function LanguageSwitcher() {
     };
   }, [open]);
 
+  const action={ru:"Сменить язык",cs:"Změnit jazyk",uk:"Змінити мову",en:"Change language"}[language];
+  const selectLabel={ru:"Выбери язык интерфейса",cs:"Vyberte jazyk rozhraní",uk:"Оберіть мову інтерфейсу",en:"Select interface language"}[language];
   return (
     <div className="language-switcher" ref={root}>
       <button
         type="button"
         className="language-flag-trigger"
-        aria-label={`Language: ${LANGUAGE_LABELS[language]}. Change language`}
+        aria-label={`${action}: ${LANGUAGE_LABELS[language]}`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((previous) => !previous)}
@@ -49,7 +51,7 @@ export function LanguageSwitcher() {
         </svg>
       </button>
       {open && (
-        <div className="language-flag-menu" role="menu" aria-label="Select interface language">
+        <div className="language-flag-menu" role="menu" aria-label={selectLabel}>
           {SUPPORTED_LANGUAGES.map((code) => (
             <button
               key={code}
