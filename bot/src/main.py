@@ -1953,6 +1953,27 @@ def copy_send(message, text: str, buttons):
     bot.send_message(message.chat.id, preserve_custom(text), reply_markup=keyboard)
 
 
+def send_start_shortcuts(message, language_copy: dict) -> None:
+    """Show the two BotFather onboarding actions without replacing the reply menu.
+
+    Telegram accepts only one reply_markup per message: keep the persistent
+    reply keyboard on the welcome text, then send compact inline shortcuts.
+    """
+    if not WEB_APP_URL.startswith("https://"):
+        return
+    private = getattr(message.chat, "type", "") == "private"
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    keyboard.row(
+        copy_webapp_button(language_copy["buttons"][0], "/", private=private),
+        copy_webapp_button(language_copy["buttons"][1], "/tickets", private=private),
+    )
+    bot.send_message(
+        message.chat.id,
+        preserve_custom(language_copy["start_actions"]),
+        reply_markup=keyboard,
+    )
+
+
 @bot.message_handler(commands=["start"])
 def start(message):
     lang = remember_telegram_language(message.from_user)
@@ -2002,13 +2023,14 @@ def start(message):
             )
             return
 
-    # Refresh the actual bottom keyboard in the SAME message. Previously
-    # /start only sent an inline keyboard, leaving obsolete reply buttons visible.
+    # First refresh the persistent reply menu; Telegram cannot attach both a
+    # reply keyboard and inline shortcuts to the same message.
     bot.send_message(
         message.chat.id,
         preserve_custom(welcome_text(lang, getattr(message.from_user, "first_name", None))),
         reply_markup=get_main_menu(message.from_user.id),
     )
+    send_start_shortcuts(message, copy)
 
 @bot.message_handler(commands=["app", "tickets"])
 def open_tickettreat_mini_app(message):
