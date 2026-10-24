@@ -24,5 +24,9 @@ export default async function sitemap():Promise<MetadataRoute.Sitemap>{
       priority:0.8,
     });
   }
+  urls.push({url:`${root}/organizers`,changeFrequency:"weekly",priority:0.6});
+  for(const profile of await publicOrganizers()){
+    urls.push({url:`${root}/organizers/${profile.slug}`,changeFrequency:"weekly",priority:0.7});
+  }
   return urls;
 }
