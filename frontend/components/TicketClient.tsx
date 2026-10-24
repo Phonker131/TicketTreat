@@ -34,9 +34,11 @@ export function TicketClient() {
   const [loading, setLoading] = useState(true);
   const [walletEnabled, setWalletEnabled] = useState(false);
   const [walletBusy, setWalletBusy] = useState(false);
-  const [message, setMessage] = useState<string|null>(search.get("paid") === "1" ? t(language,"paymentSuccess") :
-    search.get("registered") === "1" ? (language==="ru"?"Билет оформлен!":
-      language==="cs"?"Vstupenka byla vystavena.":language==="uk"?"Квиток оформлено.":"Your ticket is ready!") : null);
+  const [message, setMessage] = useState<string|null>(search.get("paid") === "1" ? "paymentSuccess" :
+    search.get("registered") === "1" ? "registered" : null);
+  const translateMessage=(value:string)=>value==="registered"?t(language,"ticketReady") :
+    value==="walletError"?tr.downloadError :
+    ["paymentSuccess","loadError","cancelledTicket"].includes(value)?t(language,value as "paymentSuccess"|"loadError"|"cancelledTicket"):value;
 
   useEffect(() => {
     let mounted = true;
@@ -50,7 +52,7 @@ export function TicketClient() {
         : "";
       if (mounted) {setTicket(data);setQr(image);}
     };
-    void load().catch(()=>{if(mounted)setMessage(t(language,"loadError"));})
+    void load().catch(()=>{if(mounted)setMessage("loadError");})
       .finally(()=>{if(mounted)setLoading(false);});
     void getWalletStatus().then(status=>{if(mounted)setWalletEnabled(status.enabled===true);}).catch(()=>{});
     return ()=>{mounted=false;};
@@ -59,13 +61,13 @@ export function TicketClient() {
   async function cancel() {
     if (!ticket || !window.confirm(t(language,"cancelTicket"))) return;
     const guest = await restoreGuest();
-    if (!guest) {setMessage(t(language,"loadError"));return;}
+    if (!guest) {setMessage("loadError");return;}
     try{
       const result = await cancelDemoTicket(guest.access_token, ticket.id);
       setTicket(result.ticket);
       setQr("");
-      setMessage(t(language,"cancelledTicket"));
-    }catch{setMessage(t(language,"loadError"));}
+      setMessage("cancelledTicket");
+    }catch{setMessage("loadError");}
   }
 
   async function addToWallet() {
@@ -90,7 +92,7 @@ export function TicketClient() {
       anchor.href=objectUrl;anchor.download=`tickettreat-${ticket.id}.pkpass`;
       document.body.appendChild(anchor);anchor.click();anchor.remove();
       window.setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);
-    }catch{setMessage(tr.downloadError);}
+    }catch{setMessage("walletError");}
     finally{setWalletBusy(false);}
   }
 
@@ -98,7 +100,7 @@ export function TicketClient() {
     <AppHeader/>
     <main className="page narrow-page">
       <Link href="/tickets" className="back-link">← {t(language,"tickets")}</Link>
-      {message&&<div className="success-banner" role="status">{message}</div>}
+      {message&&<div className="success-banner" role="status">{translateMessage(message)}</div>}
       {loading?<div className="state-card">{t(language,"loading")}</div>:
        !ticket?<div className="state-card state-error">{t(language,"loadError")}</div>:
        <article className={`ticket-card tt-pass ${ticket.ticket_status==="cancelled"?"ticket-card-cancelled":""}`}>
