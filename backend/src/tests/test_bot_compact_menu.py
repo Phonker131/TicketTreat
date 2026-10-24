@@ -45,7 +45,8 @@ class MenuTests(unittest.TestCase):
         labels=self.labels(100)
         self.assertEqual(labels,[
             ["📅 Events","🎟 My tickets"],
-            ["👤 My profile","🆘 Client service"]])
+            ["👤 My profile","🏅 Passport"],
+            ["🆘 Client service"]])
         self.assertNotIn("🏠 Start",sum(labels,[]))
         self.assertNotIn("🌐 TicketTreat Mini App",sum(labels,[]))
 
@@ -55,7 +56,24 @@ class MenuTests(unittest.TestCase):
             ["🏠 Start","📅 Events"],
             ["📝 Registration","🆘 Client service"]])
 
-    def test_admin_only_gets_fifth_action(self):
+    def test_passport_is_exposed_only_to_registered_users(self):
+        self.assertIn("🏅 Passport",sum(self.labels(100),[]))
+        self.assertNotIn("🏅 Passport",sum(self.labels(101),[]))
+
+    def test_passport_button_reuses_existing_command(self):
+        import types
+        tree=ast.parse(SOURCE.read_text(encoding="utf-8"))
+        handler=next(node for node in tree.body if isinstance(node,ast.FunctionDef)
+                     and node.name=="passport_button")
+        handler.decorator_list=[]
+        calls=[]
+        scope={"open_loyalty_passport":lambda message:calls.append(message)}
+        exec(compile(ast.Module(body=[handler],type_ignores=[]),str(SOURCE),"exec"),scope)
+        msg=types.SimpleNamespace(text="🏅 Passport")
+        scope["passport_button"](msg)
+        self.assertEqual(calls,[msg])
+
+    def test_admin_keeps_separate_action(self):
         labels=self.labels(102)
         self.assertEqual(labels[-1],["⚙️ Admin"])
         self.assertNotIn("🏠 Start",sum(labels,[]))
