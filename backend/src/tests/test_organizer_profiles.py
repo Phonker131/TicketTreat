@@ -29,6 +29,8 @@ class OrganizerPublicProfileTests(unittest.TestCase):
             city="Prague"
             website_url="https://example.org"
             instagram="prague_events"
+            logo_type="image/png"
+            cover_type="image/png"
             logo_bytes=b"png"
             cover_bytes=b"png"
             email="private@example.org"
