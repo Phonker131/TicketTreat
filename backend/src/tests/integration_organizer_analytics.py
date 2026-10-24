@@ -63,6 +63,8 @@ class OrganizerAnalyticsIntegration(unittest.TestCase):
                 payment_amount="0",currency="CZK",acquisition_source="direct"))
             event_id=event.id
             other_title=other.title
+            guest_email=guest.email
+            other_guest_email=other_guest.email
             db.commit()
         with TestClient(main.app) as client:
             self.assertEqual(client.get("/demo/manage/analytics/overview").status_code,401)
@@ -85,7 +87,7 @@ class OrganizerAnalyticsIntegration(unittest.TestCase):
             self.assertEqual(own["waitlist"],1)
             self.assertEqual(own["occupancy_percent"],10.0)
             self.assertNotIn(other_title,report.text)
-            for name in ("qr_token","access_token",guest.email,other_guest.email):
+            for name in ("qr_token","access_token",guest_email,other_guest_email):
                 self.assertNotIn(name,report.text)
             self.assertTrue(any(x["source"]=="telegram" for x in result["channels"]))
             canonical=client.get("/api/v1/manage/analytics/overview",headers=headers)
