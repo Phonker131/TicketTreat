@@ -821,6 +821,174 @@ const messages: Array<[string,string,string,string]> = [
     "Published",
     "Zveřejněno",
     "Опубліковано"
+  ],
+  [
+    "Сохранить правила и напоминания",
+    "Save rules and reminders",
+    "Uložit pravidla a připomínky",
+    "Зберегти правила й нагадування"
+  ],
+  [
+    "Закрыть",
+    "Close",
+    "Zavřít",
+    "Закрити"
+  ],
+  [
+    "Редактировать ивент",
+    "Edit event",
+    "Upravit akci",
+    "Редагувати подію"
+  ],
+  [
+    "Отмена ивента",
+    "Cancel event",
+    "Zrušení akce",
+    "Скасування події"
+  ],
+  [
+    "В очереди: ",
+    "Queued: ",
+    "Ve frontě: ",
+    "У черзі: "
+  ],
+  [
+    "доставок через email и/или Telegram.",
+    "deliveries via email and/or Telegram.",
+    "doručení e-mailem a/nebo Telegramem.",
+    "доставок через email і/або Telegram."
+  ],
+  [
+    "Войдите в аккаунт администратора.",
+    "Sign in to your administrator account.",
+    "Přihlas se ke svému účtu správce.",
+    "Увійди до акаунта адміністратора."
+  ],
+  [
+    "Доступ только для глобального администратора.",
+    "Global administrator access required.",
+    "Přístup pouze pro hlavního administrátora.",
+    "Доступ лише для головного адміністратора."
+  ],
+  [
+    "Максимум 4 МБ.",
+    "Maximum file size is 4 MB.",
+    "Maximální velikost je 4 MB.",
+    "Максимальний розмір — 4 МБ."
+  ],
+  [
+    "Выберите JPG, PNG или WebP.",
+    "Select a JPG, PNG or WebP file.",
+    "Vyber soubor JPG, PNG nebo WebP.",
+    "Обери файл JPG, PNG або WebP."
+  ],
+  [
+    "Ошибка чтения файла",
+    "Could not read the file.",
+    "Soubor se nepodařilo načíst.",
+    "Не вдалося прочитати файл."
+  ],
+  [
+    "Содержимое сайта обновлено.",
+    "Website content updated.",
+    "Obsah webu byl aktualizován.",
+    "Контент сайту оновлено."
+  ],
+  [
+    "Баннер сайта",
+    "Website banner",
+    "Banner webu",
+    "Банер сайту"
+  ],
+  [
+    "Удалить изображение баннера",
+    "Remove banner image",
+    "Odstranit obrázek banneru",
+    "Видалити зображення банера"
+  ],
+  [
+    "Сохранение…",
+    "Saving…",
+    "Ukládání…",
+    "Збереження…"
+  ],
+  [
+    "Войдите в подтверждённый аккаунт с доступом к check-in.",
+    "Sign in with a verified account authorized to check in tickets.",
+    "Přihlas se ověřeným účtem s právem odbavovat vstupenky.",
+    "Увійди до підтвердженого акаунта з доступом до перевірки квитків."
+  ],
+  [
+    "Билет уже использован! Повторный проход запрещён.",
+    "Ticket already used! Re-entry is not allowed.",
+    "Vstupenka už byla použita! Opakovaný vstup není povolen.",
+    "Квиток уже використано! Повторний вхід заборонено."
+  ],
+  [
+    "Check-in successful",
+    "Check-in successful.",
+    "Vstup úspěšně potvrzen.",
+    "Вхід успішно підтверджено."
+  ],
+  [
+    "Check-in failed",
+    "Check-in failed.",
+    "Ověření vstupenky selhalo.",
+    "Не вдалося підтвердити вхід."
+  ],
+  [
+    "Camera unavailable. You can paste the QR token manually.",
+    "Camera unavailable. Enter the QR token manually.",
+    "Kamera není dostupná. Zadej QR kód ručně.",
+    "Камера недоступна. Введи QR-токен вручну."
+  ],
+  [
+    "Сканер билетов",
+    "Ticket scanner",
+    "Skener vstupenek",
+    "Сканер квитків"
+  ],
+  [
+    "📷 Камера сканирует QR-код",
+    "📷 Camera scanning QR code",
+    "📷 Kamera skenuje QR kód",
+    "📷 Камера сканує QR-код"
+  ],
+  [
+    "Камера недоступна — используй ручной ввод",
+    "Camera unavailable — enter code manually",
+    "Kamera není dostupná — použij ruční zadání",
+    "Камера недоступна — введи код вручну"
+  ],
+  [
+    "Подключение камеры…",
+    "Connecting camera…",
+    "Připojování kamery…",
+    "Підключення камери…"
+  ],
+  [
+    "QR-код билета — ручной ввод",
+    "Ticket QR code — manual entry",
+    "QR kód vstupenky — ruční zadání",
+    "QR-код квитка — ручне введення"
+  ],
+  [
+    "Вставь токен из QR-кода",
+    "Paste QR token",
+    "Vlož token z QR kódu",
+    "Встав токен із QR-коду"
+  ],
+  [
+    "Камера активна",
+    "Camera active",
+    "Kamera je aktivní",
+    "Камера активна"
+  ],
+  [
+    "↻ Перезапустить камеру",
+    "↻ Restart camera",
+    "↻ Restartovat kameru",
+    "↻ Перезапустити камеру"
   ]
 ];
 const dictionary = new Map(messages.map(([ru,en,cs,uk]) => [ru,{ru,en,cs,uk}]));
