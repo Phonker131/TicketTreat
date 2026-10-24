@@ -1,86 +1,38 @@
-# TicketTreat — pilot launch for organizers (Czechia)
+# TicketTreat — pilot organizer guide (Czechia)
 
-**Release status:** prepared in draft PR #5; **not deployed to public production**.
-The public domain, Google OAuth, verified Resend sender and staging migration/restore
-must be accepted before hosting the first real event. The old Railway services
-and their database must not be swapped without a rollback test.
+**Available:** `https://tickettreat.eu` (web and Telegram Mini App). This guide describes the deployed free-pilot feature set as of **24 October 2026**. It does not authorize selling tickets through TicketTreat or replace legal policies.
 
-## 1. Publish a free event
+## Before publishing an event
 
-1. Sign in with your **verified** TicketTreat account.
-2. If you are a global admin or an approved organizer, complete **TOTP MFA**
-   in `/security/mfa` and open `/admin`.
-3. Create an event with venue/city, date/time, capacity, detailed description,
-   price **0 CZK** (or 0 EUR/USD), poster and languages.
-4. Free signup issues a real QR admission ticket **without card payment**.
-   Bookings enforce a per-event capacity; full events offer a waitlist.
-   QR check-in is on `/admin/check-in`. Old QR codes remain supported.
-5. Try enrollment, cancellation, waitlist promotion and re-entry checks on a
-   staging database before distributing public links.
+1. Use a verified organizer account, enable MFA, and confirm the correct organizer owns the event in TicketTreat.
+2. Create an event with title, description, Czech location, local date/time, capacity, cover photo and optional media/gallery; check it in preview.
+3. For a free pilot, set the event price to free and publish. If users pay externally, clearly disclose the organizer's independent payment instructions and cancellation policy. **TicketTreat does not collect the payment.**
+4. Confirm booking cutoff, capacity and staff scanner permissions.
+5. Verify that a test account can book and receive a ticket through both web and Telegram Mini App.
 
-**No paid sales** until a licensed processor, settlement, webhooks and refunds
-are integrated. Demo payment mode must remain disabled in production.
+## At registration
 
-## 2. Manage landing pages and event content
+- Free events: booking produces a QR ticket; a single attendee must not count twice against capacity.
+- Fully booked events: attendees join a waitlist; offer-expiry worker is enabled. A user in an organizer's 3-visit loyalty tier has priority within that organizer's waitlist, with FIFO within a tier.
+- External-pay reservations: organizer confirms receipt of funds outside TicketTreat, then accepts participation; unpaid reservations expire after 24 hours. This is not a payment gateway.
+- Email confirmations, support notifications and Telegram delivery are queued; verify the actual recipient can receive them. Users may block the bot or unsubscribe where appropriate.
 
-- **Site-wide landing headline, subtitle and hero image:** `/admin/content`,
-  global administrator only.
-- **Create/edit/cancel events, export attendance CSV:** `/admin`.
-- **Event descriptions, venue, cover photo:** edit the event.
-- **Photos from previous editions:** add up to eight gallery images in the
-  event editor, directly upload JPG/PNG/WebP (at most 2 MiB per image) or
-  include external HTTPS photo links. Remove uploaded images in the editor.
-  For the pilot, uploaded images are kept in PostgreSQL; move to
-  dedicated object storage before operating a large gallery.
-- **Event video:** YouTube/Vimeo HTTPS link displayed on the public event page.
-  Direct large-video hosting/transcoding is not implemented.
+## Entrance check-in
 
-## 3. Add a coequal global administrator
+- Staff should use the scoped scanner in organizer administration, not the legacy shared-admin API.
+- Scan the actual QR from a ticket. The server validates capacity, ticket status, event and privilege; repeat scans do not add extra attendance.
+- If there is poor connectivity, look up the participant and contact an authorized organizer. **Do not manually declare a person admitted without server confirmation** when capacity matters.
+- Confirm the scanned ticket belongs to the correct event; organizers should practice a 10–20-person dry run.
 
-A user-provided email address **is not sufficient to grant access**.
-The person must first create a TicketTreat account and **verify their email**.
+## After event
 
-1. The existing global admin signs in, completes MFA and opens
-   `/admin/accounts`.
-2. Enter the second person's **verified TicketTreat account email** in
-   **Главные администраторы** and confirm the grant.
-3. The new global admin configures and confirms TOTP MFA in
-   `/security/mfa`; a prior login may need to be refreshed.
-4. Check that both accounts can access `/admin/content`, `/admin/accounts`
-   and all event management pages.
-5. The grant/revocation is tied to the immutable account ID, separately
-   recorded in the audit table, and can be revoked by another admin.
-   No email-to-admin auto-grant exists.
+- Review checked-in count, no-shows and organizer insights. Only completed and verified check-ins grant seasonal loyalty stamps.
+- Cancellations/reminders must be tested with a throwaway event before first public admission.
+- Support tickets and data requests are handled through the designated staff; do not export attendees for unrelated marketing without a valid basis.
+- Keep pilot KPIs: four events through TicketTreat, target 70% self-service registrations, QR admit time and notification success.
 
-Google-only accounts that do not yet have a usable password may need to
-set one via the verified password-recovery flow before TOTP enrollment.
+## What is not currently a guaranteed perk
 
-## 4. Participant emails and important reminders
+Early registration windows, VIP companion bookings, automatic birthday rewards and a cross-studio loyalty passport are roadmap items. Only the 3-visit waitlist priority is automated.
 
-- Only **verified website-account holders with active event tickets** qualify
-  for operational reminders, event-date/venue changes and cancellation notices.
-  The `/admin/events/{id}` dashboard shows the eligible count and status.
-- Organizers may export event attendance CSV; it can include unverified or
-  legacy guest contacts, **not a marketing opt-in list**.
-- Ticket issue, 24-hour reminder, check-in, event move and event cancellation
-  are supported by the durable PostgreSQL transactional outbox.
-- Before enabling mail, validate `tickettreat.eu`, SPF/DKIM/DMARC and the
-  Resend sender. Configure `RESEND_API_KEY`, `EMAIL_FROM`,
-  `WEB_APP_URL`, and `EMAIL_NOTIFICATIONS_ENABLED=true` on the correct
-  API service. Until configured, there are **no outgoing notices**.
-  The backend does not retroactively blast messages from before enablement.
-- Promotional newsletters require separate consent/opt-out and should not
-  reuse the operational email function.
-
-## 5. Database and deployment safety
-
-1. Back up and prove you can restore a PostgreSQL copy to isolated staging.
-2. Run the preflight: `python scripts/preflight_database.py`.
-3. Apply migrations with `python backend/migrations/apply.py` against
-   **staging** first, then retest after the migration ledger is updated.
-   New additions are global-admin delegation, bounded gallery images,
-   operational notices and an outbox notice reference.
-4. Validate the CI matrix (Python, PostgreSQL, TypeScript and Chromium).
-5. Confirm Google OAuth callback, email delivery and Telegram Mini App on
-   the final HTTPS domain. Run a small volunteer pilot event before
-   merging release PR #5 and switching Railway deploy sources.
+See [release gate](UNIFIED_RELEASE_GATE.md) and [operations](PRODUCTION_OPERATIONS.md).
