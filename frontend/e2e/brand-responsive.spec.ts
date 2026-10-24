@@ -40,7 +40,7 @@ test("mobile navigation and accessible keyboard focus",async({page})=>{
   await expect.poll(async()=>page.evaluate(()=>["A","BUTTON","SELECT"].includes(document.activeElement?.tagName||""))).toBe(true);
 });
 
-for(const width of [320,375,390,430,768,850]){
+for(const width of [320,375,390,430,768,850,1024,1199]){
   test(`mobile navbar stays inside ${width}px and closes after link navigation`,async({page})=>{
     await page.setViewportSize({width,height:812});
     await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
@@ -70,7 +70,7 @@ for(const width of [320,375,390,430,768,850]){
 }
 
 test("desktop navbar remains permanently visible",async({page})=>{
-  await page.setViewportSize({width:1024,height:768});
+  await page.setViewportSize({width:1440,height:900});
   await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
   await expect(page.locator(".topbar-nav")).toBeVisible();
   await expect(page.locator(".topbar-menu-toggle")).toBeHidden();
