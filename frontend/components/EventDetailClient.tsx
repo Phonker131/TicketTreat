@@ -19,6 +19,12 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
   const source=(query.get("utm_source")||query.get("ref")||"").toLowerCase();
   const attributed=/^[a-z0-9_-]{1,40}$/.test(source)?`&utm_source=${encodeURIComponent(source)}`:"";
   const {language} = useLanguage();
+  const previewWords={
+    en:{manage:"Manage event",title:"Preview — only the organizer can see this.",published:"This event is also published.",draft:"This draft is not visible to guests and does not accept registrations.",card:"Event preview",cardInfo:"Registration is unavailable in preview mode. Publish the event in the dashboard to open registration.",showMap:"Show map",hideMap:"Hide map",mapTitle:"Event venue map"},
+    cs:{manage:"Spravovat akci",title:"Náhled — viditelný pouze pořadateli.",published:"Akce je také zveřejněna.",draft:"Tento koncept není viditelný hostům a nepřijímá registrace.",card:"Náhled akce",cardInfo:"Registrace není v náhledu dostupná. Zveřejněte akci ve správě, aby se hosté mohli registrovat.",showMap:"Zobrazit mapu",hideMap:"Skrýt mapu",mapTitle:"Mapa místa konání"},
+    ru:{manage:"Управление ивентом",title:"Предпросмотр — доступен только организатору.",published:"Ивент также опубликован.",draft:"Черновик пока не виден гостям и не принимает регистрации.",card:"Предпросмотр карточки",cardInfo:"Регистрация в режиме предпросмотра недоступна. Чтобы открыть её для гостей, опубликуй мероприятие в админке.",showMap:"Показать карту",hideMap:"Скрыть карту",mapTitle:"Карта места проведения"},
+    uk:{manage:"Керування подією",title:"Попередній перегляд — доступний лише організатору.",published:"Подію також опубліковано.",draft:"Чернетку ще не видно гостям, і вона не приймає реєстрації.",card:"Попередній перегляд події",cardInfo:"Реєстрація в режимі попереднього перегляду недоступна. Опублікуй подію в панелі організатора.",showMap:"Показати карту",hideMap:"Сховати карту",mapTitle:"Карта місця проведення"}
+  }[language];
   const [event, setEvent] = useState<TicketTreatEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [demoPayments,setDemoPayments]=useState(false);
@@ -68,8 +74,8 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
     <div className="app-shell">
       <AppHeader />
       <main className="page event-page">
-        <Link href={preview?`/admin/events/${event.id}`:"/"} className="back-link">← {preview?"Управление ивентом":t(language, "back")}</Link>
-        {preview&&<div className="state-card" role="status"><strong>Предпросмотр — доступен только организатору.</strong> {event.publication?.visible?"Ивент также опубликован.":"Черновик пока не виден гостям и не принимает регистрации."}</div>}
+        <Link href={preview?`/admin/events/${event.id}`:"/"} className="back-link">← {preview?previewWords.manage:t(language, "back")}</Link>
+        {preview&&<div className="state-card" role="status"><strong>{previewWords.title}</strong> {event.publication?.visible?previewWords.published:previewWords.draft}</div>}
 
         <section className="event-hero">
           {posterUrl && !posterUnavailable ? (
@@ -112,9 +118,9 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
           <div className="admin-event-actions">
             {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar(event,eventUrl)}>↓ {language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
             {mapUrl&&<><a className="button button-outline" href={mapUrl} target="_blank" rel="noopener noreferrer">↗ {language==="ru"?"Открыть карту":language==="cs"?"Otevřít mapu":language==="uk"?"Відкрити карту":"Open map"}</a>
-              <button type="button" className="button button-outline" onClick={()=>setMapOpen(v=>!v)}>{mapOpen?"Скрыть карту":"Показать карту"}</button></>}
+              <button type="button" className="button button-outline" onClick={()=>setMapOpen(v=>!v)}>{mapOpen?previewWords.hideMap:previewWords.showMap}</button></>}
           </div>
-          {mapOpen&&mapUrl&&(mapConsent ? <iframe title="Карта места проведения" loading="lazy" referrerPolicy="no-referrer"
+          {mapOpen&&mapUrl&&(mapConsent ? <iframe title={previewWords.mapTitle} loading="lazy" referrerPolicy="no-referrer"
             style={{width:"100%",height:300,border:0,borderRadius:12,marginTop:16}}
             src={`https://maps.google.com/maps?q=${encodeURIComponent([event.location,event.city,event.country_code].filter(Boolean).join(", "))}&output=embed`} /> : <div className="state-card tt-map-consent-placeholder" role="status">
             <p>{language==="ru"?"Для встроенной карты требуется разрешение на сторонний контент Google Maps. Можно использовать ссылку «Открыть карту» без загрузки карты на этом сайте.":language==="cs"?"Pro vloženou mapu je potřeba souhlas s externím obsahem Google Maps. Můžete otevřít mapu samostatným odkazem.":language==="uk"?"Для вбудованої карти потрібен дозвіл на сторонній вміст Google Maps. Ви можете відкрити карту окремим посиланням.":"The embedded Google Maps frame requires optional consent. Alternatively, use the external Open map link."}</p>
@@ -122,7 +128,7 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
           </div>)}
         </section>
 
-        {preview ? <section className="state-card"><h2>Предпросмотр карточки</h2><p>Регистрация в режиме предпросмотра недоступна. Чтобы открыть её для гостей, опубликуй мероприятие в админке.</p></section> : event.is_cancelled ? (
+        {preview ? <section className="state-card"><h2>{previewWords.card}</h2><p>{previewWords.cardInfo}</p></section> : event.is_cancelled ? (
           <section className="state-card state-error">
             <h2>{t(language,"cancelled")}</h2>
             <p><strong>{language==="en"?"Cancellation reason":language==="cs"?"Důvod zrušení":language==="uk"?"Причина скасування":"Причина отмены"}:</strong> {event.cancellation_reason || "—"}</p>
