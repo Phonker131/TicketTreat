@@ -14,6 +14,41 @@ if (!base || !/^https?:\/\//.test(base)) {
 const sessionPaths = new Set(["/demo/auth/login", "/demo/auth/signup", "/demo/auth/change-password", "/demo/auth/magic/confirm", "/demo/auth/quick/confirm"]);
 const logoutPaths = new Set(["/demo/auth/logout", "/demo/auth/logout-all"]);
 const supported = new Set(["GET","POST","PATCH","PUT","DELETE"]);
+const MAX_REQUEST_BYTES = 6_000_000;
+const UPSTREAM_TIMEOUT_MS = 30_000;
+
+async function boundedRequestBody(req: NextRequest): Promise<ArrayBuffer | null> {
+  const declared = req.headers.get("content-length");
+  if (declared !== null) {
+    const advertised = Number(declared);
+    if (!Number.isFinite(advertised) || advertised < 0 || advertised > MAX_REQUEST_BYTES) return null;
+  }
+  if (!req.body) return new ArrayBuffer(0);
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_REQUEST_BYTES) {
+        void reader.cancel("request_too_large").catch(() => {});
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes.buffer;
+}
 
 async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}>}){
   const method = req.method;
@@ -80,11 +115,15 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   if (checked.startsWith("/demo/admin/")) {
     return NextResponse.json({detail:"legacy_admin_endpoint_disabled"},{status:403});
   }
-  const raw=method==="GET"?undefined:await req.arrayBuffer();
-  if(raw && raw.byteLength>6_000_000)return NextResponse.json({detail:"request_too_large"},{status:413});
+  const raw = method === "GET" ? undefined : await boundedRequestBody(req).catch(() => null);
+  if (method !== "GET" && raw === null)
+    return NextResponse.json({detail:"request_too_large"},{status:413});
   let upstream:Response;
   try{
-    upstream=await fetch(base+relative+req.nextUrl.search,{method,headers,body:raw,cache:"no-store",redirect:"manual"});
+    upstream=await fetch(base+relative+req.nextUrl.search,{
+      method,headers,body:raw,cache:"no-store",redirect:"manual",
+      signal:AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
+    });
   }catch{
     return NextResponse.json({detail:"backend_unavailable"},{status:502});
   }
