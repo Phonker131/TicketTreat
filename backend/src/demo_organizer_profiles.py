@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import re
+import io
+from PIL import Image, ImageOps, UnidentifiedImageError
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 from fastapi import Depends, Header, HTTPException
@@ -179,11 +181,26 @@ def install_organizer_public_profiles(app, get_db, main):
         if row is None:
             raise HTTPException(409, "save_organizer_profile_first")
         # Same signature validation as production poster uploads; never SVG/HTML.
-        content_type, image = main.decode_demo_poster(payload.data_url)
-        if len(image) > (600_000 if kind == "logo" else 2_000_000):
+        _, original = main.decode_demo_poster(payload.data_url)
+        try:
+            with Image.open(io.BytesIO(original)) as picture:
+                # Avoid decompression bombs and accidental EXIF/location leaks.
+                if picture.width * picture.height > 16_000_000:
+                    raise HTTPException(413, "organizer_image_dimensions_too_large")
+                picture.load()
+                image = ImageOps.exif_transpose(picture)
+                image.thumbnail((600, 600) if kind == "logo" else (1600, 900),
+                                Image.Resampling.LANCZOS)
+                image = image.convert("RGBA" if "A" in image.getbands() else "RGB")
+                cleaned = io.BytesIO()
+                image.save(cleaned, format="WEBP", quality=82, method=4)
+                image_bytes = cleaned.getvalue()
+        except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+            raise HTTPException(422, "organizer_image_invalid")
+        if len(image_bytes) > (600_000 if kind == "logo" else 2_000_000):
             raise HTTPException(413, "organizer_image_too_large")
-        setattr(row, kind + "_type", content_type)
-        setattr(row, kind + "_bytes", image)
+        setattr(row, kind + "_type", "image/webp")
+        setattr(row, kind + "_bytes", image_bytes)
         row.updated_at = datetime.now(timezone.utc)
         db.commit()
         return {**public_summary(row), "published": row.published}
