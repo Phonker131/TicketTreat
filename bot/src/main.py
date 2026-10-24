@@ -5002,7 +5002,7 @@ def configure_telegram_mini_app_menu() -> None:
     except Exception as exc:
         # Keep the existing webhook, event tickets, and notifications running
         # if Telegram menu configuration is temporarily unavailable.
-        print(f"TicketTreat Mini App menu setup failed: {type(exc).__name__}", flush=True)
+        print(f"TicketTreat Mini App menu setup failed: {type(exc).__name__}: {str(exc)[:240]}", flush=True)
 
 
 # =========================================================
