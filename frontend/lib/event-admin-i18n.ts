@@ -1123,7 +1123,7 @@ const messages: Array<[string,string,string,string]> = [
     "Для підтвердження введи ERASE"
   ]
 ];
-const dictionary = new Map(messages.map(([ru,en,cs,uk]) => [ru,{ru,en,cs,uk}]));
+const dictionary = new Map(messages.map(([ru,en,cs,uk]) => [ru,{ru,en,cs,uk}] as const));
 export function eventAdminText(language: LanguageCode, source: string): string {
   return dictionary.get(source)?.[language] ?? adminTranslate(language,source);
 }
