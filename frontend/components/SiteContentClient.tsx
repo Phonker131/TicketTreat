@@ -3,13 +3,13 @@ import Link from "next/link";
 import {FormEvent,useEffect,useState} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
-import {adminTranslate} from "@/lib/admin-i18n";
+import {eventAdminText} from "@/lib/event-admin-i18n";
 import {getManageMe,getSiteLanding,updateSiteLanding,type SiteLanding} from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 
 export function SiteContentClient(){
   const {language}=useLanguage();
-  const tr=(phrase:string)=>adminTranslate(language,phrase);
+  const tr=(phrase:string)=>eventAdminText(language,phrase);
   const [landing,setLanding]=useState<SiteLanding|null>(null);
   const [headline,setHeadline]=useState(""),[subtitle,setSubtitle]=useState("");
   const [file,setFile]=useState<File|null>(null),[removeImage,setRemoveImage]=useState(false);
@@ -18,10 +18,10 @@ export function SiteContentClient(){
 
   useEffect(()=>{
     let active=true;const token=getWebToken();
-    if(!token){setError("Войдите в аккаунт администратора.");setLoading(false);return;}
+    if(!token){setError(tr("Войдите в аккаунт администратора."));setLoading(false);return;}
     Promise.all([getManageMe(token),getSiteLanding()]).then(([identity,details])=>{
       if(!active)return;
-      if(identity.role!=="global_admin"){setError("Доступ только для глобального администратора.");return;}
+      if(identity.role!=="global_admin"){setError(tr("Доступ только для глобального администратора."));return;}
       setAllowed(true);setLanding(details);setHeadline(details.headline);setSubtitle(details.subtitle);
     }).catch(e=>{if(active)setError(e instanceof Error?e.message:String(e));})
       .finally(()=>{if(active)setLoading(false);});
@@ -35,15 +35,15 @@ export function SiteContentClient(){
     try{
       let hero_image_data_url:string|undefined;
       if(file){
-        if(file.size>4*1024*1024)throw new Error("Максимум 4 МБ.");
-        if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw new Error("Выберите JPG, PNG или WebP.");
+        if(file.size>4*1024*1024)throw new Error(tr("Максимум 4 МБ."));
+        if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw new Error(tr("Выберите JPG, PNG или WebP."));
         hero_image_data_url=await new Promise<string>((resolve,reject)=>{
           const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));
-          reader.onerror=()=>reject(new Error("Ошибка чтения файла"));reader.readAsDataURL(file);
+          reader.onerror=()=>reject(new Error(tr("Ошибка чтения файла")));reader.readAsDataURL(file);
         });
       }
       const saved=await updateSiteLanding(token,{headline,subtitle,hero_image_data_url,remove_hero_image:removeImage});
-      setLanding(saved);setFile(null);setRemoveImage(false);setNotice("Содержимое сайта обновлено.");
+      setLanding(saved);setFile(null);setRemoveImage(false);setNotice(tr("Содержимое сайта обновлено."));
     }catch(e){setError(e instanceof Error?e.message:String(e));}
     finally{setBusy(false);}
   }
@@ -58,11 +58,11 @@ export function SiteContentClient(){
     {allowed&&<form className="panel form-stack" onSubmit={submit}>
       <label>{tr("Заголовок")}<input required minLength={3} maxLength={140} value={headline} onChange={e=>setHeadline(e.target.value)}/></label>
       <label>{tr("Описание")}<textarea required minLength={3} maxLength={750} rows={4} value={subtitle} onChange={e=>setSubtitle(e.target.value)}/></label>
-      {landing?.hero_image_url&&!removeImage&&<img src={landing.hero_image_url+"?t="+Date.now()} className="event-poster-preview" alt="Баннер сайта"/>}
+      {landing?.hero_image_url&&!removeImage&&<img src={landing.hero_image_url+"?t="+Date.now()} className="event-poster-preview" alt={tr("Баннер сайта")}/>}
       <label>{tr("Новое изображение (JPG/PNG/WebP до 4 МБ)")}<input type="file" accept="image/png,image/jpeg,image/webp"
         onChange={e=>{setFile(e.target.files?.[0]||null);setRemoveImage(false);}}/></label>
-      <label><input type="checkbox" checked={removeImage} onChange={e=>{setRemoveImage(e.target.checked);if(e.target.checked)setFile(null);}}/> Удалить изображение баннера</label>
-      <button type="submit" className="button button-primary" disabled={busy}>{busy?"Сохранение…":"Сохранить"}</button>
+      <label><input type="checkbox" checked={removeImage} onChange={e=>{setRemoveImage(e.target.checked);if(e.target.checked)setFile(null);}}/> {tr("Удалить изображение баннера")}</label>
+      <button type="submit" className="button button-primary" disabled={busy}>{busy?tr("Сохранение…"):tr("Сохранить")}</button>
     </form>}
   </main></div>;
 }
