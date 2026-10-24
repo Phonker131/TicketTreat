@@ -7,10 +7,14 @@ import {adminTranslate} from "@/lib/admin-i18n";
 import {getMFAStatus,getWebProfile,startMFA,confirmMFA,elevateMFA,type MFAStatus,type MFAStart} from "@/lib/api";
 import type {WebProfile} from "@/lib/types";
 import {getWebToken} from "@/lib/session";
+import type {LanguageCode} from "@/lib/types";
+const WORDS:Record<LanguageCode,Record<string,string>>={"en":{"intro":"Organizers and administrators must verify a six-digit code from an authenticator app to access management tools. After 12 hours you must verify again.","checking":"Checking account permissions…","account":"Account","role":"Role","participant":"Participant","organizer":"Organizer","globalAdmin":"Global administrator","emailFirst":"Please verify your email address in your profile first.","emailRequired":"Verify your email in your profile before managing events or participants.","profile":"Profile","passwordConfirm":"Confirm your account password","verified":"Two-factor authentication verified. Your administrator session is active.","verifiedSession":"Administrator session verified.","verificationRequired":"Verification required before using organizer tools.","warning":"Important: there is no self-service MFA reset. If you lose your authenticator, recovery requires manual identity verification by the platform operator.","loginRequired":"Sign in to configure two-factor authentication.","permission":"This account does not yet have organizer or global administrator rights. Ask an existing global administrator to grant access under Admin → Accounts after verifying your email."},"cs":{"intro":"Pořadatelé a administrátoři musí přístup ke správě potvrdit šestimístným kódem z ověřovací aplikace. Po 12 hodinách je nutné nové ověření.","checking":"Kontrolujeme oprávnění účtu…","account":"Účet","role":"Role","participant":"Účastník","organizer":"Pořadatel","globalAdmin":"Hlavní administrátor","emailFirst":"Nejprve ověřte e-mail ve svém profilu.","emailRequired":"Před správou akcí a účastníků ověřte e-mail v profilu.","profile":"Profil","passwordConfirm":"Potvrďte heslo k účtu","verified":"Dvoufaktorové ověření úspěšné. Administrátorská relace je aktivní.","verifiedSession":"Administrátorská relace ověřena.","verificationRequired":"Před použitím nástrojů pořadatele je nutné ověření.","warning":"Důležité: dvoufaktorové ověření nelze obnovit svépomocí. Při ztrátě ověřovací aplikace je nutné ruční ověření totožnosti provozovatelem platformy.","loginRequired":"Pro nastavení dvoufaktorového ověření se přihlaste.","permission":"Tento účet zatím nemá oprávnění pořadatele ani hlavního administrátora. Po ověření e-mailu požádejte hlavního administrátora o přidělení přístupu v části Administrace → Účty."},"ru":{"intro":"Организаторы и администраторы должны подтвердить вход шестизначным кодом из приложения-аутентификатора. Через 12 часов потребуется повторное подтверждение.","checking":"Проверяем права аккаунта…","account":"Аккаунт","role":"Роль","participant":"Участник","organizer":"Организатор","globalAdmin":"Главный администратор","emailFirst":"Сначала подтверди email в профиле.","emailRequired":"Для работы с участниками и мероприятиями необходимо подтвердить email в профиле.","profile":"Профиль","passwordConfirm":"Подтверди пароль от аккаунта","verified":"Двухфакторная проверка пройдена. Сессия администратора активна.","verifiedSession":"Сессия администратора подтверждена.","verificationRequired":"Для работы с панелью организатора нужно подтверждение.","warning":"Важно: самостоятельный сброс двухфакторной защиты недоступен. При потере приложения восстановление требует ручной проверки личности оператором платформы.","loginRequired":"Войди, чтобы настроить двухфакторную защиту.","permission":"У аккаунта пока нет прав организатора или главного администратора. После подтверждения email попроси администратора назначить доступ в панели управления аккаунтами."},"uk":{"intro":"Організатори й адміністратори мають підтверджувати доступ шестизначним кодом із застосунку-автентифікатора. Через 12 годин перевірку треба повторити.","checking":"Перевіряємо права акаунта…","account":"Акаунт","role":"Роль","participant":"Учасник","organizer":"Організатор","globalAdmin":"Головний адміністратор","emailFirst":"Спочатку підтвердь email у профілі.","emailRequired":"Перш ніж керувати подіями й учасниками, підтвердь email у профілі.","profile":"Профіль","passwordConfirm":"Підтвердь пароль від акаунта","verified":"Двофакторну перевірку пройдено. Сеанс адміністратора активний.","verifiedSession":"Сеанс адміністратора підтверджено.","verificationRequired":"Для роботи з панеллю організатора потрібне підтвердження.","warning":"Важливо: самостійне скидання двофакторного захисту недоступне. Якщо втратиш застосунок, оператор платформи має вручну підтвердити особу.","loginRequired":"Увійди, щоб налаштувати двофакторний захист.","permission":"Цей акаунт ще не має прав організатора чи головного адміністратора. Після підтвердження email попроси головного адміністратора надати доступ у панелі керування акаунтами."}};
 
 export function MFAClient(){
   const {language}=useLanguage();
   const tr=(phrase:string)=>adminTranslate(language,phrase);
+  const txt=WORDS[language];
+  const show=(message:string)=>message.startsWith("msg:")?txt[message.slice(4)]||message:message;
   const [status,setStatus]=useState<MFAStatus|null>(null);
   const [profile,setProfile]=useState<WebProfile|null>(null);
   const [checkingProfile,setCheckingProfile]=useState(true);
@@ -22,7 +26,7 @@ export function MFAClient(){
   const [notice,setNotice]=useState("");
   useEffect(()=>{
     const token=getWebToken();
-    if(!token){setError("Sign in to configure two-factor authentication.");setCheckingProfile(false);return;}
+    if(!token){setError("msg:loginRequired");setCheckingProfile(false);return;}
     let active=true;
     // Read the current authoritative role before showing the enrollment form.
     // A verified email or Railway allowlist alone does not grant privileges.
@@ -39,7 +43,7 @@ export function MFAClient(){
     }catch(e){
       const raw=e instanceof Error?e.message:String(e);
       setError(raw==="privileged_account_required"
-        ?"This account does not yet have organizer or global administrator rights. Ask an existing global administrator to grant access under Admin → Accounts after verifying your email."
+        ?"msg:permission"
         :raw);
     }
     finally{setLoading(false);}
@@ -49,7 +53,7 @@ export function MFAClient(){
     try{
       const response=setup?await confirmMFA(code):await elevateMFA(code);
       setStatus(response);setSetup(null);setCode("");
-      setNotice("Two-factor authentication verified. Your administrator session is active.");
+      setNotice("msg:verified");
     }catch(e){setError(e instanceof Error?e.message:String(e));}
     finally{setLoading(false);}
   }
@@ -64,23 +68,23 @@ export function MFAClient(){
   return <div className="app-shell"><AppHeader/><main className="page">
     <Link href="/profile" className="back-link">{tr("← Back to profile")}</Link>
     <h1>{tr("Two-factor authentication")}</h1>
-    <p className="form-note">Organizers and administrators must verify a six-digit code from an authenticator app to access management tools. After 12 hours you must verify again.</p>
-    {error&&<div className="state-card state-error" role="alert">{error}</div>}
-    {notice&&<div className="success-banner">{notice}</div>}
-    {checkingProfile&&<div className="state-card" role="status">Checking account permissions…</div>}
+    <p className="form-note">{txt.intro}</p>
+    {error&&<div className="state-card state-error" role="alert">{show(error)}</div>}
+    {notice&&<div className="success-banner">{show(notice)}</div>}
+    {checkingProfile&&<div className="state-card" role="status">{txt.checking}</div>}
     {!checkingProfile&&profile&&!isPrivileged&&
       <section className="panel form-stack" role="status">
         <h2>{language==="ru"?"Доступ администратора ещё не назначен":language==="uk"?"Доступ адміністратора ще не призначено":language==="cs"?"Přístup správce ještě nebyl udělen":"Administrator access not granted yet"}</h2>
         <p>{accessMessage}</p>
-        <p className="form-note">Account: <strong>{profile.account.email}</strong> · Role: <strong>{role}</strong></p>
-        {!profile.email_verified&&<p className="form-note">{language==="ru"?"Сначала подтвердите email в профиле.":"Please verify your email address in your profile first."}</p>}
+        <p className="form-note">{txt.account}: <strong>{profile.account.email}</strong> · {txt.role}: <strong>{role==="participant"?txt.participant:role==="organizer"?txt.organizer:txt.globalAdmin}</strong></p>
+        {!profile.email_verified&&<p className="form-note">{txt.emailFirst}</p>}
         <Link href="/profile" className="button button-outline">{tr("← Back to profile")}</Link>
       </section>}
     {!checkingProfile&&profile&&isPrivileged&&!profile.email_verified&&
-      <div className="state-card" role="status">{language==="ru"?"Для работы с участниками и мероприятиями необходимо подтвердить email в профиле.":"Verify your email in your profile before managing events or participants."} <Link href="/profile">Profile →</Link></div>}
+      <div className="state-card" role="status">{txt.emailRequired} <Link href="/profile">{txt.profile} →</Link></div>}
     {status&&isPrivileged&&!status.enabled&&!setup&&<form className="panel form-stack" onSubmit={begin}>
       <h2>{tr("Connect authenticator app")}</h2>
-      <label>Confirm your account password
+      <label>{txt.passwordConfirm}
         <input type="password" autoComplete="current-password" required value={password}
           onChange={e=>setPassword(e.target.value)}/>
       </label>
@@ -99,7 +103,7 @@ export function MFAClient(){
       </form>
     </section>}
     {status?.enabled&&isPrivileged&&<section className="panel form-stack">
-      <p><strong>{tr("MFA enabled.")}</strong> {status.elevated?"Administrator session verified.":"Verification required before using organizer tools."}</p>
+      <p><strong>{tr("MFA enabled.")}</strong> {status.elevated?txt.verifiedSession:txt.verificationRequired}</p>
       {!status.elevated&&<form className="form-stack" onSubmit={prove}>
         <label>{tr("Authenticator code")}<input inputMode="numeric" pattern="[0-9]{6}" minLength={6}
           maxLength={6} required autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value)}/></label>
@@ -107,6 +111,6 @@ export function MFAClient(){
       </form>}
       {status.elevated&&<Link href="/admin" className="button button-primary">{tr("Open organizer dashboard")}</Link>}
     </section>}
-    <p className="form-note">Important: there is no self-service MFA reset. If you lose your authenticator, recovery requires manual identity verification by the platform operator.</p>
+    <p className="form-note">{txt.warning}</p>
   </main></div>;
 }
