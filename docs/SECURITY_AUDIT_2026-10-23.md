@@ -1,7 +1,10 @@
 # TicketTreat — pre-pilot security audit (2026-10-23)
 
-Scope: code on production release branch `feature/crowdly-release-preparation`,
-Railway "TicketTreat Production" (Frontend, Demo API, Backend, Bot, PostgreSQL),
+**Post-audit update (24 October 2026):** This is a historical 23 October audit with verified remediation notes; consult [current operations](PRODUCTION_OPERATIONS.md) for the live service inventory and remaining risks.
+
+
+Scope: the TicketTreat production integration code and
+Railway "TicketTreat Production" (Frontend, TicketTreat API, Backend, Bot, PostgreSQL),
 and existing runbooks. This is a targeted source/config audit plus automated
 regression checks, **not** a penetration test or legal certification.
 
@@ -10,15 +13,15 @@ regression checks, **not** a penetration test or legal certification.
 | Priority | Finding | Evidence | Disposition |
 | --- | --- | --- | --- |
 | HIGH | Website profile serialized `demo_guests.access_token` to authenticated browser/Google sessions. This is a second, unnecessary bearer credential. | `demo_accounts.profile_dict` | **Fixed**: return empty token in production as already done for signed Telegram principal responses. Session cookie is still HttpOnly; no forced logout. |
-| CRITICAL | Security dependency audit flagged Next.js 15.5.9 and its image/CSS dependencies, including DoS and other advisories. | GitHub Actions npm audit (critical/high) | **Patched on this branch**: Next.js 15.5.28 and PostCSS override >=8.5.23; await clean audit and build before release. |
-| HIGH | Python dependency audit found 25 advisory records in anyio, idna, Mako, python-dotenv, Starlette and cryptography. | GitHub Actions pip-audit | **Patched on this branch**: advisory-fixed Python dependency versions; audited successfully on CI. |
+| CRITICAL | Security dependency audit flagged Next.js 15.5.9 and its image/CSS dependencies, including DoS and other advisories. | GitHub Actions npm audit (critical/high) | **Patched and deployed**: Next.js 15.5.28 and fixed PostCSS override. Follow-up npm advisory audit and CI passed. |
+| HIGH | Python dependency audit found 25 advisory records in anyio, idna, Mako, python-dotenv, Starlette and cryptography. | GitHub Actions pip-audit | **Patched and deployed**: advisory-fixed Python dependencies; Python security audit passed. |
 | HIGH | Production PostgreSQL formerly had a public Railway TCP proxy. | Railway inventory 2026-10-23 | **Closed**: proxy removed; follow-up proxy listing empty and all Railway application services Online. External psql access via the retired endpoint no longer works. |
-| HIGH | Persistent volume alone was not a backup; previously no verified encrypted archive. | Railway production backup logs 2026-10-23 | **Partially remediated**: private EU bucket plus twice-daily encrypted backup job, first archive verified after full download/decrypt/pg_restore archive-list test. Independent staging restore, alerts, retention and off-provider replication are still outstanding. |
+| HIGH | Persistent volume alone was not a backup; previously no verified encrypted archive. | Railway production backup logs 2026-10-23 | **Partially remediated**: private EU bucket plus twice-daily encrypted backup job, first archive verified after full download/decrypt/pg_restore archive-list test. A real isolated PostgreSQL 18 restore and Telegram incident alerts are now verified; retention, key escrow and off-provider replication remain outstanding. |
 | MEDIUM | Unknown accounts could be rejected before Argon2id password verification, exposing account existence through response-time differences. | `demo_accounts.login` | **Fixed**: verify a per-process dummy Argon2id hash for absent accounts. Existing IP/email rate limits retained. |
 | MEDIUM | Trusted-admin QR handler and organizer wrapper did not lock ticket rows before checking/marking attendance. Simultaneous scans could duplicate effects. | `main.demo_admin_check_in`, `demo_roles._secure_checkin` | **Fixed**: PostgreSQL `SELECT ... FOR UPDATE` in both. Existing idempotency and audit behavior preserved. |
 | MEDIUM | Erased website accounts could retain previously issued unclaimed Telegram browser-link challenges until TTL expiration. | `demo_privacy.fulfill` | **Fixed**: revoke pending link challenges transactionally during eligible erasure. |
 | MEDIUM | Dependencies may go stale without continuous advisory checks; no Dependabot config. | GitHub repo workflows | **Fixed**: add weekly Dependabot PRs for npm/pip/Actions and scheduled + PR dependency audits. |
-| MEDIUM | Telegram bot polling raises `409 getUpdates conflict` at runtime. This can be a second active poller or token reuse (not proof of compromise). | Recent Railway Bot runtime logs | **Operator action required**: stop external/duplicate poller; inventory token holders and rotate the token if you cannot account for every poller, updating Bot and Demo API atomically. Test Telegram login and reminders after rotation. |
+| MEDIUM | Telegram bot polling raises `409 getUpdates conflict` at runtime. This can be a second active poller or token reuse (not proof of compromise). | Recent Railway Bot runtime logs | **Transport replaced in production (2026-10-24)**: secret-authenticated Telegram HTTPS webhook registered successfully, with no new getUpdates errors in that deployment. Continue checking for external token reuse and test real bot messages; a successful deployment alone does not prove delivery. |
 | MEDIUM | Data-retention periods for free events, email outbox, and backups have not been legally approved; `PRIVACY_FREE_TICKET_RETENTION_DAYS` not configured. | `docs/DATA_RETENTION_MATRIX.md`, deployed variable name inventory | **Operator/legal action required**: determine Czech/EU retention periods, update privacy notice, configure retention and data-subject-response process. Do not assume arbitrary numbers. |
 | LOW | Some Next.js sensitive shell routes weren't in the explicit no-store rules. API requests were already private/no-store. | `frontend/next.config.mjs` | **Fixed**: extend no-store policy to the loyalty and account-security/support/privacy routes. |
 
