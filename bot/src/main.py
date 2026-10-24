@@ -20,6 +20,7 @@ from telebot.types import (
     InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
+    MenuButtonWebApp,
     WebAppInfo,
 )
 
@@ -4975,11 +4976,42 @@ def handle_photo(message):
 
 
 # =========================================================
+# Configure the official Mini App menu button (bot-wide)
+# =========================================================
+def configure_telegram_mini_app_menu() -> None:
+    """Expose the existing TicketTreat web app from every private bot chat.
+
+    Main Mini App and short_name are configured separately in BotFather;
+    they are not configurable through the Telegram Bot API.
+    """
+    if not WEB_APP_URL.startswith("https://"):
+        print("TicketTreat menu button skipped: WEB_APP_URL must be HTTPS", flush=True)
+        return
+
+    try:
+        menu = MenuButtonWebApp(
+            text="🎟 TicketTreat",
+            web_app=WebAppInfo(url=WEB_APP_URL),
+        )
+        # No chat_id: default button for all private chats.
+        bot.set_chat_menu_button(menu_button=menu)
+        current = bot.get_chat_menu_button()
+        if getattr(current, "type", None) != "web_app":
+            raise RuntimeError("Telegram returned a non-WebApp menu button")
+        print("TicketTreat Mini App menu button configured", flush=True)
+    except Exception as exc:
+        # Keep the existing webhook, event tickets, and notifications running
+        # if Telegram menu configuration is temporarily unavailable.
+        print(f"TicketTreat Mini App menu setup failed: {type(exc).__name__}", flush=True)
+
+
+# =========================================================
 # Start polling
 # =========================================================
 # Optional, one-shot deployment maintenance action. No changes to polling behavior.
 from brand_avatar import apply_avatar_on_startup
 apply_avatar_on_startup()
+configure_telegram_mini_app_menu()
 
 print("BOT STARTED")
 
