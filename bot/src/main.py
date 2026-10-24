@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 import requests
 import telebot
 from dotenv import load_dotenv
+from bot_profile_copy import get_copy, normalize_language, welcome_text, configure_botfather_profile
 from telebot.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -150,7 +151,7 @@ def backend_request(
 # Interface languages / i18n
 # =========================================================
 SUPPORTED_INTERFACE_LANGUAGES = ("en", "cs", "ru", "uk")
-DEFAULT_INTERFACE_LANGUAGE = "ru"
+DEFAULT_INTERFACE_LANGUAGE = "en"
 
 LANGUAGE_SELECTOR_LABELS = {
     "en": "🇬🇧 English",
@@ -210,7 +211,7 @@ UI_TRANSLATIONS = {
     # Event UI
     "Доступные ивенты:": _tr("Available events:", "Dostupné události:", "Доступные ивенты:", "Доступні події:"),
     "🎟 Твои ивенты:": _tr("🎟 Your events:", "🎟 Tvoje události:", "🎟 Твои ивенты:", "🎟 Твої події:"),
-    "✅ Записаться": _tr("✅ Join", "✅ Přihlásit se", "✅ Записаться", "✅ Приєднатися"),
+    "✅ Записаться": _tr("Book a spot", "Rezervovat místo", "Записаться", "Забронювати місце"),
     "❌ Нет свободных мест": _tr("❌ No spots left", "❌ Žádná volná místa", "❌ Нет свободных мест", "❌ Немає вільних місць"),
     "❌ Ивент отменён": _tr("❌ Event cancelled", "❌ Událost zrušena", "❌ Ивент отменён", "❌ Подію скасовано"),
     "👤 Организатор: ": _tr("👤 Organizer: ", "👤 Organizátor: ", "👤 Организатор: ", "👤 Організатор: "),
@@ -512,8 +513,7 @@ def get_interface_language(
             timeout=5,
         )
         language = str(
-            data.get("language")
-            or DEFAULT_INTERFACE_LANGUAGE
+            data.get("language") if data.get("explicit") else DEFAULT_INTERFACE_LANGUAGE
         ).lower()
     except Exception:
         language = DEFAULT_INTERFACE_LANGUAGE
@@ -523,6 +523,22 @@ def get_interface_language(
 
     user_language_cache[telegram_id] = language
     return language
+
+
+def remember_telegram_language(user) -> str:
+    """Telegram's language is initial preference; explicit profile choice wins."""
+    telegram_id = int(user.id)
+    if telegram_id in user_language_cache:
+        return user_language_cache[telegram_id]
+    chosen = normalize_language(getattr(user, "language_code", None))
+    try:
+        result = backend_request("GET", f"/users/{telegram_id}/language", timeout=5)
+        if result.get("explicit"):
+            chosen = normalize_language(result.get("language"))
+    except Exception:
+        pass
+    user_language_cache[telegram_id] = chosen
+    return chosen
 
 
 def set_interface_language(
@@ -1849,6 +1865,30 @@ def notification_worker():
 # =========================================================
 # Start / menu
 # =========================================================
+def copy_webapp_button(label: str, route: str, *, private: bool = True):
+    url = f"{WEB_APP_URL}{route}"
+    if private:
+        return InlineKeyboardButton(label, web_app=WebAppInfo(url=url))
+    return InlineKeyboardButton(label, url=url)
+
+
+def bot_copy_keyboard(message, pairs):
+    keyboard = InlineKeyboardMarkup()
+    for label, route in pairs:
+        keyboard.add(copy_webapp_button(
+            label, route,
+            private=getattr(message.chat, "type", "") == "private",
+        ))
+    return keyboard
+
+
+def copy_send(message, text: str, buttons):
+    # The supplied localized copy is complete: substring-based legacy
+    # translations must not translate pieces of user names or sentences.
+    keyboard = bot_copy_keyboard(message, buttons) if WEB_APP_URL.startswith("https://") else None
+    bot.send_message(message.chat.id, preserve_custom(text), reply_markup=keyboard)
+
+
 @bot.message_handler(commands=["start"])
 def start(message):
     parts = message.text.split(maxsplit=1)
@@ -1899,73 +1939,45 @@ def start(message):
             )
             return
 
-    bot.send_message(
-        message.chat.id,
-        "🎟 TicketTreat — твои мероприятия в одном месте. Выбирай событие, бронируй место и управляй билетами через меню ниже.",
-        reply_markup=get_main_menu(message.from_user.id),
+    lang = remember_telegram_language(message.from_user)
+    copy = get_copy(lang)
+    copy_send(
+        message,
+        welcome_text(lang, getattr(message.from_user, "first_name", None)),
+        [(copy["buttons"][0], "/"), (copy["buttons"][1], "/tickets")],
     )
-    # Mini App is the primary UI and uses signed Telegram identity; legacy
-    # profile registration remains optional for backwards compatibility.
-    if WEB_APP_URL.startswith("https://"):
-        keyboard = InlineKeyboardMarkup()
-        keyboard.add(InlineKeyboardButton(
-            "🌐 Открыть TicketTreat", web_app=WebAppInfo(url=WEB_APP_URL)
-        ))
-        bot.send_message(message.chat.id,
-            "События, QR-билеты, очереди и поддержка доступны в Mini App. "
-            "Для объединения с аккаунтом сайта открой профиль на сайте и выбери «Привязать через Telegram-бота».",
-            reply_markup=keyboard)
-    elif not is_profile_complete(message.from_user.id):
-        ask_to_register(message.chat.id)
-
 
 @bot.message_handler(commands=["app", "tickets"])
 def open_tickettreat_mini_app(message):
-    """Open signed Telegram Mini App, optionally on My tickets."""
+    lang = remember_telegram_language(message.from_user)
+    copy = get_copy(lang)
     if not WEB_APP_URL.startswith("https://"):
-        bot.send_message(
-            message.chat.id,
-            "TicketTreat Mini App пока не настроен.",
-            reply_markup=get_main_menu(message.from_user.id),
-        )
+        copy_send(message, copy["unavailable"], [])
         return
     command = (message.text or "").split(maxsplit=1)[0].split("@")[0].lower()
-    target = "/tickets" if command == "/tickets" else ""
-    language = get_interface_language(message.from_user.id)
-    url = f"{WEB_APP_URL}{target}?lang={language}" if target else f"{WEB_APP_URL}/?lang={language}"
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(
-        InlineKeyboardButton(
-            "🎟 Мои билеты в TicketTreat" if command == "/tickets" else "🌐 Открыть TicketTreat",
-            web_app=WebAppInfo(url=url),
-        )
-    )
-    bot.send_message(
-        message.chat.id,
-        "Открой Mini App, чтобы посмотреть события и QR-билеты. "
-        "Существующие записи через бота также будут доступны в разделе билетов.",
-        reply_markup=keyboard,
-    )
+    route = "/tickets" if command == "/tickets" else "/"
+    label = copy["buttons"][1] if command == "/tickets" else copy["open"]
+    copy_send(message, copy["help"] if command == "/tickets" else copy["open"], [(label, route)])
 
 
 @bot.message_handler(commands=["loyalty", "rewards", "passport"])
 def open_loyalty_passport(message):
+    lang = remember_telegram_language(message.from_user)
+    copy = get_copy(lang)
     if message.chat.type != "private":
-        bot.reply_to(message, "Открой личный чат с @TicketTreatBot для просмотра наград.")
+        copy_send(message, copy["private"], [])
         return
     if not WEB_APP_URL.startswith("https://"):
-        bot.send_message(message.chat.id, "Паспорт гостя временно недоступен.")
+        copy_send(message, copy["unavailable"], [])
         return
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton(
-        "Паспорт гостя и мои награды",
-        web_app=WebAppInfo(url=WEB_APP_URL + "/loyalty"),
-    ))
-    bot.send_message(message.chat.id,
-        "За каждый подтверждённый check-in ты получаешь штамп. "
-        "Уровень «Свой» (3 посещения за сезон) даёт приоритет в очереди. "
-        "Открой паспорт, чтобы увидеть прогресс и бонусы.",
-        reply_markup=keyboard)
+    copy_send(message, copy["help"], [(copy["passport_button"], "/loyalty")])
+
+
+@bot.message_handler(commands=["reminders"])
+def reminders_command(message):
+    lang = remember_telegram_language(message.from_user)
+    copy = get_copy(lang)
+    copy_send(message, copy["reminders"], [(copy["reminders_button"], "/tickets")])
 
 
 @bot.message_handler(commands=["link", "connect"])
@@ -1985,21 +1997,12 @@ def connect_account(message):
 
 @bot.message_handler(commands=["help", "support"])
 def user_help(message):
-    cmd=(message.text or "").split()[0].split("@")[0].lower()
-    if not WEB_APP_URL.startswith("https://"):
-        bot.send_message(message.chat.id, "Используй /events, /myevents или /profile.")
-        return
-    target = "/support" if cmd == "/support" else "/"
-    keyboard=InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton(
-        "🆘 Поддержка TicketTreat" if cmd == "/support" else "🌐 TicketTreat Mini App",
-        web_app=WebAppInfo(url=f"{WEB_APP_URL}{target}")
-    ))
-    bot.send_message(message.chat.id,
-        "В TicketTreat доступны мероприятия, бронирования, очередь, QR-билеты "
-        "и обращения в поддержку. Команды: /app, /tickets, /myevents, "
-        "/events, /profile, /link, /loyalty, /support.",
-        reply_markup=keyboard)
+    lang = remember_telegram_language(message.from_user)
+    copy = get_copy(lang)
+    cmd = (message.text or "").split(maxsplit=1)[0].split("@")[0].lower()
+    route = "/support" if cmd == "/support" else "/"
+    label = copy["open"] if cmd == "/support" else copy["help_button"]
+    copy_send(message, copy["help"], [(label, route)])
 
 
 @bot.message_handler(commands=["myid"])
@@ -2774,16 +2777,10 @@ def handle_profile_edit(message):
 def events(message):
     telegram_id = message.from_user.id
 
+    lang = remember_telegram_language(message.from_user)
     if WEB_APP_URL.startswith("https://"):
-        keyboard=InlineKeyboardMarkup()
-        keyboard.add(InlineKeyboardButton(
-            "📅 Все доступные события TicketTreat",
-            web_app=WebAppInfo(url=WEB_APP_URL+"/")))
-        bot.send_message(message.chat.id,
-            "Список опубликованных мероприятий, актуальные свободные места и "
-            "регистрация доступны в TicketTreat Mini App. "
-            "Старые записи в боте сохраняются.",
-            reply_markup=keyboard)
+        copy = get_copy(lang)
+        copy_send(message, copy["help"], [(copy["buttons"][0], "/")])
         return
 
     if not is_profile_complete(telegram_id):
@@ -5124,6 +5121,7 @@ def configure_telegram_mini_app_menu() -> None:
 from brand_avatar import apply_avatar_on_startup
 apply_avatar_on_startup()
 configure_telegram_mini_app_menu()
+configure_botfather_profile(BOT_TOKEN, requests)
 
 print("BOT STARTED")
 
