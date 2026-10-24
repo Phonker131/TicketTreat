@@ -223,6 +223,8 @@ def install_privacy_routes(app, get_db, main):
         db.query(MFAFactor).filter(MFAFactor.account_id==account.id).delete(synchronize_session=False)
         db.query(VerifiedEmail).filter(VerifiedEmail.account_id==account.id).delete(synchronize_session=False)
         db.query(EmailChallenge).filter(EmailChallenge.account_id==account.id).delete(synchronize_session=False)
+        from demo_organizer_profiles import OrganizerPublicProfile
+        db.query(OrganizerPublicProfile).filter(OrganizerPublicProfile.account_id==account.id).delete(synchronize_session=False)
         db.query(DemoAccountPlace).filter(DemoAccountPlace.account_id==account.id).delete(synchronize_session=False)
         db.query(WebAccountRole).filter(WebAccountRole.account_id==account.id).delete(synchronize_session=False)
         db.query(GlobalAdminBinding).filter(GlobalAdminBinding.account_id==account.id).delete(synchronize_session=False)
