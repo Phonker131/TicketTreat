@@ -486,176 +486,211 @@ const translations:Record<string,Partial<Record<LanguageCode,string>>> =  {
     "uk": "Зміни з'являться на сайті та в Telegram Mini App. Доступ — лише головному адміністратору."
   },
   "Organizer applications": {
+    "ru": "Заявки организаторов",
     "en": "Organizer applications",
     "cs": "Žádosti pořadatelů",
     "uk": "Заявки організаторів"
   },
   "Applicants must verify their email. Global admin MFA is required to approve new event organizers.": {
+    "ru": "Заявители должны подтвердить email. Для одобрения новых организаторов главный администратор должен пройти MFA.",
     "en": "Applicants must verify their email. Global admin MFA is required.",
     "cs": "Uchazeči musí ověřit e-mail. Schválení vyžaduje dvoufaktorové ověření správce.",
     "uk": "Заявники повинні підтвердити email. Для схвалення потрібна MFA адміністратора."
   },
   "No pending applications.": {
+    "ru": "Нет заявок на рассмотрении.",
     "en": "No pending applications.",
     "cs": "Žádné nevyřízené žádosti.",
     "uk": "Немає заявок в очікуванні."
   },
   "Approve": {
+    "ru": "Одобрить",
     "en": "Approve",
     "cs": "Schválit",
     "uk": "Схвалити"
   },
   "Reject": {
+    "ru": "Отклонить",
     "en": "Reject",
     "cs": "Zamítnout",
     "uk": "Відхилити"
   },
   "← Admin": {
+    "ru": "← Админ-панель",
     "en": "← Admin",
     "cs": "← Administrace",
     "uk": "← Адмін"
   },
   "← Admin dashboard": {
+    "ru": "← Админ-панель",
     "en": "← Admin dashboard",
     "cs": "← Správa",
     "uk": "← Адмін-панель"
   },
   "Data erasure requests": {
+    "ru": "Запросы на удаление данных",
     "en": "Data erasure requests",
     "cs": "Žádosti o výmaz údajů",
     "uk": "Запити на видалення даних"
   },
   "No pending requests.": {
+    "ru": "Нет запросов на рассмотрении.",
     "en": "No pending requests.",
     "cs": "Žádné čekající žádosti.",
     "uk": "Немає запитів в очікуванні."
   },
   "Fulfill eligible erasure": {
+    "ru": "Выполнить запрос на удаление",
     "en": "Process eligible erasure",
     "cs": "Provést oprávněný výmaz",
     "uk": "Виконати підтверджене видалення"
   },
   "Scan TicketTreat ticket": {
+    "ru": "Сканировать билет TicketTreat",
     "en": "Scan TicketTreat ticket",
     "cs": "Skenování vstupenky TicketTreat",
     "uk": "Сканування квитка TicketTreat"
   },
   "Camera scanner + manual fallback.": {
+    "ru": "Сканер камеры или ручной ввод.",
     "en": "Camera scanning and manual entry.",
     "cs": "Skenování kamerou i ruční zadání.",
     "uk": "Сканування камерою та ручне введення."
   },
   "Check in": {
+    "ru": "Отметить посещение",
     "en": "Check in",
     "cs": "Odbavit",
     "uk": "Відмітити вхід"
   },
   "← Organizer dashboard": {
+    "ru": "← Панель организатора",
     "en": "← Organizer dashboard",
     "cs": "← Správa akcí",
     "uk": "← Панель організатора"
   },
   "← Back to profile": {
+    "ru": "← Вернуться в профиль",
     "en": "← Back to profile",
     "cs": "← Zpět na profil",
     "uk": "← Назад до профілю"
   },
   "Two-factor authentication": {
+    "ru": "Двухфакторная аутентификация",
     "en": "Two-factor authentication",
     "cs": "Dvoufaktorové ověření",
     "uk": "Двофакторна автентифікація"
   },
   "Connect authenticator app": {
+    "ru": "Подключить приложение-аутентификатор",
     "en": "Connect authenticator app",
     "cs": "Připojit ověřovací aplikaci",
     "uk": "Підключити застосунок автентифікації"
   },
   "Start MFA enrollment": {
+    "ru": "Начать настройку MFA",
     "en": "Start MFA enrollment",
     "cs": "Nastavit MFA",
     "uk": "Налаштувати MFA"
   },
   "Add TicketTreat to your authenticator": {
+    "ru": "Добавить TicketTreat в приложение-аутентификатор",
     "en": "Add TicketTreat to your authenticator",
     "cs": "Přidat TicketTreat do autentizační aplikace",
     "uk": "Додати TicketTreat до застосунку"
   },
   "Enter this setup key manually in your authenticator app. Keep this secret private.": {
+    "ru": "Введи ключ вручную в приложение-аутентификатор. Никому его не сообщай.",
     "en": "Enter this setup key manually. Keep it private.",
     "cs": "Zadejte tento nastavovací klíč ručně. Uchovejte jej v tajnosti.",
     "uk": "Введіть цей ключ вручну. Зберігайте його в таємниці."
   },
   "Open authenticator app": {
+    "ru": "Открыть приложение-аутентификатор",
     "en": "Open authenticator app",
     "cs": "Otevřít ověřovací aplikaci",
     "uk": "Відкрити застосунок автентифікації"
   },
   "Six-digit code": {
+    "ru": "Шестизначный код",
     "en": "Six-digit code",
     "cs": "Šestimístný kód",
     "uk": "Шестизначний код"
   },
   "Enable two-factor authentication": {
+    "ru": "Включить двухфакторную аутентификацию",
     "en": "Enable two-factor authentication",
     "cs": "Zapnout dvoufaktorové ověření",
     "uk": "Увімкнути двофакторну автентифікацію"
   },
   "MFA enabled.": {
+    "ru": "MFA включена.",
     "en": "MFA enabled.",
     "cs": "MFA zapnuto.",
     "uk": "MFA увімкнено."
   },
   "Authenticator code": {
+    "ru": "Код аутентификатора",
     "en": "Authenticator code",
     "cs": "Ověřovací kód",
     "uk": "Код автентифікатора"
   },
   "Verify session": {
+    "ru": "Подтвердить сессию",
     "en": "Verify session",
     "cs": "Ověřit relaci",
     "uk": "Підтвердити сесію"
   },
   "Open organizer dashboard": {
+    "ru": "Открыть панель организатора",
     "en": "Open organizer dashboard",
     "cs": "Otevřít správu akcí",
     "uk": "Відкрити панель організатора"
   },
   "← Profile": {
+    "ru": "← Профиль",
     "en": "← Profile",
     "cs": "← Profil",
     "uk": "← Профіль"
   },
   "Become an organizer": {
+    "ru": "Стать организатором",
     "en": "Become an organizer",
     "cs": "Stát se pořadatelem",
     "uk": "Стати організатором"
   },
   "Account role:": {
+    "ru": "Роль аккаунта:",
     "en": "Account role:",
     "cs": "Role účtu:",
     "uk": "Роль акаунта:"
   },
   "Application status:": {
+    "ru": "Статус заявки:",
     "en": "Application status:",
     "cs": "Stav žádosti:",
     "uk": "Статус заявки:"
   },
   "Submit application": {
+    "ru": "Подать заявку",
     "en": "Submit application",
     "cs": "Odeslat žádost",
     "uk": "Подати заявку"
   },
   "Configure MFA": {
+    "ru": "Настроить MFA",
     "en": "Configure MFA",
     "cs": "Nastavit MFA",
     "uk": "Налаштувати MFA"
   },
   "Participant": {
+    "ru": "Участник",
     "en": "Participant",
     "cs": "Účastník",
     "uk": "Учасник"
   },
   "Organizer": {
+    "ru": "Организатор",
     "en": "Organizer",
     "cs": "Pořadatel",
     "uk": "Організатор"
@@ -663,6 +698,5 @@ const translations:Record<string,Partial<Record<LanguageCode,string>>> =  {
 };
 
 export function adminTranslate(language:LanguageCode, text:string):string {
-  if(language==="ru")return text;
   return translations[text]?.[language] || text;
 }
