@@ -20,7 +20,6 @@ from telebot.types import (
     InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
-    MenuButtonWebApp,
     WebAppInfo,
 )
 
@@ -4989,20 +4988,35 @@ def configure_telegram_mini_app_menu() -> None:
         return
 
     try:
-        menu = MenuButtonWebApp(
-            text="🎟 TicketTreat",
-            web_app=WebAppInfo(url=WEB_APP_URL),
+        # Use Bot API directly so menu setup is independent of SDK serializer
+        # behavior, while the existing bot token stays inside Railway.
+        endpoint = f"https://api.telegram.org/bot{BOT_TOKEN}"
+        payload = {
+            "menu_button": {
+                "type": "web_app",
+                "text": "🎟 TicketTreat",
+                "web_app": {"url": WEB_APP_URL},
+            }
+        }
+        response = requests.post(
+            endpoint + "/setChatMenuButton",
+            json=payload,
+            timeout=12,
         )
-        # No chat_id: default button for all private chats.
-        bot.set_chat_menu_button(menu_button=menu)
-        current = bot.get_chat_menu_button()
-        if getattr(current, "type", None) != "web_app":
-            raise RuntimeError("Telegram returned a non-WebApp menu button")
+        if not response.ok or response.json().get("ok") is not True:
+            raise RuntimeError(f"Telegram refused menu setup (HTTP {response.status_code})")
+        # Verify the actual global button returned by Telegram.
+        response = requests.get(
+            endpoint + "/getChatMenuButton",
+            timeout=12,
+        )
+        if not response.ok or response.json().get("result", {}).get("type") != "web_app":
+            raise RuntimeError("Telegram did not confirm the WebApp menu button")
         print("TicketTreat Mini App menu button configured", flush=True)
     except Exception as exc:
-        # Keep the existing webhook, event tickets, and notifications running
-        # if Telegram menu configuration is temporarily unavailable.
-        print(f"TicketTreat Mini App menu setup failed: {type(exc).__name__}: {str(exc)[:240]}", flush=True)
+        # Don't prevent webhook delivery if Telegram is temporarily unavailable;
+        # never log the Bot API URL because it includes the bot token.
+        print(f"TicketTreat Mini App menu setup failed: {type(exc).__name__}", flush=True)
 
 
 # =========================================================
