@@ -23,8 +23,6 @@ export function LegalOperatorIdentity(){
         Před veřejným spuštěním musí být doplněno jméno či název skutečného
         správce, kontaktní adresa a funkční e-mail pro ochranu osobních údajů.</p>
     </>}
-    <p>Platform support / Podpora: <a href="https://t.me/vvladver" rel="noopener noreferrer" target="_blank">
-      TicketTreat Telegram support
-    </a>. This support channel does not replace the controller contact details above.</p>
+    <p>Platform support / Podpora: <a href="/support">TicketTreat Support Center</a>. Support tickets do not replace the controller contact details above.</p>
   </section>;
 }
