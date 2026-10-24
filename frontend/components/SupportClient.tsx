@@ -54,7 +54,7 @@ export function SupportClient(){
  async function create(e:FormEvent){
    e.preventDefault();setBusy(true);setError("");setNotice("");
    try{const result=await createSupportTicket(category,subject.trim(),body.trim());
-     setSubject("");setBody("");setNotice(t.sent);await refresh(null);await open(result.id);
+     setSubject("");setBody("");setNotice("msg:sent");await refresh(null);await open(result.id);
    }catch(e){setError(e instanceof Error?e.message:String(e))}
    finally{setBusy(false)}
  }
@@ -69,7 +69,7 @@ export function SupportClient(){
    {needsLogin?<section className="panel form-stack"><p>{t.signed}</p><Link href="/profile" className="button button-primary">{t.login}</Link></section>:
     <>
     {error&&<p className="state-card state-error" role="alert">{error}</p>}
-    {notice&&<p className="success-banner" role="status">{notice}</p>}
+    {notice&&<p className="success-banner" role="status">{notice==="msg:sent"?t.sent:notice}</p>}
     {loading?<div className="state-card">{t.loading}</div>:selected&&thread?<>
       <button className="button button-outline" type="button" onClick={back}>← {t.back}</button>
       <section className="panel form-stack">
