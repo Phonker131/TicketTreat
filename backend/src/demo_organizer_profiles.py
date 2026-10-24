@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, LargeBinary, String, Text, func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, deferred
 from db.base import Base
 from demo_accounts import WebAccount
 from demo_roles import EventOwnership, account_lookup, ensure_manage, role_for
@@ -27,9 +27,9 @@ class OrganizerPublicProfile(Base):
     instagram = Column(String(32), nullable=False, default="")
     published = Column(Boolean, nullable=False, default=False, server_default="false")
     logo_type = Column(String(32), nullable=True)
-    logo_bytes = Column(LargeBinary, nullable=True)
+    logo_bytes = deferred(Column(LargeBinary, nullable=True))
     cover_type = Column(String(32), nullable=True)
-    cover_bytes = Column(LargeBinary, nullable=True)
+    cover_bytes = deferred(Column(LargeBinary, nullable=True))
     updated_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
 
@@ -110,8 +110,8 @@ def public_summary(row: OrganizerPublicProfile) -> dict:
         "city": row.city,
         "website_url": row.website_url,
         "instagram": row.instagram,
-        "logo_url": f"{prefix}/logo" if row.logo_bytes else None,
-        "cover_url": f"{prefix}/cover" if row.cover_bytes else None,
+        "logo_url": f"{prefix}/logo" if row.logo_type else None,
+        "cover_url": f"{prefix}/cover" if row.cover_type else None,
     }
 
 
