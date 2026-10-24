@@ -182,7 +182,7 @@ def get_copy(language_code: str | None) -> dict:
 
 
 def welcome_text(language_code: str | None, first_name: str | None) -> str:
-    safe = re.sub(r"[\\r\\n\\t\\x00-\\x1f]+", " ", str(first_name or "").strip())[:70] or "friend"
+    safe = re.sub(r"[\x00-\x1f\x7f]+", " ", str(first_name or "").strip())[:70] or "friend"
     return get_copy(language_code)["start"].replace("{name}", safe)
 
 
