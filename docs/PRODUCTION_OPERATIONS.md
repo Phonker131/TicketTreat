@@ -12,7 +12,7 @@
 | Bot | Telegram commands and updates | Secret-validated HTTPS webhook at `/telegram/update` |
 | Postgres | Production data | Private DNS, **no public TCP proxies** |
 | Encrypted DB Backups | Twice-daily encrypted backup to private AMS bucket | Cron `0 3,15 * * *` UTC |
-| Pilot Health Monitor | Checks website, primary API and legacy Backend | Cron `*/15 * * * *` UTC |
+| Pilot Health Monitor | Checks website, primary API, legacy Backend, Telegram Bot, email forwarding and incident receiver | Cron `*/15 * * * *` UTC |
 | Production Incident Alerts | Sends Railway incident alerts to admin Telegram chats | Secret-gated callback, no guest PII |
 
 Application services, backup/alert functions and the database were observed Online, and the latest deployment was successful. Resource-usage dashboards and alert receivers do **not** establish that a real customer's full booking flow has been tested.
@@ -30,7 +30,7 @@ Application services, backup/alert functions and the database were observed Onli
 
 - Primary API readiness: `/api/v1/health/ready` (includes a database `SELECT 1`). Legacy public path `/demo/health/ready` is still valid.
 - **Legacy Backend** deliberately rejects public `/demo/*` routes in production; use its allowlisted `GET /` healthcheck instead. Do not configure `/demo/health/ready` there; it causes false 404 alerts.
-- `Pilot Health Monitor` probes production every 15 minutes; Railway incident webhook notifies the admins of `Deployment.failed`, `Deployment.crashed`, `Deployment.oom_killed`, `VolumeAlert.triggered` and `Monitor.triggered`.
+- `Pilot Health Monitor` probes six production endpoints every 15 minutes; Railway incident webhook notifies admins of `Deployment.failed`, `Deployment.crashed`, `Deployment.oom_killed`, `VolumeAlert.triggered` and `Monitor.triggered`. A successful function deployment is not proof that every newly added cron probe has run; check its next execution logs. Failed cron executions must be explicitly verified to escalate to humans.
 - **Known test alert**: `2026-10-24T10:18:33.942Z Deployment.failed Railway service` was created by the Railway webhook test operation, with a generic service name. It was **not a confirmed production outage**. Later, a test monitor briefly crashed on the blocked legacy route; the probe was corrected, and the monitor next showed `cronSucceeded`.
 - Never log user emails, signed Telegram initData, request body/PII, QR bearer strings, backup keys or bot tokens. Keep incident receiver destinations private and authenticated.
 
@@ -58,4 +58,4 @@ Never use production `DATABASE_URL` in a restore drill. `scripts/staging_restore
 
 ## Remaining pre-pilot conditions
 
-Real-phone login/check-in and Telegram-message smoke tests; an attendee rehearsal with 10–20 volunteers; isolated full-time staging and separate test bot; approved operator/retention documentation; backup-key custody outside Railway; staff fallback process. **TicketTreat does not currently process payments.** See [engineering status](FREE_PILOT_ENGINEERING_STATUS.md) and [release checklist](UNIFIED_RELEASE_GATE.md).
+Real-phone login/check-in and Telegram-message smoke tests; an attendee rehearsal with 10–20 volunteers; isolated full-time staging and separate test bot; approved operator/retention documentation; backup-key custody outside Railway; staff fallback process. **TicketTreat does not currently process payments.** See [engineering status](FREE_PILOT_ENGINEERING_STATUS.md), [release checklist](UNIFIED_RELEASE_GATE.md) and [24 October technical audit](PRODUCTION_TECHNICAL_AUDIT_2026-10-24.md).
