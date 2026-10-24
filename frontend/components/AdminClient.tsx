@@ -70,7 +70,7 @@ export function AdminClient() {
   const [notice,setNotice]=useState("");
   const [preview,setPreview]=useState("");
   const [reminderMinutes,setReminderMinutes]=useState<number[]>([10080,1440,180]);
-  const [reminderMessage,setReminderMessage]=useState("Your TicketTreat event starts soon.");
+  const [reminderMessage,setReminderMessage]=useState(() => tr("Your TicketTreat event starts soon."));
   const [eventSearch,setEventSearch]=useState("");
   const [eventStatus,setEventStatus]=useState("all");
   const [sortMode,setSortMode]=useState("newest");
@@ -130,7 +130,7 @@ export function AdminClient() {
       });
       setEvents(current=>[event,...current]);
       form.reset();setPreview("");setShowForm(false);
-      setReminderMinutes([10080,1440,180]);setReminderMessage("Your TicketTreat event starts soon.");setNotice("msg:created");
+      setReminderMinutes([10080,1440,180]);setReminderMessage(tr("Your TicketTreat event starts soon."));setNotice("msg:created");
     }catch(e){setError(errorText(e));}
     finally{setSaving(false);}
   }
