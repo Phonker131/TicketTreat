@@ -411,6 +411,12 @@ const translations: Array<[string,string,string,string]> = [
     "✓ Message ready to send:",
     "✓ Text připraven k odeslání:",
     "✓ Текст готовий до надсилання:"
+  ],
+  [
+    "Не удалось выполнить действие. Попробуй ещё раз.",
+    "Could not complete the action. Try again.",
+    "Akci se nepodařilo dokončit. Zkus to znovu.",
+    "Не вдалося виконати дію. Спробуй ще раз."
   ]
 ];
 const dictionary = new Map(translations.map(([ru,en,cs,uk])=>[ru,{ru,en,cs,uk}]));
