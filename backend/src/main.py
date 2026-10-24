@@ -713,7 +713,7 @@ def registration_response(
 # Language helpers
 # =========================================================
 SUPPORTED_LANGUAGE_CODES = {"en", "cs", "ru", "uk"}
-DEFAULT_INTERFACE_LANGUAGE = "ru"
+DEFAULT_INTERFACE_LANGUAGE = "en"
 
 
 def normalize_language_code(value: Any) -> str | None:
