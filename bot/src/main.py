@@ -487,6 +487,47 @@ UI_TRANSLATIONS.update({
 })
 
 
+
+# Messages from old Telegram inline links still used by active users.
+# Keep these registered in the same four-language catalog, rather than
+# allowing production callbacks to fall back to Russian.
+UI_TRANSLATIONS.update({
+    "🎟 Открыть событие в TicketTreat": _tr("🎟 Open event in TicketTreat", "🎟 Otevřít akci v TicketTreat", "🎟 Открыть событие в TicketTreat", "🎟 Відкрити подію в TicketTreat"),
+    "Описание, фотографии, билеты и актуальная доступность мест отображаются в TicketTreat Mini App.": _tr(
+        "Descriptions, photos, tickets and availability are displayed in the TicketTreat Mini App.",
+        "Popis, fotografie, vstupenky a aktuální volná místa najdeš v TicketTreat Mini App.",
+        "Описание, фотографии, билеты и актуальная доступность мест отображаются в TicketTreat Mini App.",
+        "Опис, фотографії, квитки та актуальну наявність місць можна переглянути в TicketTreat Mini App."),
+    "⏳ Заявка на оплату — 24 часа": _tr("⏳ Payment request — 24 hours", "⏳ Žádost o platbu — 24 hodin", "⏳ Заявка на оплату — 24 часа", "⏳ Заявка на оплату — 24 години"),
+    "⏳ Проверить мою заявку": _tr("⏳ Check my request", "⏳ Zkontrolovat žádost", "⏳ Проверить мою заявку", "⏳ Перевірити мою заявку"),
+    "Открой TicketTreat для регистрации": _tr("Open TicketTreat to register", "Zaregistruj se v TicketTreat", "Открой TicketTreat для регистрации", "Відкрий TicketTreat для реєстрації"),
+    "Неверная ссылка на событие.": _tr("Invalid event link.", "Neplatný odkaz na akci.", "Неверная ссылка на событие.", "Недійсне посилання на подію."),
+    "🎟 Записаться через TicketTreat": _tr("🎟 Book a spot on TicketTreat", "🎟 Rezervovat místo přes TicketTreat", "🎟 Записаться через TicketTreat", "🎟 Забронювати місце через TicketTreat"),
+    "Регистрация и QR-билеты теперь едины для сайта и бота. Открой Mini App, чтобы не создавать дублирующую запись.": _tr(
+        "Website and bot registrations now share the same QR tickets. Open the Mini App to avoid duplicate registrations.",
+        "Registrace z webu i bota používají stejné QR vstupenky. Otevři Mini App, aby nevznikla duplicitní registrace.",
+        "Регистрация и QR-билеты теперь едины для сайта и бота. Открой Mini App, чтобы не создавать дублирующую запись.",
+        "Реєстрації на сайті та в боті тепер мають спільні QR-квитки. Відкрий Mini App, щоб не створювати повторної реєстрації."),
+    "Не удалось проверить мероприятие": _tr("Could not verify the event", "Akci se nepodařilo ověřit", "Не удалось проверить мероприятие", "Не вдалося перевірити подію"),
+    "Открой TicketTreat для заявки": _tr("Open TicketTreat to request a place", "Požádej o místo v TicketTreat", "Открой TicketTreat для заявки", "Відкрий TicketTreat, щоб подати заявку"),
+    "Платные заявки доступны только через TicketTreat Mini App.": _tr("Paid event requests are only available through TicketTreat Mini App.", "Žádosti o placené akce lze podat jen přes TicketTreat Mini App.", "Платные заявки доступны только через TicketTreat Mini App.", "Заявки на платні події доступні лише через TicketTreat Mini App."),
+    "⏳ Резерв 24 часа → TicketTreat": _tr("⏳ Hold for 24 hours → TicketTreat", "⏳ Rezervace na 24 hodin → TicketTreat", "⏳ Резерв 24 часа → TicketTreat", "⏳ Резерв на 24 години → TicketTreat"),
+    "Оплата производится напрямую организатору. Открой Mini App: место резервируется на 24 часа, а QR-билет появится только после подтверждения оплаты организатором.": _tr(
+        "Pay the organizer directly. Open Mini App to hold a place for 24 hours. A QR ticket is issued only after the organizer confirms payment.",
+        "Platba probíhá přímo pořadateli. V Mini App si rezervuješ místo na 24 hodin. QR vstupenka se vystaví až po potvrzení platby pořadatelem.",
+        "Оплата производится напрямую организатору. Открой Mini App: место резервируется на 24 часа, а QR-билет появится только после подтверждения оплаты организатором.",
+        "Оплата здійснюється безпосередньо організатору. У Mini App місце резервується на 24 години. QR-квиток з'явиться лише після підтвердження оплати організатором."),
+    "Не удалось загрузить мероприятия. Попробуй ещё раз позже.": _tr("Could not load events. Please try again later.", "Akce se nepodařilo načíst. Zkus to prosím později.", "Не удалось загрузить мероприятия. Попробуй ещё раз позже.", "Не вдалося завантажити події. Спробуй пізніше."),
+    "🎟 Открыть профиль TicketTreat": _tr("🎟 Open TicketTreat profile", "🎟 Otevřít profil TicketTreat", "🎟 Открыть профиль TicketTreat", "🎟 Відкрити профіль TicketTreat"),
+    "В этом Telegram-аккаунте пока нет доступных записей. Если ты покупал билет на сайте, сначала привяжи Telegram к своему подтверждённому TicketTreat-аккаунту в профиле. По одному имени или email аккаунты не объединяются.": _tr(
+        "No registrations are currently linked to this Telegram account. If you booked on the website, connect Telegram to your verified TicketTreat account in your profile. Accounts are never merged by name or email alone.",
+        "K tomuto účtu Telegram zatím nejsou přiřazeny žádné registrace. Pokud máš vstupenku z webu, propoj Telegram s ověřeným účtem TicketTreat ve svém profilu. Účty se nikdy nespojují jen podle jména či e-mailu.",
+        "В этом Telegram-аккаунте пока нет доступных записей. Если ты покупал билет на сайте, сначала привяжи Telegram к своему подтверждённому TicketTreat-аккаунту в профиле. По одному имени или email аккаунты не объединяются.",
+        "До цього Telegram-акаунта поки не прив'язано жодної реєстрації. Якщо ти бронював квиток на сайті, прив'яжи Telegram до підтвердженого акаунта TicketTreat у профілі. Акаунти не об'єднуються лише за ім'ям чи email."),
+    "🎫 Открыть QR-билет": _tr("🎫 Open QR ticket", "🎫 Otevřít QR vstupenku", "🎫 Открыть QR-билет", "🎫 Відкрити QR-квиток"),
+})
+
+
 def get_interface_language(
     telegram_id: int | None,
     *,
