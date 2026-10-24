@@ -230,7 +230,7 @@ export function AdminEventClient(){
     try{const result=await sendEventAnnouncement(token,eventId,{
       category:announcementCategory,message:announcementText.trim()});
       setAnnouncementText("");await reload();
-      setNotice(`В очереди: ${result.eligible_notification_deliveries} доставок через email и/или Telegram.`);
+      setNotice(`${tr("В очереди: ")}${result.eligible_notification_deliveries} ${tr("доставок через email и/или Telegram.")}`);
     }catch(e){setError(formattedError(e));}
     finally{setBusy(false);}
   }
@@ -333,14 +333,14 @@ export function AdminEventClient(){
         <div><span className={event.is_cancelled?"status status-danger":"status status-demo"}>{event.is_cancelled?tr("Cancelled"):`${tr(event.publication?.status==="draft"?"Черновик":event.publication?.status==="scheduled"?"Запланировано":"Опубликовано")} · #${event.id}`}</span>
         <h1>{event.title}</h1><p>{event.location}</p></div>
         <div className="admin-event-actions">
-          <button className="button button-outline" onClick={csv} disabled={busy}>↓ Export CSV</button>
-          <Link className="button button-sun" href="/admin/check-in">Scan QR</Link>
+          <button className="button button-outline" onClick={csv} disabled={busy}>{tr("↓ Export CSV")}</button>
+          <Link className="button button-sun" href="/admin/check-in">{tr("Scan QR")}</Link>
         </div>
       </div>
       {event.is_cancelled&&<div className="state-card state-error"><strong>{tr("Причина отмены:")}</strong> {event.cancellation_reason||"—"}</div>}
       <div className="admin-event-actions" style={{marginBottom:18}}>
         {!event.is_cancelled&&<button className="button button-primary" onClick={()=>setShowEdit(v=>!v)}>
-        {showEdit?"Закрыть":"Редактировать ивент"}</button>}
+        {showEdit?tr("Закрыть"):tr("Редактировать ивент")}</button>}
         {!event.is_cancelled&&<button type="button" className="button button-outline" disabled={busy}
           onClick={openCancelDialog}>{tr("Отменить ивент")}</button>}
         <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
@@ -349,7 +349,7 @@ export function AdminEventClient(){
       </div>
       {!event.is_cancelled&&<section className="panel form-stack">
         <h2>{tr("Публикация мероприятия")}</h2>
-        <p className="form-note">{tr("Статус:")} <strong>{event.publication?.status==="draft"?tr("Черновик"):event.publication?.status==="scheduled"?tr("Запланировано"):tr("Опубликовано")}</strong>. Новые ивенты скрыты до публикации. Для платных ивентов укажи инструкцию прямой оплаты организатору; подтверждение оплаченных заявок доступно ниже.</p>
+        <p className="form-note">{tr("Статус:")} <strong>{event.publication?.status==="draft"?tr("Черновик"):event.publication?.status==="scheduled"?tr("Запланировано"):tr("Опубликовано")}</strong>. {tr("Новые ивенты скрыты до публикации. Для платных ивентов укажи инструкцию прямой оплаты организатору; подтверждение оплаченных заявок доступно ниже.")}</p>
         {event.publication?.publish_at&&<p>{tr("Автопубликация:")} {new Date(event.publication.publish_at).toLocaleString(localeForLanguage(language))}</p>}
         <div className="admin-event-actions">
           {!event.publication?.visible&&<button type="button" className="button button-primary" disabled={busy} onClick={()=>publication("published")}>{tr("Опубликовать сейчас")}</button>}
@@ -419,9 +419,7 @@ export function AdminEventClient(){
         <form className="form-stack" onSubmit={cancel}>
           <span className="status status-danger">#{event.id} · {tr("Отмена ивента")}</span>
           <h2 id="tt-event-cancel-title">{tr("Отмена ивента")}</h2>
-          <p id="tt-event-cancel-description">{tr("Ты собираешься отменить")} <strong>{event.title}</strong>.
-            Новые регистрации закроются, действующие билеты будут аннулированы, а уведомления подтверждённым владельцам билетов будут поставлены в очередь.
-            Это действие нельзя отменить через панель организатора.</p>
+          <p id="tt-event-cancel-description">{tr("Ты собираешься отменить")} <strong>{event.title}</strong>. {tr("Новые регистрации закроются, действующие билеты будут аннулированы, а уведомления подтверждённым владельцам билетов будут поставлены в очередь.")} {tr("Это действие нельзя отменить через панель организатора.")}</p>
           <label>{tr("Причина отмены")} <span className="tt-cancel-required">{tr("(обязательно, минимум 8 символов)")}</span>
             <textarea required minLength={8} maxLength={1000} rows={4} autoFocus
               value={reason} onChange={e=>{setReason(e.target.value);setCancelError("");}}
@@ -590,14 +588,14 @@ export function AdminEventClient(){
       {data&&<>
         <div className="stats-grid">
           <div className="stat-card"><strong>{data.tickets.filter(t=>t.ticket_status==="active").length}</strong><span>{tr("Билеты")}</span></div>
-          <div className="stat-card"><strong>{data.tickets.filter(t=>t.checked_in_at).length}</strong><span>Checked in</span></div>
-          <div className="stat-card"><strong>{data.waitlist.filter(w=>w.status==="waiting").length}</strong><span>Waitlist</span></div>
+          <div className="stat-card"><strong>{data.tickets.filter(t=>t.checked_in_at).length}</strong><span>{tr("Checked in")}</span></div>
+          <div className="stat-card"><strong>{data.waitlist.filter(w=>w.status==="waiting").length}</strong><span>{tr("Waitlist")}</span></div>
         </div>
         <section className="panel"><h2>{tr("Участники")}</h2><div className="participant-list">
           {!data.tickets.length&&<p>{tr("Пока нет билетов.")}</p>}
           {data.tickets.map(ticket=><div className="participant-row" key={ticket.id}>
             <div><strong>{ticket.guest?.first_name} {ticket.guest?.last_name}</strong>
-              <small>{ticket.guest?.email}</small><small>{ticket.code} · {ticket.payment_status}</small></div>
+              <small>{ticket.guest?.email}</small><small>{ticket.code} · {ticket.payment_status === "paid"?tr("Paid"):ticket.payment_status === "not_required"?tr("Free"):ticket.payment_status === "pending"?tr("Ожидает оплаты"):ticket.payment_status}</small></div>
             <div className="participant-actions">
               <span className={ticket.checked_in_at?"status status-success":"status status-demo"}>
                 {ticket.ticket_status==="cancelled"?tr("Cancelled"):ticket.checked_in_at?tr("Checked in"):tr("Paid")}</span>
@@ -612,7 +610,7 @@ export function AdminEventClient(){
         <section className="panel"><h2>{tr("Лист ожидания")}</h2>
           {!data.waitlist.length&&<p>{tr("Пока пусто.")}</p>}
           {data.waitlist.filter(w=>w.status==="waiting").map(w=><div key={w.id} className="participant-row">
-            <strong>{w.guest.first_name} {w.guest.last_name}</strong><span className="status status-muted">Waiting</span>
+            <strong>{w.guest.first_name} {w.guest.last_name}</strong><span className="status status-muted">{tr("Waiting")}</span>
           </div>)}
         </section>
       </>}
