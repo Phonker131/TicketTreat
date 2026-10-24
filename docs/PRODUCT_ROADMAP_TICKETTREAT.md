@@ -10,6 +10,23 @@ are historical only.
 
 **Release boundary, updated:** The free-event TicketTreat platform is already deployed in Railway production. Use canonical `release/tickettreat-production` after source migration; do not enable in-platform payments or alter production data without an isolated migration rehearsal and acceptance checks.
 
+## Live implementation reconciliation — 24 October 2026
+
+**This section supersedes 21 October implementation columns further below.** The roadmap tables describe the original feature plan; they are not a literal live production audit.
+
+| Roadmap workstream | Implemented now | Still not guaranteed / not enabled |
+| --- | --- | --- |
+| Free-event MVP | Public website, signed Telegram Mini App and bot, event publication, free QR tickets, organizer scan, cancellations, email/Telegram messages | Live group rehearsal with real phones, independent ongoing staging |
+| Account identity | Email and Google login, explicit Telegram identity linking, privileged MFA, security sessions | Real-account acceptance test for each login/linking combination |
+| Capacity and waitlists | Unique/locked registration, timed offers, seasonal studio waitlist priority, expiry workers active | Event-day failure playbook and measured peak-capacity load |
+| Event operations | Staff scopes, owner-admin CMS, pictures/galleries, reporting, support and reminders | Final editorial localisation and real organizer training |
+| Loyalty | Organizer-scoped 0/3/6/12 check-in stamps; 3-visit waitlist priority | VIP companion, early booking and birthday rewards are planned, not active |
+| Externally paid events | 24-hour reservation and organizer-confirmed external payment status | No built-in payment charging, payout or refunds |
+| Hosting and data | Railway production online; private DB; twice-daily AES-256-GCM backup; real isolated PostgreSQL restore validated | Off-provider DR, independent encryption-key escrow, approved retention, complete GDPR/controller details |
+| API name and version | Production TicketTreat API, versioned `/api/v1/*` plus legacy `/demo/*` compatibility | Never delete compatibility paths or rename production DB tables as a cosmetic change |
+
+The older design source used a previous brand. Its original title is cited below strictly for traceability; all product decisions and public names use **TicketTreat**.
+
 ## Scope and status vocabulary
 
 - **Implemented / release candidate:** coded in branch, still subject to staging
