@@ -1,17 +1,14 @@
 # TicketTreat — consolidated product roadmap
 
-**Status:** planning document, updated 2026-10-21. Source: user-supplied 18-page
+**Status:** historical planning baseline dated 2026-10-21; current shipped status verified 2026-10-24 in [engineering status](FREE_PILOT_ENGINEERING_STATUS.md). Source: user-supplied 18-page
 `Crowdly-brand-and-roadmap(2).pdf` (October 2026, v1), combined with the
-existing TicketTreat launch plan and audited code in draft PR #5.
+existing TicketTreat launch plan and audited code. The cited original PDF uses a former brand name, retained only to identify its historical source.
 
 **Brand decision:** the product is **TicketTreat**, not Crowdly. Keep the
 existing established palette. References to the old name in the original PDF
 are historical only.
 
-**Release boundary:** plan and implement on
-`feature/crowdly-release-preparation`; do not merge, enable real
-payments, mutate the production database, or switch Railway deployment
-sources without an isolated staging rehearsal and explicit launch approval.
+**Release boundary, updated:** The free-event TicketTreat platform is already deployed in Railway production. Use canonical `release/tickettreat-production` after source migration; do not enable in-platform payments or alter production data without an isolated migration rehearsal and acceptance checks.
 
 ## Scope and status vocabulary
 
