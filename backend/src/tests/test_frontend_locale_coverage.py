@@ -61,7 +61,7 @@ class AdminLocaleCoverageTests(unittest.TestCase):
     def test_broadcast_flow_is_localized_and_has_no_raw_russian_controls(self):
         content = (FRONTEND / "lib/broadcast-i18n.ts").read_text(encoding="utf-8")
         match = re.search(
-            r"const translations: Array<\\[string,string,string,string\\]> = (\\[[\\s\\S]*?\\]);\\nconst dictionary",
+            r"const translations: Array<\[string,string,string,string\]> = (\[[\s\S]*?\]);\nconst dictionary",
             content,
         )
         self.assertIsNotNone(match)
@@ -71,13 +71,13 @@ class AdminLocaleCoverageTests(unittest.TestCase):
             self.assertNotIn(ru, terms)
             terms[ru] = {"en": en, "cs": cs, "uk": uk}
             self.assertTrue(all((en, cs, uk)))
-            self.assertNotRegex(en + cs, r"[\\u0400-\\u052f]")
+            self.assertNotRegex(en + cs, r"[\u0400-\u052f]")
         source = (FRONTEND / "components/BroadcastClient.tsx").read_text(encoding="utf-8")
         self.assertIn("useLanguage()", source)
-        keys = set(re.findall(r'\\btr\\("([^"\\n]+)"\\)', source))
+        keys = set(re.findall(r'\btr\("([^"\n]+)"\)', source))
         self.assertEqual(sorted(keys - terms.keys()), [])
-        self.assertNotRegex(source, r">\\s*[^<>{\\n]*[\\u0400-\\u04ff][^<>{\\n]*<")
-        self.assertNotRegex(source, r'(?:placeholder|aria-label|alt)="[^"\\n]*[\\u0400-\\u04ff]')
+        self.assertNotRegex(source, r">\s*[^<>{\n]*[\u0400-\u04ff][^<>{\n]*<")
+        self.assertNotRegex(source, r'(?:placeholder|aria-label|alt)="[^"\n]*[\u0400-\u04ff]')
 
     def test_english_and_czech_are_free_of_accidental_cyrillic(self):
         for source, options in self.translations.items():
