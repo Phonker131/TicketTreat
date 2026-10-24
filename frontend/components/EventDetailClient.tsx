@@ -13,7 +13,7 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { LANGUAGE_NAMES, t } from "@/lib/i18n";
 import type { TicketTreatEvent } from "@/lib/types";
 
-export function EventDetailClient({preview=false}:{preview?:boolean}) {
+export function EventDetailClient({preview=false,initialEvent=null}:{preview?:boolean;initialEvent?:TicketTreatEvent|null}) {
   const params = useParams<{id: string}>();
   const query=useSearchParams();
   const source=(query.get("utm_source")||query.get("ref")||"").toLowerCase();
@@ -25,7 +25,7 @@ export function EventDetailClient({preview=false}:{preview?:boolean}) {
     ru:{manage:"Управление ивентом",title:"Предпросмотр — доступен только организатору.",published:"Ивент также опубликован.",draft:"Черновик пока не виден гостям и не принимает регистрации.",card:"Предпросмотр карточки",cardInfo:"Регистрация в режиме предпросмотра недоступна. Чтобы открыть её для гостей, опубликуй мероприятие в админке.",showMap:"Показать карту",hideMap:"Скрыть карту",mapTitle:"Карта места проведения"},
     uk:{manage:"Керування подією",title:"Попередній перегляд — доступний лише організатору.",published:"Подію також опубліковано.",draft:"Чернетку ще не видно гостям, і вона не приймає реєстрації.",card:"Попередній перегляд події",cardInfo:"Реєстрація в режимі попереднього перегляду недоступна. Опублікуй подію в панелі організатора.",showMap:"Показати карту",hideMap:"Сховати карту",mapTitle:"Карта місця проведення"}
   }[language];
-  const [event, setEvent] = useState<TicketTreatEvent | null>(null);
+  const [event, setEvent] = useState<TicketTreatEvent | null>(initialEvent);
   const [error, setError] = useState<string | null>(null);
   const [demoPayments,setDemoPayments]=useState(false);
   const [mapOpen,setMapOpen]=useState(false);
