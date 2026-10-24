@@ -742,8 +742,10 @@ export function ProfileClient() {
               <span className="status status-success">✓ {ui.telegramVerified}</span>
               <h2>{telegramProfile.telegram.first_name}</h2>
               <p>{ui.telegramSignedIn}</p>
-              <Link href="/tickets" className="button button-outline">{language === "ru" ? "Мои билеты" : language === "cs" ? "Moje vstupenky" : language === "uk" ? "Мої квитки" : "My tickets"}</Link>
-              <small>{ui.telegramSeparate}</small>
+              <div className="tt-telegram-tickets-action">
+                <Link href="/tickets" className="button button-outline">{tr.tickets}</Link>
+              </div>
+              <small className="tt-telegram-separate-note">{ui.telegramSeparate}</small>
             </section>}
             <p className="form-note">{tr.need}</p>
             <div className="auth-tabs" role="tablist">
