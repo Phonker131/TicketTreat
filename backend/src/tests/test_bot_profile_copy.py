@@ -59,7 +59,9 @@ class ProfileCopyTests(unittest.TestCase):
                 language=json.get("language_code","")
                 field={"getMyDescription":"description","getMyShortDescription":"short_description",
                     "getMyCommands":"commands"}.get(endpoint)
-                if field:return Response({field:self.reads.get((field,language),[] if field=="commands" else "")})
+                if field:
+                    current=self.reads.get((field,language),[] if field=="commands" else "")
+                    return Response(current if field=="commands" else {field:current})
                 field={"setMyDescription":"description","setMyShortDescription":"short_description",
                     "setMyCommands":"commands"}[endpoint]
                 self.reads[(field,language)]=json[field]
