@@ -14,6 +14,7 @@ export function AppHeader() {
   const { language } = useLanguage();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuReady, setMenuReady] = useState(false);
   const menuLabel = language==="ru"?"Меню":language==="cs"?"Menu":language==="uk"?"Меню":"Menu";
   const menuAction = menuOpen
     ? (language==="ru"?"Закрыть меню":language==="cs"?"Zavřít nabídku":language==="uk"?"Закрити меню":"Close menu")
@@ -26,6 +27,9 @@ export function AppHeader() {
   useEffect(()=>{getBookingConfig().then(config=>setDemoEnabled(config.demo_payment_mode)).catch(()=>{});},[]);
 
   useEffect(() => setInsideTelegram(isTelegramWebApp()), []);
+  // Until hydration attaches event handlers, a mobile tap must not appear to
+  // succeed while silently doing nothing. Enable the toggle only when ready.
+  useEffect(() => setMenuReady(true), []);
 
   // Close the mobile menu after navigation, including browser back/forward.
   useEffect(() => setMenuOpen(false), [pathname]);
@@ -78,7 +82,7 @@ export function AppHeader() {
             onClick={e=>{const telegram=getTelegramWebApp();if(insideTelegram && telegram?.openTelegramLink){e.preventDefault();telegram.openTelegramLink(botUrl);}}}>
             Telegram Mini App ↗
           </a>}
-          <button type="button" className="topbar-menu-toggle" aria-controls="tt-primary-nav" aria-expanded={menuOpen} aria-label={menuAction} onClick={() => setMenuOpen(open => !open)}>
+          <button type="button" className="topbar-menu-toggle" disabled={!menuReady} aria-controls="tt-primary-nav" aria-expanded={menuOpen} aria-label={menuAction} onClick={() => setMenuOpen(open => !open)}>
             <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round">
               {menuOpen ? <path d="M5 5l14 14M19 5L5 19" /> : <path d="M4 6h16M4 12h16M4 18h16" />}
             </svg>
