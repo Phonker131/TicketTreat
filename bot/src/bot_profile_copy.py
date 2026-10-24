@@ -246,8 +246,10 @@ def get_copy(language_code: str | None) -> dict:
 
 
 def welcome_text(language_code: str | None, first_name: str | None) -> str:
-    safe = re.sub(r"[\x00-\x1f\x7f]+", " ", str(first_name or "").strip())[:70] or "friend"
-    return get_copy(language_code)["start"].replace("{name}", safe)
+    lang = normalize_language(language_code)
+    fallback = {"en": "friend", "ru": "друг", "cs": "příteli", "uk": "друже"}[lang]
+    safe = re.sub(r"[\x00-\x1f\x7f]+", " ", str(first_name or "").strip())[:70] or fallback
+    return get_copy(lang)["start"].replace("{name}", safe)
 
 
 def validate_profile_copy() -> None:
