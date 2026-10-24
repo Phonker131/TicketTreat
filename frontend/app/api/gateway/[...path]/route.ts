@@ -20,8 +20,12 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   if (!supported.has(method)) return NextResponse.json({detail:"method_not_allowed"},{status:405});
   const {path} = await context.params;
   const relative = "/" + path.map(encodeURIComponent).join("/");
-  if (relative === "/demo/auth/google/finish") return NextResponse.json({detail:"path_not_allowed"},{status:404});
-  if (!relative.startsWith("/demo/") && relative !== "/events" && !/^\/events\/\d+$/.test(relative) && relative !== "/") {
+  // Versioned clients use /api/v1; older issued URLs still use /demo.
+  // Evaluate every existing session/privilege guard against the same logical
+  // handler path, regardless of the public API prefix used by the browser.
+  const checked = relative.startsWith("/api/v1/") ? "/demo/" + relative.slice("/api/v1/".length) : relative;
+  if (checked === "/demo/auth/google/finish") return NextResponse.json({detail:"path_not_allowed"},{status:404});
+  if (!checked.startsWith("/demo/") && checked !== "/events" && !/^\/events\/\d+$/.test(checked) && checked !== "/") {
     return NextResponse.json({detail:"path_not_allowed"},{status:404});
   }
   if (req.nextUrl.search.length > 2048) return NextResponse.json({detail:"query_too_long"},{status:400});
@@ -61,8 +65,8 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   // paths only, forward the HttpOnly browser session so an event owner can
   // preview draft posters/galleries. The backend still checks ownership.
   // Never apply implicit sessions to arbitrary GET endpoints.
-  if (method === "GET" && (/^\/demo\/events\/\d+\/(?:poster|gallery\/\d+)$/.test(relative) ||
-      /^\/demo\/me\/tickets\/\d+\/wallet$/.test(relative))) {
+  if (method === "GET" && (/^\/demo\/events\/\d+\/(?:poster|gallery\/\d+)$/.test(checked) ||
+      /^\/demo\/me\/tickets\/\d+\/wallet$/.test(checked))) {
     const imageSession = req.cookies.get(COOKIE)?.value;
     if (imageSession && !headers.has("Authorization"))
       headers.set("Authorization", "Bearer " + imageSession);
@@ -73,7 +77,7 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   }
   // Legacy browser-wide administration keys never transit the public BFF.
   // Organizers use /demo/manage/* with scoped, revocable web sessions.
-  if (relative.startsWith("/demo/admin/")) {
+  if (checked.startsWith("/demo/admin/")) {
     return NextResponse.json({detail:"legacy_admin_endpoint_disabled"},{status:403});
   }
   const raw=method==="GET"?undefined:await req.arrayBuffer();
@@ -86,14 +90,14 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   }
   const outType=upstream.headers.get("content-type")||"application/json";
   const init:ResponseInit={status:upstream.status,headers:{"Content-Type":outType,"Cache-Control":"private, no-store"}};
-  if (/^\/demo\/me\/tickets\/\d+\/wallet$/.test(relative) && upstream.ok){
+  if (/^\/demo\/me\/tickets\/\d+\/wallet$/.test(checked) && upstream.ok){
     const disposition=upstream.headers.get("content-disposition");
     if(disposition && /^attachment; filename="tickettreat-\d+\.pkpass"$/.test(disposition))
       (init.headers as Record<string,string>)["Content-Disposition"]=disposition;
   }
   // Never forward Set-Cookie or upstream redirections.
   if(upstream.status>=300&&upstream.status<400)return NextResponse.json({detail:"redirect_denied"},{status:502});
-  if (relative === "/demo/auth/google/start" && upstream.ok) {
+  if (checked === "/demo/auth/google/start" && upstream.ok) {
     const data = await upstream.json().catch(() => null);
     if (!data || typeof data.browser_token !== "string" || typeof data.url !== "string")
       return NextResponse.json({detail:"malformed_google_response"},{status:502});
@@ -103,8 +107,8 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
       path:"/api/auth/google",maxAge:600});
     return response;
   }
-  const shouldSave=sessionPaths.has(relative) && upstream.ok;
-  const shouldClear=logoutPaths.has(relative) && upstream.ok;
+  const shouldSave=sessionPaths.has(checked) && upstream.ok;
+  const shouldClear=logoutPaths.has(checked) && upstream.ok;
   if(shouldSave){
     const data=await upstream.json().catch(()=>null);
     if(!data || typeof data.token!=="string" || data.token.length<30)
