@@ -71,7 +71,7 @@ export function GoogleSignIn({link=false}:{link?:boolean}) {
         <p className="form-note">{language==="ru"?"Для привязки введи пароль от своего существующего аккаунта TicketTreat (не от Google). Затем нажми кнопку ниже.":language==="uk"?"Для прив'язки введи пароль від існуючого акаунта TicketTreat, а не Google.":language==="cs"?"Zadej heslo svého stávajícího účtu TicketTreat, nikoli heslo Google.":"Enter your existing TicketTreat password (not your Google password) before linking."}</p>
         <label>{tr.password}<input type="password" autoComplete="current-password" maxLength={128} value={password} onChange={e=>{setPassword(e.target.value);if(message==="password_required")setMessage("");}}/></label>
       </>}
-      <button type="button" className="button button-outline" disabled={busy} onClick={()=>void start()}>{busy?(language==="ru"?"Подключаем…":"Connecting…"):(link?tr.link:tr.login)}</button>
+      <button type="button" className="button button-outline" disabled={busy} onClick={()=>void start()}>{busy?(language==="ru"?"Подключаем…":language==="cs"?"Připojování…":language==="uk"?"Підключаємо…":"Connecting…"):(link?tr.link:tr.login)}</button>
     </>)}
   </div>;
 }
