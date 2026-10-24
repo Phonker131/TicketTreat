@@ -516,3 +516,75 @@ button.tt-support-unread{border-left:7px solid var(--tt-tomato);}
   .tt-consent-hint{font-size:12px;}
 }
 @media(prefers-reduced-motion:reduce){.tt-consent-actions button{transition:none;}}
+
+
+/* Mobile navigation: a real disclosure menu instead of a clipped horizontal
+   link strip. Preserve desktop navigation and the Telegram Mini App header. */
+.topbar-menu-toggle { display: none; }
+@media (max-width: 850px) {
+  .topbar-inner { flex-wrap: wrap; min-width: 0; }
+  .topbar-actions { margin-left: auto; min-width: 0; flex-shrink: 0; }
+  .topbar-actions .demo-pill { display: none; }
+  .topbar-menu-toggle {
+    appearance: none;
+    display: inline-flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 8px 11px;
+    background: var(--tt-white);
+    color: var(--tt-keyline);
+    border: 2px solid var(--tt-keyline);
+    border-radius: 12px;
+    font-family: var(--tt-font-ui);
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .topbar-menu-toggle[aria-expanded="true"] { background: var(--tt-mustard); }
+  .topbar-menu-toggle:focus-visible { outline: 3px solid var(--tt-ultramarine); outline-offset: 3px; }
+  .topbar-nav {
+    display: none;
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 12px 0 2px;
+    margin: 0;
+    border-top: 1px solid rgba(21,20,31,.24);
+    overflow: visible;
+    scrollbar-width: auto;
+    gap: 8px;
+    justify-content: initial;
+    align-items: stretch;
+  }
+  .topbar-nav.is-open { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .topbar-nav a {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    line-height: 1.3;
+    border: 2px solid var(--tt-keyline);
+    border-radius: 10px;
+    background: var(--tt-white);
+  }
+  .topbar-nav a:hover, .topbar-nav a:focus-visible {
+    background: var(--tt-mustard);
+    border-color: var(--tt-keyline);
+  }
+}
+@media (max-width: 360px) {
+  .topbar-actions { gap: 5px; }
+  .topbar-menu-toggle { padding: 8px; }
+  .topbar-menu-toggle span { display: none; }
+  .topbar-nav.is-open { grid-template-columns: minmax(0,1fr); }
+}
