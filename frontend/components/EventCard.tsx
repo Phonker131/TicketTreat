@@ -10,6 +10,7 @@ import {
   t,
 } from "@/lib/i18n";
 import type { TicketTreatEvent } from "@/lib/types";
+import { eventDisplayDate } from "@/lib/format";
 
 function formatDate(
   value: string | null,
@@ -19,7 +20,7 @@ function formatDate(
     return "—";
   }
 
-  const date = new Date(value);
+  const {date,timeZone} = eventDisplayDate(value);
 
   if (Number.isNaN(date.getTime())) {
     return value;
@@ -28,6 +29,7 @@ function formatDate(
   return new Intl.DateTimeFormat(
     localeForLanguage(language),
     {
+      timeZone,
       day: "2-digit",
       month: "short",
       year: "numeric",
