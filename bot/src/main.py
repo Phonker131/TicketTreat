@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import csv
 import os
+import re
 import tempfile
 import threading
 import time
@@ -530,6 +531,30 @@ UI_TRANSLATIONS.update({
 })
 
 
+
+# Complete composed Telegram strings and legacy event prompts.
+# Keep organizer-owned fields behind preserve_custom() at call sites.
+UI_TRANSLATIONS.update({
+    "💳 Для завершения регистрации оплати билет по реквизитам ниже:": _tr("💳 To complete registration, pay using the details below:", "💳 Pro dokončení registrace zaplať podle údajů níže:", "💳 Для завершения регистрации оплати билет по реквизитам ниже:", "💳 Щоб завершити реєстрацію, сплати за реквізитами нижче:"),
+    "⏳ Администратор должен подтвердить оплату в течение 24 часов.": _tr("⏳ The organizer must confirm your payment within 24 hours.", "⏳ Pořadatel musí platbu potvrdit do 24 hodin.", "⏳ Администратор должен подтвердить оплату в течение 24 часов.", "⏳ Організатор має підтвердити оплату протягом 24 годин."),
+    "Крайний срок подтверждения: ": _tr("Confirmation deadline: ", "Termín potvrzení: ", "Крайний срок подтверждения: ", "Кінцевий термін підтвердження: "),
+    "Если оплата не будет подтверждена вовремя, бронь автоматически отменится.": _tr("If payment is not confirmed in time, the reservation expires automatically.", "Pokud platba nebude potvrzena včas, rezervace automaticky vyprší.", "Если оплата не будет подтверждена вовремя, бронь автоматически отменится.", "Якщо оплату не підтвердять вчасно, бронювання автоматично скасується."),
+    "Пример:": _tr("Example:", "Příklad:", "Пример:", "Приклад:"),
+    "Comment: имя участника": _tr("Comment: attendee name", "Poznámka: jméno účastníka", "Comment: имя участника", "Примітка: ім’я учасника"),
+    "Формат: YYYY-MM-DD HH:MM": _tr("Format: YYYY-MM-DD HH:MM", "Formát: YYYY-MM-DD HH:MM", "Формат: YYYY-MM-DD HH:MM", "Формат: YYYY-MM-DD HH:MM"),
+    "Пример: 2026-09-01 18:30": _tr("Example: 2026-09-01 18:30", "Příklad: 2026-09-01 18:30", "Пример: 2026-09-01 18:30", "Приклад: 2026-09-01 18:30"),
+    "Примеры: 12h, 3h, 30m, 1d.": _tr("Examples: 12h, 3h, 30m, 1d.", "Příklady: 12h, 3h, 30m, 1d.", "Примеры: 12h, 3h, 30m, 1d.", "Приклади: 12h, 3h, 30m, 1d."),
+    "Напиши skip, если напоминание не нужно.": _tr("Type skip if no reminder is needed.", "Pokud připomínku nechceš, napiš skip.", "Напиши skip, если напоминание не нужно.", "Напиши skip, якщо нагадування не потрібне."),
+    "⏳ Администратор должен подтвердить оплату ": _tr("⏳ The organizer must confirm the payment ", "⏳ Pořadatel musí potvrdit platbu ", "⏳ Администратор должен подтвердить оплату ", "⏳ Організатор має підтвердити оплату "),
+    "В профиле пока нет Instagram. Введите Instagram username или ссылку:": _tr("Your profile has no Instagram yet. Enter a username or link:", "Ve tvém profilu zatím není Instagram. Zadej uživatelské jméno nebo odkaz:", "В профиле пока нет Instagram. Введите Instagram username или ссылку:", "У твоєму профілі ще немає Instagram. Введи ім'я користувача або посилання:"),
+})
+
+# Match the ORIGINAL source in a single pass. Iterative .replace() could
+# translate words within a previous translation and produce mixed languages.
+_UI_TRANSLATION_PATTERN = re.compile(
+    "|".join(re.escape(key) for key in sorted(UI_TRANSLATIONS, key=len, reverse=True))
+)
+
 def get_interface_language(
     telegram_id: int | None,
     *,
@@ -556,7 +581,7 @@ def get_interface_language(
             timeout=5,
         )
         language = str(
-            data.get("language") if data.get("explicit") else DEFAULT_INTERFACE_LANGUAGE
+            data.get("language") or DEFAULT_INTERFACE_LANGUAGE
         ).lower()
     except Exception:
         language = DEFAULT_INTERFACE_LANGUAGE
@@ -573,11 +598,11 @@ def remember_telegram_language(user) -> str:
     telegram_id = int(user.id)
     if telegram_id in user_language_cache:
         return user_language_cache[telegram_id]
-    chosen = normalize_language(getattr(user, "language_code", None))
+    chosen = normalize_language(getattr(user, "language_code", None)) or DEFAULT_INTERFACE_LANGUAGE
     try:
         result = backend_request("GET", f"/users/{telegram_id}/language", timeout=5)
         if result.get("explicit"):
-            chosen = normalize_language(result.get("language"))
+            chosen = normalize_language(result.get("language")) or chosen
         else:
             # Persist the Telegram locale so the backend's event reminders
             # and ticket notices use the same language as the bot UI.
@@ -658,32 +683,12 @@ def preserve_custom(value: Any) -> str:
     )
 
 
-def _translate_ui_segment(
-    segment: str,
-    language: str,
-) -> str:
-    result = segment
-
-    for source in sorted(
-        UI_TRANSLATIONS,
-        key=len,
-        reverse=True,
-    ):
-        if source not in result:
-            continue
-
-        replacement = UI_TRANSLATIONS[source].get(
-            language
-        )
-
-        if replacement is not None:
-            result = result.replace(
-                source,
-                replacement,
-            )
-
-    return result
-
+def _translate_ui_segment(segment: str, language: str) -> str:
+    """Translate only source tokens, without re-translating replacements."""
+    return _UI_TRANSLATION_PATTERN.sub(
+        lambda match: UI_TRANSLATIONS[match.group(0)].get(language, match.group(0)),
+        segment,
+    )
 
 def localize_system_text(
     telegram_id: int | None,
