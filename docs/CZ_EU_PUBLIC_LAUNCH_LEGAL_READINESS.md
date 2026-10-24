@@ -11,7 +11,7 @@ Status: **NOT LEGALLY SIGNED OFF**. Updated 2026-10-23. Applies to the Czechia p
   - `LEGAL_OPERATOR_ICO` — set only if one legally exists; otherwise omit, never make it up.
 - [ ] Rebuild/redeploy Frontend after variables change and verify both `/privacy-policy` and `/terms` show the same actual controller details, not the "pending" notice. Approve the public documents in Czech and English.
 - [ ] Provide additional mandatory seller/trader identification (and where applicable company register, taxes, VAT and contact information) at checkout and in terms before any paid tickets. The responsible person may differ from the data controller or event organizer.
-- [ ] Confirm web support contact `https://t.me/vvladver` is owned, monitored, and suitable; do not rely on Telegram as the only GDPR contact channel.
+- [ ] Confirm the official web support channel `https://tickettreat.eu/support` is accessible, monitored, and handles replies through authenticated tickets and verified email. Separately verify `LEGAL_PRIVACY_EMAIL` as a working GDPR contact channel; do not rely on tickets requiring login as the only route for data-subject requests.
 
 ## Pilot commercial model (confirmed by founders, 2026-10-23)
 - Free events: TicketTreat supplies registration, QR tickets, reminders and check-in.
