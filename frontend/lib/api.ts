@@ -265,6 +265,32 @@ export async function downloadEventParticipantsCsv(eventId: number, adminKey: st
   }
 }
 
+
+export function getPublicOrganizers():Promise<import("@/lib/types").OrganizerPublicSummary[]> {
+  return request("/demo/public/organizers");
+}
+export function getPublicOrganizer(slug:string):Promise<import("@/lib/types").OrganizerPublicDetail> {
+  return request(`/demo/public/organizers/${encodeURIComponent(slug)}`);
+}
+export function getOwnOrganizerProfile():Promise<import("@/lib/types").EditableOrganizerProfile> {
+  return request("/demo/manage/organizer-profile");
+}
+export function saveOwnOrganizerProfile(profile:Pick<import("@/lib/types").EditableOrganizerProfile,
+  "slug"|"display_name"|"bio"|"city"|"website_url"|"instagram"|"published">):
+  Promise<import("@/lib/types").EditableOrganizerProfile> {
+  return request("/demo/manage/organizer-profile",{method:"PUT",body:JSON.stringify(profile)});
+}
+export function uploadOrganizerImage(kind:"logo"|"cover",data_url:string):
+  Promise<import("@/lib/types").EditableOrganizerProfile> {
+  return request(`/demo/manage/organizer-profile/media/${kind}`,{
+    method:"PUT",body:JSON.stringify({data_url})
+  });
+}
+export function deleteOrganizerImage(kind:"logo"|"cover"):
+  Promise<import("@/lib/types").EditableOrganizerProfile> {
+  return request(`/demo/manage/organizer-profile/media/${kind}`,{method:"DELETE"});
+}
+
 /** Every manage route requires a logged-in account, not the old shared key. */
 function accountHeaders(token: string): HeadersInit {
   return {Authorization: `Bearer ${token}`};
