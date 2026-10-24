@@ -1127,7 +1127,7 @@ def legacy_admin_destination(data: str) -> str:
         return "/admin"
     m = _re.match(
         r"^admin:(?:event|participants|export_participants|confirm_payment|"
-        r"edit|edit_field|edit_lang|cancel):(\\d+)(?::|$)",
+        r"edit|edit_field|edit_lang|cancel):(\d+)(?::|$)",
         data,
     )
     return f"/admin/events/{m.group(1)}" if m else "/admin"
