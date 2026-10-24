@@ -5,7 +5,7 @@ import { localeForLanguage, t } from "@/lib/i18n";
 export function eventDisplayDate(value: string): {date:Date;timeZone:string} {
   // Offset-free datetimes represent the venue's wall-clock time (Prague pilot).
   // Treat them as floating rather than shifting them into the device timezone.
-  const floating = !/(?:Z|[+-]\\d{2}:\\d{2})$/i.test(value);
+  const floating = !/(?:Z|[+-]\d{2}:\d{2})$/i.test(value);
   return {
     date:new Date(floating ? value + "Z" : value),
     timeZone:floating ? "UTC" : "Europe/Prague",
