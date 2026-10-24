@@ -72,7 +72,7 @@ export function AdminEventClient(){
     if(Number(ev.price||0)>0){
       void getManagePaidReservations(token,eventId).then(r=>setPaidReservations(r.reservations)).catch(()=>setPaidReservations([]));
     }else setPaidReservations([]);
-    setReminderMessage(ev.reminder_text||"Your TicketTreat event starts soon.");
+    setReminderMessage(ev.reminder_text||tr("Your TicketTreat event starts soon."));
     void getEventEmailStatus(token,eventId).then(setEmailStatus).catch(()=>setEmailStatus(null));
     void getPilotInsights(token,eventId).then(setPilotInsights).catch(()=>setPilotInsights(null));
     void getPilotSettings(token,eventId).then(setPilotSettings).catch(()=>{});
