@@ -26,10 +26,58 @@ test("mobile navigation and accessible keyboard focus",async({page})=>{
   await page.setViewportSize({width:375,height:812});
   await page.goto("/",{waitUntil:"domcontentloaded"});
   const nav=page.locator(".topbar-nav");
+  const menu=page.locator(".topbar-menu-toggle");
+  await expect(menu).toHaveAttribute("aria-label","Открыть меню");
+  await expect(menu).toBeEnabled();
+  await expect(nav).toBeHidden();
+  await expect(menu).toHaveAttribute("aria-expanded","false");
+  await menu.click();
+  await expect(menu).toHaveAttribute("aria-expanded","true");
   await expect(nav).toBeVisible();
-  await expect(nav.getByRole("link").first()).toBeVisible();
+  await expect(nav.getByRole("link",{name:/Support|Поддержка|Podpora|Підтримка/})).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(nav).toBeHidden();
+  await expect(menu).toHaveAttribute("aria-expanded","false");
   await page.keyboard.press("Tab");
-  await expect.poll(async()=>page.evaluate(()=>document.activeElement?.tagName === "A" || document.activeElement?.tagName === "BUTTON" || document.activeElement?.tagName === "SELECT")).toBe(true);
+  await expect.poll(async()=>page.evaluate(()=>["A","BUTTON","SELECT"].includes(document.activeElement?.tagName||""))).toBe(true);
+});
+
+for(const width of [320,375,390,430,768,850,1024,1199]){
+  test(`mobile navbar stays inside ${width}px and closes after link navigation`,async({page})=>{
+    await page.setViewportSize({width,height:812});
+    await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+    const nav=page.locator(".topbar-nav");
+    const toggle=page.locator(".topbar-menu-toggle");
+    await expect(toggle).toBeEnabled();
+    await expect(toggle).toHaveAttribute("aria-label","Open menu");
+    await expect(toggle).toBeVisible();
+    await expect(nav).toBeHidden();
+    await toggle.click();
+    await expect(nav).toBeVisible();
+    await expect(nav.getByRole("link")).toHaveCount(5);
+    const rects=await nav.getByRole("link").evaluateAll(links=>links.map(link=>{
+      const rect=link.getBoundingClientRect();
+      return {left:rect.left,right:rect.right,width:rect.width,scrollWidth:link.scrollWidth};
+    }));
+    for(const rect of rects){
+      expect(rect.left).toBeGreaterThanOrEqual(0);
+      expect(rect.right).toBeLessThanOrEqual(width+1);
+      expect(rect.width).toBeGreaterThan(100);
+      expect(rect.scrollWidth).toBeLessThanOrEqual(Math.ceil(rect.width)+1);
+    }
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width+1);
+    await nav.getByRole("link",{name:"Support"}).click();
+    await expect(page).toHaveURL(/\/support/);
+    await expect(nav).toBeHidden();
+    await expect(toggle).toHaveAttribute("aria-expanded","false");
+  });
+}
+
+test("desktop navbar remains permanently visible",async({page})=>{
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  await expect(page.locator(".topbar-nav")).toBeVisible();
+  await expect(page.locator(".topbar-menu-toggle")).toBeHidden();
 });
 
 test("public pilot header opens the official TicketTreat bot", async ({page}) => {
@@ -126,6 +174,9 @@ test("priced events never show TicketTreat fake payment or automatic paid ticket
 test("support center is linked publicly, does not permit anonymous complaints and works on mobile",async({page})=>{
   await page.setViewportSize({width:375,height:812});
   await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator(".topbar-menu-toggle")).toBeEnabled();
+  await page.locator(".topbar-menu-toggle").click();
+  await expect(page.locator(".topbar-nav")).toBeVisible();
   await expect(page.locator(".topbar-nav").getByRole("link",{name:/Support|Поддержка|Podpora|Підтримка/})).toHaveAttribute("href","/support");
   await expect(page.locator("footer").getByRole("link",{name:/Support|Поддержка|Podpora|Підтримка/})).toHaveAttribute("href","/support");
   await page.goto("/support",{waitUntil:"domcontentloaded"});
