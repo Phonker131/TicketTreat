@@ -379,7 +379,7 @@ function PaidCheckout({event,guest,language,source}:{
         </button>
       </>}
     </>}
-    <p className="tt-legal-at-collection"><Link href="/terms">Terms of Service</Link> · <Link href="/privacy-policy">Privacy Policy</Link></p>
+    <p className="tt-legal-at-collection"><Link href="/terms">{language==="ru"?"Условия использования":language==="cs"?"Obchodní podmínky":language==="uk"?"Умови користування":"Terms of Service"}</Link> · <Link href="/privacy-policy">{language==="ru"?"Политика конфиденциальности":language==="cs"?"Zásady ochrany osobních údajů":language==="uk"?"Політика конфіденційності":"Privacy Policy"}</Link></p>
     {error&&<p className="state-card state-error" role="alert">{error}</p>}
   </section>;
 }
