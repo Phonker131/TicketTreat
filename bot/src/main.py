@@ -181,6 +181,7 @@ UI_TRANSLATIONS = {
     "📅 Events": _tr("📅 Events", "📅 Události", "📅 Ивенты", "📅 Події"),
     "🎟 My events": _tr("🎟 My events", "🎟 Moje události", "🎟 Мои ивенты", "🎟 Мої події"),
     "🎟 My tickets": _tr("🎟 My tickets", "🎟 Moje vstupenky", "🎟 Мои билеты", "🎟 Мої квитки"),
+    "🏅 Passport": _tr("🏅 Passport", "🏅 Pas hosta", "🏅 Паспорт", "🏅 Паспорт"),
     "👤 My profile": _tr("👤 My profile", "👤 Můj profil", "👤 Мой профиль", "👤 Мій профіль"),
     "📝 Registration": _tr("📝 Registration", "📝 Registrace", "📝 Регистрация", "📝 Реєстрація"),
     "🆘 Client service": _tr("🆘 Client service", "🆘 Zákaznická podpora", "🆘 Поддержка", "🆘 Підтримка"),
@@ -1263,7 +1264,8 @@ def get_main_menu(user_id: int):
 
     if registered:
         keyboard.row(KeyboardButton("📅 Events"), KeyboardButton("🎟 My tickets"))
-        keyboard.row(KeyboardButton("👤 My profile"), KeyboardButton("🆘 Client service"))
+        keyboard.row(KeyboardButton("👤 My profile"), KeyboardButton("🏅 Passport"))
+        keyboard.row(KeyboardButton("🆘 Client service"))
     else:
         keyboard.row(KeyboardButton("🏠 Start"), KeyboardButton("📅 Events"))
         keyboard.row(KeyboardButton("📝 Registration"), KeyboardButton("🆘 Client service"))
@@ -2082,6 +2084,12 @@ def events_button(message):
 @bot.message_handler(func=lambda message: ui_text_matches(message.text, "🎟 My events") or ui_text_matches(message.text, "🎟 My tickets"))
 def my_events_button(message):
     my_events(message)
+
+
+@bot.message_handler(func=lambda message: ui_text_matches(message.text, "🏅 Passport"))
+def passport_button(message):
+    # Share the established /passport flow (including Mini App /loyalty and private-chat guard).
+    open_loyalty_passport(message)
 
 
 @bot.message_handler(func=lambda message: ui_text_matches(message.text, "📝 Registration"))
