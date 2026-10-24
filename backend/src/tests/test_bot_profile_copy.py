@@ -20,6 +20,7 @@ class ProfileCopyTests(unittest.TestCase):
             self.assertLessEqual(len(copy["about"]),120)
             self.assertEqual([cmd for cmd,_ in copy["commands"]],baseline)
             self.assertEqual(len(copy["buttons"]),2)
+            self.assertTrue(copy["start_actions"])
             self.assertIn("/passport",copy["start"])
             self.assertIn("/tickets",copy["start"])
             self.assertIn("TicketTreat",copy["description"])
@@ -31,6 +32,88 @@ class ProfileCopyTests(unittest.TestCase):
         self.assertTrue(ru.startswith("Привет, Александр! Это TicketTreat."))
         self.assertTrue(en.endswith('Pick an event, tap "Book a spot" and your ticket arrives here.'))
         self.assertTrue(ru.endswith("Выбери ивент, нажми «Записаться» — билет придёт сюда."))
+
+
+    def test_start_shortcuts_are_localized_and_link_to_correct_pages(self):
+        import ast
+        import types
+        source=PATH.parent.joinpath("main.py").read_text(encoding="utf-8")
+        tree=ast.parse(source)
+        helper=next(node for node in tree.body if isinstance(node,ast.FunctionDef)
+                    and node.name=="send_start_shortcuts")
+        class Keyboard:
+            def __init__(self,row_width=1):
+                self.row_width=row_width
+                self.rows=[]
+            def row(self,*buttons):
+                self.rows.append(list(buttons))
+        class Bot:
+            def __init__(self):
+                self.sent=[]
+            def send_message(self,chat_id,text,reply_markup=None):
+                self.sent.append((chat_id,text,reply_markup))
+        bot=Bot()
+        scope={
+            "WEB_APP_URL":"https://tickettreat.eu",
+            "InlineKeyboardMarkup":Keyboard,
+            "copy_webapp_button":lambda label,route,*,private=True: (label,route,private),
+            "preserve_custom":lambda text:text,
+            "bot":bot,
+        }
+        exec(compile(ast.Module(body=[helper],type_ignores=[]),str(PATH.parent/"main.py"),"exec"),scope)
+        for language in ("en","ru","cs","uk"):
+            for chat_type in ("private","supergroup"):
+                bot.sent.clear()
+                message=types.SimpleNamespace(chat=types.SimpleNamespace(id=17,type=chat_type))
+                copy=module.get_copy(language)
+                scope["send_start_shortcuts"](message,copy)
+                self.assertEqual(len(bot.sent),1)
+                chat_id,text,markup=bot.sent[0]
+                self.assertEqual((chat_id,text),(17,copy["start_actions"]))
+                self.assertEqual(markup.row_width,2)
+                self.assertEqual(markup.rows,[[
+                    (copy["buttons"][0],"/",chat_type=="private"),
+                    (copy["buttons"][1],"/tickets",chat_type=="private"),
+                ]])
+        scope["WEB_APP_URL"]="http://localhost:3000"
+        bot.sent.clear()
+        scope["send_start_shortcuts"](
+            types.SimpleNamespace(chat=types.SimpleNamespace(id=17,type="private")),
+            module.get_copy("en"),
+        )
+        self.assertEqual(bot.sent,[])
+
+    def test_start_preserves_bottom_menu_and_adds_shortcuts(self):
+        import ast
+        import types
+        source=PATH.parent.joinpath("main.py").read_text(encoding="utf-8")
+        tree=ast.parse(source)
+        fn=next(node for node in tree.body if isinstance(node,ast.FunctionDef)
+                and node.name=="start")
+        fn.decorator_list=[]
+        sent=[]
+        shortcuts=[]
+        menu=object()
+        scope={
+            "remember_telegram_language":lambda user:"ru",
+            "get_copy":module.get_copy,
+            "welcome_text":module.welcome_text,
+            "preserve_custom":lambda text:text,
+            "get_main_menu":lambda user_id:menu,
+            "send_start_shortcuts":lambda message,copy:shortcuts.append((message,copy)),
+            "bot":types.SimpleNamespace(send_message=lambda *a,**kw:sent.append((a,kw))),
+        }
+        exec(compile(ast.Module(body=[fn],type_ignores=[]),str(PATH.parent/"main.py"),"exec"),scope)
+        message=types.SimpleNamespace(
+            text="/start",
+            chat=types.SimpleNamespace(id=17,type="private"),
+            from_user=types.SimpleNamespace(id=42,first_name="Алексей"),
+        )
+        scope["start"](message)
+        self.assertEqual(len(sent),1)
+        self.assertEqual(sent[0][1]["reply_markup"],menu)
+        self.assertIn("Привет, Алексей!",sent[0][0][1])
+        self.assertEqual(shortcuts,[(message,module.get_copy("ru"))])
 
     def test_telegram_auto_locale_and_explicit_fallback(self):
         self.assertEqual(module.normalize_language("cs-CZ"),"cs")
