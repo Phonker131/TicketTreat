@@ -54,7 +54,7 @@ for(const width of [320,375,390,430,768,850,1024,1199]){
     await expect(nav).toBeHidden();
     await toggle.click();
     await expect(nav).toBeVisible();
-    await expect(nav.getByRole("link")).toHaveCount(5);
+    await expect(nav.getByRole("link")).toHaveCount(6);
     const rects=await nav.getByRole("link").evaluateAll(links=>links.map(link=>{
       const rect=link.getBoundingClientRect();
       return {left:rect.left,right:rect.right,width:rect.width,scrollWidth:link.scrollWidth};
@@ -140,13 +140,13 @@ test("registration does not reveal platform-owner recovery or JSON export", asyn
 });
 
 test("homepage footer exposes Google OAuth legal links and copyright for guests", async ({page}) => {
-  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
   const footer=page.locator("footer.tt-legal-footer");
   await expect(footer).toBeVisible();
   await expect(footer.getByText(/© 20\d\d TicketTreat/)).toBeVisible();
   await expect(footer.getByRole("link",{name:"Privacy Policy"})).toHaveAttribute("href","/privacy-policy");
   await expect(footer.getByRole("link",{name:"Terms of Service"})).toHaveAttribute("href","/terms");
-  await expect(footer.getByRole("link",{name:"Legal Notice / Provozovatel"})).toHaveAttribute("href","/legal-notice");
+  await expect(footer.getByRole("link",{name:"Legal Notice / Operator"})).toHaveAttribute("href","/legal-notice");
 });
 
 test("legal footer and documents are accessible on narrow screens without sign-in", async ({page}) => {
@@ -277,7 +277,7 @@ test("Google Maps iframe never loads until opt-in and is removed on withdrawal",
   await page.goto("/events/9373?lang=en",{waitUntil:"domcontentloaded"});
   await expect(page.getByTestId("tt-cookie-banner")).toBeVisible();
   await page.getByRole("button",{name:"Reject optional"}).click();
-  await page.getByRole("button",{name:"Показать карту"}).click();
+  await page.getByRole("button",{name:"Show map"}).click();
   await expect(page.locator('iframe[src*="maps.google.com"]')).toHaveCount(0);
   await expect(page.getByText("The embedded Google Maps frame requires optional consent.")).toBeVisible();
   await page.getByRole("button",{name:"Manage cookie preferences"}).click();
