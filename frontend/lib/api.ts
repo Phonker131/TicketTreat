@@ -620,6 +620,32 @@ export function sendEventAnnouncement(token:string,id:number,payload:{category:"
   return request(`/demo/manage/events/${id}/announcement`,{method:"POST",headers:accountHeaders(token),
     body:JSON.stringify(payload)});
 }
+/** Privacy-preserving overview for organizer-owned (or admin-managed) events. */
+export type OrganizerAnalyticsEvent = {
+  event_id:number; title:string; starts_at:string|null; capacity:number|null;
+  reserved_places:number; occupancy_percent:number|null; available_places:number|null;
+  active_qr:number; checked_in_qr:number; qr_checkin_percent:number|null;
+  legacy_registrations:number;waitlist:number;pending_payment:number;
+  pending_payment_24h:number;cancelled_tickets:number;event_finished:boolean;
+  upcoming:boolean;is_cancelled:boolean;publication:string;
+};
+export type OrganizerAnalytics = {
+  summary:{
+    events:number;upcoming:number;completed:number;capacity:number;
+    reserved_places:number;active_qr:number;checked_in_qr:number;
+    waitlist:number;pending_payment:number;pending_payment_24h:number;
+    cancelled_tickets:number;legacy_registrations?:number;
+    occupancy_percent:number|null;qr_checkin_percent:number|null;
+  };
+  events:OrganizerAnalyticsEvent[];
+  channels:{source:string;registrations:number}[];
+  daily_bookings:{date:string;count:number}[];
+  truncated:boolean;limitations:string[];
+};
+export function getOrganizerAnalytics():Promise<OrganizerAnalytics>{
+  return request("/demo/manage/analytics/overview");
+}
+
 /** Organizer-owned read-only performance metrics. */
 export type PilotInsights = {
   event_id:number; capacity:number|null; registered:number;
