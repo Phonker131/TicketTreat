@@ -39,8 +39,9 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 BOT_USERNAME = "TicketTreatBot"  # Official bot; legacy BOT_USERNAME env must not redirect users to Crowdly
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 BOT_API_KEY = os.getenv("BOT_API_KEY", "").strip()
-CLIENT_SERVICE_URL = os.getenv("CLIENT_SERVICE_URL", "").strip()
 WEB_APP_URL = os.getenv("WEB_APP_URL", "").strip().rstrip("/")
+# Keep all support links on the TicketTreat Mini App, never personal Telegram accounts.
+CLIENT_SERVICE_URL = f"{WEB_APP_URL}/support" if WEB_APP_URL.startswith("https://") else ""
 PRAGUE_TZ = ZoneInfo("Europe/Prague")
 
 ADMIN_IDS = [
@@ -1930,7 +1931,7 @@ def client_service_button(message):
     keyboard.add(
         InlineKeyboardButton(
             "💬 Написать в Client service",
-            url=CLIENT_SERVICE_URL,
+            web_app=WebAppInfo(url=CLIENT_SERVICE_URL),
         )
     )
 
