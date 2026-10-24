@@ -1,10 +1,10 @@
 # TicketTreat — consolidated product roadmap
 
 **Status:** historical planning baseline dated 2026-10-21; current shipped status verified 2026-10-24 in [engineering status](FREE_PILOT_ENGINEERING_STATUS.md). Source: user-supplied 18-page
-`Crowdly-brand-and-roadmap(2).pdf` (October 2026, v1), combined with the
+the original brand-and-roadmap PDF (October 2026, v1), combined with the
 existing TicketTreat launch plan and audited code. The cited original PDF uses a former brand name, retained only to identify its historical source.
 
-**Brand decision:** the product is **TicketTreat**, not Crowdly. Keep the
+**Brand decision:** the product and all customer-facing materials use **TicketTreat**. Keep the
 existing established palette. References to the old name in the original PDF
 are historical only.
 
@@ -147,7 +147,7 @@ platform revenue covers sustainable operations.
 
 ## Product decision log (resolve deliberately)
 
-1. **Brand:** TicketTreat replaces all Crowdly-facing branding. Reuse existing
+1. **Brand:** TicketTreat is the sole product branding. Reuse existing
    colors, not old logo semantics centered on the letter “w”.
 2. **Authentication:** original PDF calls for a 3-step, passwordless flow
    without up-front signup. Current app requires a verified identity for
@@ -177,6 +177,6 @@ platform revenue covers sustainable operations.
 8. Pilot several free events; measure actual behavior; then start
    payment/provider/commission track. Do not pre-activate paid checkout.
 
-Source: **Crowdly-brand-and-roadmap(2).pdf**, pages 2–4 design system,
+Source: **historical brand-and-roadmap PDF**, pages 2–4 design system,
 5–6 differentiation, 8 ecosystem, 9 overall roadmap, 10–11 foundation/MVP,
 12 V1, 13 V2, 14 V3, 15 loyalty, 16 revenue, 17 technology, 18 success metrics.
