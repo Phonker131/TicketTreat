@@ -87,7 +87,7 @@ export function TicketsClient() {
           </section>}
           {botEvents.length > 0 && <section className="section telegram-bot-events">
             <div className="section-heading">
-              <div><h2>{language==="ru"?"Записи через Telegram-бота":language==="uk"?"Записи через Telegram-бота":language==="cs"?"Registrace přes Telegram bota":"Telegram bot registrations"}</h2>
+              <div><h2>{language==="ru"?"Записи через Telegram-бота":language==="uk"?"Реєстрації через Telegram-бота":language==="cs"?"Registrace přes Telegram bota":"Telegram bot registrations"}</h2>
               <p>{language==="ru"?"Существующие записи из бота. Это не QR-билеты.":language==="cs"?"Dřívější registrace z bota; nejde o QR vstupenky.":language==="uk"?"Попередні реєстрації з бота. Це не QR-квитки.":"Existing bot registrations are shown separately from QR tickets."}</p></div>
             </div>
             <div className="ticket-list">
