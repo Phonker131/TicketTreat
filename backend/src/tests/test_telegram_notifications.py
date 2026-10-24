@@ -63,7 +63,7 @@ class TelegramNotificationTests(unittest.TestCase):
         rows = insert.call_args.args[1]
         self.assertEqual({r["telegram_id"] for r in rows}, {111, 222})
         self.assertEqual({r["event_key"] for r in rows}, {"tg:notice:123:111", "tg:notice:123:222"})
-        self.assertEqual([r["language"] for r in rows], ["cs", "ru"])
+        self.assertEqual([r["language"] for r in rows], ["cs", "en"])  # English is BotFather default
 
     def test_cancellation_fans_out_to_telegram_without_resend(self):
         from demo_email import queue_event_notice, EventNotice
