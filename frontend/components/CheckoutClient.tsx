@@ -12,6 +12,7 @@ import { getStoredGuestToken, restoreGuest, storeGuest,setWebAuth } from "@/lib/
 import type { TicketTreatEvent, DemoGuest, } from "@/lib/types";
 import type {PaidReservationStatus} from "@/lib/api";
 
+const CHECKOUT_TEXT={"en":{"reserved":"A place has been reserved for you. Confirm it before the deadline.","codeSent":"If eligible, a sign-up code has been sent.","confirmed":"Email verified. You can now get your free ticket.","declined":"Offer declined.","declineConfirm":"Decline the available place?","quickIntro":"No password needed: enter your name and email, then confirm a one-time code.","accept":"I have reviewed the ","and":"and ","getCode":"Send sign-up code","oneTime":"One-time 8-digit code","verify":"Verify and continue","paymentUnavailable":"Paid ticket sales are not available yet. Please check back later.","quickTitle":"Quick signup","alreadyBot":"You are already registered through the Telegram bot. See your bot registration in My tickets."},"cs":{"reserved":"Místo je pro vás rezervováno. Potvrďte ho před uplynutím lhůty.","codeSent":"Pokud je účet způsobilý, byl odeslán registrační kód.","confirmed":"E-mail byl ověřen. Nyní můžete získat vstupenku zdarma.","declined":"Nabídka byla odmítnuta.","declineConfirm":"Odmítnout nabídnuté místo?","quickIntro":"Bez hesla: vyplňte jméno a e-mail a potvrďte jednorázový kód.","accept":"Seznámil/a jsem se s ","and":"a ","getCode":"Odeslat registrační kód","oneTime":"Jednorázový osmimístný kód","verify":"Ověřit e-mail a pokračovat","paymentUnavailable":"Prodej placených vstupenek zatím není dostupný. Zkuste to později.","quickTitle":"Rychlá registrace","alreadyBot":"Už jste zaregistrováni přes Telegram bota. Registraci najdete v sekci Moje vstupenky."},"ru":{"reserved":"Место зарезервировано для тебя. Подтверди его до указанного срока.","codeSent":"Если аккаунт подходит для регистрации, код отправлен.","confirmed":"Email подтверждён. Теперь можно получить бесплатный билет.","declined":"Предложение отклонено.","declineConfirm":"Отказаться от предложенного места?","quickIntro":"Без пароля: укажи имя, email и подтверди одноразовый код. Билет станет доступен после проверки почты.","accept":"Я ознакомился с ","and":"и ","getCode":"Получить код на email","oneTime":"Одноразовый код (8 цифр)","verify":"Подтвердить email","paymentUnavailable":"Продажа платных билетов пока недоступна. Попробуй позже.","quickTitle":"Быстрая регистрация","alreadyBot":"Ты уже записан на этот ивент через Telegram-бота. Запись видна в разделе «Мои билеты»."},"uk":{"reserved":"Місце зарезервовано для тебе. Підтвердь його до кінця терміну.","codeSent":"Якщо акаунт підходить для реєстрації, код надіслано.","confirmed":"Email підтверджено. Тепер можна отримати безкоштовний квиток.","declined":"Пропозицію відхилено.","declineConfirm":"Відмовитися від запропонованого місця?","quickIntro":"Без пароля: введи ім’я, email і підтвердь одноразовий код. Квиток стане доступним після перевірки пошти.","accept":"Я ознайомився з ","and":"та ","getCode":"Отримати код на email","oneTime":"Одноразовий код (8 цифр)","verify":"Підтвердити email","paymentUnavailable":"Продаж платних квитків поки недоступний. Спробуй пізніше.","quickTitle":"Швидка реєстрація","alreadyBot":"Ти вже зареєстрований через Telegram-бота. Запис доступний у розділі «Мої квитки»."}};
 type PaymentMethod = "card" | "apple" | "google";
 
 export function CheckoutClient() {
@@ -19,6 +20,8 @@ export function CheckoutClient() {
   const router = useRouter();
   const search = useSearchParams();
   const { language } = useLanguage();
+  const txt=CHECKOUT_TEXT[language];
+  const show=(value:string)=>value.startsWith("msg:")?txt[value.slice(4) as keyof typeof txt]||value:value;
 
   const eventId = Number(params?.id);
   const wantsWaitlist = search.get("waitlist") === "1";
@@ -108,7 +111,7 @@ export function CheckoutClient() {
         const result = await joinWaitlist(event.id, guest.access_token);
         if(result.status==="offered"){
           const next=await getWaitlistOfferStatus(event.id);setOffer(next);
-          setMessage("Место зарезервировано для вас. Подтвердите его до указанного срока.");
+          setMessage("msg:reserved");
         }else{
           setMessage(`${t(language, "waitlistJoined")}${result.position ? ` #${result.position}` : ""}`);
         }
@@ -123,10 +126,7 @@ export function CheckoutClient() {
       if (text === "event_full") {
         setMessage(t(language, "soldOut"));
       } else if (text === "already_registered_via_bot") {
-        setMessage(language === "ru" ?
-          "Ты уже записан на этот ивент через Telegram-бота. Запись видна в разделе «Мои билеты»." :
-          language === "cs" ? "Už jsi zaregistrován přes Telegram bota. Registraci najdeš v sekci Moje vstupenky." :
-          "You are already registered through the Telegram bot. See your bot registration in My tickets.");
+        setMessage("msg:alreadyBot");
       } else {
         setMessage(text);
       }
@@ -170,16 +170,16 @@ export function CheckoutClient() {
               </section>
               {bookingConfig?.verified_accounts_required&&<section className="panel form-stack">
                 <h3>{language==="ru"?"Быстрая регистрация":language==="cs"?"Rychlá registrace":language==="uk"?"Швидка реєстрація":"Quick signup"}</h3>
-                <p className="form-note">{language==="ru"?"Без пароля: имя, email и подтверждение кода. Доступ к билету появится после проверки адреса.":"No password needed: enter your name and email, then confirm a one-time code."}</p>
+                <p className="form-note">{txt.quickIntro}</p>
                 <label>{t(language,"firstName")}<input required value={firstName} maxLength={100}
                   autoComplete="given-name" onChange={e=>setFirstName(e.target.value)}/></label>
                 <label>Email<input type="email" required value={email} autoComplete="email"
                   onChange={e=>{setEmail(e.target.value);setQuickSent(false);}}/></label>
                 <label style={{display:"flex",alignItems:"start",gap:10}}>
                   <input type="checkbox" checked={privacyAccepted} onChange={e=>setPrivacyAccepted(e.target.checked)}/>
-                  <span>{language==="ru"?"Я ознакомился с ":"I have reviewed the "}
+                  <span>{txt.accept}
                     <Link href="/terms">{language==="ru"?"условиями использования":language==="cs"?"obchodními podmínkami":language==="uk"?"умовами користування":"Terms of Service"}</Link>
-                    {" "}{language==="ru"?"и ":"and "}
+                    {" "}{txt.and}
                     <Link href="/privacy-policy">{language==="ru"?"политикой конфиденциальности":language==="cs"?"zásadami ochrany osobních údajů":language==="uk"?"політикою конфіденційності":"Privacy Policy"}</Link>.
                   </span>
                 </label>
@@ -187,21 +187,21 @@ export function CheckoutClient() {
                   disabled={busy||!email.includes("@")||!firstName.trim()||!privacyAccepted}
                   onClick={async()=>{setBusy(true);setMessage(null);try{
                     await requestQuickSignup(email,firstName,privacyAccepted);
-                    setQuickSent(true);setMessage("Если адрес подходит для новой регистрации, код отправлен.");
+                    setQuickSent(true);setMessage("msg:codeSent");
                   }catch(e){setMessage(e instanceof Error?e.message:"Error");}finally{setBusy(false);}}}>
-                  {language==="ru"?"Получить код на email":"Send sign-up code"}
+                  {txt.getCode}
                 </button>
                 {quickSent&&<form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage(null);
                   try{const auth=await confirmQuickSignup(email,quickCode);setWebAuth(auth);
                     setGuest(auth.profile.guest);setQuickCode("");setQuickSent(false);
-                    setMessage("Email подтверждён. Можете получить бесплатный билет.");
+                    setMessage("msg:confirmed");
                   }catch(err){setMessage(err instanceof Error?err.message:"Error");}finally{setBusy(false);}}}>
-                  <label>{language==="ru"?"Одноразовый код (8 цифр)":"One-time 8-digit code"}
+                  <label>{txt.oneTime}
                     <input type="text" name="one-time-code" autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{8}" maxLength={8}
                       required value={quickCode} onChange={e=>setQuickCode(e.target.value)}/>
                   </label>
                   <button className="button button-primary" disabled={busy||quickCode.length!==8}>
-                    {language==="ru"?"Подтвердить email":"Verify and continue"}
+                    {txt.verify}
                   </button>
                 </form>}
               </section>}
@@ -235,10 +235,10 @@ export function CheckoutClient() {
                     <button className="button button-primary button-wide" disabled={busy}
                       onClick={performCheckout}>{busy?t(language,"loading"):registerLabel}</button>
                     <button className="button button-outline" disabled={busy} onClick={async()=>{
-                      if(!window.confirm("Отказаться от предложенного места?"))return;
+                      if(!window.confirm(txt.declineConfirm))return;
                       setBusy(true);
                       try{await declineWaitlistOffer(event.id);setOffer({status:"declined",expires_at:null,position:null});
-                        setMessage("Предложение отклонено.");}
+                        setMessage("msg:declined");}
                       catch(err){setMessage(err instanceof Error?err.message:"Error");}
                       finally{setBusy(false);}
                     }}>{language==="ru"?"Отказаться от места":language==="cs"?"Odmítnout místo":language==="uk"?"Відмовитись від місця":"Decline offer"}</button>
@@ -259,7 +259,7 @@ export function CheckoutClient() {
                       language === "uk" ? "Оплата не потрібна. QR-квиток буде доступний одразу." :
                       language === "cs" ? "Platba není potřeba. QR vstupenka bude připravena ihned." :
                       "No payment required. Your QR ticket will be ready immediately."
-                    }</p> : !bookingConfig?.demo_payment_mode ? <div className="state-card">Paid ticket sales are not available yet. Please check back later.</div> : <>
+                    }</p> : !bookingConfig?.demo_payment_mode ? <div className="state-card">{txt.paymentUnavailable}</div> : <>
                     <div className="demo-banner">{t(language, "demoHint")}</div>
                     <div className="payment-methods">
                       {[
@@ -300,7 +300,7 @@ export function CheckoutClient() {
           </>
         )}
 
-        {message && <div className="state-card">{message}</div>}
+        {message && <div className="state-card">{show(message)}</div>}
       </main>
     </div>
   );
