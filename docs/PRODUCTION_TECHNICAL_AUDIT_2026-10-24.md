@@ -28,7 +28,7 @@
 ### Hardenings applied during this audit
 
 1. Expanded the Railway **Pilot Health Monitor** from 3 probes to 6, adding public-health endpoints for the Telegram Bot, email-forwarding function and incident receiver. Existing homepage, primary API readiness, and private legacy backend probes remain. The monitor continues running every 15 minutes with bounded 8-second requests and a retry. The function deployment succeeded; individual six-probe cron-result validation must follow at the next scheduled execution.
-2. Updated `frontend/app/api/gateway/[...path]/route.ts`: incoming non-GET request bodies are now read incrementally with a **6,000,000-byte hard cap**, early `Content-Length` rejection, and a **30-second** upstream API timeout. This closes the previous buffering-before-limits exhaustion risk while preserving current routes, auth and ticket behavior. Final release is contingent on successful Railway frontend deployment.
+2. Updated `frontend/app/api/gateway/[...path]/route.ts`: incoming non-GET request bodies are now read incrementally with a **6,000,000-byte hard cap**, early `Content-Length` rejection, and a **30-second** upstream API timeout. This closes the previous buffering-before-limits exhaustion risk while preserving current routes, auth and ticket behavior. Railway frontend deployment of the hardening commit later reached **SUCCESS**, and the service started successfully. The sampled HTTP requests after inspection did not show 5xx; full scenario regression still requires staging.
 
 ## Performance: production observation, not capacity benchmark
 
