@@ -45,6 +45,37 @@ class ProfileCopyTests(unittest.TestCase):
         self.assertTrue(text.startswith("Ahoj, Jana Hi!"))
         self.assertNotIn("\r",text)
 
+    def test_first_telegram_locale_is_persisted_but_explicit_setting_wins(self):
+        import ast
+        import types
+        source=PATH.parent.joinpath("main.py").read_text(encoding="utf-8")
+        tree=ast.parse(source)
+        fn=next(node for node in tree.body if isinstance(node,ast.FunctionDef)
+                and node.name=="remember_telegram_language")
+        seen=[]
+        explicit=False
+        def backend(method,path,**kwargs):
+            seen.append((method,kwargs.get("json")))
+            if method=="GET":
+                return {"explicit":explicit,"language":"ru"}
+            return {"language":kwargs["json"]["language"]}
+        context={
+            "user_language_cache":{},
+            "normalize_language":module.normalize_language,
+            "backend_request":backend,
+        }
+        exec(compile(ast.Module(body=[fn],type_ignores=[]),str(PATH.parent/"main.py"),"exec"),context)
+        user=types.SimpleNamespace(id=12345,language_code="cs-CZ")
+        self.assertEqual(context["remember_telegram_language"](user),"cs")
+        self.assertEqual(seen,[("GET",None),("PUT",{"language":"cs"})])
+        self.assertEqual(context["remember_telegram_language"](user),"cs")
+        self.assertEqual(len(seen),2)
+        explicit=True
+        context["user_language_cache"].clear()
+        seen.clear()
+        self.assertEqual(context["remember_telegram_language"](user),"ru")
+        self.assertEqual(seen,[("GET",None)])
+
     def test_idempotent_profile_sync_for_each_language(self):
         class Response:
             ok=True
