@@ -14,7 +14,12 @@ const WORDS:Record<LanguageCode,Copy>={
   uk:{title:"Аналітика організатора",subtitle:"Огляд реєстрацій, відвідуваності та операцій за всіма подіями TicketTreat.",back:"Панель організатора",loading:"Завантаження аналітики…",error:"Не вдалося завантажити статистику. Перевір доступ та MFA.",reload:"Оновити",all:"Усі",upcoming:"Майбутні",finished:"Завершені",cancelled:"Скасовані",search:"Знайти подію",events:"Події",registered:"Зайняті місця",qr:"Активні QR-квитки",arrived:"QR check-in",waitlist:"У черзі",holds:"Очікують підтвердження оплати",urgent:"Спливають протягом 24 годин",attendance:"Частка QR check-in",occupancy:"Заповненість",trend:"Активні QR-реєстрації за днями",channels:"Джерела активних QR-реєстрацій",table:"Стан подій",name:"Подія",bookings:"Зайнято / місткість",payments:"Очікування оплати",arrivals:"Відмітки",actions:"Дії",manage:"Керувати",copy:"Копіювати посилання",copied:"Посилання скопійовано",export:"Завантажити звіт CSV",empty:"Подій не знайдено.",notAvailable:"—",noData:"Даних поки немає.",allEvents:"Усього подій",tasks:"Потребують уваги",pending:"Підтвердити оплати",waiting:"Перевірити чергу",fill:"Низька заповненість",fillHint:"Ще можна просувати подію.",capacity:"Вільні місця",draft:"Чернетка",published:"Опубліковано",scheduled:"Заплановано",countNote:"Зайняті місця включають активні QR, старі реєстрації бота та не прострочені заявки на оплату. Це не продажі.",qrNote:"Джерела та динаміка охоплюють лише активні QR, без старих Telegram-реєстрацій.",rangeNote:"Динаміка за останні 30 днів. Без імен, email або телефонів учасників.",limit:"Підсумки лише для 200 найновіших подій.",scan:"Сканувати QR"}
 };
 const COUNT=(num:number)=>new Intl.NumberFormat("en-US").format(num);
-function escapeCSV(value:unknown):string{return '"'+String(value??"").replace(/"/g,'""')+'"';}
+function escapeCSV(value:unknown):string{
+  const raw=String(value??"");
+  // Spreadsheet software must not execute formula-like organizer titles.
+  const safe=/^[\\s]*[=+@-]/.test(raw)?"'"+raw:raw;
+  return '"'+safe.replace(/"/g,'""')+'"';
+}
 function exportSummary(data:OrganizerAnalytics){
   const headers=["Event ID","Event title","Start","Publication","Cancelled","Reserved places","Capacity","Occupancy percent","Active QR tickets","QR check-ins","Waitlist","Pending payment","Expiring within 24h","Legacy bot registrations"];
   const rows=data.events.map(e=>[e.event_id,e.title,e.starts_at,e.publication,e.is_cancelled,e.reserved_places,e.capacity,e.occupancy_percent,e.active_qr,e.checked_in_qr,e.waitlist,e.pending_payment,e.pending_payment_24h,e.legacy_registrations]);
