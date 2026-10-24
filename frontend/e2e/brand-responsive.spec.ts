@@ -73,6 +73,51 @@ for(const width of [320,375,390,430,768,850,1024,1199]){
   });
 }
 
+test("mobile menu animates on open and close and marks the current page",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  const menu=page.locator(".topbar-menu-toggle");
+  const nav=page.locator("#tt-primary-nav");
+  await expect(menu).toBeEnabled();
+  await expect(nav).toBeHidden();
+  const duration=await nav.evaluate(el=>getComputedStyle(el).transitionDuration);
+  expect(duration).not.toBe("0s");
+  expect(await menu.locator(".topbar-menu-icon > span").count()).toBe(3);
+  await menu.click();
+  await expect(nav).toBeVisible();
+  await expect(menu).toHaveAttribute("aria-expanded","true");
+  await expect(nav.getByRole("link",{name:"Events"})).toHaveAttribute("aria-current","page");
+  await expect.poll(async()=>nav.evaluate(el=>Number(getComputedStyle(el).opacity))).toBe(1);
+  const rotated=await menu.locator(".topbar-menu-icon > span").first().evaluate(el=>getComputedStyle(el).transform);
+  expect(rotated).not.toBe("none");
+  await menu.click();
+  await expect(nav).toBeHidden();
+  await expect(menu).toHaveAttribute("aria-expanded","false");
+  await menu.click();
+  await expect(nav).toBeVisible();
+  await nav.getByRole("link",{name:"Support"}).click();
+  await expect(page).toHaveURL(/\/support/);
+  await expect(nav).toBeHidden();
+  await expect(nav.getByRole("link",{name:"Support",includeHidden:true})).toHaveAttribute("aria-current","page");
+});
+
+test("reduced motion removes animations without hiding navigation",async({page})=>{
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.setViewportSize({width:320,height:700});
+  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  const menu=page.locator(".topbar-menu-toggle");
+  const nav=page.locator("#tt-primary-nav");
+  await expect(menu).toBeEnabled();
+  const duration=await menu.evaluate(el=>getComputedStyle(el).transitionDuration);
+  expect(parseFloat(duration)).toBeLessThan(.05);
+  await menu.click();
+  await expect(nav).toBeVisible();
+  await expect(nav.getByRole("link",{name:"Support"})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(321);
+  await page.keyboard.press("Escape");
+  await expect(nav).toBeHidden();
+});
+
 test("desktop navbar remains permanently visible",async({page})=>{
   await page.setViewportSize({width:1440,height:900});
   await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
