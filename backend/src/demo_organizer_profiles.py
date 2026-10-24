@@ -147,6 +147,9 @@ def install_organizer_public_profiles(app, get_db, main):
         if payload.published and len(payload.bio) < 30:
             raise HTTPException(422, "organizer_bio_min_30_for_publication")
         row = db.get(OrganizerPublicProfile, account.id)
+        if row is not None and row.published and row.slug != payload.slug:
+            # Keep indexed public links stable while the page is published.
+            raise HTTPException(409, "unpublish_before_changing_profile_slug")
         if row is None:
             row = OrganizerPublicProfile(account_id=account.id, slug=payload.slug,
                                          display_name=payload.display_name)
