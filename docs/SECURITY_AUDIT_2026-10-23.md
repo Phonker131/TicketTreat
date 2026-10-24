@@ -45,7 +45,7 @@ regression checks, **not** a penetration test or legal certification.
 2. Audit Postgres public TCP connections; after verifying no remote clients
    need it, remove the public TCP proxy in Railway (retain the private domain).
 3. Confirm service secret separation: `BOT_TOKEN` only where necessary,
-   `BOT_API_KEY` only Bot and legacy Backend, `RESEND_API_KEY` only Demo API,
+   `BOT_API_KEY` only Bot and legacy Backend, `RESEND_API_KEY` only TicketTreat API,
    and backup key only in the private backup worker. Never put secrets in
    `NEXT_PUBLIC_*` or GitHub commits.
 4. Resolve the repeated Telegram `409` conflict and verify `/start`,
