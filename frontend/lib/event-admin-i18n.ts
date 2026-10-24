@@ -1061,6 +1061,66 @@ const messages: Array<[string,string,string,string]> = [
     "Your TicketTreat event starts soon.",
     "Akce TicketTreat brzy začíná.",
     "Подія TicketTreat незабаром почнеться."
+  ],
+  [
+    "Sign in first.",
+    "Sign in first.",
+    "Nejprve se přihlas.",
+    "Спочатку увійди."
+  ],
+  [
+    "Eligible account data has been erased and the action audited.",
+    "Eligible account data has been erased and the action audited.",
+    "Údaje účtu byly vymazány a operace byla zaznamenána.",
+    "Дані відповідного акаунта видалено, дію зареєстровано."
+  ],
+  [
+    "Global-admin MFA is required. Never fulfill a request without checking legal obligations, user ownership and backup retention. Conflicting records will block automatic fulfillment.",
+    "Global administrator MFA is required. Verify legal obligations, account ownership and backup retention before erasure. Conflicts prevent automatic deletion.",
+    "Je vyžadováno MFA hlavního administrátora. Před výmazem ověř právní povinnosti, vlastnictví účtu a uchovávání záloh. Konflikty automatický výmaz zablokují.",
+    "Потрібна MFA головного адміністратора. Перед видаленням перевір юридичні вимоги, власника акаунта та зберігання резервних копій. Конфлікти заблокують автоматичне видалення."
+  ],
+  [
+    "Request #",
+    "Request #",
+    "Žádost č. ",
+    "Запит №"
+  ],
+  [
+    "Account #",
+    "Account #",
+    "Účet č. ",
+    "Акаунт №"
+  ],
+  [
+    "Review this request",
+    "Review request",
+    "Zkontrolovat žádost",
+    "Переглянути запит"
+  ],
+  [
+    "Review request #",
+    "Review request #",
+    "Kontrola žádosti č. ",
+    "Перегляд запиту №"
+  ],
+  [
+    "Permanent operation. If linked Telegram registrations, future events or retained financial records exist, the API refuses deletion for manual review.",
+    "Permanent operation. Linked Telegram registrations, upcoming events or retained financial records will block automatic erasure for manual review.",
+    "Nevratná operace. Propojené registrace Telegramu, budoucí akce nebo uchovávané finanční údaje mohou automatický výmaz zablokovat a vyžadovat ruční kontrolu.",
+    "Незворотна дія. Пов’язані реєстрації Telegram, майбутні події або фінансові записи можуть заблокувати автоматичне видалення для ручної перевірки."
+  ],
+  [
+    "Reason and internal case reference",
+    "Reason and internal case reference",
+    "Důvod a interní číslo případu",
+    "Причина та внутрішній номер справи"
+  ],
+  [
+    "Type ERASE to authorize",
+    "Type ERASE to authorize",
+    "Pro potvrzení zadej ERASE",
+    "Для підтвердження введи ERASE"
   ]
 ];
 const dictionary = new Map(messages.map(([ru,en,cs,uk]) => [ru,{ru,en,cs,uk}]));
