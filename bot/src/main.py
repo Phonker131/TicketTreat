@@ -4988,17 +4988,30 @@ print("BOT STARTED")
 # notices to Telegram registrants and ignore organizer-custom intervals.
 # Keep the old function above temporarily for rollback/reference only.
 
-bot.remove_webhook()
-time.sleep(1)
+# Production uses authenticated Telegram webhooks instead of competing
+# getUpdates long-polling requests (which caused repeated 409 conflicts).
+# Local development can explicitly opt back into legacy polling.
+if os.getenv("BOT_DELIVERY_MODE", "polling").strip().lower() == "webhook":
+    from webhook_runtime import webhook_app
+    import uvicorn
 
-print("STARTING POLLING")
-# Telegram updates received while the bot is restarting are real user actions:
-# do not silently discard them. A shorter long-poll timeout leaves generous
-# headroom for proxy/network latency and the HTTP read timeout.
-# Telegram 409 conflicts still indicate an *external* competing poller:
-# do not suppress those diagnostics; remove the duplicate process.
-bot.infinity_polling(
-    skip_pending=False,
-    timeout=30,
-    long_polling_timeout=20,
-)
+    print("STARTING SECURE TELEGRAM WEBHOOK")
+    uvicorn.run(
+        webhook_app(
+            bot,
+            url=os.environ["BOT_WEBHOOK_URL"],
+            secret=os.environ["BOT_WEBHOOK_SECRET"],
+        ),
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8080")),
+        access_log=False,
+    )
+else:
+    bot.remove_webhook()
+    time.sleep(1)
+    print("STARTING POLLING")
+    bot.infinity_polling(
+        skip_pending=False,
+        timeout=30,
+        long_polling_timeout=20,
+    )
