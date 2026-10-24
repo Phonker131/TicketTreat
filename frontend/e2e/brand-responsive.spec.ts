@@ -26,7 +26,9 @@ test("mobile navigation and accessible keyboard focus",async({page})=>{
   await page.setViewportSize({width:375,height:812});
   await page.goto("/",{waitUntil:"domcontentloaded"});
   const nav=page.locator(".topbar-nav");
-  const menu=page.getByRole("button",{name:"Открыть меню"});
+  const menu=page.locator(".topbar-menu-toggle");
+  await expect(menu).toHaveAttribute("aria-label","Открыть меню");
+  await expect(menu).toBeEnabled();
   await expect(nav).toBeHidden();
   await expect(menu).toHaveAttribute("aria-expanded","false");
   await menu.click();
@@ -45,7 +47,9 @@ for(const width of [320,375,390,430,768,850,1024,1199]){
     await page.setViewportSize({width,height:812});
     await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
     const nav=page.locator(".topbar-nav");
-    const toggle=page.getByRole("button",{name:"Open menu"});
+    const toggle=page.locator(".topbar-menu-toggle");
+    await expect(toggle).toBeEnabled();
+    await expect(toggle).toHaveAttribute("aria-label","Open menu");
     await expect(toggle).toBeVisible();
     await expect(nav).toBeHidden();
     await toggle.click();
@@ -170,7 +174,9 @@ test("priced events never show TicketTreat fake payment or automatic paid ticket
 test("support center is linked publicly, does not permit anonymous complaints and works on mobile",async({page})=>{
   await page.setViewportSize({width:375,height:812});
   await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator(".topbar-menu-toggle")).toBeEnabled();
   await page.locator(".topbar-menu-toggle").click();
+  await expect(page.locator(".topbar-nav")).toBeVisible();
   await expect(page.locator(".topbar-nav").getByRole("link",{name:/Support|Поддержка|Podpora|Підтримка/})).toHaveAttribute("href","/support");
   await expect(page.locator("footer").getByRole("link",{name:/Support|Поддержка|Podpora|Підтримка/})).toHaveAttribute("href","/support");
   await page.goto("/support",{waitUntil:"domcontentloaded"});
