@@ -172,13 +172,77 @@ Vyber akci, klepni na „Rezervovat místo“ a vstupenku najdeš přímo tady."
 }
 
 
+
+# Supplemental copy for existing production bot commands and account linking.
+# Kept separate from the exact EN/RU BotFather wording in BOT_CONTENT.
+EXTRA_COPY = {
+ "en": {
+    "events_intro": "Find upcoming events and book your spot in TicketTreat.",
+    "tickets_intro": "All your QR tickets are in TicketTreat. Open My tickets.",
+    "passport_intro": "Your guest passport grows after confirmed check-ins. See your level and benefits.",
+    "support_intro": "Need help with an event or ticket? Contact TicketTreat support.",
+    "link_intro": "To link your existing bot registrations to your TicketTreat account, sign in on the website, verify your email and choose 'Link via Telegram bot'. Then return here using the link to confirm.",
+    "link_button": "Open profile",
+    "link_unavailable": "Your TicketTreat profile is temporarily unavailable.",
+    "myid": "Your Telegram ID: ",
+    "link_invalid": "This account-linking link is invalid.",
+    "link_offline": "Account linking is temporarily unavailable. Try again later.",
+    "link_challenge": "You're about to link this Telegram to your TicketTreat account. Open the confirmation below. You must have started linking from your website profile. This link expires in 10 minutes. Don't share it. Your accounts will not be connected without confirmation.",
+    "link_confirm": "Confirm account linking",
+ },
+ "ru": {
+    "events_intro": "Найди ближайшие ивенты и запишись на них через TicketTreat.",
+    "tickets_intro": "Все твои QR-билеты хранятся в TicketTreat. Открой «Мои билеты».",
+    "passport_intro": "За подтверждённые посещения растёт твой паспорт гостя. Проверь уровень и бонусы.",
+    "support_intro": "Нужна помощь с мероприятием или билетом? Обратись в поддержку TicketTreat.",
+    "link_intro": "Чтобы связать прежние записи через бота с аккаунтом TicketTreat, войди на сайт, подтверди email и выбери «Привязать через Telegram-бота». Затем вернись по ссылке сюда для подтверждения.",
+    "link_button": "Открыть профиль",
+    "link_unavailable": "Профиль TicketTreat временно недоступен.",
+    "myid": "Твой Telegram ID: ",
+    "link_invalid": "Ссылка на привязку аккаунта недействительна.",
+    "link_offline": "Привязка аккаунта временно недоступна. Попробуй позже.",
+    "link_challenge": "Ты собираешься привязать Telegram к аккаунту TicketTreat. Открой подтверждение ниже. Привязку нужно сначала начать в профиле на сайте. Ссылка действует 10 минут: никому её не пересылай. Аккаунты не свяжутся без твоего подтверждения.",
+    "link_confirm": "Подтвердить привязку аккаунта",
+ },
+ "cs": {
+    "events_intro": "Najdi nadcházející akce a rezervuj si místo přes TicketTreat.",
+    "tickets_intro": "Všechny své QR vstupenky najdeš v TicketTreat. Otevři Moje vstupenky.",
+    "passport_intro": "Za potvrzené návštěvy roste tvůj návštěvnický pas. Podívej se na svou úroveň a výhody.",
+    "support_intro": "Potřebuješ pomoct s akcí nebo vstupenkou? Kontaktuj podporu TicketTreat.",
+    "link_intro": "Pro propojení starších registrací z bota s účtem TicketTreat se přihlas na webu, ověř e-mail a vyber „Propojit přes Telegram bota“. Poté se vrať sem pomocí odkazu a propojení potvrď.",
+    "link_button": "Otevřít profil",
+    "link_unavailable": "Profil TicketTreat je dočasně nedostupný.",
+    "myid": "Tvoje Telegram ID: ",
+    "link_invalid": "Odkaz pro propojení účtu je neplatný.",
+    "link_offline": "Propojení účtu je dočasně nedostupné. Zkus to později.",
+    "link_challenge": "Chystáš se propojit Telegram s účtem TicketTreat. Otevři potvrzení níže. Propojení musíš nejprve zahájit ve svém profilu na webu. Platnost odkazu je 10 minut; nikomu ho neposílej. Účty se bez tvého potvrzení nespojí.",
+    "link_confirm": "Potvrdit propojení účtu",
+ },
+ "uk": {
+    "events_intro": "Знайди найближчі події та забронюй місце через TicketTreat.",
+    "tickets_intro": "Усі твої QR-квитки зберігаються в TicketTreat. Відкрий «Мої квитки».",
+    "passport_intro": "За підтверджені відвідування зростає рівень твого паспорта гостя. Переглянь рівень і переваги.",
+    "support_intro": "Потрібна допомога з подією чи квитком? Звернися до підтримки TicketTreat.",
+    "link_intro": "Щоб зв’язати старі реєстрації через бота з акаунтом TicketTreat, увійди на сайт, підтвердь email і вибери «Прив’язати через Telegram-бота». Потім повернися сюди за посиланням і підтвердь прив’язку.",
+    "link_button": "Відкрити профіль",
+    "link_unavailable": "Профіль TicketTreat тимчасово недоступний.",
+    "myid": "Твій Telegram ID: ",
+    "link_invalid": "Посилання для прив’язки акаунта недійсне.",
+    "link_offline": "Прив’язка акаунта тимчасово недоступна. Спробуй пізніше.",
+    "link_challenge": "Ти збираєшся прив’язати Telegram до акаунта TicketTreat. Відкрий підтвердження нижче. Спершу потрібно розпочати прив’язку в профілі на сайті. Посилання діє 10 хвилин — нікому його не надсилай. Акаунти не буде з’єднано без твого підтвердження.",
+    "link_confirm": "Підтвердити прив’язку акаунта",
+ },
+}
+
+
 def normalize_language(language_code: str | None) -> str:
     value = str(language_code or "").split("-", 1)[0].split("_", 1)[0].lower()
     return value if value in LANGUAGES else DEFAULT_LANGUAGE
 
 
 def get_copy(language_code: str | None) -> dict:
-    return BOT_CONTENT[normalize_language(language_code)]
+    code = normalize_language(language_code)
+    return {**BOT_CONTENT[code], **EXTRA_COPY[code]}
 
 
 def welcome_text(language_code: str | None, first_name: str | None) -> str:
