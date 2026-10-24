@@ -17,7 +17,7 @@ const COUNT=(num:number)=>new Intl.NumberFormat("en-US").format(num);
 function escapeCSV(value:unknown):string{
   const raw=String(value??"");
   // Spreadsheet software must not execute formula-like organizer titles.
-  const safe=/^[\\s]*[=+@-]/.test(raw)?"'"+raw:raw;
+  const safe=/^\s*[=+@-]/.test(raw)?"'"+raw:raw;
   return '"'+safe.replace(/"/g,'""')+'"';
 }
 function exportSummary(data:OrganizerAnalytics){
