@@ -9,10 +9,10 @@ import {t} from "@/lib/i18n";
 import type {TicketTreatEvent} from "@/lib/types";
 
 /** Czech pilot: all published events in one catalogue. No location profiling. */
-export function HomeClient(){
+export function HomeClient({initialEvents=null}:{initialEvents?:TicketTreatEvent[]|null}){
   const {language}=useLanguage();
-  const [events,setEvents]=useState<TicketTreatEvent[]>([]);
-  const [loading,setLoading]=useState(true);
+  const [events,setEvents]=useState<TicketTreatEvent[]>(initialEvents||[]);
+  const [loading,setLoading]=useState(initialEvents===null);
   const [error,setError]=useState<string|null>(null);
   const [landing,setLanding]=useState<SiteLanding|null>(null);
 
@@ -22,7 +22,8 @@ export function HomeClient(){
       .then(items=>setEvents(items.filter(event=>!event.is_cancelled)))
       .catch(e=>{
         if(e instanceof DOMException&&e.name==="AbortError")return;
-        setError(e instanceof Error?e.message:"Unknown error");
+        // A temporary client refresh error must not erase server-rendered events.
+        if(initialEvents===null)setError(e instanceof Error?e.message:"Unknown error");
       }).finally(()=>{if(!controller.signal.aborted)setLoading(false)});
     void getSiteLanding().then(setLanding).catch(()=>{});
     return()=>controller.abort();
