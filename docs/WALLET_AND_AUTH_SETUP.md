@@ -34,7 +34,7 @@ from the profile UI, not the server or database (for compatibility).
 
 ## Transactional email
 
-Railway Demo API must have:
+Railway TicketTreat API must have:
 `EMAIL_NOTIFICATIONS_ENABLED=true`, `RESEND_API_KEY`, a domain-verified
 `EMAIL_FROM`, and a strong 32+-character `AUTH_CODE_SECRET`.
 Verify sender SPF/DKIM and ideally DMARC in Resend. Never expose secrets
@@ -45,7 +45,7 @@ never whether a user account exists. A password reset response is deliberately
 generic to prevent address enumeration. Password resets now work for existing
 accounts that did not finish email verification: possession of the recovery
 code verifies the address on completion. Provider send failures are logged
-server-side; check Railway Demo API logs and Resend delivery/bounce logs
+server-side; check Railway TicketTreat API logs and Resend delivery/bounce logs
 without exposing codes.
 
 Verification email code uses selectable, unspaced 8 digits and an email text
