@@ -642,7 +642,7 @@ export function ProfileClient() {
               </div>
               <div className="profile-identity-meta">
                 <span className="profile-role-chip">
-                  {profile.account.role === "participant" ? ui.roleParticipant : ui.roleOrganizer}
+                  {profile.account.role === "participant" ? ui.roleParticipant : profile.account.role === "global_admin" ? (language==="ru"?"Главный администратор":language==="cs"?"Hlavní administrátor":language==="uk"?"Головний адміністратор":"Global administrator") : ui.roleOrganizer}
                 </span>
               </div>
               <div className="profile-facts">
