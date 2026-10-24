@@ -89,14 +89,14 @@ export function OrganizerProfileEditor(){
         <p className="form-note">{tr.imageTooLarge}</p>
         {(["logo","cover"] as const).map(kind=><div className="organizer-editor-media" key={kind}>
           <h2>{tr[kind]}</h2>
-          {(previews[kind]||(profile.published?profile[kind+"_url"]:null))&&
+          {(previews[kind]||(profile.published?(kind==="logo"?profile.logo_url:profile.cover_url):null))&&
           // eslint-disable-next-line @next/next/no-img-element
-          <img className={kind==="logo"?"organizer-edit-logo":"organizer-edit-cover"} src={previews[kind]||profile[kind+"_url"]||""} alt="" />}
+          <img className={kind==="logo"?"organizer-edit-logo":"organizer-edit-cover"} src={previews[kind]||(kind==="logo"?profile.logo_url:profile.cover_url)||""} alt="" />}
           <div className="admin-event-actions">
             <label className="button button-outline">{tr.upload}
               <input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy||!stored} style={{display:"none"}} onChange={e=>{void upload(kind,e.target.files?.[0]);e.currentTarget.value="";}}/>
             </label>
-            {profile[kind+"_url"]&&<button className="button button-outline" type="button" disabled={busy} onClick={()=>void remove(kind)}>{tr.remove}</button>}
+            {(kind==="logo"?profile.logo_url:profile.cover_url)&&<button className="button button-outline" type="button" disabled={busy} onClick={()=>void remove(kind)}>{tr.remove}</button>}
           </div>
         </div>)}
       </section>
