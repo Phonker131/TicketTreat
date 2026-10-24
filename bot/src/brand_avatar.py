@@ -42,9 +42,17 @@ def update_bot_avatar(bot_token: str, photo_file: Path | None = None) -> bool:
     # or a bare PNG; convert the approved TT image to 512x512 JPEG.
     with Image.open(source) as image:
         output = io.BytesIO()
-        image.convert("RGB").resize((512, 512), Image.Resampling.LANCZOS).save(
-            output, format="JPEG", quality=93, optimize=True
+        # Telegram chooses its own avatar circle size in chat messages; the
+        # solution is smaller artwork WITHIN the uploaded photo, not trying to
+        # control the Telegram UI. Keep the official cream TT brand palette.
+        reduced_size = 410  # 80% of a 512px Telegram avatar image
+        artwork = image.convert("RGBA").resize(
+            (reduced_size, reduced_size), Image.Resampling.LANCZOS
         )
+        canvas = Image.new("RGB", (512, 512), (240, 235, 225))
+        canvas.paste(artwork, ((512 - reduced_size)//2, (512 - reduced_size)//2),
+                     artwork.getchannel("A"))
+        canvas.save(output, format="JPEG", quality=94, optimize=True)
     output.seek(0)
     try:
         response = requests.post(
