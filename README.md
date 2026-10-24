@@ -74,7 +74,7 @@ See [current pilot release checklist](docs/UNIFIED_RELEASE_GATE.md), [Railway op
 
 - `release/tickettreat-production`: canonical maintained production branch (see branch migration notes after source switch).
 - `main`: historical baseline; it is **not** necessarily the latest Railway deployment.
-- Existing `crowdly-*` branch names are historical references, not product branding or the intended deployment source. Do not delete any branch still used by a live Railway deployment or open pull request until branch migration is verified.
+- Legacy branch names are historical references only; production and new changes should use TicketTreat-branded branches. Retire old names only after verifying every Railway source and dependent pull request.
 
 ## License
 
