@@ -22,6 +22,7 @@ export function CheckInClient() {
   const tr=(phrase:string)=>eventAdminText(language,phrase);
   const [manual, setManual] = useState("");
   const [result, setResult] = useState<DemoTicket | null>(null);
+  const [successful, setSuccessful] = useState(false);
   const [message, setMessage] = useState("");
   const scannerRef = useRef<{stop: () => Promise<void>} | null>(null);
   const scanBusy = useRef(false);
@@ -38,12 +39,14 @@ export function CheckInClient() {
       if (!session) throw new Error(tr("Войдите в подтверждённый аккаунт с доступом к check-in."));
       const response = await scanPilotTicket(session, token);
       setResult(response.ticket);
+      setSuccessful(response.status!=="already_checked_in");
       setMessage(response.status==="already_checked_in"?
         tr("Билет уже использован! Повторный проход запрещён."):tr("Check-in successful"));
       setManual("");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : tr("Check-in failed"));
       setResult(null);
+      setSuccessful(false);
     } finally { scanBusy.current=false; }
   }
 
@@ -107,13 +110,13 @@ export function CheckInClient() {
               <button type="button" className="button button-primary"
                 disabled={!manual.trim()} onClick={() => submit(manual)}>{tr("Check in")}</button>
               <button type="button" className="button button-outline" disabled={scanning}
-                onClick={()=>{setResult(null);setMessage("");setCameraError(false);setScanCycle(v=>v+1);}}>
+                onClick={()=>{setResult(null);setSuccessful(false);setMessage("");setCameraError(false);setScanCycle(v=>v+1);}}>
                 {scanning?tr("Камера активна"):tr("↻ Перезапустить камеру")}
               </button>
             </div>
           </div>
         </section>
-        {message && <div className={result ? "success-banner" : "state-card state-error"}>{message}</div>}
+        {message && <div className={successful ? "success-banner" : "state-card state-error"}>{message}</div>}
         {result && (
           <section className="panel checkin-result">
             <h2>{result.guest?.first_name} {result.guest?.last_name}</h2>
