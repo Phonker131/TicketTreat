@@ -2,7 +2,7 @@ name: TicketTreat Frontend Quality
 on:
   push:
     branches:
-      - feature/crowdly-release-preparation
+      - release/tickettreat-production
   workflow_dispatch:
 jobs:
   frontend:
