@@ -535,7 +535,16 @@ def remember_telegram_language(user) -> str:
         result = backend_request("GET", f"/users/{telegram_id}/language", timeout=5)
         if result.get("explicit"):
             chosen = normalize_language(result.get("language"))
+        else:
+            # Persist the Telegram locale so the backend's event reminders
+            # and ticket notices use the same language as the bot UI.
+            # Never replace an existing manually selected preference.
+            backend_request(
+                "PUT", f"/users/{telegram_id}/language",
+                json={"language": chosen}, timeout=5,
+            )
     except Exception:
+        # A temporary legacy-language API outage should not block /start.
         pass
     user_language_cache[telegram_id] = chosen
     return chosen
