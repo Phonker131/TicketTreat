@@ -7,7 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { getDemoTickets, getMyAttendance } from "@/lib/api";
 import type {AttendanceHistory} from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
-import { t } from "@/lib/i18n";
+import { t, localeForLanguage } from "@/lib/i18n";
 import { getVerifiedTelegramSession, restoreGuest } from "@/lib/session";
 import type { TicketTreatEvent, DemoGuest, DemoTicket } from "@/lib/types";
 
@@ -50,7 +50,7 @@ export function TicketsClient() {
       <AppHeader />
       <main className="page">
         <section className="section-heading">
-          <div><h1>{t(language, "tickets")}</h1>{guest && <p>{guest.first_name} · {guest.visits} check-ins</p>}</div>
+          <div><h1>{t(language, "tickets")}</h1>{guest && <p>{guest.first_name} · {guest.visits} {language==="cs"?"návštěv":language==="ru"?"посещений":language==="uk"?"відвідувань":"check-ins"}</p>}</div>
         </section>
 
         {loading ? <div className="state-card">{t(language, "loading")}</div> :
@@ -79,16 +79,16 @@ export function TicketsClient() {
           <p><Link href="/loyalty" className="button button-outline">{language==="ru"?"Мои награды и уровни →":language==="cs"?"Moje odměny a úrovně →":language==="uk"?"Мої нагороди та рівні →":"My rewards and tiers →"}</Link></p>
           {attendance&&<section className="panel" style={{marginTop:20}}>
             <h2>{language==="ru"?"История посещений":language==="cs"?"Historie návštěv":language==="uk"?"Історія відвідувань":"Attendance history"}</h2>
-            <p>{attendance.visit_count} check-ins {attendance.visit_count>=attendance.limited_to?"(последние 100)":""}</p>
+            <p>{attendance.visit_count} {language==="cs"?"návštěv":language==="ru"?"посещений":language==="uk"?"відвідувань":"check-ins"} {attendance.visit_count>=attendance.limited_to?(language==="cs"?"(posledních 100)":language==="ru"?"(последние 100)":language==="uk"?"(останні 100)":"(last 100)"):""}</p>
             {attendance.history.map((item,i)=><div key={`${item.event_id}-${i}`} className="participant-row">
               <div><strong>{item.title}</strong><small>{item.location||""}</small></div>
-              <small>{new Date(item.checked_in_at).toLocaleString(language==="cs"?"cs-CZ":language==="uk"?"uk-UA":language==="ru"?"ru-RU":"en-GB")}</small>
+              <small>{new Date(item.checked_in_at).toLocaleString(localeForLanguage(language))}</small>
             </div>)}
           </section>}
           {botEvents.length > 0 && <section className="section telegram-bot-events">
             <div className="section-heading">
               <div><h2>{language==="ru"?"Записи через Telegram-бота":language==="uk"?"Записи через Telegram-бота":language==="cs"?"Registrace přes Telegram bota":"Telegram bot registrations"}</h2>
-              <p>{language==="ru"?"Существующие записи из бота. Это не QR-билеты.":language==="cs"?"Dřívější registrace z bota; nejde o QR vstupenky.":"Existing bot registrations are shown separately from QR tickets."}</p></div>
+              <p>{language==="ru"?"Существующие записи из бота. Это не QR-билеты.":language==="cs"?"Dřívější registrace z bota; nejde o QR vstupenky.":language==="uk"?"Попередні реєстрації з бота. Це не QR-квитки.":"Existing bot registrations are shown separately from QR tickets."}</p></div>
             </div>
             <div className="ticket-list">
               {botEvents.map(event => (
