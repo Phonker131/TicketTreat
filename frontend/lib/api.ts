@@ -54,7 +54,18 @@ async function request<T>(
     let detail = `API ${response.status}`;
     try {
       const payload = await response.json();
-      detail = payload?.detail || payload?.error || detail;
+      const raw = payload?.detail ?? payload?.error;
+      // FastAPI may return a structured error object for blocked privacy
+      // erasure requests. String(object) would show "[object Object]".
+      if (typeof raw === "string") detail = raw;
+      else if (raw && typeof raw === "object") {
+        const code = typeof raw.code === "string" ? raw.code :
+          typeof raw.message === "string" ? raw.message : detail;
+        const blockers = Array.isArray(raw.blockers)
+          ? raw.blockers.filter((value:unknown):value is string=>typeof value==="string")
+          : [];
+        detail = [code, ...blockers].join(": ");
+      }
     } catch {}
     const error = new Error(String(detail)) as Error & {status?: number};
     error.status = response.status;
