@@ -54,7 +54,7 @@ export function SiteContentClient(){
     <h1>{tr("Контент главной страницы")}</h1>
     <p className="form-note">{tr("Изменения появятся на сайте и в Telegram Mini App. Доступ — только глобальному администратору.")}</p>
     {loading&&<div className="state-card">{tr("Загрузка…")}</div>}
-    {error&&<div className="state-card state-error" role="alert">{/^[a-z][a-z0-9_]{2,}$/.test(error)||/^API [0-9]{3}$/.test(error)?userFacingError(error,language):error}</div>}
+    {error&&<div className="state-card state-error" role="alert">{/^[a-z][a-z0-9_]{2,}$/.test(error)||/^API [0-9]{3}$/.test(error)||/failed to fetch|networkerror/i.test(error)?userFacingError(error,language):error}</div>}
     {notice&&<div className="success-banner">{notice}</div>}
     {allowed&&<form className="panel form-stack" onSubmit={submit}>
       <label>{tr("Заголовок")}<input required minLength={3} maxLength={140} value={headline} onChange={e=>setHeadline(e.target.value)}/></label>
