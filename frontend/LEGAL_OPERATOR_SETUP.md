@@ -26,10 +26,20 @@ really operates the service and assumes the corresponding obligations.
   Do not assume a person’s registered *sídlo* can be replaced by an unrelated
   contact address.
 
-## Production configuration
+## Temporary pilot disclosure
 
-Only once both founders agree who is the true operator, check the record
-in official ARES and add these **four** Railway Frontend variables:
+If a founder voluntarily supplies an IČO before the final operating entity
+is agreed, it may be entered **only** as `LEGAL_OPERATOR_ICO` in Railway,
+not hard-coded into the repository. The site will show it in a clearly
+marked **incomplete** legal notice without publishing personal names or
+addresses. This is an interim disclosure, **not** a substitute for the
+actual operator's statutory identity, GDPR controller contact or a completed
+legal notice. Do not claim legal readiness from the checksum alone.
+
+## Full production configuration
+
+Once both founders agree who is the actual operator, verify its record in
+official ARES and complete the remaining Railway Frontend variables:
 
 ```text
 LEGAL_OPERATOR_NAME=<verified legal name as registered>
