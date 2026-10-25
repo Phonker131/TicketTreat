@@ -123,11 +123,11 @@ const WORDS:Record<LanguageCode,Record<string,string>>={
 export function PrivacyClient(){
   const {language}=useLanguage();const tr=WORDS[language];
   const show=(value:string)=>tr[value.startsWith("msg:")?value.slice(4):value]||value;
-  const needsMfa=error==="mfa_challenge_required"||error==="mfa_enrollment_required";
   const [details,setDetails]=useState<PrivacyRequestStatus|null>(null);
   const [password,setPassword]=useState("");
   const [pending,setPending]=useState(false);
   const [error,setError]=useState("");
+  const needsMfa=error==="mfa_challenge_required"||error==="mfa_enrollment_required";
   const [notice,setNotice]=useState("");
 
   async function reload(){
