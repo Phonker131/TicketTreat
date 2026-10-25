@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { getVerifiedTelegramSession } from "@/lib/session";
 import { useLanguage } from "@/components/LanguageProvider";
+import {userFacingError} from "@/lib/user-facing-errors";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
 import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink, elevateMFA } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
@@ -508,7 +509,7 @@ export function ProfileClient() {
     if (code === 429) return "ui:rate";
     if (code === 401) return "ui:authExpired";
     if (code === 422) return "ui:required";
-    return raw;
+    return userFacingError(err,language);
   }
 
   async function submitAuth(e: FormEvent) {
