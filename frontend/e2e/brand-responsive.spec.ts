@@ -241,7 +241,7 @@ test("cookie consent is opt-in, rejecting persists and preferences can be change
   await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
   const banner=page.getByTestId("tt-cookie-banner");
   await expect(banner).toBeVisible();
-  await expect(banner.getByRole("button",{name:"Allow Google Maps"})).toBeVisible();
+  await expect(banner.getByRole("button",{name:"Allow cookies"})).toBeVisible();
   await expect(banner.getByRole("button",{name:"Reject optional"})).toBeVisible();
   await banner.getByRole("button",{name:"Reject optional"}).click();
   await expect(banner).toHaveCount(0);
@@ -281,7 +281,7 @@ test("Google Maps iframe never loads until opt-in and is removed on withdrawal",
   await expect(page.locator('iframe[src*="maps.google.com"]')).toHaveCount(0);
   await expect(page.getByText("The embedded Google Maps frame requires optional consent.")).toBeVisible();
   await page.getByRole("button",{name:"Manage cookie preferences"}).click();
-  await page.getByTestId("tt-cookie-banner").getByRole("button",{name:"Allow Google Maps"}).click();
+  await page.getByTestId("tt-cookie-banner").getByRole("button",{name:"Allow cookies"}).click();
   await expect(page.locator('iframe[src*="maps.google.com"]')).toHaveCount(1);
   await page.locator("footer").getByRole("button",{name:"Cookie settings"}).click();
   await page.getByTestId("tt-cookie-banner").getByRole("button",{name:"Reject optional"}).click();
@@ -292,6 +292,6 @@ test("Cookie banner remains usable on 320px narrow devices",async({page})=>{
   await page.setViewportSize({width:320,height:700});
   await page.goto("/?lang=cs",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("button",{name:"Odmítnout volitelné"})).toBeVisible();
-  await expect(page.getByRole("button",{name:"Povolit Mapy Google"})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Povolit cookies"})).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
 });
