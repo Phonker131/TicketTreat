@@ -4,14 +4,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {eventAdminText} from "@/lib/event-admin-i18n";
+import {userFacingError} from "@/lib/user-facing-errors";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import { addManageEvent, getManageEvents, getManageMe, getSupportSummary } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { LanguageCode, ManageEvent, ManageIdentity } from "@/lib/types";
 
-function errorText(e: unknown): string {
-  const raw=e instanceof Error?e.message:String(e);
-  return raw==="organizer_role_required"?"Этот аккаунт зарегистрирован как участник. Для создания ивентов нужен аккаунт организатора.":raw;
+function errorText(e: unknown,language:LanguageCode): string {
+  return userFacingError(e,language);
 }
 function readPoster(file: File): Promise<string> {
   return new Promise((resolve,reject)=>{
@@ -89,7 +89,7 @@ export function AdminClient() {
     if(!token){setLoading(false);setError("msg:login");return;}
     Promise.all([getManageMe(token),getManageEvents(token)])
       .then(([me,data])=>{if(live){setIdentity(me);setEvents(data);}})
-      .catch(e=>{if(live)setError(errorText(e));})
+      .catch(e=>{if(live)setError(errorText(e,language));})
       .finally(()=>{if(live)setLoading(false);});
     return ()=>{live=false};
   },[]);
@@ -131,7 +131,7 @@ export function AdminClient() {
       setEvents(current=>[event,...current]);
       form.reset();setPreview("");setShowForm(false);
       setReminderMinutes([10080,1440,180]);setReminderMessage(tr("Your TicketTreat event starts soon."));setNotice("msg:created");
-    }catch(e){setError(errorText(e));}
+    }catch(e){setError(errorText(e,language));}
     finally{setSaving(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
