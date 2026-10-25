@@ -31,8 +31,8 @@ really operates the service and assumes the corresponding obligations.
 If a founder voluntarily supplies an IČO before the final operating entity
 is agreed, it may be entered **only** as `LEGAL_OPERATOR_ICO` in Railway,
 not hard-coded into the repository. The site will show it in a clearly
-marked **incomplete** legal notice without publishing personal names or
-addresses. This is an interim disclosure, **not** a substitute for the
+simple contact and identification section without publishing personal names or
+addresses. The long incomplete-operator alert is not displayed. This is an interim disclosure, **not** a substitute for the
 actual operator's statutory identity, GDPR controller contact or a completed
 legal notice. Do not claim legal readiness from the checksum alone.
 
@@ -48,9 +48,9 @@ LEGAL_OPERATOR_ICO=<verified Czech eight-digit IČO>
 LEGAL_PRIVACY_EMAIL=<working privacy email controlled by the operator>
 ```
 
-**Never use placeholder values.** The legal-operator component will deliberately
-show an incomplete notice until all four fields are configured and the IČO
-has a valid Czech checksum. Checksum validity alone does **not** prove an
+**Never use placeholder values.** The legal-operator component will display the provided IČO and configured
+contact emails, while the internal readiness status remains incomplete until
+all four statutory fields are present and the IČO has a valid Czech checksum. Checksum validity alone does **not** prove an
 active business registration or authorization to run TicketTreat.
 
 After configuration, redeploy the Frontend and manually review all four
