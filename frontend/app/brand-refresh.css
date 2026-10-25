@@ -440,7 +440,7 @@ body { background-image: none; }
 }
 
 
-/* TicketTreat legal identity – editorial dark feature, inspired by the privacy reference. */
+/* TicketTreat legal identity – editorial text layout in the original brand palette. */
 .tt-legal-operator {
   position:relative;
   isolation:isolate;
@@ -450,17 +450,15 @@ body { background-image: none; }
   padding:clamp(24px,4.2vw,44px);
   border:2px solid var(--tt-keyline);
   border-radius:22px;
-  background:
-    radial-gradient(ellipse at 100% 0%,rgba(255,85,51,.15),transparent 55%),
-    linear-gradient(140deg,#17131a 0%,#241a1e 100%);
-  color:#eee5dd;
+  background:var(--tt-paper);
+  color:var(--tt-keyline);
   box-shadow:5px 5px 0 var(--tt-keyline);
 }
 .tt-legal-operator-main,.tt-legal-operator-czech { position:relative; z-index:1; }
 .tt-legal-operator .tt-legal-operator-eyebrow {
   display:block;
   margin:0 0 14px;
-  color:#ffb29d;
+  color:var(--tt-keyline);
   font-family:var(--tt-font-mono);
   font-size:11px;
   font-weight:750;
@@ -470,7 +468,7 @@ body { background-image: none; }
 .tt-legal-operator h2 {
   margin:0 0 18px;
   max-width:18ch;
-  color:#fff9f3;
+  color:var(--tt-keyline);
   font-family:var(--tt-font-display);
   font-size:clamp(32px,4.6vw,48px);
   font-weight:900;
@@ -481,13 +479,13 @@ body { background-image: none; }
 .tt-legal-operator .tt-legal-operator-lead {
   max-width:61ch;
   margin:0 0 20px;
-  color:#e5d9d1;
+  color:var(--tt-keyline);
   font-size:clamp(18px,2.25vw,23px);
   line-height:1.65;
   letter-spacing:-.015em;
   overflow-wrap:anywhere;
 }
-.tt-legal-operator strong { color:#fffaf5; font-weight:800; }
+.tt-legal-operator strong { color:var(--tt-keyline); font-weight:800; }
 .tt-legal-operator .tt-legal-operator-contact {
   max-width:66ch;
   margin:0 0 14px;
@@ -497,38 +495,38 @@ body { background-image: none; }
 }
 .tt-legal-operator .tt-legal-operator-help {
   margin:0;
-  color:#d2c6bf;
+  color:var(--muted);
   font-size:14px;
   line-height:1.7;
 }
 .tt-legal-content .tt-legal-operator a {
-  color:#ff9676;
+  color:var(--tt-fire);
   font-weight:700;
   text-decoration:underline;
   text-decoration-thickness:1.5px;
-  text-decoration-color:#ff9676;
+  text-decoration-color:var(--tt-fire);
   text-underline-offset:5px;
   overflow-wrap:anywhere;
   transition:color .18s ease,text-decoration-color .18s ease;
 }
 .tt-legal-content .tt-legal-operator a:hover {
-  color:#ffd0c0;
-  text-decoration-color:#ffd0c0;
+  color:var(--tt-keyline);
+  text-decoration-color:var(--tt-keyline);
 }
 .tt-legal-content .tt-legal-operator a:focus-visible {
-  outline:3px solid #ffd1bf;
+  outline:3px solid var(--tt-ultramarine);
   outline-offset:3px;
   border-radius:2px;
 }
 .tt-legal-operator-czech {
   margin-top:28px;
   padding-top:24px;
-  border-top:1px solid rgba(255,255,255,.22);
-  color:#d5c9c0;
+  border-top:1px solid #ccc6bd;
+  color:var(--tt-keyline);
 }
 .tt-legal-operator-czech h3 {
   margin:0 0 10px;
-  color:#fffaf5;
+  color:var(--tt-keyline);
   font-family:var(--tt-font-display);
   font-size:clamp(20px,2.3vw,25px);
   line-height:1.25;
