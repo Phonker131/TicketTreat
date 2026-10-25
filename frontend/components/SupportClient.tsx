@@ -3,6 +3,7 @@ import Link from "next/link";
 import {useCallback,useEffect,useState,type FormEvent} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
+import {userFacingError} from "@/lib/user-facing-errors";
 import {getWebToken} from "@/lib/session";
 import {createSupportTicket,listMySupportTickets,getMySupportTicket,replyMySupportTicket,type SupportTicket,type SupportThread} from "@/lib/api";
 
@@ -68,7 +69,7 @@ export function SupportClient(){
    <h1>{t.title}</h1><p className="tt-support-lead">{t.intro}</p>
    {needsLogin?<section className="panel form-stack"><p>{t.signed}</p><Link href="/profile" className="button button-primary">{t.login}</Link></section>:
     <>
-    {error&&<p className="state-card state-error" role="alert">{error}</p>}
+    {error&&<p className="state-card state-error" role="alert">{userFacingError(error,language)}</p>}
     {notice&&<p className="success-banner" role="status">{notice==="msg:sent"?t.sent:notice}</p>}
     {loading?<div className="state-card">{t.loading}</div>:selected&&thread?<>
       <button className="button button-outline" type="button" onClick={back}>← {t.back}</button>
