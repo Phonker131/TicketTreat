@@ -581,7 +581,7 @@ export function elevateMFA(code:string):Promise<MFAStatus> {
   return request("/demo/auth/mfa/elevate",{method:"POST",body:JSON.stringify({code})});
 }
 
-export type PendingErasure = {request_id:number;account_id:number;email:string;created_at:string};
+export type PendingErasure = {request_id:number;account_id:number;email:string;created_at:string;response_due_at:string;overdue:boolean};
 export function listErasureRequests():Promise<PendingErasure[]> {
   return request("/demo/manage/privacy-requests");
 }
