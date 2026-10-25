@@ -3,6 +3,7 @@ import Link from "next/link";
 import {FormEvent,useEffect,useState} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
+import {userFacingError} from "@/lib/user-facing-errors";
 import type {LanguageCode} from "@/lib/types";
 import {getWebToken} from "@/lib/session";
 import {
@@ -122,7 +123,7 @@ const WORDS:Record<LanguageCode,Record<string,string>>={
 };
 export function PrivacyClient(){
   const {language}=useLanguage();const tr=WORDS[language];
-  const show=(value:string)=>tr[value.startsWith("msg:")?value.slice(4):value]||value;
+  const show=(value:string)=>tr[value.startsWith("msg:")?value.slice(4):value]|| (value.startsWith("msg:")?userFacingError(value.slice(4),language):userFacingError(value,language));
   const [details,setDetails]=useState<PrivacyRequestStatus|null>(null);
   const [password,setPassword]=useState("");
   const [pending,setPending]=useState(false);

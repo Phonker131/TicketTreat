@@ -8,6 +8,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig, getWaitlistOfferStatus,claimWaitlistOffer,declineWaitlistOffer,requestQuickSignup,confirmQuickSignup, requestPaidReservation, getOwnPaidReservation } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
+import {userFacingError} from "@/lib/user-facing-errors";
 import { getStoredGuestToken, restoreGuest, storeGuest,setWebAuth } from "@/lib/session";
 import type { TicketTreatEvent, DemoGuest, } from "@/lib/types";
 import type {PaidReservationStatus} from "@/lib/api";
@@ -46,7 +47,7 @@ export function CheckoutClient() {
 
   useEffect(() => {
     if (!Number.isFinite(eventId)) return;
-    getEvent(eventId).then(setEvent).catch(() => setMessage(t(language, "eventNotFound")));
+    getEvent(eventId).then(setEvent).catch(err => setMessage(userFacingError(err,language)));
   }, [eventId, language]);
 
   useEffect(()=>{getBookingConfig().then(setBookingConfig).catch(()=>setBookingConfig({demo_payment_mode:false,verified_accounts_required:true}));},[]);
@@ -54,7 +55,7 @@ export function CheckoutClient() {
   useEffect(() => {
     restoreGuest()
       .then(setGuest)
-      .catch(err => setMessage(err instanceof Error ? err.message : "Authentication unavailable"))
+      .catch(err => setMessage(userFacingError(err,language)))
       .finally(() => setLoadingGuest(false));
   }, []);
 
@@ -85,7 +86,7 @@ export function CheckoutClient() {
       storeGuest(created);
       setGuest(created);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Error");
+      setMessage(userFacingError(err,language));
     } finally {
       setBusy(false);
     }
@@ -128,7 +129,7 @@ export function CheckoutClient() {
       } else if (text === "already_registered_via_bot") {
         setMessage("msg:alreadyBot");
       } else {
-        setMessage(text);
+        setMessage(userFacingError(err,language));
       }
     } finally {
       setBusy(false);
@@ -188,14 +189,14 @@ export function CheckoutClient() {
                   onClick={async()=>{setBusy(true);setMessage(null);try{
                     await requestQuickSignup(email,firstName,privacyAccepted);
                     setQuickSent(true);setMessage("msg:codeSent");
-                  }catch(e){setMessage(e instanceof Error?e.message:"Error");}finally{setBusy(false);}}}>
+                  }catch(e){setMessage(userFacingError(e,language));}finally{setBusy(false);}}}>
                   {txt.getCode}
                 </button>
                 {quickSent&&<form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage(null);
                   try{const auth=await confirmQuickSignup(email,quickCode);setWebAuth(auth);
                     setGuest(auth.profile.guest);setQuickCode("");setQuickSent(false);
                     setMessage("msg:confirmed");
-                  }catch(err){setMessage(err instanceof Error?err.message:"Error");}finally{setBusy(false);}}}>
+                  }catch(err){setMessage(userFacingError(err,language));}finally{setBusy(false);}}}>
                   <label>{txt.oneTime}
                     <input type="text" name="one-time-code" autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{8}" maxLength={8}
                       required value={quickCode} onChange={e=>setQuickCode(e.target.value)}/>
@@ -239,7 +240,7 @@ export function CheckoutClient() {
                       setBusy(true);
                       try{await declineWaitlistOffer(event.id);setOffer({status:"declined",expires_at:null,position:null});
                         setMessage("msg:declined");}
-                      catch(err){setMessage(err instanceof Error?err.message:"Error");}
+                      catch(err){setMessage(userFacingError(err,language));}
                       finally{setBusy(false);}
                     }}>{language==="ru"?"Отказаться от места":language==="cs"?"Odmítnout místo":language==="uk"?"Відмовитись від місця":"Decline offer"}</button>
                   </section>
@@ -314,7 +315,7 @@ function PaidCheckout({event,guest,language,source}:{
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
   const [currentTime,setCurrentTime]=useState(()=>Date.now());
-  const refresh=()=>getOwnPaidReservation(event.id).then(setState).catch(e=>setError(e instanceof Error?e.message:String(e)));
+  const refresh=()=>getOwnPaidReservation(event.id).then(setState).catch(e=>setError(userFacingError(e,language)));
   useEffect(()=>{
     if(!guest)return;
     void refresh();
@@ -336,7 +337,7 @@ function PaidCheckout({event,guest,language,source}:{
     try{
       await requestPaidReservation(event.id,language,source);
       await refresh();
-    }catch(e){setError(e instanceof Error?e.message:String(e))}
+    }catch(e){setError(userFacingError(e,language))}
     finally{setBusy(false)}
   }
   return <section className="panel form-stack">

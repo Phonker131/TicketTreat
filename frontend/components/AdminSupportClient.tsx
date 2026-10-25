@@ -3,6 +3,7 @@ import Link from "next/link";
 import {useCallback,useEffect,useState,type FormEvent} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
+import {userFacingError} from "@/lib/user-facing-errors";
 import {getManageMe,getSupportSummary,listAdminSupportTickets,getAdminSupportTicket,markSupportRead,replyAdminSupportTicket,closeAdminSupportTicket,
  type SupportTicket,type SupportThread,type SupportSummary} from "@/lib/api";
 import {getWebToken} from "@/lib/session";
@@ -73,7 +74,7 @@ export function AdminSupportClient(){
   <h1>{tr.title}</h1>
   <p className="form-note">{tr.intro}</p>
   {loading&&<div className="state-card">{tr.loading}</div>}
-  {error&&<p className="state-card state-error" role="alert">{show(error)} {(error==="mfa_challenge_required"||error==="mfa_enrollment_required")&&<Link href="/security/mfa">{tr.mfa}</Link>}</p>}
+  {error&&<p className="state-card state-error" role="alert">{show(error)===error?userFacingError(error,language):show(error)} {(error==="mfa_challenge_required"||error==="mfa_enrollment_required")&&<Link href="/security/mfa">{tr.mfa}</Link>}</p>}
   {notice&&<p className="success-banner" role="status">{show(notice)}</p>}
   {authorized&&<>
    <div className="stats-grid" aria-label="Support overview">

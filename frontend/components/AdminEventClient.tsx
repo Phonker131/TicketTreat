@@ -7,6 +7,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {eventAdminText} from "@/lib/event-admin-i18n";
+import {userFacingError} from "@/lib/user-facing-errors";
 import {localeForLanguage} from "@/lib/i18n";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
@@ -25,7 +26,7 @@ function asLocal(value: string|null): string {
   if(!value)return "";
   return value.slice(0,16);
 }
-function formattedError(e:unknown):string {return e instanceof Error?e.message:String(e);}
+function formattedError(e:unknown,language:LanguageCode):string {return userFacingError(e,language);}
 function posterData(file:File):Promise<string> {return new Promise((resolve,reject)=>{
   const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Poster read failed"));reader.readAsDataURL(file);
 });}
@@ -91,7 +92,7 @@ export function AdminEventClient(){
     }
   }
   useEffect(()=>{if(!eventId)return;let active=true;
-    reload().catch(e=>{if(active)setError(formattedError(e));}).finally(()=>{if(active)setLoading(false);});
+    reload().catch(e=>{if(active)setError(formattedError(e,language));}).finally(()=>{if(active)setLoading(false);});
     return()=>{active=false};
   },[eventId]);
   useEffect(()=>{
@@ -128,7 +129,7 @@ export function AdminEventClient(){
       await editManageEvent(token,eventId,payload);
       await reload();setShowEdit(false);setPoster(null);
       setNotice(tr("Изменения сохранены."));
-    }catch(e){setError(formattedError(e));}
+    }catch(e){setError(formattedError(e,language));}
     finally{setBusy(false);}
   }
   useEffect(()=>{
@@ -161,9 +162,9 @@ export function AdminEventClient(){
       await cancelManageEvent(token,eventId,reason.trim());
       setShowCancel(false);
       setNotice(tr("Мероприятие отменено. Регистрация закрыта, причина сохранена."));
-      try{await reload();}catch(e){setError(tr("Мероприятие отменено, но не удалось обновить страницу: ")+formattedError(e));}
+      try{await reload();}catch(e){setError(tr("Мероприятие отменено, но не удалось обновить страницу: ")+formattedError(e,language));}
     }catch(e){
-      setCancelError(formattedError(e));
+      setCancelError(formattedError(e,language));
     }finally{setBusy(false);}
   }
   async function assign(){
@@ -172,7 +173,7 @@ export function AdminEventClient(){
     try{
       await assignManageOwner(token,eventId,Number(owner));
       await reload();setNotice(tr("Владелец ивента обновлён."));
-    }catch(e){setError(formattedError(e));}finally{setBusy(false);}
+    }catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
   async function decidePaid(id:number,action:"confirm"|"decline"){
     const token=getWebToken();if(!token)return;
@@ -184,7 +185,7 @@ export function AdminEventClient(){
       await decidePaidReservation(token,eventId,id,action);
       await reload();
       setNotice(action==="confirm"?tr("Оплата подтверждена, QR-билет выдан."):tr("Заявка отклонена, место освобождено."));
-    }catch(e){setError(formattedError(e))}
+    }catch(e){setError(formattedError(e,language))}
     finally{setBusy(false)}
   }
 
@@ -202,7 +203,7 @@ export function AdminEventClient(){
       }
       await reload();
       setNotice(tr("Фотографии добавлены."));
-    }catch(e){setError(formattedError(e))}
+    }catch(e){setError(formattedError(e,language))}
     finally{setBusy(false)}
   }
   async function removePhoto(imageId:number){
@@ -212,7 +213,7 @@ export function AdminEventClient(){
     try{
       await deleteManageGalleryPhoto(token,eventId,imageId);
       await reload();setNotice(tr("Фотография удалена."));
-    }catch(e){setError(formattedError(e))}
+    }catch(e){setError(formattedError(e,language))}
     finally{setBusy(false)}
   }
   async function manualCheckIn(ticketId:number){
@@ -221,7 +222,7 @@ export function AdminEventClient(){
     setBusy(true);setError("");setNotice("");
     try{const result=await checkInByList(token,eventId,ticketId);await reload();
       setNotice(result.status==="already_checked_in"?tr("Этот билет уже отмечен."):tr("Участник отмечен на входе."));}
-    catch(e){setError(formattedError(e));}finally{setBusy(false);}
+    catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
   async function sendOperationalNotice(){
     const token=getWebToken();if(!token||!event||announcementText.trim().length<20)return;
@@ -231,7 +232,7 @@ export function AdminEventClient(){
       category:announcementCategory,message:announcementText.trim()});
       setAnnouncementText("");await reload();
       setNotice(`${tr("В очереди: ")}${result.eligible_notification_deliveries} ${tr("доставок через email и/или Telegram.")}`);
-    }catch(e){setError(formattedError(e));}
+    }catch(e){setError(formattedError(e,language));}
     finally{setBusy(false);}
   }
   async function savePilotPolicy(){
@@ -241,7 +242,7 @@ export function AdminEventClient(){
       if(!pilotSettings.reminder_minutes.length||!reminderMessage.trim())throw new Error(tr("Укажи расписание и текст напоминания."));
       await updatePilotSettings(token,eventId,{...pilotSettings,reminder_text:reminderMessage.trim()});
       await reload();setNotice(tr("Расписание напоминаний и текст организатора сохранены."));
-    }catch(e){setError(formattedError(e));}
+    }catch(e){setError(formattedError(e,language));}
     finally{setBusy(false);}
   }
   async function addCheckinStaff(){
@@ -249,14 +250,14 @@ export function AdminEventClient(){
     setBusy(true);setError("");
     try{await grantPilotStaff(token,eventId,staffEmail.trim());setStaffEmail("");await reload();
       setNotice(tr("Доступ к сканированию билетов предоставлен."));}
-    catch(e){setError(formattedError(e));}
+    catch(e){setError(formattedError(e,language));}
     finally{setBusy(false);}
   }
   async function removeCheckinStaff(id:number){
     const token=getWebToken();if(!token||!window.confirm(tr("Отозвать доступ к сканированию?")))return;
     setBusy(true);setError("");
     try{await revokePilotStaff(token,eventId,id);await reload();setNotice(tr("Доступ отозван."));}
-    catch(e){setError(formattedError(e));}
+    catch(e){setError(formattedError(e,language));}
     finally{setBusy(false);}
   }
   async function updateMediaOrder(photoId:number,direction:-1|1|0){
@@ -274,7 +275,7 @@ export function AdminEventClient(){
     setBusy(true);setError("");
     try{await orderManageGallery(token,eventId,photos.map(p=>p.id),cover);
       await reload();setNotice(tr("Галерея обновлена."));}
-    catch(e){setError(formattedError(e));}
+    catch(e){setError(formattedError(e,language));}
     finally{setBusy(false);}
   }
   async function publication(status:"draft"|"scheduled"|"published"){
@@ -287,7 +288,7 @@ export function AdminEventClient(){
       await setManagePublication(token,eventId,{status,publish_at:when});
       await reload();
       setNotice(status==="published"?tr("Мероприятие опубликовано."):status==="scheduled"?tr("Публикация запланирована."):tr("Мероприятие сохранено как черновик."));
-    }catch(e){setError(formattedError(e))}finally{setBusy(false)}
+    }catch(e){setError(formattedError(e,language))}finally{setBusy(false)}
   }
   async function duplicate(){
     const token=getWebToken();if(!token||!event)return;
@@ -296,7 +297,7 @@ export function AdminEventClient(){
     try{
       const next=await duplicateManageEvent(token,eventId);
       router.push(`/admin/events/${next.id}`);
-    }catch(e){setError(formattedError(e));setBusy(false)}
+    }catch(e){setError(formattedError(e,language));setBusy(false)}
   }
   async function downloadPromotionQR(){
     if(!event||!event.publication?.visible)return;
@@ -315,13 +316,13 @@ export function AdminEventClient(){
   async function csv(){
     const token=getWebToken();if(!token)return;
     setBusy(true);try{await exportManageParticipantsCsv(token,eventId);}
-    catch(e){setError(formattedError(e));}finally{setBusy(false);}
+    catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
   async function checkIn(qr:string){
     const token=getWebToken();if(!token)return;
     setBusy(true);setError("");
     try{await checkInManagedTicket(token,qr);await reload();setNotice(tr("Check-in выполнен."));}
-    catch(e){setError(formattedError(e));}finally{setBusy(false);}
+    catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
     <Link href="/admin" className="back-link">← Organizer dashboard</Link>

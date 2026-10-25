@@ -3,6 +3,7 @@ import Link from "next/link";
 import {FormEvent,useEffect,useState} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
+import {userFacingError} from "@/lib/user-facing-errors";
 import {adminTranslate} from "@/lib/admin-i18n";
 import {getMFAStatus,getWebProfile,startMFA,confirmMFA,elevateMFA,type MFAStatus,type MFAStart} from "@/lib/api";
 import type {WebProfile} from "@/lib/types";
@@ -14,7 +15,7 @@ export function MFAClient(){
   const {language}=useLanguage();
   const tr=(phrase:string)=>adminTranslate(language,phrase);
   const txt=WORDS[language];
-  const show=(message:string)=>message.startsWith("msg:")?txt[message.slice(4)]||message:message;
+  const show=(message:string)=>message.startsWith("msg:")?(txt[message.slice(4)]||userFacingError(message.slice(4),language)):userFacingError(message,language);
   const [status,setStatus]=useState<MFAStatus|null>(null);
   const [profile,setProfile]=useState<WebProfile|null>(null);
   const [checkingProfile,setCheckingProfile]=useState(true);

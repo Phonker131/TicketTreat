@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {eventAdminText} from "@/lib/event-admin-i18n";
+import {userFacingError} from "@/lib/user-facing-errors";
 import { scanPilotTicket } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { DemoTicket } from "@/lib/types";
@@ -36,7 +37,7 @@ export function CheckInClient() {
     scanBusy.current=true;
     try {
       const session = getWebToken();
-      if (!session) throw new Error(tr("Войдите в подтверждённый аккаунт с доступом к check-in."));
+      if (!session) throw new Error("login_required");
       const response = await scanPilotTicket(session, token);
       setResult(response.ticket);
       setSuccessful(response.status!=="already_checked_in");
@@ -44,7 +45,7 @@ export function CheckInClient() {
         tr("Билет уже использован! Повторный проход запрещён."):tr("Check-in successful"));
       setManual("");
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : tr("Check-in failed"));
+      setMessage(userFacingError(e,language));
       setResult(null);
       setSuccessful(false);
     } finally { scanBusy.current=false; }

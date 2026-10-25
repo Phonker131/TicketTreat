@@ -5,6 +5,7 @@ import { useParams,useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
+import {userFacingError} from "@/lib/user-facing-errors";
 import { getEvent,getBookingConfig,getManageEvent } from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 import {downloadCalendar,mapQuery} from "@/lib/event-actions";
@@ -50,7 +51,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   useEffect(()=>{getBookingConfig().then(cfg=>setDemoPayments(cfg.demo_payment_mode)).catch(()=>{});},[]);
 
   if (error) {
-    return <><AppHeader /><main className="page"><div className="state-card state-error">{t(language, "eventNotFound")}</div></main></>;
+    return <><AppHeader /><main className="page"><div className="state-card state-error">{userFacingError(error,language)}</div></main></>;
   }
 
   if (!event) {
