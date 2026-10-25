@@ -31,9 +31,15 @@ export function LegalOperatorIdentity(){
           <a href={`mailto:${op.email}`}>{op.email}</a>.</>}
       </p>
     </div>
-    {op.status==="complete"&&<dl className="tt-legal-operator-details">
-      <div><dt>Registered operator / Registrovaný provozovatel</dt><dd>{op.name}</dd></div>
-      <div><dt>Registered business address / Sídlo</dt><dd>{op.address}</dd></div>
+    {(op.name||op.address)&&<dl className="tt-legal-operator-details">
+      {op.name&&<div>
+        <dt>Registered entrepreneur / Podnikající fyzická osoba</dt>
+        <dd>{op.name}</dd>
+      </div>}
+      {op.address&&<div>
+        <dt>Registered business address / Sídlo</dt>
+        <dd>{op.address}</dd>
+      </div>}
     </dl>}
     <p className="tt-legal-operator-support">
       Account and ticket assistance / Podpora účtů a vstupenek:{" "}
