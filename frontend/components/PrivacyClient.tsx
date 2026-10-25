@@ -136,7 +136,7 @@ export function PrivacyClient(){
     setDetails(status);
   }
 
-  useEffect(()=>{void reload().catch(e=>setError(String(e)));},[]);
+  useEffect(()=>{void reload().catch(e=>setError(e instanceof Error?e.message:String(e)));},[]);
 
   async function send(e:FormEvent){
     e.preventDefault();setPending(true);setError("");setNotice("");
