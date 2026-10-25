@@ -5,6 +5,7 @@ import {useEffect,useState} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {broadcastText} from "@/lib/broadcast-i18n";
+import {userFacingError} from "@/lib/user-facing-errors";
 import {localeForLanguage} from "@/lib/i18n";
 import {getWebToken} from "@/lib/session";
 import {getManageMe,getManageEvents,previewBroadcast,sendBroadcast,getBroadcastHistory} from "@/lib/api";
@@ -23,9 +24,7 @@ function messageOf(error:unknown,language: "en"|"cs"|"ru"|"uk"):string {
     broadcast_providers_unavailable:"Не настроены каналы доставки. Проверь Resend и Telegram.",
     audience_exceeds_50000_per_channel:"Аудитория превышает допустимый размер рассылки.",
   };
-  const text = errors[raw] || raw;
-  if (/^[a-z][a-z0-9_]{2,}$/.test(text)) return broadcastText(language,"Не удалось выполнить действие. Попробуй ещё раз.");
-  return broadcastText(language,text);
+  return errors[raw] ? broadcastText(language,errors[raw]) : userFacingError(error,language);
 }
 
 const MIN_SUBJECT_CHARS=5;
