@@ -509,7 +509,7 @@ export function ProfileClient() {
     if (code === 429) return "ui:rate";
     if (code === 401) return "ui:authExpired";
     if (code === 422) return "ui:required";
-    return userFacingError(err,language);
+    return raw;
   }
 
   async function submitAuth(e: FormEvent) {
