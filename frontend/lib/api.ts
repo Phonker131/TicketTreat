@@ -54,7 +54,18 @@ async function request<T>(
     let detail = `API ${response.status}`;
     try {
       const payload = await response.json();
-      detail = payload?.detail || payload?.error || detail;
+      const raw = payload?.detail ?? payload?.error;
+      // FastAPI may return a structured error object for blocked privacy
+      // erasure requests. String(object) would show "[object Object]".
+      if (typeof raw === "string") detail = raw;
+      else if (raw && typeof raw === "object") {
+        const code = typeof raw.code === "string" ? raw.code :
+          typeof raw.message === "string" ? raw.message : detail;
+        const blockers = Array.isArray(raw.blockers)
+          ? raw.blockers.filter((value:unknown):value is string=>typeof value==="string")
+          : [];
+        detail = [code, ...blockers].join(": ");
+      }
     } catch {}
     const error = new Error(String(detail)) as Error & {status?: number};
     error.status = response.status;
@@ -570,7 +581,7 @@ export function elevateMFA(code:string):Promise<MFAStatus> {
   return request("/demo/auth/mfa/elevate",{method:"POST",body:JSON.stringify({code})});
 }
 
-export type PendingErasure = {request_id:number;account_id:number;email:string;created_at:string};
+export type PendingErasure = {request_id:number;account_id:number;email:string;created_at:string;response_due_at:string;overdue:boolean};
 export function listErasureRequests():Promise<PendingErasure[]> {
   return request("/demo/manage/privacy-requests");
 }
