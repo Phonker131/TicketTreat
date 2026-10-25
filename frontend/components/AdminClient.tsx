@@ -17,7 +17,7 @@ function readPoster(file: File): Promise<string> {
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
     reader.onload=()=>resolve(String(reader.result));
-    reader.onerror=()=>reject(new Error("Не удалось прочитать постер."));
+    reader.onerror=()=>reject(new Error("poster_read_failed"));
     reader.readAsDataURL(file);
   });
 }
@@ -104,15 +104,15 @@ export function AdminClient() {
       const file=data.get("poster");
       let poster_data_url: string|null=null;
       if(file instanceof File && file.size>0){
-        if(file.size>4*1024*1024)throw new Error("Максимальный размер постера — 4 МБ.");
-        if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw new Error("Только PNG, JPEG или WebP.");
+        if(file.size>4*1024*1024)throw new Error("poster_too_large");
+        if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw new Error("invalid_poster_type");
         poster_data_url=await readPoster(file);
       }
       const langs=data.getAll("languages").map(String).filter((v):v is LanguageCode=>["en","cs","ru","uk"].includes(v));
-      if(!langs.length)throw new Error("Выбери хотя бы один язык.");
+      if(!langs.length)throw new Error("invalid_event_languages");
       const starts=String(data.get("starts_at")||"");
-      if(!starts)throw new Error("Введи дату и время.");
-      if(!reminderMinutes.length||!reminderMessage.trim())throw new Error("Укажи время и текст напоминания.");
+      if(!starts)throw new Error("event_start_required");
+      if(!reminderMinutes.length||!reminderMessage.trim())throw new Error("reminder_settings_required");
       const event=await addManageEvent(token,{
         title:String(data.get("title")||"").trim(),
         organizer:String(data.get("organizer")||"TicketTreat").trim(),

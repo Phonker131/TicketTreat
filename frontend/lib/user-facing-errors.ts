@@ -4,6 +4,11 @@ import type {LanguageCode} from "@/lib/types";
  * Keep operational errors separate from mistakes the visitor can correct.
  */
 const MESSAGES: Record<string,Record<LanguageCode,string>> = {
+  "poster_read_failed": {"en":"Couldn't read the poster file. Choose the image again or use another JPG, PNG or WebP.","cs":"Obrázek plakátu se nepodařilo načíst. Vyberte jej znovu nebo použijte jiný soubor JPG, PNG či WebP.","ru":"Не удалось прочитать изображение постера. Выбери файл заново или попробуй другой JPG, PNG либо WebP.","uk":"Не вдалося прочитати афішу. Обери файл ще раз або спробуй інший JPG, PNG чи WebP."},
+  "poster_too_large": {"en":"The poster exceeds 4 MB. Compress the image and upload it again.","cs":"Plakát přesahuje 4 MB. Zmenšete soubor a nahrajte jej znovu.","ru":"Постер больше 4 МБ. Сожми изображение и загрузи его заново.","uk":"Афіша більша за 4 МБ. Стисни зображення та завантаж його знову."},
+  "invalid_poster_type": {"en":"Choose a JPG, PNG or WebP poster. Other file formats aren't supported.","cs":"Vyberte plakát JPG, PNG nebo WebP. Jiné formáty nejsou podporovány.","ru":"Выбери постер в формате JPG, PNG или WebP. Другие форматы не поддерживаются.","uk":"Обери афішу у форматі JPG, PNG або WebP. Інші формати не підтримуються."},
+  "event_start_required": {"en":"Add the event date and start time before saving.","cs":"Před uložením vyplňte datum a čas začátku akce.","ru":"Укажи дату и время начала мероприятия перед сохранением.","uk":"Укажи дату та час початку події перед збереженням."},
+  "reminder_settings_required": {"en":"Set at least one reminder time and enter its message before saving.","cs":"Před uložením nastavte alespoň jeden čas připomínky a vyplňte zprávu.","ru":"Укажи хотя бы одно время напоминания и текст сообщения перед сохранением.","uk":"Укажи хоча б один час нагадування та текст повідомлення перед збереженням."},
   "organizer_role_required": {
     "en": "This account is registered as a participant. Apply to become an organizer from Profile or ask an administrator for access.",
     "cs": "Tento účet je veden jako účastník. O roli pořadatele požádejte v Profilu nebo kontaktujte správce.",
