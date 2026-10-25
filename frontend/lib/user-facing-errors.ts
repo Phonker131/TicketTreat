@@ -4,6 +4,36 @@ import type {LanguageCode} from "@/lib/types";
  * Keep operational errors separate from mistakes the visitor can correct.
  */
 const MESSAGES: Record<string,Record<LanguageCode,string>> = {
+  "organizer_role_required": {
+    "en": "This account is registered as a participant. Apply to become an organizer from Profile or ask an administrator for access.",
+    "cs": "Tento účet je veden jako účastník. O roli pořadatele požádejte v Profilu nebo kontaktujte správce.",
+    "ru": "Этот аккаунт зарегистрирован как участник. Подай заявку на роль организатора в профиле или обратись к администратору.",
+    "uk": "Цей акаунт зареєстрований як учасник. Подай заявку на роль організатора в профілі або звернися до адміністратора."
+  },
+  "global_admin_only": {
+    "en": "Only a global administrator can do this. Sign in with an administrator account and complete MFA.",
+    "cs": "Tuto akci může provést jen hlavní správce. Přihlaste se administrátorským účtem a potvrďte MFA.",
+    "ru": "Действие доступно только главному администратору. Войди в административный аккаунт и подтверди MFA.",
+    "uk": "Дія доступна лише головному адміністратору. Увійди в адміністративний акаунт і підтвердь MFA."
+  },
+  "ticket_already_checked_in": {
+    "en": "This ticket was already scanned. Check the attendee's record; do not admit them twice.",
+    "cs": "Tato vstupenka již byla načtena. Zkontrolujte záznam účastníka a neodbavujte ho dvakrát.",
+    "ru": "Этот билет уже отмечен на входе. Проверь запись участника, повторный проход запрещён.",
+    "uk": "Цей квиток уже відмічено на вході. Перевір запис учасника, повторний вхід заборонено."
+  },
+  "invalid_qr_token": {
+    "en": "This QR code isn't valid. Scan the original ticket again or ask the attendee to open My tickets.",
+    "cs": "Tento QR kód není platný. Naskenujte vstupenku znovu nebo požádejte účastníka o otevření Moje vstupenky.",
+    "ru": "QR-код недействителен. Попробуй сканировать билет снова или попроси открыть «Мои билеты».",
+    "uk": "QR-код недійсний. Спробуй відсканувати знову або попроси відкрити «Мої квитки»."
+  },
+  "event_registration_closed": {
+    "en": "Registration is closed. Check the event details or contact the organizer.",
+    "cs": "Registrace je uzavřena. Zkontrolujte údaje o akci nebo kontaktujte pořadatele.",
+    "ru": "Регистрация закрыта. Проверь информацию о мероприятии или свяжись с организатором.",
+    "uk": "Реєстрацію закрито. Перевір інформацію про подію або зв’яжися з організатором."
+  },
   "login_required": {
     "en": "Please sign in from Profile and try again.",
     "cs": "Přihlaste se v Profilu a akci zopakujte.",
