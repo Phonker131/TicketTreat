@@ -12,7 +12,7 @@ const copy = {
   ru: {
     title:"Cookies и конфиденциальность",
     intro:"Мы используем необходимые cookies для безопасного входа и работы TicketTreat. Встроенные карты Google загружаются только с твоего разрешения. Рекламные и аналитические cookies сейчас не используются.",
-    accept:"Разрешить карты Google", reject:"Отклонить необязательные", settings:"Настроить",
+    accept:"Разрешить cookies", reject:"Отклонить необязательные", settings:"Настроить",
     optionsTitle:"Настройки cookies",
     necessary:"Необходимые cookies и локальные настройки", necessaryInfo:"Всегда включены. Сессия, защита входа, язык, работа Mini App и сохранение выбора cookies. Без них некоторые функции не работают.",
     media:"Встроенные карты Google", mediaInfo:"Необязательные. При разрешении на странице события может загружаться Google Maps. Google может обрабатывать данные устройства и устанавливать собственные cookies.",
@@ -23,7 +23,7 @@ const copy = {
   en: {
     title:"Cookies and privacy",
     intro:"We use essential cookies for secure sign-in and TicketTreat functionality. Embedded Google Maps load only if you allow them. We currently do not use advertising or analytics cookies.",
-    accept:"Allow Google Maps", reject:"Reject optional", settings:"Customize",
+    accept:"Allow cookies", reject:"Reject optional", settings:"Customize",
     optionsTitle:"Cookie preferences",
     necessary:"Essential cookies and local preferences", necessaryInfo:"Always on. Sign-in, session security, language, Mini App features and remembering cookie choices. Some features require these technologies.",
     media:"Embedded Google Maps", mediaInfo:"Optional. When enabled, Google Maps can load on an event page. Google may receive device data and set its own cookies.",
@@ -34,7 +34,7 @@ const copy = {
   cs: {
     title:"Cookies a ochrana soukromí",
     intro:"Nezbytné cookies zajišťují bezpečné přihlášení a provoz TicketTreat. Vložené mapy Google se načtou jen s vaším souhlasem. Reklamní ani analytické cookies nyní nepoužíváme.",
-    accept:"Povolit Mapy Google",reject:"Odmítnout volitelné",settings:"Nastavit",
+    accept:"Povolit cookies",reject:"Odmítnout volitelné",settings:"Nastavit",
     optionsTitle:"Nastavení cookies",
     necessary:"Nezbytné cookies a místní nastavení",necessaryInfo:"Vždy zapnuté. Přihlášení, zabezpečení relace, jazyk, funkce Mini App a uchování volby cookies. Bez nich nemusí některé funkce fungovat.",
     media:"Vložené Mapy Google",mediaInfo:"Volitelné. Po souhlasu lze na stránce akce načíst Mapy Google. Google může zpracovávat údaje zařízení a používat vlastní cookies.",
@@ -45,7 +45,7 @@ const copy = {
   uk: {
     title:"Cookies і конфіденційність",
     intro:"Ми використовуємо необхідні cookies для безпечного входу та роботи TicketTreat. Вбудовані карти Google завантажуються лише з твого дозволу. Рекламні й аналітичні cookies зараз не використовуються.",
-    accept:"Дозволити Google Maps",reject:"Відхилити необов’язкові",settings:"Налаштувати",
+    accept:"Дозволити cookies",reject:"Відхилити необов’язкові",settings:"Налаштувати",
     optionsTitle:"Налаштування cookies",
     necessary:"Необхідні cookies та локальні налаштування",necessaryInfo:"Завжди ввімкнено. Вхід, захист сесії, мова, Mini App і збереження вибору cookies.",
     media:"Вбудовані Google Maps",mediaInfo:"Необов’язкові. Після дозволу карти можуть завантажуватися на сторінках подій. Google може обробляти дані пристрою й використовувати власні cookies.",
