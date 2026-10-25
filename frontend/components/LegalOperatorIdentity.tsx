@@ -1,58 +1,43 @@
 import Link from "next/link";
 import {getLegalOperator} from "@/lib/legal-operator";
 
-/** TicketTreat is a brand, not an independently registered company.
- * Only legally verified operator details appear in the legal disclosure;
- * the person's name must never be promoted as platform branding.
+/** Only present verified service contacts and supplied business details.
+ * Do not substitute the TicketTreat brand for a verified statutory person.
  */
 export function LegalOperatorIdentity(){
   const op=getLegalOperator();
-  return <section className="tt-legal-operator" aria-label="TicketTreat legal operator identity">
+  return <section className="tt-legal-operator" aria-label="TicketTreat identification and contacts">
     <header className="tt-legal-operator-heading">
       <div>
         <span className="tt-legal-operator-brand">TicketTreat</span>
-        <h2>Legal operator / Právní provozovatel</h2>
-        <p className="tt-legal-operator-description">
-          TicketTreat is the platform brand. These are the statutory details of
-          the person or company legally responsible for operating it.
-        </p>
+        <h2>Who is responsible / Kdo je odpovědný</h2>
       </div>
     </header>
-    {op.status==="complete"?(
-      <dl className="tt-legal-operator-details">
-        <div><dt>Registered name / Jméno nebo název</dt><dd>{op.name}</dd></div>
-        <div><dt>Registered address / Sídlo</dt><dd>{op.address}</dd></div>
-        <div><dt>IČO</dt><dd>{op.identificationNumber}</dd></div>
-        <div><dt>Privacy contact / Kontakt pro ochranu údajů</dt>
-          <dd><a href={`mailto:${op.email}`}>{op.email}</a></dd></div>
-      </dl>
-    ):(
-      <>
-        {op.identificationNumber&&(
-          <dl className="tt-legal-operator-details tt-legal-operator-pilot-ico">
-            <div>
-              <dt>Provided IČO / Poskytnuté IČO</dt>
-              <dd>{op.identificationNumber}</dd>
-            </div>
-          </dl>
-        )}
-        <div className="tt-legal-operator-pending" role="note">
-          <p><strong>Legal operator details are being finalized.</strong> The IČO above
-            was provided for the TicketTreat pilot, but it does not by itself
-            identify the contracting operator or the GDPR controller.
-            The verified registered name, business address and working privacy
-            contact must be published before commercial operation.</p>
-          <p lang="cs"><strong>Údaje o právním provozovateli se doplňují.</strong>
-            Výše uvedené IČO bylo poskytnuto pro pilotní provoz TicketTreat,
-            samotné však neidentifikuje smluvního provozovatele ani správce
-            osobních údajů. Před komerčním provozem je nutné zveřejnit
-            ověřené jméno či název, sídlo a funkční kontakt pro ochranu údajů.</p>
-        </div>
-      </>
-    )}
+    <div className="tt-legal-operator-copy">
+      <p>
+        <strong>TicketTreat</strong> is an event registration and ticketing platform in Czechia.
+        {op.identificationNumber&&<> Business identification number: <strong>IČO {op.identificationNumber}</strong>.</>}
+        {" "}For general enquiries, write to{" "}
+        {op.contactEmail?<a href={`mailto:${op.contactEmail}`}>{op.contactEmail}</a>:<Link href="/support">TicketTreat Support</Link>}.
+        {op.email&&<> For questions about your personal data, contact{" "}
+          <a href={`mailto:${op.email}`}>{op.email}</a>.</>}
+      </p>
+      <p lang="cs">
+        <strong>TicketTreat</strong> je platforma pro registrace na akce a elektronické vstupenky v Česku.
+        {op.identificationNumber&&<> Identifikační číslo: <strong>IČO {op.identificationNumber}</strong>.</>}
+        {" "}S obecnými dotazy se obracejte na{" "}
+        {op.contactEmail?<a href={`mailto:${op.contactEmail}`}>{op.contactEmail}</a>:<Link href="/support">podporu TicketTreat</Link>}.
+        {op.email&&<> Pro dotazy k osobním údajům napište na{" "}
+          <a href={`mailto:${op.email}`}>{op.email}</a>.</>}
+      </p>
+    </div>
+    {op.status==="complete"&&<dl className="tt-legal-operator-details">
+      <div><dt>Registered operator / Registrovaný provozovatel</dt><dd>{op.name}</dd></div>
+      <div><dt>Registered business address / Sídlo</dt><dd>{op.address}</dd></div>
+    </dl>}
     <p className="tt-legal-operator-support">
-      Platform assistance / Podpora: <Link href="/support">TicketTreat Support Center</Link>.
-      Support does not replace the statutory operator contact above.
+      Account and ticket assistance / Podpora účtů a vstupenek:{" "}
+      <Link href="/support">TicketTreat Support Center</Link>.
     </p>
   </section>;
 }
