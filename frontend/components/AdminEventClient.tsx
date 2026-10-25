@@ -26,7 +26,10 @@ function asLocal(value: string|null): string {
   if(!value)return "";
   return value.slice(0,16);
 }
-function formattedError(e:unknown,language:LanguageCode):string {return userFacingError(e,language);}
+class LocalValidationError extends Error {}
+function formattedError(e:unknown,language:LanguageCode):string {
+  return e instanceof LocalValidationError ? e.message : userFacingError(e,language);
+}
 function posterData(file:File):Promise<string> {return new Promise((resolve,reject)=>{
   const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Poster read failed"));reader.readAsDataURL(file);
 });}
@@ -65,7 +68,7 @@ export function AdminEventClient(){
   const [paymentInstructions,setPaymentInstructions]=useState("");
   const [languages,setLanguages]=useState<LanguageCode[]>(["en","ru"]);
   async function reload(){
-    const token=getWebToken();if(!token)throw new Error(tr("Сначала войди в профиль."));
+    const token=getWebToken();if(!token)throw new LocalValidationError(tr("Сначала войди в профиль."));
     const [me,ev,tickets]=await Promise.all([
       getManageMe(token),getManageEvent(eventId,token),getManageParticipants(token,eventId)
     ]);
@@ -112,11 +115,11 @@ export function AdminEventClient(){
     try{
       let image:string|undefined;
       if(poster && poster.size>0) {
-        if(poster.size>4*1024*1024)throw new Error(tr("Постер больше 4 МБ"));
-        if(!["image/jpeg","image/png","image/webp"].includes(poster.type))throw new Error(tr("Формат постера — JPG, PNG или WebP."));
+        if(poster.size>4*1024*1024)throw new LocalValidationError(tr("Постер больше 4 МБ"));
+        if(!["image/jpeg","image/png","image/webp"].includes(poster.type))throw new LocalValidationError(tr("Формат постера — JPG, PNG или WebP."));
         image=await posterData(poster);
       }
-      if(!languages.length)throw new Error(tr("Выбери язык."));
+      if(!languages.length)throw new LocalValidationError(tr("Выбери язык."));
       const payload:Record<string,unknown>={
         title:title.trim(),organizer:organizer.trim(),description,location,
         gallery_urls:gallery.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),video_url:video.trim(),
@@ -194,10 +197,10 @@ export function AdminEventClient(){
     setBusy(true);setError("");setNotice("");
     try {
       const current=event?.gallery_urls?.length||0;
-      if(current+files.length>8)throw new Error(tr("Не более 8 фотографий на мероприятие."));
+      if(current+files.length>8)throw new LocalValidationError(tr("Не более 8 фотографий на мероприятие."));
       for(const file of Array.from(files)){
-        if(file.size>2*1024*1024)throw new Error(tr("Фотография должна быть меньше 2 МБ."));
-        if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw new Error(tr("Нужны JPG, PNG или WebP."));
+        if(file.size>2*1024*1024)throw new LocalValidationError(tr("Фотография должна быть меньше 2 МБ."));
+        if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw new LocalValidationError(tr("Нужны JPG, PNG или WebP."));
         const dataUrl=await posterData(file);
         await uploadManageGalleryPhoto(token,eventId,dataUrl);
       }
@@ -239,7 +242,7 @@ export function AdminEventClient(){
     const token=getWebToken();if(!token)return;
     setBusy(true);setError("");setNotice("");
     try{
-      if(!pilotSettings.reminder_minutes.length||!reminderMessage.trim())throw new Error(tr("Укажи расписание и текст напоминания."));
+      if(!pilotSettings.reminder_minutes.length||!reminderMessage.trim())throw new LocalValidationError(tr("Укажи расписание и текст напоминания."));
       await updatePilotSettings(token,eventId,{...pilotSettings,reminder_text:reminderMessage.trim()});
       await reload();setNotice(tr("Расписание напоминаний и текст организатора сохранены."));
     }catch(e){setError(formattedError(e,language));}
