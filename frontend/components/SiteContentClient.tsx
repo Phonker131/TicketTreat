@@ -4,6 +4,7 @@ import {FormEvent,useEffect,useState} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {eventAdminText} from "@/lib/event-admin-i18n";
+import {userFacingError} from "@/lib/user-facing-errors";
 import {getManageMe,getSiteLanding,updateSiteLanding,type SiteLanding} from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 
@@ -53,7 +54,7 @@ export function SiteContentClient(){
     <h1>{tr("Контент главной страницы")}</h1>
     <p className="form-note">{tr("Изменения появятся на сайте и в Telegram Mini App. Доступ — только глобальному администратору.")}</p>
     {loading&&<div className="state-card">{tr("Загрузка…")}</div>}
-    {error&&<div className="state-card state-error" role="alert">{error}</div>}
+    {error&&<div className="state-card state-error" role="alert">{/^[a-z][a-z0-9_]{2,}$/.test(error)||/^API [0-9]{3}$/.test(error)?userFacingError(error,language):error}</div>}
     {notice&&<div className="success-banner">{notice}</div>}
     {allowed&&<form className="panel form-stack" onSubmit={submit}>
       <label>{tr("Заголовок")}<input required minLength={3} maxLength={140} value={headline} onChange={e=>setHeadline(e.target.value)}/></label>
