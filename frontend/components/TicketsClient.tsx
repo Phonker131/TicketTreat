@@ -8,6 +8,7 @@ import { getDemoTickets, getMyAttendance } from "@/lib/api";
 import type {AttendanceHistory} from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { t, localeForLanguage } from "@/lib/i18n";
+import {userFacingError} from "@/lib/user-facing-errors";
 import { getVerifiedTelegramSession, restoreGuest } from "@/lib/session";
 import type { TicketTreatEvent, DemoGuest, DemoTicket } from "@/lib/types";
 
@@ -55,7 +56,7 @@ export function TicketsClient() {
 
         {loading ? <div className="state-card">{t(language, "loading")}</div> :
           <>
-          {error && <div className="state-card state-error" role="alert">{error}</div>}
+          {error && <div className="state-card state-error" role="alert">{userFacingError(error,language)}</div>}
           {tickets.length === 0 && botEvents.length === 0 && <div className="state-card">{t(language, "noTickets")}</div>}
           {tickets.length > 0 && <div className="ticket-list">
             {tickets.map((ticket) => (
