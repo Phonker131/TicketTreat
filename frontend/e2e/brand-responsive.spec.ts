@@ -164,7 +164,7 @@ test("legal footer and documents are accessible on narrow screens without sign-i
 
 test("Czech and EU legal pages publish controller status and consumer-law details",async({page})=>{
   await page.goto("/privacy-policy",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("heading",{name:"Operator / Provozovatel a správce údajů"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Legal operator / Právní provozovatel"})).toBeVisible();
   await expect(page.getByRole("heading",{name:/Úplné informace o zpracování osobních údajů/})).toBeVisible();
   await expect(page.getByText(/openid/).first()).toBeVisible();
   await page.goto("/terms",{waitUntil:"domcontentloaded"});
@@ -183,7 +183,7 @@ test("account signup shows notice at collection without bundled marketing consen
 test("public operator notice is available without signing in",async({page})=>{
   await page.goto("/legal-notice",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("heading",{name:"Legal Notice / Provozovatel"})).toBeVisible();
-  await expect(page.getByRole("heading",{name:"Operator / Provozovatel a správce údajů"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Legal operator / Právní provozovatel"})).toBeVisible();
 });
 
 test("Czech pilot legal terms clearly disclose organizer-direct payments",async({page})=>{
