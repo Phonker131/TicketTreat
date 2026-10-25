@@ -9,6 +9,7 @@ export type LegalOperator={
   name:string|null;
   address:string|null;
   email:string|null;
+  contactEmail:string|null;
   identificationNumber:string|null;
   status:"complete"|"incomplete";
 };
@@ -36,12 +37,16 @@ export function getLegalOperator():LegalOperator {
   const name=clean("LEGAL_OPERATOR_NAME");
   const address=clean("LEGAL_OPERATOR_ADDRESS");
   const rawEmail=clean("LEGAL_PRIVACY_EMAIL",254);
-  const email=rawEmail&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)?rawEmail:null;
+  // Public inboxes are verified for receiving on the TicketTreat domain.
+  // Operators can override them with Railway variables if needed.
+  const email=rawEmail&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)?rawEmail:"privacy@tickettreat.eu";
   const rawIco=clean("LEGAL_OPERATOR_ICO",20);
   const identificationNumber=rawIco&&validCzechIco(rawIco)?rawIco:null;
+  const rawContact=clean("LEGAL_CONTACT_EMAIL",254);
+  const contactEmail=rawContact&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawContact)?rawContact:"contact@tickettreat.eu";
   // Fail closed: the brand and an IČO alone cannot identify a Czech
   // natural-person operator or the GDPR data controller.
   const complete=Boolean(name&&address&&email&&identificationNumber);
-  return {name,address,email,identificationNumber,
+  return {name,address,email,contactEmail,identificationNumber,
     status:complete?"complete":"incomplete"};
 }
