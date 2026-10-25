@@ -697,7 +697,7 @@ export function ProfileClient() {
               <p className="form-note">{tr.note}</p>
               {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary"> {ui.organizerDashboard} →</Link>}
             </section>
-            {error && <div className="state-card state-error" role="alert">{displayMessage(error)}</div>}
+            {error && <div className="state-card state-error" role="alert">{error.startsWith("ui:")?displayMessage(error):userFacingError(error,language)}</div>}
             {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
             <form className="panel form-stack" onSubmit={submitProfile}>
               <h2>{tr.profile}</h2>
@@ -753,7 +753,7 @@ export function ProfileClient() {
               <button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setError("");}}>{tr.signup}</button>
               <button type="button" className={mode==="login"?"active":""} onClick={()=>{setMode("login");setError("");}}>{tr.login}</button>
             </div>
-            {error && <div className="state-card state-error" role="alert">{displayMessage(error)}</div>}
+            {error && <div className="state-card state-error" role="alert">{error.startsWith("ui:")?displayMessage(error):userFacingError(error,language)}</div>}
             {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
             <form className="panel form-stack" onSubmit={submitAuth}>
               <h2>{mode==="signup"?tr.create:tr.login}</h2>
