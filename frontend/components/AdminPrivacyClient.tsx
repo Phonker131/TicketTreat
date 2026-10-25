@@ -3,6 +3,7 @@ import {useEffect,useState} from "react";
 import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
+import {userFacingError} from "@/lib/user-facing-errors";
 import {eventAdminText} from "@/lib/event-admin-i18n";
 import {localeForLanguage} from "@/lib/i18n";
 import {getWebToken} from "@/lib/session";
@@ -73,7 +74,7 @@ export function AdminPrivacyClient(){
     <Link href="/admin" className="back-link">{tr("← Admin dashboard")}</Link>
     <h1>{tr("Data erasure requests")}</h1>
     <p className="form-note">{tr("Global-admin MFA is required. Never fulfill a request without checking legal obligations, user ownership and backup retention. Conflicting records will block automatic fulfillment.")}</p>
-    {error&&<p className="state-card state-error" role="alert">{needsMfa?MFA_HELP[language]:manualReview?MANUAL_REVIEW[language]:tr(error)}</p>}
+    {error&&<p className="state-card state-error" role="alert">{needsMfa?MFA_HELP[language]:manualReview?MANUAL_REVIEW[language]:userFacingError(error,language)}</p>}
     {needsMfa&&<Link href="/security/mfa" className="button button-outline">{MFA_LINK[language]}</Link>}
     {manualReview&&blockers.length>0&&<ul>{blockers.map(code=><li key={code}>{BLOCKERS[code]?.[language]||code}</li>)}</ul>}
     {notice&&<p className="success-banner">{tr(notice)}</p>}
