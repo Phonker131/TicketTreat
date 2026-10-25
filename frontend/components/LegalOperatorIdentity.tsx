@@ -27,16 +27,28 @@ export function LegalOperatorIdentity(){
           <dd><a href={`mailto:${op.email}`}>{op.email}</a></dd></div>
       </dl>
     ):(
-      <div className="tt-legal-operator-pending" role="note">
-        <p><strong>Operator details are not yet verified.</strong> A brand name
-          or an IČO on its own does not replace legally required identification.
-          TicketTreat must publish the verified operator’s name, registered address,
-          IČO and working privacy email before public commercial operation.</p>
-        <p lang="cs">Identita provozovatele zatím není ověřena.
-          Samotná značka ani IČO nenahrazuje zákonné identifikační údaje.
-          Před veřejným komerčním provozem musí být uvedeno ověřené jméno či název
-          provozovatele, sídlo, IČO a funkční kontakt pro ochranu osobních údajů.</p>
-      </div>
+      <>
+        {op.identificationNumber&&(
+          <dl className="tt-legal-operator-details tt-legal-operator-pilot-ico">
+            <div>
+              <dt>Provided IČO / Poskytnuté IČO</dt>
+              <dd>{op.identificationNumber}</dd>
+            </div>
+          </dl>
+        )}
+        <div className="tt-legal-operator-pending" role="note">
+          <p><strong>Legal operator details are being finalized.</strong> The IČO above
+            was provided for the TicketTreat pilot, but it does not by itself
+            identify the contracting operator or the GDPR controller.
+            The verified registered name, business address and working privacy
+            contact must be published before commercial operation.</p>
+          <p lang="cs"><strong>Údaje o právním provozovateli se doplňují.</strong>
+            Výše uvedené IČO bylo poskytnuto pro pilotní provoz TicketTreat,
+            samotné však neidentifikuje smluvního provozovatele ani správce
+            osobních údajů. Před komerčním provozem je nutné zveřejnit
+            ověřené jméno či název, sídlo a funkční kontakt pro ochranu údajů.</p>
+        </div>
+      </>
     )}
     <p className="tt-legal-operator-support">
       Platform assistance / Podpora: <Link href="/support">TicketTreat Support Center</Link>.
