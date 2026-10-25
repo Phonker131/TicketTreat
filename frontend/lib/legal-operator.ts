@@ -9,6 +9,7 @@ export type LegalOperator={
   name:string|null;
   address:string|null;
   email:string|null;
+  contactEmail:string|null;
   identificationNumber:string|null;
   status:"complete"|"incomplete";
 };
@@ -39,9 +40,11 @@ export function getLegalOperator():LegalOperator {
   const email=rawEmail&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)?rawEmail:null;
   const rawIco=clean("LEGAL_OPERATOR_ICO",20);
   const identificationNumber=rawIco&&validCzechIco(rawIco)?rawIco:null;
+  const rawContact=clean("LEGAL_CONTACT_EMAIL",254);
+  const contactEmail=rawContact&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawContact)?rawContact:null;
   // Fail closed: the brand and an IČO alone cannot identify a Czech
   // natural-person operator or the GDPR data controller.
   const complete=Boolean(name&&address&&email&&identificationNumber);
-  return {name,address,email,identificationNumber,
+  return {name,address,email,contactEmail,identificationNumber,
     status:complete?"complete":"incomplete"};
 }
