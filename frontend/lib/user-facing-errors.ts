@@ -217,8 +217,9 @@ export function userFacingError(error:unknown,language:LanguageCode):string {
   const status=(typeof error==="object"&&error!==null&&"status" in error
     &&typeof error.status==="number")?error.status:undefined;
   const raw=(typeof error==="string"?error:
-    error instanceof Error?error.message:"").replace(/^Error:\\s*/i,"").trim();
+    error instanceof Error?error.message:"").replace(/^Error:\s*/i,"").trim();
   const code=raw.split(":")[0].trim().toLowerCase();
+  const httpStatus=status??Number(/^API ([1-5][0-9]{2})$/i.exec(raw)?.[1]||0);
   // Known, fixable problems take priority over generic HTTP responses.
   const aliases:Record<string,string>={
     "session_expired":"invalid_session",
@@ -234,13 +235,13 @@ export function userFacingError(error:unknown,language:LanguageCode):string {
       code==="backend_service_auth_not_configured") return FALLBACK.outage[language];
   if (/failed to fetch|networkerror|network request failed|load failed|fetch failed/i.test(raw))
     return FALLBACK.network[language];
-  if (status===429)return FALLBACK.rate[language];
-  if (status===401)return MESSAGES.invalid_session[language];
-  if (status===403)return FALLBACK.forbidden[language];
-  if (status===404)return FALLBACK.notFound[language];
-  if (status===409)return FALLBACK.conflict[language];
-  if (status===400||status===422)return FALLBACK.validation[language];
-  if ((status!==undefined&&status>=500) || /^API 5\\d\\d$/i.test(raw))
+  if (httpStatus===429)return FALLBACK.rate[language];
+  if (httpStatus===401)return MESSAGES.invalid_session[language];
+  if (httpStatus===403)return FALLBACK.forbidden[language];
+  if (httpStatus===404)return FALLBACK.notFound[language];
+  if (httpStatus===409)return FALLBACK.conflict[language];
+  if (httpStatus===400||httpStatus===422)return FALLBACK.validation[language];
+  if ((httpStatus>=500) || /^API 5\d\d$/i.test(raw))
     return FALLBACK.outage[language];
   return FALLBACK.unknown[language];
 }
