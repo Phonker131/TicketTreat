@@ -441,9 +441,20 @@ body { background-image: none; }
 
 
 /* GDPR transparency: verified operator identity, missing-information warning, Czech notice. */
-.tt-legal-operator { border:2px solid var(--tt-keyline); background:var(--tt-paper); border-radius:16px; padding:18px 20px; margin:0 0 22px; }
-.tt-legal-operator h2 { font-size:20px; }
+.tt-legal-operator { border:2px solid var(--tt-keyline); background:var(--tt-paper); border-radius:20px; padding:clamp(18px,3vw,26px); margin:0 0 24px; }
+.tt-legal-operator-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.tt-legal-operator-brand { display:inline-flex; background:var(--tt-keyline); color:var(--tt-white); border-radius:100px; padding:5px 13px; font-size:12px; letter-spacing:.035em; font-weight:850; margin-bottom:10px; }
+.tt-legal-operator h2 { font-size:clamp(20px,3vw,26px); line-height:1.2; margin:0; }
+.tt-legal-operator-description { color:var(--tt-keyline); opacity:.8; max-width:66ch; }
 .tt-legal-operator p { margin:8px 0; overflow-wrap:anywhere; }
+.tt-legal-operator-details { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 26px; padding:18px 0; margin:18px 0 0; border-top:1px solid #ccc6bd; }
+.tt-legal-operator-details div { min-width:0; }
+.tt-legal-operator-details dt { font-size:12px; font-weight:750; text-transform:uppercase; letter-spacing:.02em; opacity:.7; margin:0 0 6px; }
+.tt-legal-operator-details dd { font-size:15px; font-weight:650; margin:0; overflow-wrap:anywhere; }
+.tt-legal-operator-pending { margin-top:15px; padding:13px 15px; border-left:4px solid var(--tt-tomato); border-radius:0 8px 8px 0; background:#fff6eb; }
+.tt-legal-operator-pending strong { font-weight:800; }
+.tt-legal-operator-support { padding-top:14px; border-top:1px solid #ccc6bd; font-size:14px; }
+@media(max-width:600px) { .tt-legal-operator-details { grid-template-columns:1fr; gap:13px; } }
 .tt-legal-pending { padding:13px 15px; border-left:4px solid var(--tt-tomato); background:#fff6eb; font-weight:650; }
 .tt-legal-language-note { padding:10px 0; font-size:14px; }
 .tt-legal-czech { scroll-margin-top:110px; }
