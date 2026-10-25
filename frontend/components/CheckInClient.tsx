@@ -37,7 +37,7 @@ export function CheckInClient() {
     scanBusy.current=true;
     try {
       const session = getWebToken();
-      if (!session) throw new Error(tr("Войдите в подтверждённый аккаунт с доступом к check-in."));
+      if (!session) throw new Error("login_required");
       const response = await scanPilotTicket(session, token);
       setResult(response.ticket);
       setSuccessful(response.status!=="already_checked_in");
