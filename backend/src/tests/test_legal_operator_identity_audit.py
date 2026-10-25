@@ -15,6 +15,8 @@ class LegalOperatorIdentityAuditTests(unittest.TestCase):
         self.assertIn('"LEGAL_OPERATOR_ADDRESS"',src)
         self.assertIn('"LEGAL_PRIVACY_EMAIL"',src)
         self.assertIn('"LEGAL_CONTACT_EMAIL"',src)
+        self.assertIn('privacy@tickettreat.eu',src)
+        self.assertIn('contact@tickettreat.eu',src)
         self.assertIn('"LEGAL_OPERATOR_ICO"',src)
 
     def test_public_brand_and_verified_operator_are_separate(self):
