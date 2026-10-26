@@ -311,7 +311,7 @@ test("FAQ opens without login and expands answers in four languages",async({page
 test("FAQ search, support link and mobile width are functional",async({page})=>{
   await page.setViewportSize({width:320,height:700});
   await page.goto("/faq?lang=en",{waitUntil:"domcontentloaded"});
-  await page.getByRole("searchbox",{name:"Search questions"}).fill("refund");
+  await page.getByRole("searchbox",{name:"Search questions"}).fill("waiting list");
   await expect(page.locator(".tt-faq-item")).toHaveCount(1);
   await page.getByRole("searchbox",{name:"Search questions"}).fill("no-match-faq-0023");
   await expect(page.getByRole("status")).toContainText("No answers found");
