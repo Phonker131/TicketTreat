@@ -68,6 +68,8 @@ export function LanguageSwitcher() {
                 setLanguage(code);setOpen(false);
                 if(pathname==="/faq"||/^\/(cs|en|uk)\/faq$/.test(pathname)){
                   router.push(code==="ru"?"/faq":"/"+code+"/faq");
+                }else if(pathname==="/"||/^\/(cs|en|uk)$/.test(pathname)){
+                  router.push(code==="ru"?"/":"/"+code);
                 }
               }}
             >

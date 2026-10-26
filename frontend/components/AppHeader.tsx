@@ -13,7 +13,8 @@ import { getWebToken } from "@/lib/session";
 export function AppHeader() {
   const { language } = useLanguage();
   const pathname = usePathname();
-  const isCurrent = (route: string) => route === "/" ? pathname === "/" : pathname === route || pathname?.startsWith(route + "/");
+  const isCurrent = (route: string) => route === "/" ? (pathname === "/"||/^\/(cs|en|uk)$/.test(pathname||"")) : pathname === route || pathname?.startsWith(route + "/");
+  const homepage=language==="ru"?"/":"/"+language;
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuReady, setMenuReady] = useState(false);
   const menuLabel = language==="ru"?"Меню":language==="cs"?"Menu":language==="uk"?"Меню":"Menu";
@@ -61,14 +62,14 @@ export function AppHeader() {
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <Link href="/" className="wordmark" aria-label="TicketTreat">
+        <Link href={homepage} className="wordmark" aria-label="TicketTreat">
           <img src="/tickettreat-wordmark.svg" className="wordmark-logo" width="584" height="120" alt="TicketTreat" />
         </Link>
 
         <nav id="tt-primary-nav" aria-label={language==="ru"?"Основная навигация":language==="cs"?"Hlavní navigace":language==="uk"?"Основна навігація":"Main navigation"} className={`topbar-nav${menuOpen ? " is-open" : ""}`} onClick={(event) => {
           if ((event.target as HTMLElement).closest("a")) setMenuOpen(false);
         }}>
-          <Link href="/" aria-current={isCurrent("/") ? "page" : undefined}>{t(language, "home")}</Link>
+          <Link href={homepage} aria-current={isCurrent("/") ? "page" : undefined}>{t(language, "home")}</Link>
           <Link href="/tickets" aria-current={isCurrent("/tickets") ? "page" : undefined}>{t(language, "tickets")}</Link>
            <Link href="/organizers" aria-current={isCurrent("/organizers") ? "page" : undefined}>{language==="ru"?"Организаторы":language==="cs"?"Pořadatelé":language==="uk"?"Організатори":"Organizers"}</Link>
           <Link href="/loyalty" aria-current={isCurrent("/loyalty") ? "page" : undefined}>{language==="ru"?"Награды":language==="cs"?"Odměny":language==="uk"?"Нагороди":"Rewards"}</Link>

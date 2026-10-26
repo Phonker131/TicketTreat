@@ -1,7 +1,7 @@
 import type {MetadataRoute} from "next";
 import {publicEvents,isUpcomingEvent} from "@/lib/public-events";
 import {publicOrganizersStrict} from "@/lib/public-organizers";
-import {FAQ_LOCALES,faqUrl} from "@/lib/faq-seo";
+import {FAQ_LOCALES,faqUrl,HOME_LOCALES,homeUrl} from "@/lib/faq-seo";
 const origin="https://tickettreat.eu";
 export const dynamic="force-dynamic";
 // A partial 200 after upstream failure would silently drop indexed event URLs.
@@ -15,7 +15,9 @@ export default async function sitemap():Promise<MetadataRoute.Sitemap>{
     const url=origin+path;if(seen.has(url))return;seen.add(url);
     urls.push({url,changeFrequency:frequency,priority});
   }
+  for(const locale of HOME_LOCALES)add(homeUrl(locale),"daily",locale==="cs"?0.9:0.8);
   for(const locale of FAQ_LOCALES)add(faqUrl(locale),"monthly",locale==="cs"?0.7:0.5);
+  for(const path of ["/privacy-policy","/terms","/cookie-policy","/legal-notice"])add(path,"monthly",0.3);
   add("/organizers","weekly",0.6);
   for(const event of events)if(isUpcomingEvent(event))add("/events/"+event.id,"daily",0.8);
   for(const organizer of organizers){

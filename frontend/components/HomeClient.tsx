@@ -10,8 +10,9 @@ import {t} from "@/lib/i18n";
 import type {TicketTreatEvent} from "@/lib/types";
 
 /** Czech pilot: all published events in one catalogue. No location profiling. */
-export function HomeClient({initialEvents=null}:{initialEvents?:TicketTreatEvent[]|null}){
-  const {language}=useLanguage();
+export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:TicketTreatEvent[]|null;forcedLanguage?: "ru"|"cs"|"en"|"uk"}){
+  const {language:contextLanguage}=useLanguage();
+  const language=forcedLanguage??contextLanguage;
   const [events,setEvents]=useState<TicketTreatEvent[]>(initialEvents||[]);
   const [loading,setLoading]=useState(initialEvents===null);
   const [error,setError]=useState<string|null>(null);
@@ -37,7 +38,7 @@ export function HomeClient({initialEvents=null}:{initialEvents?:TicketTreatEvent
 
   return <div className="app-shell">
     <AppHeader/>
-    <main className="page">
+    <main className="page" lang={language}>
       <section className="hero" style={landing?.hero_image_url?{
         backgroundImage:`linear-gradient(105deg,rgba(15,12,35,.88),rgba(15,12,35,.62)),url(${landing.hero_image_url})`,
         backgroundSize:"cover",backgroundPosition:"center"
@@ -45,8 +46,8 @@ export function HomeClient({initialEvents=null}:{initialEvents?:TicketTreatEvent
         <div className="hero-pattern"><span className="hero-you"/></div>
         <div className="hero-copy">
           <p className="eyebrow">TICKETTREAT</p>
-          <h1>{landing?.headline?.replace(/Crowdly/gi,"TicketTreat")||t(language,"upcoming")}</h1>
-          <p>{landing?.subtitle?.replace(/Crowdly/gi,"TicketTreat")||t(language,"tagline")}</p>
+          <h1>{(forcedLanguage?null:landing?.headline?.replace(/Crowdly/gi,"TicketTreat"))||t(language,"upcoming")}</h1>
+          <p>{(forcedLanguage?null:landing?.subtitle?.replace(/Crowdly/gi,"TicketTreat"))||t(language,"tagline")}</p>
         </div>
       </section>
       <section className="section">

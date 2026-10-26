@@ -30,6 +30,12 @@ function getInitialLanguage(): LanguageCode {
     return "ru";
   }
 
+  // A shareable language URL takes precedence over old localStorage choices.
+  const localeMatch=window.location.pathname.match(/^\/(cs|en|uk)(?:\/faq)?\/?$/);
+  if(localeMatch){
+    const fromPath=normalizeLanguage(localeMatch[1]);
+    if(fromPath)return fromPath;
+  }
   const queryLanguage = normalizeLanguage(
     new URLSearchParams(
       window.location.search,

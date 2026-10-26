@@ -66,7 +66,7 @@ test("sitemap is valid XML with unique canonical public URLs", async ({request})
   const locations = sitemapLocations(await response.text());
   const normalized = locations.map(loc => new URL(loc).href);
   expect(new Set(normalized).size).toBe(normalized.length);
-  expect(normalized).toEqual(expect.arrayContaining([origin + "/", origin + "/faq", origin + "/cs/faq", origin + "/en/faq", origin + "/uk/faq", origin + "/organizers"]));
+  expect(normalized).toEqual(expect.arrayContaining([origin + "/", origin + "/cs",origin + "/en",origin + "/uk",origin + "/faq", origin + "/cs/faq", origin + "/en/faq", origin + "/uk/faq",origin + "/privacy-policy",origin + "/terms",origin + "/cookie-policy",origin + "/legal-notice", origin + "/organizers"]));
 });
 
 test("robots allows noindex HTML routes while blocking API",async({request})=>{
@@ -134,7 +134,7 @@ test("production sitemap discovers runtime fixtures and excludes non-indexable e
   expect(response.status()).toBe(200);
   const locations = sitemapLocations(await response.text());
   expect(locations.map(loc => new URL(loc).href).sort()).toEqual([
-    origin + "/", origin + "/faq", origin + "/cs/faq", origin + "/en/faq", origin + "/uk/faq", origin + "/organizers",
+    origin + "/", origin + "/cs",origin + "/en",origin + "/uk",origin + "/faq", origin + "/cs/faq", origin + "/en/faq", origin + "/uk/faq",origin + "/privacy-policy",origin + "/terms",origin + "/cookie-policy",origin + "/legal-notice", origin + "/organizers",
     origin + "/events/910001", origin + "/organizers/seo-fixture",
   ].sort());
   // Observed Next.js production contract: revalidate immediately, no long-lived shared cache.
@@ -161,5 +161,20 @@ test("production sitemap discovers runtime fixtures and excludes non-indexable e
       expect(metadata.canonical).toEqual([origin + path]);
       expect(html).toContain("SEO fixture");
     }
+  }
+});
+
+test("localized home pages have search-friendly descriptions and reciprocal hreflang",async({request})=>{
+  for(const [path,hint] of [["/cs","Akce a vstupenky"],["/en","Events and tickets"],["/uk","Події та квитки"]] as const){
+    const response=await request.get(path,{maxRedirects:0});
+    expect(response.status()).toBe(200);
+    const dom=new JSDOM(await response.text());
+    const doc=dom.window.document;
+    expect(doc.querySelector("title")?.textContent).toContain(hint);
+    expect(doc.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(origin+path);
+    for(const locale of ["ru","cs","en","uk"]){
+      expect(doc.querySelector('link[rel="alternate"][hreflang="'+locale+'"]'),path).not.toBeNull();
+    }
+    dom.window.close();
   }
 });
