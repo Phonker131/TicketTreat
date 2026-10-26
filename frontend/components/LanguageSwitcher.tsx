@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {usePathname,useRouter} from "next/navigation";
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from "@/lib/i18n";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { LanguageCode } from "@/lib/types";
@@ -14,6 +15,8 @@ const FLAGS: Record<LanguageCode, string> = {
 
 export function LanguageSwitcher() {
   const { language, setLanguage } = useLanguage();
+  const pathname=usePathname();
+  const router=useRouter();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
@@ -61,7 +64,12 @@ export function LanguageSwitcher() {
               aria-label={LANGUAGE_LABELS[code]}
               title={LANGUAGE_LABELS[code]}
               className={`language-flag-option${language === code ? " is-selected" : ""}`}
-              onClick={() => { setLanguage(code); setOpen(false); }}
+              onClick={() => {
+                setLanguage(code);setOpen(false);
+                if(pathname==="/faq"||/^\/(cs|en|uk)\/faq$/.test(pathname)){
+                  router.push(code==="ru"?"/faq":"/"+code+"/faq");
+                }
+              }}
             >
               <span className="language-flag" aria-hidden="true">{FLAGS[code]}</span>
               {language === code && <span className="language-selected-dot" aria-hidden="true" />}

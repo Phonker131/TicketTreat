@@ -30,7 +30,7 @@ export function LegalFooter(){
         <button type="button" className="tt-cookie-settings-link" onClick={openCookieSettings}>{language==="ru"?"Настройки cookies":language==="cs"?"Nastavení cookies":language==="uk"?"Налаштування cookies":"Cookie settings"}</button>
         <Link href="/terms">{tr.terms}</Link>
         <Link href="/legal-notice">{tr.legal}</Link>
-        <Link href="/faq">{tr.faq}</Link>
+        <Link href={language==="ru"?"/faq":"/"+language+"/faq"}>{tr.faq}</Link>
         <Link href="/support">{tr.support}</Link>
         <a href="https://t.me/TicketTreatBot" target="_blank" rel="noopener noreferrer" aria-label="Official TicketTreat Telegram bot">Telegram ↗</a>
       </nav>

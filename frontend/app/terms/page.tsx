@@ -4,6 +4,7 @@ import {AppHeader} from "@/components/AppHeader";
 import {LegalOperatorIdentity} from "@/components/LegalOperatorIdentity";
 
 export const metadata:Metadata={
+  alternates:{canonical:"/terms"},
   title:"Terms of Service",
   description:"TicketTreat Terms of Service covering event registration, accounts, tickets and cancellations.",
 };

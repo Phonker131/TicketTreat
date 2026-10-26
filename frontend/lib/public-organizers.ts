@@ -17,8 +17,14 @@ async function fetchPublic<T>(path:string):Promise<T|null> {
   }
 }
 
-export async function publicOrganizers():Promise<OrganizerPublicSummary[]> {
-  return await fetchPublic<OrganizerPublicSummary[]>("/demo/public/organizers")||[];
+/** Null means the API is unavailable, not that all organizers were deleted. */
+export async function publicOrganizersStrict():Promise<OrganizerPublicSummary[]|null>{
+  const result=await fetchPublic<unknown>("/demo/public/organizers");
+  if(!Array.isArray(result)||!result.every(x=>x&&typeof x==="object"&&typeof x.slug==="string"))return null;
+  return result as OrganizerPublicSummary[];
+}
+export async function publicOrganizers():Promise<OrganizerPublicSummary[]>{
+  return await publicOrganizersStrict()||[];
 }
 
 export async function publicOrganizer(slug:string):Promise<OrganizerPublicDetail|null> {

@@ -4,6 +4,7 @@ import {AppHeader} from "@/components/AppHeader";
 import {LegalOperatorIdentity} from "@/components/LegalOperatorIdentity";
 
 export const metadata:Metadata={
+  alternates:{canonical:"/legal-notice"},
   title:"Legal Notice / Provozovatel",
   description:"TicketTreat operator information, privacy contact and Czech consumer complaint information.",
 };

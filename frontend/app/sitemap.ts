@@ -1,33 +1,26 @@
 import type {MetadataRoute} from "next";
 import {publicEvents,isUpcomingEvent} from "@/lib/public-events";
-import {publicOrganizers} from "@/lib/public-organizers";
-
-const root="https://tickettreat.eu";
-// Next.js caches metadata routes at build time by default. Production event
-// data is only reachable on the Railway private network at request time.
-export const dynamic = "force-dynamic";
-
+import {publicOrganizersStrict} from "@/lib/public-organizers";
+import {FAQ_LOCALES,faqUrl} from "@/lib/faq-seo";
+const origin="https://tickettreat.eu";
+export const dynamic="force-dynamic";
+// A partial 200 after upstream failure would silently drop indexed event URLs.
+// Fail with 5xx so crawlers can retry and retain their previous sitemap.
 export default async function sitemap():Promise<MetadataRoute.Sitemap>{
-  // Only include real, public, upcoming events. Organizer drafts and account
-  // routes are never published in sitemaps.
-  const events=await publicEvents();
-  const urls:MetadataRoute.Sitemap=[{
-    url:root,
-    changeFrequency:"daily",
-    priority:1,
-  }];
-  for(const event of events||[]){
-    if(!isUpcomingEvent(event))continue;
-    urls.push({
-      url:`${root}/events/${event.id}`,
-      changeFrequency:"daily",
-      priority:0.8,
-    });
+  const [events,organizers]=await Promise.all([publicEvents(true),publicOrganizersStrict()]);
+  if(events===null||organizers===null)throw new Error("Sitemap upstream unavailable");
+  const urls:MetadataRoute.Sitemap=[{url:origin,changeFrequency:"daily",priority:1}];
+  const seen=new Set([origin]);
+  function add(path:string,frequency:"daily"|"weekly"|"monthly",priority:number){
+    const url=origin+path;if(seen.has(url))return;seen.add(url);
+    urls.push({url,changeFrequency:frequency,priority});
   }
-  urls.push({url:`${root}/faq`,changeFrequency:"monthly",priority:0.5});
-  urls.push({url:`${root}/organizers`,changeFrequency:"weekly",priority:0.6});
-  for(const profile of await publicOrganizers()){
-    urls.push({url:`${root}/organizers/${profile.slug}`,changeFrequency:"weekly",priority:0.7});
+  for(const locale of FAQ_LOCALES)add(faqUrl(locale),"monthly",locale==="cs"?0.7:0.5);
+  add("/organizers","weekly",0.6);
+  for(const event of events)if(isUpcomingEvent(event))add("/events/"+event.id,"daily",0.8);
+  for(const organizer of organizers){
+    if(!/^[a-z0-9](?:[a-z0-9-]{1,69}[a-z0-9])?$/.test(organizer.slug))continue;
+    add("/organizers/"+organizer.slug,"weekly",0.7);
   }
   return urls;
 }

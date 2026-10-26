@@ -4,6 +4,7 @@ import {AppHeader} from "@/components/AppHeader";
 import {LegalOperatorIdentity} from "@/components/LegalOperatorIdentity";
 
 export const metadata:Metadata={
+  alternates:{canonical:"/privacy-policy"},
   title:"Privacy Policy",
   description:"TicketTreat Privacy Policy: account, Google sign-in, event ticket and Telegram data practices.",
 };

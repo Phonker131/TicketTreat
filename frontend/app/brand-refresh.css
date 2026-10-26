@@ -1039,3 +1039,8 @@ button.tt-support-unread{border-left:7px solid var(--tt-tomato);}
 .tt-support-faq-hint{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 20px;background:var(--tt-mustard);border:2px solid var(--tt-keyline);border-radius:14px;padding:16px 19px;margin:14px 0 24px;font-weight:750;}
 .tt-support-faq-hint a{color:var(--tt-keyline);text-decoration:underline;text-underline-offset:4px;font-weight:900;}
 @media(max-width:480px){.tt-faq-item summary{padding:14px;gap:10px;}.tt-faq-item p{padding:15px;}.tt-faq-help{padding:18px;}.tt-home-faq{margin-top:30px;padding:18px;}}
+
+/* Crawlable FAQ language navigation */
+.tt-faq-languages{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:-12px 0 26px;}
+.tt-faq-languages a{font-weight:800;font-size:14px;text-decoration:underline;text-underline-offset:3px;}
+.tt-faq-languages a:focus-visible{outline:3px solid var(--tt-ultramarine);outline-offset:3px;}

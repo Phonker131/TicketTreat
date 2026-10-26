@@ -5,6 +5,7 @@ import { LegalOperatorIdentity } from "@/components/LegalOperatorIdentity";
 import { CookieSettingsControl } from "@/components/CookieSettingsControl";
 
 export const metadata: Metadata = {
+  alternates:{canonical:"/cookie-policy"},
   title:"Cookie Policy",
   description:"TicketTreat's essential cookies, device storage, optional Google Maps consent and preference management.",
 };

@@ -123,8 +123,9 @@ const copy:Record<LanguageCode,Copy>={
     ]
   }
 };
-export function FaqClient(){
-  const {language}=useLanguage();
+export function FaqClient({forcedLanguage}:{forcedLanguage?:LanguageCode}={}){
+  const {language:contextLanguage}=useLanguage();
+  const language=forcedLanguage??contextLanguage;
   const t=copy[language];
   const [search,setSearch]=useState("");
   const needle=search.trim().toLocaleLowerCase(language);
@@ -132,11 +133,17 @@ export function FaqClient(){
     !needle || (item.q+" "+item.a).toLocaleLowerCase(language).includes(needle))})).filter(section=>section.items.length>0);
   return <div className="app-shell">
     <AppHeader/>
-    <main className="page tt-faq-page">
+    <main className="page tt-faq-page" lang={language}>
       <Link href="/" className="back-link">← TicketTreat</Link>
       <p className="eyebrow">TICKETTREAT / FAQ</p>
       <h1>{t.title}</h1>
       <p className="tt-faq-intro">{t.intro}</p>
+      <nav className="tt-faq-languages" aria-label="FAQ languages">
+        <Link href="/faq" hrefLang="ru" lang="ru">Русский</Link>
+        <Link href="/cs/faq" hrefLang="cs" lang="cs">Čeština</Link>
+        <Link href="/en/faq" hrefLang="en" lang="en">English</Link>
+        <Link href="/uk/faq" hrefLang="uk" lang="uk">Українська</Link>
+      </nav>
       <div className="tt-faq-search">
         <label htmlFor="tt-faq-search">{t.search}</label>
         <input id="tt-faq-search" type="search" value={search} onChange={event=>setSearch(event.target.value)}

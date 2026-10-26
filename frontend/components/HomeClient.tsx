@@ -63,7 +63,7 @@ export function HomeClient({initialEvents=null}:{initialEvents?:TicketTreatEvent
       <section className="tt-home-faq" aria-label="TicketTreat FAQ">
         <div><h2>{language==="ru"?"Нужна помощь?":language==="cs"?"Máte otázky?":language==="uk"?"Потрібна допомога?":"Have questions?"}</h2>
           <p>{language==="ru"?"Ответы о билетах, регистрации и посещении мероприятий.":language==="cs"?"Odpovědi ohledně vstupenek, registrace a návštěvy akcí.":language==="uk"?"Відповіді про квитки, реєстрацію та відвідування подій.":"Answers about tickets, registration and attending events."}</p></div>
-        <Link href="/faq" className="button button-secondary">{language==="ru"?"Частые вопросы":language==="cs"?"Časté dotazy":language==="uk"?"Поширені запитання":"Read FAQ"} →</Link>
+        <Link href={language==="ru"?"/faq":"/"+language+"/faq"} className="button button-secondary">{language==="ru"?"Частые вопросы":language==="cs"?"Časté dotazy":language==="uk"?"Поширені запитання":"Read FAQ"} →</Link>
       </section>
     </main>
   </div>;

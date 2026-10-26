@@ -1,6 +1,7 @@
 import type {Metadata} from "next";
 import {EventDetailClient} from "@/components/EventDetailClient";
-import {publicEvent,isUpcomingEvent} from "@/lib/public-events";
+import {lookupPublicEvent,isUpcomingEvent} from "@/lib/public-events";
+import {notFound} from "next/navigation";
 import type {TicketTreatEvent} from "@/lib/types";
 
 type Props={params:Promise<{id:string}>};
@@ -8,8 +9,11 @@ const origin="https://tickettreat.eu";
 
 export async function generateMetadata({params}:Props):Promise<Metadata>{
   const {id}=await params;
-  const event=await publicEvent(id);
-  if(!event || !isUpcomingEvent(event))return {
+  const found=await lookupPublicEvent(id);
+  if(found.status==="unavailable")throw new Error("Event upstream unavailable");
+  if(found.status==="missing")return {title:"Event not found",robots:{index:false,follow:false}};
+  const event=found.event;
+  if(!isUpcomingEvent(event))return {
     title:"Мероприятие",
     robots:{index:false,follow:true},
   };
@@ -63,8 +67,11 @@ function structuredEvent(event:TicketTreatEvent):Record<string,unknown>|null {
 
 export default async function EventPage({params}:Props){
   const {id}=await params;
-  const event=await publicEvent(id);
-  const schema=event&&structuredEvent(event);
+  const found=await lookupPublicEvent(id);
+  if(found.status==="unavailable")throw new Error("Event upstream unavailable");
+  if(found.status==="missing")notFound();
+  const event=found.event;
+  const schema=structuredEvent(event);
   return <>
     {schema&&<script type="application/ld+json" dangerouslySetInnerHTML={{
       __html:JSON.stringify(schema).replace(/</g,"\\u003c"),
