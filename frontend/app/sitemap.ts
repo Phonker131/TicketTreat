@@ -15,7 +15,8 @@ export default async function sitemap():Promise<MetadataRoute.Sitemap>{
     const url=origin+path;if(seen.has(url))return;seen.add(url);
     urls.push({url,changeFrequency:frequency,priority});
   }
-  for(const locale of HOME_LOCALES)add(homeUrl(locale),"daily",locale==="cs"?0.9:0.8);
+  // Root already appears once above; do not add a trailing-slash duplicate.
+  for(const locale of HOME_LOCALES)if(locale!=="ru")add(homeUrl(locale),"daily",locale==="cs"?0.9:0.8);
   for(const locale of FAQ_LOCALES)add(faqUrl(locale),"monthly",locale==="cs"?0.7:0.5);
   for(const path of ["/privacy-policy","/terms","/cookie-policy","/legal-notice"])add(path,"monthly",0.3);
   add("/organizers","weekly",0.6);
