@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect,useState} from "react";
+import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
 import {EventCard} from "@/components/EventCard";
 import {useLanguage} from "@/components/LanguageProvider";
@@ -58,6 +59,11 @@ export function HomeClient({initialEvents=null}:{initialEvents?:TicketTreatEvent
         {!loading&&!error&&events.length===0&&<div className="state-card">{t(language,"noEvents")}</div>}
         {!loading&&!error&&events.length>0&&
           <div className="event-grid">{events.map(event=><EventCard key={event.id} event={event}/>)}</div>}
+      </section>
+      <section className="tt-home-faq" aria-label="TicketTreat FAQ">
+        <div><h2>{language==="ru"?"Нужна помощь?":language==="cs"?"Máte otázky?":language==="uk"?"Потрібна допомога?":"Have questions?"}</h2>
+          <p>{language==="ru"?"Ответы о билетах, регистрации и посещении мероприятий.":language==="cs"?"Odpovědi ohledně vstupenek, registrace a návštěvy akcí.":language==="uk"?"Відповіді про квитки, реєстрацію та відвідування подій.":"Answers about tickets, registration and attending events."}</p></div>
+        <Link href="/faq" className="button button-secondary">{language==="ru"?"Частые вопросы":language==="cs"?"Časté dotazy":language==="uk"?"Поширені запитання":"Read FAQ"} →</Link>
       </section>
     </main>
   </div>;

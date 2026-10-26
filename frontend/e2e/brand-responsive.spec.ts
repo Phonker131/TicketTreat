@@ -164,7 +164,7 @@ test("legal footer and documents are accessible on narrow screens without sign-i
 
 test("Czech and EU legal pages publish controller status and consumer-law details",async({page})=>{
   await page.goto("/privacy-policy",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("heading",{name:"Who is responsible / Kdo je odpovědný"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Who is responsible",exact:true})).toBeVisible();
   await expect(page.getByRole("heading",{name:/Úplné informace o zpracování osobních údajů/})).toBeVisible();
   await expect(page.getByText(/openid/).first()).toBeVisible();
   await page.goto("/terms",{waitUntil:"domcontentloaded"});
@@ -183,7 +183,7 @@ test("account signup shows notice at collection without bundled marketing consen
 test("public operator notice is available without signing in",async({page})=>{
   await page.goto("/legal-notice",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("heading",{name:"Legal Notice / Provozovatel"})).toBeVisible();
-  await expect(page.getByRole("heading",{name:"Who is responsible / Kdo je odpovědný"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Who is responsible",exact:true})).toBeVisible();
 });
 
 test("Czech pilot legal terms clearly disclose organizer-direct payments",async({page})=>{
@@ -294,4 +294,34 @@ test("Cookie banner remains usable on 320px narrow devices",async({page})=>{
   await expect(page.getByRole("button",{name:"Odmítnout volitelné"})).toBeVisible();
   await expect(page.getByRole("button",{name:"Povolit cookies"})).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+});
+
+test("FAQ opens without login and expands answers in four languages",async({page})=>{
+  for(const [lang,title] of [["en","Frequently asked questions"],["ru","Частые вопросы"],["cs","Často kladené otázky"],["uk","Поширені запитання"]] as const){
+    await page.goto(`/faq?lang=${lang}`,{waitUntil:"domcontentloaded"});
+    await expect(page.getByRole("heading",{level:1,name:title})).toBeVisible();
+    await expect(page.locator(".tt-faq-item")).toHaveCount(12);
+    const first=page.locator(".tt-faq-item").first();
+    await first.locator("summary").click();
+    await expect(first).toHaveAttribute("open","");
+    await expect(first.locator("p")).toBeVisible();
+  }
+});
+
+test("FAQ search, support link and mobile width are functional",async({page})=>{
+  await page.setViewportSize({width:320,height:700});
+  await page.goto("/faq?lang=en",{waitUntil:"domcontentloaded"});
+  await page.getByRole("searchbox",{name:"Search questions"}).fill("refund");
+  await expect(page.locator(".tt-faq-item")).toHaveCount(1);
+  await page.getByRole("searchbox",{name:"Search questions"}).fill("no-match-faq-0023");
+  await expect(page.getByRole("status")).toContainText("No answers found");
+  await page.getByRole("searchbox",{name:"Search questions"}).fill("");
+  await expect(page.locator(".tt-faq-item")).toHaveCount(12);
+  await expect(page.getByRole("link",{name:"Contact support"})).toHaveAttribute("href","/support");
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.goto("/support?lang=en",{waitUntil:"domcontentloaded"});
+  await expect(page.getByRole("link",{name:/Browse FAQ/})).toHaveAttribute("href","/faq");
+  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  await expect(page.locator("footer.tt-legal-footer").getByRole("link",{name:"FAQ"})).toHaveAttribute("href","/faq");
+  await expect(page.getByRole("link",{name:/Read FAQ/})).toHaveAttribute("href","/faq");
 });

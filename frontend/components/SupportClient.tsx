@@ -68,6 +68,7 @@ export function SupportClient(){
  return <div className="app-shell"><AppHeader/><main className="page tt-support-page">
    <span className="eyebrow">TICKETTREAT / HELP</span>
    <h1>{t.title}</h1><p className="tt-support-lead">{t.intro}</p>
+   <div className="tt-support-faq-hint"><span>{language==="ru"?"Многие вопросы уже разобраны в FAQ.":language==="cs"?"Na mnoho otázek najdete odpověď ve FAQ.":language==="uk"?"Відповіді на багато запитань уже є у FAQ.":"Many common questions are already answered in our FAQ."}</span><Link href="/faq">{language==="ru"?"Открыть FAQ":language==="cs"?"Otevřít FAQ":language==="uk"?"Відкрити FAQ":"Browse FAQ"} →</Link></div>
    {needsLogin||needsVerifiedEmail?<section className="panel form-stack"><p>{needsVerifiedEmail?userFacingError(error,language):t.signed}</p><Link href="/profile" className="button button-primary">{needsVerifiedEmail?t.verifyEmail:t.login}</Link></section>:
     <>
     {error&&<p className="state-card state-error" role="alert">{userFacingError(error,language)}</p>}
