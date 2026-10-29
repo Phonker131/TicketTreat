@@ -215,3 +215,37 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 .tt-map-event .tt-map-link{color:var(--paper);text-decoration:underline}
 @media(max-width:750px){.tt-discovery-map-grid{grid-template-columns:minmax(0,1fr)}.tt-map-events{max-height:none}.tt-discovery-controls{gap:14px}}
 @media(prefers-reduced-motion:reduce){.tt-swipe-card{will-change:auto;transform:none!important}}
+
+/* Brandbook pp.15/23/24: perforated double-sided ticket with a genuine QR
+   preserved from the existing check-in system. Never change token generation. */
+.tt-interactive-ticket{position:relative;isolation:isolate;transform:perspective(1100px) rotateY(calc(var(--tt-flip,0deg) + var(--tt-ry,0deg))) rotateX(var(--tt-rx,0deg));transform-style:preserve-3d;transition:transform 950ms var(--ease),clip-path 1700ms steps(34,end);clip-path:inset(0 0 0 0);min-width:0}
+.tt-interactive-ticket.is-flipped{--tt-flip:180deg}
+.tt-ticket-front,.tt-ticket-back{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.tt-ticket-front{min-height:100%;position:relative}
+.tt-ticket-back{position:absolute;inset:0;transform:rotateY(180deg);background:var(--paper);color:var(--ink);padding:clamp(20px,4vw,38px);display:flex;flex-direction:column;gap:16px;overflow:auto}
+.tt-ticket-back h2{font:900 clamp(42px,7vw,75px)/.86 var(--d);text-transform:uppercase;letter-spacing:-.02em;color:var(--ink);margin:8px 0}
+.tt-ticket-back-header{display:flex;justify-content:space-between;gap:12px;border-bottom:3px dashed var(--ink);padding-bottom:12px;font:700 13px var(--m)}
+.tt-ticket-back .tt-pass-qr{display:flex;flex-direction:column;align-items:center;max-width:390px;width:100%;margin:auto;min-height:0;background:white!important;color:var(--ink);padding:16px;border:2px solid var(--ink)}
+.tt-ticket-back .tt-pass-qr img{display:block;max-width:100%;max-height:min(50vh,310px);object-fit:contain}
+.tt-ticket-back .tt-pass-qr strong,.tt-ticket-back .tt-pass-qr p{color:var(--ink)}
+.tt-ticket-back .tt-pass-qr p{margin:8px 0 0;text-align:center}
+.tt-ticket-back .tt-ticket-guest{display:grid;gap:3px;margin:4px 0}
+.tt-ticket-back .tt-ticket-guest small{font:700 12px var(--m)}
+.tt-ticket-back .tt-ticket-guest strong{font:800 20px var(--u)}
+.tt-ticket-back .tt-ticket-barcode{height:52px;width:min(100%,300px);background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 5px,var(--ink) 5px 6px,transparent 6px 10px);margin:0 auto}
+.tt-ticket-back>small{font:700 12px var(--m);text-align:center;color:var(--ink)}
+.tt-ticket-back .button{flex:none}
+.tt-pass-countdown{display:flex;flex-direction:column;gap:5px;padding:18px 0;margin:12px 0;border-top:3px dashed var(--ink);border-bottom:3px dashed var(--ink);color:var(--ink)}
+.tt-pass-countdown span{font:700 12px var(--m);text-transform:uppercase}
+.tt-pass-countdown strong{font:900 clamp(35px,6vw,56px)/.9 var(--d)}
+.tt-interactive-ticket:before,.tt-interactive-ticket:after{content:"";display:block;position:absolute;top:18%;width:26px;height:26px;border-radius:50%;background:var(--ink);z-index:3}
+.tt-interactive-ticket:before{left:-15px}.tt-interactive-ticket:after{right:-15px}
+.tt-ticket-back .button-secondary{background:var(--ink2);color:var(--paper)}
+.tt-ticket-back .button:focus-visible,.tt-ticket-front .button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){
+ .tt-interactive-ticket{transform:none!important;transition:none!important;clip-path:none!important}
+ .tt-interactive-ticket .tt-ticket-front{display:block}
+ .tt-interactive-ticket .tt-ticket-back{display:none;position:static;transform:none}
+ .tt-interactive-ticket.is-flipped .tt-ticket-front{display:none}
+ .tt-interactive-ticket.is-flipped .tt-ticket-back{display:flex}
+}
