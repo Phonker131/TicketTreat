@@ -77,6 +77,13 @@ export function EventCard({
   const [posterUnavailable,setPosterUnavailable]=useState(false);
   useEffect(()=>setPosterUnavailable(false),[event.image_url]);
 
+  const startsAt=event.starts_at?eventDisplayDate(event.starts_at):null;
+  const validStart=startsAt&&!Number.isNaN(startsAt.date.getTime());
+  const sticker=validStart?{
+    day:new Intl.DateTimeFormat(localeForLanguage(language),{day:"2-digit",timeZone:startsAt.timeZone}).format(startsAt.date),
+    month:new Intl.DateTimeFormat(localeForLanguage(language),{month:"short",weekday:"short",timeZone:startsAt.timeZone}).format(startsAt.date).toUpperCase(),
+  }:null;
+
   const eventLanguages =
     event.languages?.length > 0
       ? event.languages
@@ -89,18 +96,19 @@ export function EventCard({
 
   return (
     <article className="event-card">
-      {event.image_url && !posterUnavailable ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img className="event-card-poster" src={event.image_url} alt={`Poster: ${event.title}`} loading="lazy" onError={()=>setPosterUnavailable(true)}/>
-      ) : (
-        <div className="event-card-accent">
-          <span />
-          <span />
-          <span className="accent-you" />
-          <span />
-          <span />
-        </div>
-      )}
+      <div className="tt-event-poster-wrap">
+        {event.image_url && !posterUnavailable ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="event-card-poster" src={event.image_url} alt={event.title} loading="lazy" onError={()=>setPosterUnavailable(true)}/>
+        ) : (
+          <div className="event-card-accent" aria-hidden="true">
+            <span/><span/><span className="accent-you"/><span/><span/>
+          </div>
+        )}
+        {sticker&&<div className="tt-event-date-sticker" aria-label={formatDate(event.starts_at,language)}>
+          <strong>{sticker.day}</strong><span>{sticker.month}</span>
+        </div>}
+      </div>
 
       <div className="event-card-body">
         <div className="event-card-meta">
