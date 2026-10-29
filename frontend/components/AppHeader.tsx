@@ -101,6 +101,16 @@ export function AppHeader() {
           <LanguageSwitcher />
         </div>
       </div>
+      {insideTelegram&&<nav className="tt-telegram-bottom" aria-label={language==="ru"?"Навигация TicketTreat":language==="cs"?"Navigace TicketTreat":language==="uk"?"Навігація TicketTreat":"TicketTreat navigation"}>
+        {[
+          {href:homepage,label:language==="ru"?"Ивенты":language==="cs"?"Akce":language==="uk"?"Події":"Events",icon:"/brand/glyph-burst.svg"},
+          {href:"/tickets",label:t(language,"tickets"),icon:"/brand/glyph-cross.svg"},
+          {href:"/loyalty",label:language==="ru"?"Награды":language==="cs"?"Odměny":language==="uk"?"Нагороди":"Rewards",icon:"/brand/glyph-asterisk.svg"},
+          {href:"/profile",label:t(language,"profile"),icon:"/brand/glyph-plus.svg"}
+        ].map(item=><Link key={item.href} href={item.href} aria-current={isCurrent(item.href)? "page":undefined}>
+          <img src={item.icon} alt="" aria-hidden="true"/><span>{item.label}</span>
+        </Link>)}
+      </nav>}
     </header>
   );
 }

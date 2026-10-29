@@ -139,6 +139,7 @@ export function AdminClient() {
       <div><span className="status status-demo">{identity?.role==="global_admin"?tr("Главный администратор"):tr("Организатор")}</span>
         <h1>{identity?.role==="global_admin"?ui.all:ui.mine}</h1>
         <p>{identity?.role==="global_admin"?ui.full:ui.mineHelp}</p>
+        <Link href="/" className="tt-organizer-back-to-guests">{language==="ru"?"Сайт для гостей":language==="cs"?"Web pro návštěvníky":language==="uk"?"Сайт для гостей":"Guest website"} ↗</Link>
       </div>
       {identity&&<div className="admin-event-actions">
         <Link className="button button-primary" href="/admin/analytics">{language==="ru"?"📊 Аналитика":language==="cs"?"📊 Analytika":language==="uk"?"📊 Аналітика":"📊 Analytics"}</Link>

@@ -270,3 +270,14 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 .tt-tier-barcode{height:19px;display:block;background:repeating-linear-gradient(90deg,currentColor 0 3px,transparent 3px 6px,currentColor 6px 7px,transparent 7px 10px);opacity:.8}
 .tt-tier-print-foot small{font:700 10px var(--m);letter-spacing:.02em}
 @media(max-width:700px){.tt-tier-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.tt-tier-print{max-width:235px;padding:13px}}
+
+/* Brandbook pp.21-22: Mini App has a persistent narrow bottom navigation.
+   Navigation is shown only when Telegram WebApp is actually detected. */
+.tt-telegram-bottom{position:fixed;bottom:0;left:0;right:0;z-index:65;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:var(--ink2);border-top:1px solid var(--line);width:100%;max-width:440px;margin:0 auto;box-shadow:none}
+.tt-telegram-bottom a{display:grid;justify-items:center;align-content:center;gap:3px;min-height:52px;text-align:center;border-radius:12px;color:var(--paper);text-decoration:none;font:600 11px/1.15 var(--u);padding:5px}
+.tt-telegram-bottom a[aria-current="page"]{background:var(--yel);color:var(--ink)}
+.tt-telegram-bottom a img{width:20px;height:20px;object-fit:contain;max-width:100%}
+.tt-telegram-bottom a:focus-visible{outline:3px solid var(--paper);outline-offset:3px}
+.app-shell:has(.tt-telegram-bottom) .page{padding-bottom:calc(115px + env(safe-area-inset-bottom))}
+.tt-organizer-back-to-guests{display:inline-flex;min-height:44px;align-items:center;font:700 13px var(--u);text-decoration:underline;text-underline-offset:4px;color:var(--ink)}
+.tt-organizer-back-to-guests:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
