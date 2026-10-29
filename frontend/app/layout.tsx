@@ -6,6 +6,7 @@ import "./globals.css";
 import "./tickettreat-tokens.css";
 import "./brand-refresh.css";
 import "./brand-v11.css";
+import "./brand-v11-coverage.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { PwaBootstrap } from "@/components/PwaBootstrap";

@@ -1,0 +1,127 @@
+/* TicketTreat v1.1 — consistent screens beyond the home page.
+   Derived from the supplied night-poster brandbook: #15141F/#F0EBE1,
+   flat print plates, Onest body, Sofia poster headlines, clear focus states.
+   Telegram Mini App uses the same frontend. */
+:root {--muted:var(--mute);}
+html{background:var(--ink);scroll-padding-top:96px}
+body{background:var(--ink);background-image:none;color:var(--paper);font-family:var(--u);font-size:16px;line-height:1.6}
+.app-shell{background:var(--ink);color:var(--paper);min-height:100vh}
+.page{max-width:var(--maxw)}
+.topbar-nav a,.topbar-menu-toggle,.topbar-menu-label{font-family:var(--u)}
+.topbar-nav a{min-height:44px;display:inline-flex;align-items:center}
+.topbar-menu-toggle{min-height:44px}
+.tt-faq-page h1,.tt-faq-group h2,.section-heading h1,.section-heading h2,
+.event-hero h1,.checkout-header h1,.tt-home-faq h2,.tt-support-page h1,
+.tt-pass-body h1,.ticket-list-heading h1,.tt-legal-page .tt-legal-title{
+ font-family:var(--d);font-weight:900;text-transform:uppercase;letter-spacing:-.01em;line-height:.93;
+}
+.tt-faq-page h1,.tt-support-page h1{font-size:clamp(54px,8vw,98px)}
+.tt-faq-group h2,.tt-home-faq h2{font-size:clamp(34px,4vw,60px)}
+.section-heading h2{font-size:clamp(40px,5.5vw,78px)}
+.app-shell:not(.tt-night-home) .section-heading h2{color:var(--paper)}
+.app-shell:not(.tt-night-home) .section-heading p,
+.app-shell:not(.tt-night-home) .form-note,
+.tt-faq-intro,.tt-support-lead{color:var(--mute)}
+/* Ticket detail, support, FAQ, profile, and admission screens all sit on night ink. */
+.app-shell .panel,.app-shell .checkout-summary,.app-shell .state-card,
+.app-shell .ticket-row,.app-shell .event-hero,.app-shell .detail-item,
+.app-shell .tt-faq-item,.app-shell .tt-faq-help,.app-shell .tt-support-faq-hint,
+.app-shell .tt-support-thread,.app-shell .tt-support-list-item,
+.app-shell .profile-fact,.app-shell .ticket-status-grid{
+ background:var(--ink2);color:var(--paper);
+ border:1px solid var(--line);box-shadow:none;
+}
+.app-shell .panel a:not(.button),.app-shell .tt-support-list-item{color:var(--paper)}
+.app-shell .tt-faq-item summary:hover,.app-shell .tt-support-list-item:hover{background:var(--ink3)}
+.app-shell .tt-faq-item[open] summary{background:var(--ink3);color:var(--paper);border-bottom:1px solid var(--line)}
+.app-shell .tt-faq-item p{color:var(--paper)}
+.app-shell .tt-faq-toggle{border-color:var(--paper);color:var(--paper)}
+.app-shell .tt-faq-search input,.app-shell .tt-support-page input,
+.app-shell .tt-support-page textarea,.app-shell .profile-fact input,
+.app-shell input,.app-shell textarea,.app-shell select{
+ min-height:44px;background:var(--ink2);color:var(--paper);
+ border:1px solid var(--mute);border-radius:11px;max-width:100%;font-family:var(--u);
+}
+.app-shell input::placeholder,.app-shell textarea::placeholder{color:var(--mute)}
+.app-shell .tt-faq-help,.app-shell .tt-support-faq-hint{background:var(--ink2);color:var(--paper)}
+.app-shell .tt-faq-help a,.app-shell .tt-faq-quicklinks a{color:var(--paper)}
+/* Solid ink, never a blended or soft shadow. Plate offset reserved for printed tickets/posters. */
+.app-shell .button{
+ border-radius:var(--r-pill);font-family:var(--u);font-weight:700;
+ min-height:44px;box-shadow:none;transition:transform var(--t-fast) var(--ease);
+}
+.app-shell .button-primary,.app-shell .button-sun{
+ background:var(--tom);color:var(--ink);border:2px solid var(--ink);
+ box-shadow:4px 5px 0 var(--paper);
+}
+.app-shell .button-secondary,.app-shell .button-outline{
+ background:var(--ink2);border:1px solid var(--mute);color:var(--paper);box-shadow:none;
+}
+.app-shell .button:hover:not(:disabled){filter:none}
+.app-shell .button-secondary:hover:not(:disabled){border-color:var(--paper);color:var(--paper)}
+.app-shell .button:active:not(:disabled){transform:translate(3px,4px);box-shadow:none}
+.app-shell .status{border:1px solid var(--line);background:var(--ink3);color:var(--paper);border-radius:999px;font:600 12px/1.3 var(--m)}
+.app-shell .status-danger{background:var(--fire);color:var(--ink);border-color:var(--fire)}
+.app-shell .status-success{background:var(--yel);color:var(--ink);border-color:var(--yel)}
+/* Error must include text (existing components use role=status/alert); add a structural stripe. */
+.app-shell .state-error,.app-shell .error-banner{border-left:5px solid var(--fire)}
+.app-shell .state-error small{display:block;margin-top:6px}
+a:focus-visible,button:focus-visible,summary:focus-visible,
+input:focus-visible,select:focus-visible,textarea:focus-visible{
+ outline:3px solid var(--paper);outline-offset:3px;
+}
+/* Paper is intentional for tickets and organizer tools, so restore ink-on-paper there. */
+.app-shell .tt-pass{
+ background:var(--paper);color:var(--ink);border-radius:var(--r-card);
+ box-shadow:7px 8px 0 var(--blu);border:1px solid var(--ink);overflow:hidden;
+}
+.app-shell .tt-pass-body,.app-shell .tt-pass-body h1,.app-shell .tt-pass-facts,
+.app-shell .tt-pass-qr,.app-shell .tt-pass-facts strong{background:var(--paper);color:var(--ink)}
+.app-shell .tt-pass-qr{border-top:2px dashed var(--ink);border-bottom:2px dashed var(--ink)}
+.app-shell .tt-pass-body h1{font-size:clamp(48px,7vw,90px)}
+.app-shell .tt-pass :is(a,button,input):focus-visible{outline-color:var(--ink)}
+/* Legal information is deliberately a printed paper article rather than a colorful banner. */
+.app-shell .tt-legal-page{background:var(--paper);color:var(--ink);padding:clamp(18px,3vw,45px);border-radius:var(--r-print)}
+.app-shell .tt-legal-page :is(h1,h2,h3,p,li){color:var(--ink)}
+.app-shell .tt-legal-page a{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.app-shell .tt-legal-page :is(a,button):focus-visible{outline-color:var(--ink)}
+/* Business/admin is the brandbook's second side: ink-on-paper dashboard. */
+.app-shell:has(.admin-heading,.admin-dashboard,.tt-analytics-dashboard,.organizer-editor,.admin-event-grid,.admin-event-actions) {
+ background:var(--paper);color:var(--ink);
+}
+.app-shell:has(.admin-heading,.admin-dashboard,.tt-analytics-dashboard,.organizer-editor,.admin-event-grid,.admin-event-actions) .page {
+ color:var(--ink);
+}
+.app-shell:has(.admin-heading,.admin-dashboard,.tt-analytics-dashboard,.organizer-editor,.admin-event-grid,.admin-event-actions) :is(.panel,.admin-event-card,.ticket-row,.stat-card,.detail-item,.state-card){
+ background:var(--paper);color:var(--ink);border:1px solid var(--ink);box-shadow:none;
+}
+.app-shell:has(.admin-heading,.admin-dashboard,.tt-analytics-dashboard,.organizer-editor,.admin-event-grid,.admin-event-actions) :is(.panel a:not(.button),.section-heading h2,.form-note){color:var(--ink)}
+.app-shell:has(.admin-heading,.admin-dashboard,.tt-analytics-dashboard,.organizer-editor,.admin-event-grid,.admin-event-actions) :is(input,select,textarea){background:#fff;color:var(--ink);border:1px solid var(--ink)}
+.app-shell:has(.admin-heading,.admin-dashboard,.tt-analytics-dashboard,.organizer-editor,.admin-event-grid,.admin-event-actions) .button-secondary{background:var(--paper);color:var(--ink);border-color:var(--ink)}
+.app-shell:has(.admin-heading,.admin-dashboard,.tt-analytics-dashboard,.organizer-editor,.admin-event-grid,.admin-event-actions) .button-primary{box-shadow:4px 5px 0 var(--ink)}
+.app-shell:has(.admin-heading,.admin-dashboard,.tt-analytics-dashboard,.organizer-editor,.admin-event-grid,.admin-event-actions) :is(button,a,input,textarea,select):focus-visible{outline-color:var(--ink)}
+.app-shell .tt-analytics-metrics>.stat-card,.app-shell .admin-stat-grid>.stat-card{
+ background:var(--ink)!important;color:var(--paper)!important;border-color:var(--ink)!important;
+}
+.app-shell .tt-analytics-metrics>.stat-card strong,.app-shell .admin-stat-grid>.stat-card strong{
+ font:900 clamp(44px,5vw,72px)/.95 var(--d);color:var(--paper);
+}
+/* Loyalty tiers: neutral, mustard, tomato, plum; rewards are checked-in visits. */
+.app-shell .loyalty-badge.loyalty-newcomer{background:var(--paper);color:var(--ink)}
+.app-shell .loyalty-badge.loyalty-regular{background:var(--yel);color:var(--ink)}
+.app-shell .loyalty-badge.loyalty-insider{background:var(--tom);color:var(--ink)}
+.app-shell .loyalty-badge.loyalty-vip{background:var(--plum);color:var(--paper)}
+/* Keeps mobile menu/Telegram viewport within bounds. */
+@media(max-width:850px){
+ .topbar-nav,.topbar-nav.is-open{background:var(--ink2);color:var(--paper);border-color:var(--line)}
+ .topbar-nav a{color:var(--paper)}
+}
+@media(max-width:520px){
+ .page{width:min(calc(100% - 28px),var(--maxw))}
+ .tt-faq-page h1{font-size:clamp(52px,12vw,76px)}
+ .app-shell .tt-pass{box-shadow:4px 5px 0 var(--blu)}
+ .app-shell .panel{min-width:0}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
+}
