@@ -52,7 +52,15 @@ test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({
   await expect(page.locator(".checkout-summary")).toContainText("CI browser free event");
   await page.locator(".panel button.button-primary.button-wide").click();
   await page.waitForURL(/\/tickets\/\d+/);
-  await expect(page.locator(".tt-pass-qr img")).toBeVisible();
+  // Brandbook v1.1 shows the printed ticket first; its QR lives on the
+  // separate, upright back. Check it before triggering a cancellation.
+  await expect(page.locator(".tt-ticket-front")).toBeVisible();
+  await page.getByRole("button",{name:/Показать QR|Show QR|Zobrazit QR|Показати QR/}).click();
+  await expect(page.locator(".tt-ticket-front")).toBeHidden();
+  await expect(page.locator(".tt-ticket-back .tt-pass-qr img")).toBeVisible();
+  await expect(page.locator(".tt-ticket-back")).toHaveCSS("transform","none");
+  await page.getByRole("button",{name:/Назад к билету|Back to ticket|Zpět ke vstupence|Назад до квитка/}).click();
+  await expect(page.locator(".tt-ticket-front")).toBeVisible();
   page.once("dialog",d=>d.accept());
   await page.locator("button.button-outline.button-wide").click();
   await expect(page.locator(".tt-pass-qr img")).toHaveCount(0);
