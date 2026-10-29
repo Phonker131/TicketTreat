@@ -33,6 +33,12 @@ export function AppHeader() {
   // succeed while silently doing nothing. Enable the toggle only when ready.
   useEffect(() => setMenuReady(true), []);
 
+  // Give every route a keyboard-accessible skip target, including protected pages.
+  useEffect(()=>{
+    const main=document.querySelector("main");
+    if(main&&!main.id)main.id="main-content";
+  },[pathname]);
+
   // Close the mobile menu after navigation, including browser back/forward.
   useEffect(() => setMenuOpen(false), [pathname]);
   useEffect(() => {
@@ -61,6 +67,9 @@ export function AppHeader() {
 
   return (
     <header className="topbar">
+      <a className="tt-skip-to-content" href="#main-content">
+        {language==="ru"?"К содержимому":language==="cs"?"Přeskočit na obsah":language==="uk"?"Перейти до вмісту":"Skip to content"}
+      </a>
       <div className="topbar-inner">
         <Link href={homepage} className="wordmark" aria-label="TicketTreat">
           <img src="/tickettreat-wordmark.svg" className="wordmark-logo" width="584" height="120" alt="TicketTreat" />
