@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -12,6 +12,28 @@ import { t } from "@/lib/i18n";
 import { getWebToken, restoreGuest } from "@/lib/session";
 import { getTelegramWebApp } from "@/lib/telegram";
 import type { DemoTicket } from "@/lib/types";
+
+/** TicketTreat pilot event starts are Prague wall-clock datetimes unless an offset is present.
+ * Convert to an actual instant before counting down; devices may be in other time zones. */
+function venueStartEpoch(value:string):number {
+  if(/(?:Z|[+-]\\d{2}:\\d{2})$/i.test(value))return Date.parse(value);
+  const pieces=value.match(/^(\\d{4})-(\\d{2})-(\\d{2})[T ](\\d{2}):(\\d{2})(?::(\\d{2}))?/);
+  if(!pieces)return NaN;
+  const [year,month,day,hour,minute,second]=pieces.slice(1).map(Number);
+  const wall=Date.UTC(year,month-1,day,hour,minute,second||0);
+  let guess=wall;
+  const format=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Prague",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
+  for(let i=0;i<3;i++){
+    const parts=Object.fromEntries(format.formatToParts(new Date(guess)).filter(p=>p.type!=="literal").map(p=>[p.type,Number(p.value)]));
+    const observed=Date.UTC(parts.year,parts.month-1,parts.day,parts.hour,parts.minute,parts.second);
+    const delta=wall-observed;
+    if(delta===0)return guess;
+    guess+=delta;
+  }
+  // Reject non-existent wall times on the spring DST transition.
+  const final=Object.fromEntries(format.formatToParts(new Date(guess)).filter(p=>p.type!=="literal").map(p=>[p.type,Number(p.value)]));
+  return Date.UTC(final.year,final.month-1,final.day,final.hour,final.minute,final.second)===wall?guess:NaN;
+}
 
 const words = {
   ru:{pass:"ВХОДНОЙ БИЛЕТ",ticket:"Номер билета",organizer:"ОРГАНИЗАТОР",wallet:"Добавить в Apple Wallet",
@@ -33,42 +55,38 @@ export function TicketClient() {
   const [qr, setQr] = useState("");
   const [flipped,setFlipped] = useState(false);
   const [clock,setClock] = useState<number|null>(null);
-  const ticketRef=useRef<HTMLElement|null>(null);
-  useEffect(()=>{setClock(Date.now());const t=window.setInterval(()=>setClock(Date.now()),60_000);return()=>window.clearInterval(t);},[]);
+  useEffect(()=>{
+    const sync=()=>setClock(Date.now());
+    sync();
+    const timer=window.setInterval(sync,1000);
+    document.addEventListener("visibilitychange",sync);
+    return()=>{window.clearInterval(timer);document.removeEventListener("visibilitychange",sync);};
+  },[]);
   const [loading, setLoading] = useState(true);
   const [walletEnabled, setWalletEnabled] = useState(false);
   const [walletBusy, setWalletBusy] = useState(false);
   const [message, setMessage] = useState<string|null>(search.get("paid") === "1" ? "paymentSuccess" :
     search.get("registered") === "1" ? "registered" : null);
   const ticketText={
-    ru:{front:"Показать билет",back:"Показать QR",until:"До начала",guest:"ГОСТЬ"},
-    cs:{front:"Zobrazit vstupenku",back:"Zobrazit QR",until:"Do začátku",guest:"HOST"},
-    uk:{front:"Показати квиток",back:"Показати QR",until:"До початку",guest:"ГІСТЬ"},
-    en:{front:"Show ticket",back:"Show QR",until:"Until start",guest:"GUEST"}
+    ru:{front:"Назад к билету",back:"Показать QR",until:"До начала",guest:"ГОСТЬ",started:"Ивент начался",days:"д",hours:"ч",minutes:"мин",seconds:"с"},
+    cs:{front:"Zpět ke vstupence",back:"Zobrazit QR",until:"Do začátku",guest:"HOST",started:"Akce začala",days:"d",hours:"h",minutes:"min",seconds:"s"},
+    uk:{front:"Назад до квитка",back:"Показати QR",until:"До початку",guest:"ГІСТЬ",started:"Подія почалася",days:"д",hours:"год",minutes:"хв",seconds:"с"},
+    en:{front:"Back to ticket",back:"Show QR",until:"Until start",guest:"GUEST",started:"Event started",days:"d",hours:"h",minutes:"min",seconds:"s"}
   }[language];
   const countdown=(()=>{
     if(!ticket?.event?.starts_at||clock===null)return null;
-    const raw=ticket.event.starts_at;
-    let target=Date.parse(raw);
-    if(!/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw)){
-      // Offset-free event timestamps are Prague venue wall-clock values.
-      const utc=new Date(raw+"Z");
-      const part=new Intl.DateTimeFormat("en",{timeZone:"Europe/Prague",timeZoneName:"shortOffset"})
-        .formatToParts(utc).find(part=>part.type==="timeZoneName")?.value||"GMT+1";
-      const offset=/GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(part);
-      if(offset)target=utc.getTime()-(offset[1]==="+"?1:-1)*(Number(offset[2])*60+Number(offset[3]||0))*60_000;
-    }
+    const target=venueStartEpoch(ticket.event.starts_at);
     if(!Number.isFinite(target))return null;
-    const remaining=Math.max(0,Math.floor((target-clock)/60_000));
-    return [Math.floor(remaining/1440),String(Math.floor((remaining%1440)/60)).padStart(2,"0"),String(remaining%60).padStart(2,"0")].join(" : ");
+    const remaining=Math.max(0,Math.floor((target-clock)/1000));
+    return {
+      started:target<=clock,
+      days:Math.floor(remaining/86400),
+      hours:Math.floor((remaining%86400)/3600),
+      minutes:Math.floor((remaining%3600)/60),
+      seconds:remaining%60
+    };
   })();
-  function tiltTicket(e:React.PointerEvent<HTMLElement>){
-    if(!ticketRef.current||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
-    const b=e.currentTarget.getBoundingClientRect();
-    const nx=Math.max(-1,Math.min(1,(e.clientX-b.left)/b.width*2-1)),ny=Math.max(-1,Math.min(1,(e.clientY-b.top)/b.height*2-1));
-    ticketRef.current.style.setProperty("--tt-ry",(nx*5).toFixed(1)+"deg");
-    ticketRef.current.style.setProperty("--tt-rx",(-ny*4).toFixed(1)+"deg");
-  }
+  const digits=(value:number)=>String(value).padStart(2,"0");
   const translateMessage=(value:string)=>value==="registered"?t(language,"ticketReady") :
     value==="walletError"?tr.downloadError :
     ["paymentSuccess","loadError","cancelledTicket"].includes(value)?t(language,value as "paymentSuccess"|"loadError"|"cancelledTicket"):value;
@@ -136,10 +154,10 @@ export function TicketClient() {
       {message&&<div className="success-banner" role="status">{translateMessage(message)}</div>}
       {loading?<div className="state-card">{t(language,"loading")}</div>:
        !ticket?<div className="state-card state-error">{t(language,"loadError")}</div>:
-       <article ref={ticketRef} onPointerMove={tiltTicket} onPointerLeave={()=>{ticketRef.current?.style.setProperty("--tt-ry","0deg");ticketRef.current?.style.setProperty("--tt-rx","0deg");}} className={`ticket-card tt-pass tt-interactive-ticket ${flipped?"is-flipped":""} ${ticket.ticket_status==="cancelled"?"ticket-card-cancelled":""}`}>
+       <article className={`ticket-card tt-pass tt-interactive-ticket ${flipped?"is-flipped":""} ${ticket.ticket_status==="cancelled"?"ticket-card-cancelled":""}`}>
          <div className="tt-ticket-front" aria-hidden={flipped} inert={flipped}>
          <div className="ticket-top tt-pass-top">
-           <span className="tt-pass-brand">TICKETTREAT <span aria-hidden="true">✳</span></span>
+           <span className="tt-pass-brand">TICKETTREAT</span>
            <span className="tt-pass-category">{tr.pass}</span>
          </div>
          {ticket.event?.image_url&&<div className="tt-pass-photo" style={{backgroundImage:`url("${ticket.event.image_url.replace(/"/g,"%22")}")`}}/>}
@@ -152,12 +170,21 @@ export function TicketClient() {
              <div><span>{t(language,"location")}</span><strong>{ticket.event?.location||"Czechia"}</strong></div>
              <div><span>{t(language,"price")}</span><strong>{ticket.event?formatPrice(ticket.event,language):`${ticket.payment_amount} ${ticket.currency}`}</strong></div>
            </div>
-           <div className="tt-pass-countdown" role="timer" aria-live="off"><span>{ticketText.until}</span><strong>{countdown||"—"}</strong></div>
+           <div className="tt-pass-countdown" role="timer" aria-live="off">
+             <span>{ticketText.until}</span>
+             {!countdown?<strong>—</strong>:countdown.started?<strong>{ticketText.started}</strong>:
+              <div className="tt-countdown-values">
+                {countdown.days>0&&<span><strong>{countdown.days}</strong><small>{ticketText.days}</small></span>}
+                <span><strong>{digits(countdown.hours)}</strong><small>{ticketText.hours}</small></span>
+                <span><strong>{digits(countdown.minutes)}</strong><small>{ticketText.minutes}</small></span>
+                <span><strong>{digits(countdown.seconds)}</strong><small>{ticketText.seconds}</small></span>
+              </div>}
+           </div>
            {ticket.ticket_status==="active"&&qr?
              <button type="button" className="button button-primary button-wide" onClick={()=>setFlipped(true)}>{ticketText.back} ↗</button>:
              <div className="tt-pass-revoked" role="status">{tr.invalid}</div>}
            <div className="ticket-status-grid tt-pass-status">
-             <span className="status status-success">{ticket.ticket_status==="active"?"✓ ACTIVE":tr.invalid}</span>
+             <span className={`status ${ticket.ticket_status==="active"?"status-success":"status-danger"}`}>{ticket.ticket_status==="active"?(language==="ru"?"ДЕЙСТВИТЕЛЕН":language==="cs"?"PLATNÁ":language==="uk"?"ДІЙСНИЙ":"VALID"):tr.invalid}</span>
              <span className={`status ${ticket.checked_in_at?"status-success":"status-muted"}`}>
                {ticket.checked_in_at?t(language,"checkedIn"):t(language,"notCheckedIn")}
              </span>

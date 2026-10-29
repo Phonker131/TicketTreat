@@ -313,6 +313,7 @@ function PaidCheckout({event,guest,language,source}:{
 }){
   const [state,setState]=useState<PaidReservationStatus|null>(null);
   const [busy,setBusy]=useState(false);
+  const [copiedInstructions,setCopiedInstructions]=useState(false);
   const [error,setError]=useState("");
   const [currentTime,setCurrentTime]=useState(()=>Date.now());
   const refresh=()=>getOwnPaidReservation(event.id).then(setState).catch(e=>setError(userFacingError(e,language)));
@@ -364,9 +365,17 @@ function PaidCheckout({event,guest,language,source}:{
           "Pokud pořadatel platbu včas nepotvrdí, rezervace vyprší a místo se uvolní.",
           "Якщо організатор не підтвердить оплату вчасно, заявку буде скасовано і місце звільниться.")}</p>
         </div>
-        {state?.payment_instructions&&<div className="state-card">
+        {state?.payment_instructions&&<div className="state-card tt-payment-direct-instructions">
           <strong>{label("Organizer payment instructions","Инструкция по оплате от организатора","Pokyny k platbě od pořadatele","Інструкція з оплати від організатора")}</strong>
           <p style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{state.payment_instructions}</p>
+          <button type="button" className="button button-secondary" onClick={()=>{
+            if(!state.payment_instructions)return;
+            void navigator.clipboard.writeText(state.payment_instructions).then(()=>{
+              setCopiedInstructions(true);
+            }).catch(()=>setError(label("Select and copy the instructions above.","Выдели и скопируй инструкцию выше.","Označ a zkopíruj pokyny výše.","Виділи та скопіюй інструкцію вище.")));
+          }}>
+            {copiedInstructions?label("Copied","Скопировано","Zkopírováno","Скопійовано"):label("Copy payment instructions","Скопировать реквизиты","Zkopírovat platební pokyny","Скопіювати реквізити")}
+          </button>
         </div>}
       </>}
       {state?.status==="confirmed"&&<div className="state-card" role="status">
