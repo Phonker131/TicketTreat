@@ -96,3 +96,16 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible,summary:focus
  .tt-night-home .event-card h2{font-size:41px}
 }
 @media(prefers-reduced-motion:reduce){.tt-night-home *, .tt-night-home *::before,.tt-night-home *::after{scroll-behavior:auto!important;animation:none!important;transition:none!important;transform:none!important}}
+
+/* Keep the original black-on-paper wordmark legible on the dark navigation.
+   Brand-book rule: primary logo sits on a plain plate, never directly on imagery. */
+.topbar .wordmark{background:var(--paper);border-radius:6px;padding:5px 7px;line-height:0}
+.topbar .wordmark-logo{max-width:100%;height:auto}
+.topbar .wordmark:focus-visible{outline:3px solid var(--paper);outline-offset:4px}
+.tt-support-footer.tt-legal-footer{background:var(--ink);border-color:var(--line);color:var(--paper)}
+.tt-support-footer.tt-legal-footer .tt-legal-footer-home,
+.tt-support-footer.tt-legal-footer .tt-legal-footer-links a,
+.tt-support-footer.tt-legal-footer .tt-cookie-settings-link{color:var(--paper)}
+.tt-support-footer.tt-legal-footer .tt-legal-footer-brand small,
+.tt-support-footer.tt-legal-footer .tt-legal-footer-brand p{color:var(--mute)}
+@media(max-width:480px){.topbar .wordmark{padding:4px 5px}.tt-night-home .tt-night-hero{overflow:visible}}
