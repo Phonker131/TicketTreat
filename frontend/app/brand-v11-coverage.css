@@ -451,3 +451,85 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
  .app-shell .tt-interactive-ticket .tt-ticket-front,
  .app-shell .tt-interactive-ticket.is-flipped .tt-ticket-back{animation:none!important}
 }
+
+/* Mobile scrolling: a two-row sticky header hid posters, ticket headings
+   and section kickers. Retain navigation but return it to normal document flow. */
+@media(max-width:1199px){
+  .topbar{position:relative!important;top:auto!important;transform:none!important}
+  html{scroll-padding-top:18px}
+  .tt-night-home-page,.page{scroll-margin-top:18px}
+}
+/* Night Poster home: keep kicker, display headline and introduction separate
+   even with tall accented Czech glyphs and condensed display fonts. */
+.tt-night-home .tt-night-events .section-heading{
+  display:block;min-width:0;margin:0 0 24px;
+}
+.tt-night-home .tt-night-events .section-heading>div{min-width:0;max-width:100%}
+.tt-night-home .tt-night-events .section-heading .tt-night-kicker{
+  display:block;position:relative;line-height:1.5;
+  margin:0 0 22px!important;letter-spacing:.08em;
+}
+.tt-night-home .tt-night-events .section-heading h2{
+  display:block;margin:0 0 20px!important;
+  font-size:clamp(43px,10.6vw,94px);
+  line-height:1.07!important;letter-spacing:-.015em;
+  overflow-wrap:normal;hyphens:auto;text-wrap:balance;
+}
+.tt-night-home .tt-night-events .section-heading p:not(.tt-night-kicker){
+  display:block;margin:0 0 18px!important;line-height:1.55;
+}
+@media(max-width:480px){
+  .tt-night-home .tt-night-events .section-heading h2{font-size:clamp(40px,10.2vw,53px)}
+}
+/* Ticket check-in state belongs on the light printed stock, not the ink
+   ribbon inherited from the global status-grid component. */
+.app-shell .tt-interactive-ticket .tt-pass-status,
+.app-shell .tt-interactive-ticket .ticket-status-grid{
+  background:transparent!important;color:var(--ink)!important;
+  border:none!important;border-top:2px dashed var(--ink)!important;
+  border-bottom:2px dashed var(--ink)!important;
+  box-shadow:none!important;border-radius:0!important;
+  margin:22px 0 28px!important;padding:16px 0!important;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  min-width:0;
+}
+.app-shell .tt-interactive-ticket .tt-pass-status .status{
+  display:inline-flex;align-items:center;min-height:38px;padding:8px 12px;
+  border:2px solid var(--ink)!important;border-radius:8px!important;
+  font:700 clamp(12px,3.5vw,15px)/1.2 var(--u)!important;
+  text-transform:none;white-space:normal;overflow-wrap:anywhere;
+}
+.app-shell .tt-interactive-ticket .tt-pass-status .status-success{
+  background:var(--yel)!important;color:var(--ink)!important;
+}
+.app-shell .tt-interactive-ticket .tt-pass-status .status-muted{
+  background:var(--paper)!important;color:var(--ink)!important;
+}
+.app-shell .tt-interactive-ticket .tt-pass-status .status-danger{
+  background:var(--tom)!important;color:var(--ink)!important;
+}
+/* Restore explicit ink on paper to event administration counters and all
+   notification labels: legacy globals.css .stat-card span used muted lavender. */
+.app-shell:has(.admin-event-actions) .stats-grid .stat-card,
+.app-shell:has(.admin-event-actions) .panel .stat-card{
+  background:var(--paper)!important;color:var(--ink)!important;
+  border:2px solid var(--ink)!important;
+  box-shadow:none!important;min-width:0;
+}
+.app-shell:has(.admin-event-actions) .stats-grid .stat-card span,
+.app-shell:has(.admin-event-actions) .panel .stat-card span,
+.app-shell:has(.admin-event-actions) .panel .stat-card strong{
+  color:var(--ink)!important;opacity:1!important;
+  text-shadow:none!important;
+}
+.app-shell:has(.admin-event-actions) .panel .stat-card span{
+  font:650 clamp(14px,3.5vw,17px)/1.5 var(--u);
+  overflow-wrap:anywhere;
+}
+.app-shell:has(.admin-event-actions) .panel .stat-card strong{
+  font-family:var(--d);font-weight:900;
+  overflow-wrap:anywhere;
+}
+.app-shell:has(.admin-event-actions) .panel .stat-card .status{
+  color:var(--ink)!important;
+}

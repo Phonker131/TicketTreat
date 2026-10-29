@@ -8,32 +8,11 @@ import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
 import { cancelDemoTicket, getDemoTicket, getWalletStatus } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
+import {venueStartEpoch} from "@/lib/venue-time";
 import { t } from "@/lib/i18n";
 import { getWebToken, restoreGuest } from "@/lib/session";
 import { getTelegramWebApp } from "@/lib/telegram";
 import type { DemoTicket } from "@/lib/types";
-
-/** TicketTreat pilot event starts are Prague wall-clock datetimes unless an offset is present.
- * Convert to an actual instant before counting down; devices may be in other time zones. */
-function venueStartEpoch(value:string):number {
-  if(/(?:Z|[+-]\\d{2}:\\d{2})$/i.test(value))return Date.parse(value);
-  const pieces=value.match(/^(\\d{4})-(\\d{2})-(\\d{2})[T ](\\d{2}):(\\d{2})(?::(\\d{2}))?/);
-  if(!pieces)return NaN;
-  const [year,month,day,hour,minute,second]=pieces.slice(1).map(Number);
-  const wall=Date.UTC(year,month-1,day,hour,minute,second||0);
-  let guess=wall;
-  const format=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Prague",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
-  for(let i=0;i<3;i++){
-    const parts=Object.fromEntries(format.formatToParts(new Date(guess)).filter(p=>p.type!=="literal").map(p=>[p.type,Number(p.value)]));
-    const observed=Date.UTC(parts.year,parts.month-1,parts.day,parts.hour,parts.minute,parts.second);
-    const delta=wall-observed;
-    if(delta===0)return guess;
-    guess+=delta;
-  }
-  // Reject non-existent wall times on the spring DST transition.
-  const final=Object.fromEntries(format.formatToParts(new Date(guess)).filter(p=>p.type!=="literal").map(p=>[p.type,Number(p.value)]));
-  return Date.UTC(final.year,final.month-1,final.day,final.hour,final.minute,final.second)===wall?guess:NaN;
-}
 
 const words = {
   ru:{pass:"ВХОДНОЙ БИЛЕТ",ticket:"Номер билета",organizer:"ОРГАНИЗАТОР",wallet:"Добавить в Apple Wallet",

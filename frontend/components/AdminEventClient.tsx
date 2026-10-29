@@ -552,12 +552,12 @@ export function AdminEventClient(){
         {emailStatus&&<>
           <div className="stats-grid" aria-label={tr("Статус служебных уведомлений")}>
             <div className="stat-card">
-              <strong>✉️ Email</strong>
+              <strong>Email</strong>
               <span>{tr("Доставлено провайдеру:")} {emailStatus.message_states.sent||0}</span>
               <span>{tr("В очереди:")} {emailStatus.message_states.pending||0} · {tr("Ошибок:")} {emailStatus.message_states.failed||0}</span>
             </div>
             <div className="stat-card">
-              <strong>✈️ Telegram</strong>
+              <strong>Telegram</strong>
               <span>{tr("Зарегистрированных получателей:")} {emailStatus.telegram_recipients??0}</span>
               <span>{tr("Отправлено:")} {emailStatus.telegram_message_states?.sent||0} · {tr("В очереди:")} {emailStatus.telegram_message_states?.pending||0} · {tr("Ошибок:")} {emailStatus.telegram_message_states?.failed||0}</span>
               <span>{emailStatus.telegram_enabled?tr("Канал подключён. Напоминания отправляются по расписанию."):tr("Канал сейчас не настроен.")}</span>
@@ -598,7 +598,13 @@ export function AdminEventClient(){
         <h3>{tr("История модерации")}</h3>
         {!audit.length&&<small>{tr("Нет действий")}</small>}
         {audit.map((a,i)=><div className="participant-row" key={i}>
-          <div><strong>{a.action}</strong><small>{tr("Организатор")} #{a.actor_account_id}</small><small>{a.details}</small></div>
+          <div><strong>{({
+            create:{ru:"Создание",uk:"Створення",cs:"Vytvoření",en:"Created"},
+            cancel:{ru:"Отмена",uk:"Скасування",cs:"Zrušení",en:"Cancelled"},
+            publish:{ru:"Публикация",uk:"Публікація",cs:"Zveřejnění",en:"Published"},
+            unpublish:{ru:"Снятие с публикации",uk:"Зняття з публікації",cs:"Stažení z publikace",en:"Unpublished"},
+            update:{ru:"Изменение",uk:"Зміна",cs:"Úprava",en:"Updated"}
+          } as Record<string,Record<string,string>>)[a.action]?.[language]||a.action}</strong><small>{tr("Организатор")} #{a.actor_account_id}</small><small>{a.details}</small></div>
           <small>{new Date(a.at).toLocaleString(localeForLanguage(language))}</small>
         </div>)}
       </section>}

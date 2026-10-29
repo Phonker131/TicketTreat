@@ -1,3 +1,4 @@
+import {venueStartEpoch} from "../lib/venue-time";
 import {test, expect} from "@playwright/test";
 
 const widths = [
@@ -416,4 +417,33 @@ test("brandbook discovery: accessible feed, swipe and schematic map with mood fi
   await page.getByRole("button",{name:"Anything",exact:true}).click();
   await page.getByRole("button",{name:"Feed",exact:true}).click();
   await expect(page.getByText("Prague Quiz Night")).toBeVisible();
+});
+
+test("venue-local countdown parses Prague wall time and UTC offsets correctly",()=>{
+  expect(venueStartEpoch("2026-10-30T16:17:00")).toBe(Date.parse("2026-10-30T15:17:00Z"));
+  expect(venueStartEpoch("2026-07-30T16:17:00")).toBe(Date.parse("2026-07-30T14:17:00Z"));
+  expect(venueStartEpoch("2026-10-30T16:17:00+01:00")).toBe(Date.parse("2026-10-30T15:17:00Z"));
+  expect(venueStartEpoch("2026-03-29T02:30:00")).toBeNaN();
+});
+test("mobile page has a non-sticky header to prevent overlapping content",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto("/?lang=cs",{waitUntil:"domcontentloaded"});
+  await expect(page.locator(".topbar")).toHaveCSS("position","relative");
+  const intro=page.locator(".tt-night-events .section-heading");
+  await intro.scrollIntoViewIfNeeded();
+  const rect=await intro.boundingBox();
+  expect(rect).not.toBeNull();
+  expect(rect!.top).toBeGreaterThanOrEqual(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
+});
+test("printed ticket and administrator style rules keep correct high contrast",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto("/?lang=cs",{waitUntil:"domcontentloaded"});
+  const rulePresent=await page.evaluate(()=>{
+    const sheets=Array.from(document.styleSheets).filter(s=>{try{return s.cssRules.length>0}catch{return false}});
+    const styles=sheets.flatMap(s=>Array.from(s.cssRules).map(r=>r.cssText));
+    return styles.some(s=>s.includes("tt-pass-status")) &&
+      styles.some(s=>s.includes("admin-event-actions")&&s.includes("stat-card"));
+  });
+  expect(rulePresent).toBe(true);
 });
