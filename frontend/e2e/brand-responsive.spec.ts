@@ -349,3 +349,22 @@ test("v1.1 dark guest pages preserve contrast and paper organizer controls",asyn
   if(await page.locator(".admin-heading").count())
     expect(light).toBe("rgb(240, 235, 225)");
 });
+
+test("brand v1.1: every mobile menu item has readable foreground on its actual background",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto("/organizers?lang=en",{waitUntil:"domcontentloaded"});
+  await page.locator(".topbar-menu-toggle").click();
+  const results=await page.locator("#tt-primary-nav a").evaluateAll(links=>{
+    const channels=(value:string)=>{const m=value.match(/rgba?\\(([^)]+)\\)/);return m?m[1].split(",").slice(0,3).map(Number):[0,0,0];};
+    const lum=(v:number[])=>v.reduce((s,n,i)=>{
+      const srgb=n/255,linear=srgb<=.04045?srgb/12.92:Math.pow((srgb+.055)/1.055,2.4);
+      return s+linear*[.2126,.7152,.0722][i];
+    },0);
+    return links.map(el=>{
+      const s=getComputedStyle(el),fg=lum(channels(s.color)),bg=lum(channels(s.backgroundColor));
+      return {text:el.textContent?.trim(),ratio:(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05)};
+    });
+  });
+  expect(results.length).toBeGreaterThanOrEqual(6);
+  for(const result of results)expect(result.ratio,result.text).toBeGreaterThanOrEqual(4.5);
+});

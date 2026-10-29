@@ -150,3 +150,30 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 .tt-organizer-cover{background:var(--ink3);background-image:none}
 .tt-pass-photo{position:relative;background-blend-mode:normal;filter:contrast(1.15) grayscale(.25)}
 .tt-pass-photo::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,var(--ink) .65px,transparent 1.15px);background-size:5px 5px;opacity:.12;mix-blend-mode:multiply}
+
+/* Mobile navigation contrast: legacy cards had white backgrounds with paper
+   (#F0EBE1) text. Match foreground and background for every interaction state. */
+@media(max-width:1199px){
+ .topbar .topbar-nav a,
+ .topbar .topbar-nav a:link,
+ .topbar .topbar-nav a:visited {
+   background:var(--ink3)!important;color:var(--paper)!important;
+   border:2px solid var(--line);border-radius:12px;
+   box-shadow:none!important;opacity:1;
+ }
+ .topbar .topbar-nav a:hover,
+ .topbar .topbar-nav a:focus-visible{
+   background:var(--paper)!important;color:var(--ink)!important;
+   border-color:var(--paper)!important;
+ }
+ .topbar .topbar-nav a[aria-current="page"],
+ .topbar .topbar-nav a[aria-current="page"]:visited{
+   background:var(--yel)!important;color:var(--ink)!important;
+   border-color:var(--tom)!important;
+   box-shadow:inset 4px 0 0 var(--tom)!important;
+ }
+ .topbar .topbar-nav a[aria-current="page"]:hover,
+ .topbar .topbar-nav a[aria-current="page"]:focus-visible{
+   background:var(--yel)!important;color:var(--ink)!important;
+ }
+}
