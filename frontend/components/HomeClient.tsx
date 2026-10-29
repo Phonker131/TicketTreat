@@ -3,7 +3,7 @@
 import {useEffect,useState} from "react";
 import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
-import {EventCard} from "@/components/EventCard";
+import {EventDiscovery} from "@/components/EventDiscovery";
 import {useLanguage} from "@/components/LanguageProvider";
 import {getEvents,getSiteLanding,type SiteLanding} from "@/lib/api";
 import {t} from "@/lib/i18n";
@@ -74,7 +74,7 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
         {!loading&&error&&<div className="state-card state-error" role="alert">{t(language,"loadError")}<small>{error}</small></div>}
         {!loading&&!error&&events.length===0&&<div className="state-card" role="status">{t(language,"noEvents")}</div>}
         {!loading&&!error&&events.length>0&&
-          <div className="event-grid">{events.map(event=><EventCard key={event.id} event={event}/>)}</div>}
+          <EventDiscovery events={events} language={language}/>}
       </section>
       <section className="tt-home-faq" aria-label="TicketTreat FAQ">
         <div><h2>{copy.help}</h2><p>{language==="en"?"Registration, QR tickets and cancellations.":language==="cs"?"Registrace, QR vstupenky a zrušení.":language==="uk"?"Реєстрація, QR-квитки та скасування.":"Регистрация, QR-билеты и отмены."}</p></div>
