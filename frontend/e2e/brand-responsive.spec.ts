@@ -433,7 +433,7 @@ test("mobile page has a non-sticky header to prevent overlapping content",async(
   await intro.scrollIntoViewIfNeeded();
   const rect=await intro.boundingBox();
   expect(rect).not.toBeNull();
-  expect(rect!.top).toBeGreaterThanOrEqual(0);
+  expect(rect!.y).toBeGreaterThanOrEqual(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
 });
 test("printed ticket and administrator style rules keep correct high contrast",async({page})=>{
