@@ -4,8 +4,8 @@
  --paper:#F0EBE1;--shade:#E6DFD1;--mute:#A9A6B3;
  --tom:#FF5533;--blu:#3B4CF0;--yel:#F4B400;
  --plum:#3B1930;--fire:#F53D00;
- --d:'Sofia Sans Extra Condensed','Fira Sans Extra Condensed','Arial Narrow',Impact,system-ui,sans-serif;
- --u:'Onest',system-ui,sans-serif;--m:'IBM Plex Mono',ui-monospace,monospace;
+ --d:var(--font-tt-poster),'Sofia Sans Extra Condensed','Fira Sans Extra Condensed','Arial Narrow',Impact,system-ui,sans-serif;
+ --u:var(--font-tt-onest),'Onest',system-ui,sans-serif;--m:var(--font-tt-mono),'IBM Plex Mono',ui-monospace,monospace;
  --wm:'Archivo Black','Onest',sans-serif;
  --r-print:16px;--r-card:22px;--r-pill:999px;
  --plate-x:7px;--plate-y:8px;--btn-plate:4px 5px;--reg:3px;

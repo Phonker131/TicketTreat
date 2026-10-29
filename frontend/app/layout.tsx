@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import {Sofia_Sans_Extra_Condensed,Onest,IBM_Plex_Mono} from "next/font/google";
 import { LegalFooter } from "@/components/LegalFooter";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import "./globals.css";
@@ -10,6 +11,20 @@ import "./brand-v11-coverage.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { PwaBootstrap } from "@/components/PwaBootstrap";
+
+// Download at build time, self-host at tickettreat.eu for all visitors.
+const poster= Sofia_Sans_Extra_Condensed({
+  subsets:["latin","latin-ext","cyrillic","cyrillic-ext"],
+  display:"swap",variable:"--font-tt-poster",weight:"variable"
+});
+const body= Onest({
+  subsets:["latin","latin-ext","cyrillic","cyrillic-ext"],
+  display:"swap",variable:"--font-tt-onest",weight:"variable"
+});
+const mono= IBM_Plex_Mono({
+  subsets:["latin","latin-ext","cyrillic","cyrillic-ext"],
+  display:"swap",variable:"--font-tt-mono",weight:["500","700"],preload:false
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://tickettreat.eu"),
@@ -53,7 +68,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" className={`${poster.variable} ${body.variable} ${mono.variable}`}>
       <body>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
