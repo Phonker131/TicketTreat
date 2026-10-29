@@ -368,3 +368,32 @@ test("brand v1.1: every mobile menu item has readable foreground on its actual b
   expect(results.length).toBeGreaterThanOrEqual(6);
   for(const result of results)expect(result.ratio,result.text).toBeGreaterThanOrEqual(4.5);
 });
+
+test("brandbook discovery: accessible feed, swipe and schematic map with mood filter",async({page})=>{
+  await page.route("**/api/gateway/events",route=>route.fulfill({
+    status:200,contentType:"application/json",
+    body:JSON.stringify([{id:991021,title:"Prague Quiz Night",organizer:"TicketTreat",organizer_profile:null,location:"Praha 1",
+      country_code:"CZ",city:"Praha",description:"Trivia and friends",max_participants:30,
+      registered_count:2,spots_left:28,price:"350",currency:"CZK",languages:["en"],
+      image_url:null,starts_at:"2026-11-21T19:00:00",is_cancelled:false}])
+  }));
+  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  await expect(page.getByRole("button",{name:"Swipe",exact:true})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Map",exact:true})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Feed",exact:true})).toBeVisible();
+  await expect(page.getByText("Prague Quiz Night")).toBeVisible();
+  await page.getByRole("button",{name:"Swipe",exact:true}).click();
+  const swipe=page.getByRole("group",{name:"Prague Quiz Night"});
+  await expect(swipe).toBeVisible();
+  await swipe.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByText("No more posters")).toBeVisible();
+  await page.getByRole("button",{name:"Map",exact:true}).click();
+  await expect(page.getByRole("img",{name:"Prague schematic, not a navigation map."})).toBeVisible();
+  await expect(page.getByText("Prague Quiz Night")).toBeVisible();
+  await page.getByRole("button",{name:"Meet people",exact:true}).click();
+  await expect(page.getByText("No events match this mood.")).toBeVisible();
+  await page.getByRole("button",{name:"Anything",exact:true}).click();
+  await page.getByRole("button",{name:"Feed",exact:true}).click();
+  await expect(page.getByText("Prague Quiz Night")).toBeVisible();
+});
