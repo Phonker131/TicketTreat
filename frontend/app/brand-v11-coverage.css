@@ -177,3 +177,41 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
    background:var(--yel)!important;color:var(--ink)!important;
  }
 }
+
+/* Brandbook p.19: alternate event discovery modes. Keyboard and buttons
+   provide alternatives to touch gestures, with an illustrative map only. */
+.tt-discovery{min-width:0}
+.tt-discovery-controls{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin:22px 0 30px}
+.tt-discovery-label{display:block;color:var(--mute);font:700 12px/1.5 var(--m);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.tt-discovery-pills{display:flex;flex-wrap:wrap;gap:9px}
+.tt-discovery-chip{background:var(--ink2);color:var(--paper);border:1.5px solid var(--mute);border-radius:999px;min-height:44px;padding:10px 15px;font:700 15px/1.25 var(--u);cursor:pointer}
+.tt-discovery-chip:hover{border-color:var(--paper)}
+.tt-discovery-chip.is-selected,.tt-discovery-chip[aria-pressed="true"]{background:var(--tom);border-color:var(--tom);color:var(--ink)}
+.tt-discovery-chip:focus-visible{outline:3px solid var(--paper);outline-offset:3px}
+.tt-swipe-area{display:grid;justify-items:center;min-width:0}
+.tt-swipe-hint{max-width:56ch;margin:8px 0 22px;color:var(--mute);text-align:center}
+.tt-swipe-stack{width:min(100%,420px);display:grid;gap:18px;min-width:0;justify-items:center}
+.tt-swipe-card{width:min(100%,360px);touch-action:none;user-select:none;background:var(--paper);color:var(--ink);padding:10px 10px 20px;border-radius:var(--r-print);box-shadow:7px 8px 0 var(--blu);cursor:grab;will-change:transform;min-width:0}
+.tt-swipe-card:active{cursor:grabbing}
+.tt-swipe-card:focus-visible{outline:3px solid var(--paper);outline-offset:9px}
+.tt-swipe-card h3{color:var(--ink);font:900 clamp(42px,6vw,65px)/.87 var(--d);text-transform:uppercase;margin:19px 8px 8px}
+.tt-swipe-card p{color:var(--ink);margin:0 8px;font:600 16px var(--u)}
+.tt-swipe-print{width:100%;aspect-ratio:4/5;position:relative;overflow:hidden;border-radius:10px;background:var(--tom)}
+.tt-swipe-print>img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.2)}
+.tt-swipe-print>.tt-swipe-placeholder{object-fit:contain;width:62%;margin:auto;display:block;filter:none}
+.tt-swipe-date{position:absolute;left:12px;bottom:12px;background:var(--paper);color:var(--ink);font:700 13px var(--m);padding:10px 12px;transform:rotate(-4deg)}
+.tt-swipe-mark{position:absolute;top:17%;left:10%;border:4px solid var(--paper);padding:12px 20px;color:var(--paper);background:var(--ink);font:900 54px/.88 var(--d);text-transform:uppercase;transform:rotate(-12deg);pointer-events:none}
+.tt-swipe-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.tt-discovery-map-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(230px,1fr);gap:22px;align-items:start}
+.tt-prague-sketch{background:var(--ink2);border:1px solid var(--line);border-radius:var(--r-card);padding:10px}
+.tt-prague-sketch svg{width:100%;height:auto;display:block;border-radius:12px}
+.tt-prague-sketch small{display:block;padding:10px 7px 2px;color:var(--mute)}
+.tt-map-events{display:grid;gap:10px;max-height:650px;overflow:auto}
+.tt-map-events>p{margin:0 0 8px;color:var(--mute)}
+.tt-map-event{display:flex;flex-direction:column;gap:5px;min-height:88px;padding:14px 17px;background:var(--ink2);border:1px solid var(--line);border-radius:var(--r-print);color:var(--paper)!important;text-decoration:none}
+.tt-map-event:hover,.tt-map-event:focus-visible{border-color:var(--tom)}
+.tt-map-event strong{font:800 24px/1 var(--d);text-transform:uppercase}
+.tt-map-event span{font:500 13px var(--u);color:var(--mute)}
+.tt-map-event .tt-map-link{color:var(--paper);text-decoration:underline}
+@media(max-width:750px){.tt-discovery-map-grid{grid-template-columns:minmax(0,1fr)}.tt-map-events{max-height:none}.tt-discovery-controls{gap:14px}}
+@media(prefers-reduced-motion:reduce){.tt-swipe-card{will-change:auto;transform:none!important}}
