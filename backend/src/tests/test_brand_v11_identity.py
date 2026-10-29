@@ -25,7 +25,7 @@ class BrandIdentityTests(unittest.TestCase):
           "line":"#3a3949","paper":"#f0ebe1","shade":"#e6dfd1",
           "mute":"#a9a6b3","tom":"#ff5533","blu":"#3b4cf0","yel":"#f4b400",
           "plum":"#3b1930","fire":"#f53d00"}.items():
-            self.assertRegex(css,rf"--{name}:\\s*{color}")
+            self.assertRegex(css,rf"--{name}:\s*{color}")
 
     def test_four_botfather_locales_and_no_emoji_in_main_menu_labels(self):
         import importlib.util
