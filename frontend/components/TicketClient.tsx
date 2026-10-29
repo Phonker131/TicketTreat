@@ -50,12 +50,12 @@ export function TicketClient() {
     if(!ticket?.event?.starts_at||clock===null)return null;
     const raw=ticket.event.starts_at;
     let target=Date.parse(raw);
-    if(!/(?:Z|[+-]\\d{2}:\\d{2})$/i.test(raw)){
+    if(!/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw)){
       // Offset-free event timestamps are Prague venue wall-clock values.
       const utc=new Date(raw+"Z");
       const part=new Intl.DateTimeFormat("en",{timeZone:"Europe/Prague",timeZoneName:"shortOffset"})
         .formatToParts(utc).find(part=>part.type==="timeZoneName")?.value||"GMT+1";
-      const offset=/GMT([+-])(\\d{1,2})(?::(\\d{2}))?/.exec(part);
+      const offset=/GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(part);
       if(offset)target=utc.getTime()-(offset[1]==="+"?1:-1)*(Number(offset[2])*60+Number(offset[3]||0))*60_000;
     }
     if(!Number.isFinite(target))return null;

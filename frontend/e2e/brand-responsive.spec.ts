@@ -350,23 +350,43 @@ test("v1.1 dark guest pages preserve contrast and paper organizer controls",asyn
     expect(light).toBe("rgb(240, 235, 225)");
 });
 
-test("brand v1.1: every mobile menu item has readable foreground on its actual background",async({page})=>{
+test("brand v1.1: mobile menu text stays readable in normal, selected and hover states",async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.goto("/organizers?lang=en",{waitUntil:"domcontentloaded"});
   await page.locator(".topbar-menu-toggle").click();
-  const results=await page.locator("#tt-primary-nav a").evaluateAll(links=>{
-    const channels=(value:string)=>{const m=value.match(/rgba?\\(([^)]+)\\)/);return m?m[1].split(",").slice(0,3).map(Number):[0,0,0];};
-    const lum=(v:number[])=>v.reduce((s,n,i)=>{
-      const srgb=n/255,linear=srgb<=.04045?srgb/12.92:Math.pow((srgb+.055)/1.055,2.4);
-      return s+linear*[.2126,.7152,.0722][i];
-    },0);
-    return links.map(el=>{
-      const s=getComputedStyle(el),fg=lum(channels(s.color)),bg=lum(channels(s.backgroundColor));
-      return {text:el.textContent?.trim(),ratio:(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05)};
+
+  // Chromium uses rgb() or rgba(), depending on the color and opacity.
+  // A literal regex backslash must not be double-escaped; that previously
+  // returned [0,0,0] for both foreground and background and gave a false 1:1.
+  const ratios=async()=>page.locator("#tt-primary-nav a").evaluateAll(links=>{
+    function rgb(css:string):number[]{
+      const match=css.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
+      if(!match)throw new Error("Unsupported computed color: "+css);
+      return match.slice(1,4).map(Number);
+    }
+    function luminance(channels:number[]):number{
+      return channels.reduce((value,channel,index)=>{
+        const c=channel/255,linear=c<=0.04045?c/12.92:((c+0.055)/1.055)**2.4;
+        return value+linear*[0.2126,0.7152,0.0722][index];
+      },0);
+    }
+    return links.map(link=>{
+      const style=getComputedStyle(link);
+      const fg=luminance(rgb(style.color));
+      const bg=luminance(rgb(style.backgroundColor));
+      return {label:link.textContent?.trim(),color:style.color,background:style.backgroundColor,
+        ratio:(Math.max(fg,bg)+0.05)/(Math.min(fg,bg)+0.05)};
     });
   });
-  expect(results.length).toBeGreaterThanOrEqual(6);
-  for(const result of results)expect(result.ratio,result.text).toBeGreaterThanOrEqual(4.5);
+  const normal=await ratios();
+  expect(normal.length).toBeGreaterThanOrEqual(6);
+  for(const item of normal)expect(item.ratio,JSON.stringify(item)).toBeGreaterThanOrEqual(4.5);
+  await page.locator("#tt-primary-nav a").first().hover();
+  const hovered=await ratios();
+  expect(hovered[0].ratio,JSON.stringify(hovered[0])).toBeGreaterThanOrEqual(4.5);
+  await page.locator("#tt-primary-nav a").first().focus();
+  const focused=await ratios();
+  expect(focused[0].ratio,JSON.stringify(focused[0])).toBeGreaterThanOrEqual(4.5);
 });
 
 test("brandbook discovery: accessible feed, swipe and schematic map with mood filter",async({page})=>{
