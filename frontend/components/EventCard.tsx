@@ -49,23 +49,12 @@ function formatPrice(
     return t(language, "free");
   }
 
-  const currency = (
-    event.currency || "CZK"
-  ).toUpperCase();
-
-  try {
-    return new Intl.NumberFormat(
-      localeForLanguage(language),
-      {
-        style: "currency",
-        currency,
-        maximumFractionDigits:
-          Number.isInteger(numeric) ? 0 : 2,
-      },
-    ).format(numeric);
-  } catch {
-    return `${numeric} ${currency}`;
-  }
+  const rawCurrency = (event.currency || "CZK").toUpperCase();
+  const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : "CZK";
+  const amount = new Intl.NumberFormat(localeForLanguage(language), {
+    maximumFractionDigits: Number.isInteger(numeric) ? 0 : 2,
+  }).format(numeric);
+  return `${amount} ${currency}`;
 }
 
 export function EventCard({

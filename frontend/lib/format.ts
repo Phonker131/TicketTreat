@@ -30,14 +30,11 @@ export function formatDate(value: string | null, language: LanguageCode): string
 export function formatPrice(event: Pick<TicketTreatEvent, "price" | "currency">, language: LanguageCode): string {
   const numeric = Number(event.price || 0);
   if (!Number.isFinite(numeric) || numeric <= 0) return t(language, "free");
-  const currency = (event.currency || "CZK").toUpperCase();
-  try {
-    return new Intl.NumberFormat(localeForLanguage(language), {
-      style: "currency",
-      currency,
-      maximumFractionDigits: Number.isInteger(numeric) ? 0 : 2,
-    }).format(numeric);
-  } catch {
-    return `${numeric} ${currency}`;
-  }
+  const rawCurrency = (event.currency || "CZK").toUpperCase();
+  const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : "CZK";
+  // Brandbook v1.1: 350 CZK, not locale-dependent currency symbols.
+  const amount = new Intl.NumberFormat(localeForLanguage(language), {
+    maximumFractionDigits: Number.isInteger(numeric) ? 0 : 2,
+  }).format(numeric);
+  return `${amount} ${currency}`;
 }
