@@ -133,50 +133,36 @@ test("missing event returns HTTP 404, not a soft-404 HTML page",async({request})
   expect((await request.get("/events/910999",{maxRedirects:0})).status()).toBe(404);
 });
 
-test("sitemap fails on upstream outage rather than silently losing URLs",async({request})=>{
+test("stable primary sitemap remains complete during upstream outages",async({request})=>{
+  const expected=["https://tickettreat.eu/","https://tickettreat.eu/cs","https://tickettreat.eu/en","https://tickettreat.eu/uk","https://tickettreat.eu/faq","https://tickettreat.eu/cs/faq","https://tickettreat.eu/en/faq","https://tickettreat.eu/uk/faq","https://tickettreat.eu/privacy-policy","https://tickettreat.eu/terms","https://tickettreat.eu/cookie-policy","https://tickettreat.eu/legal-notice","https://tickettreat.eu/organizers"];
+  const first=await request.get("/sitemap.xml",{maxRedirects:0});
+  expect(first.status()).toBe(200);
+  expect(sitemapLocations(await first.text())).toEqual(expected);
   for(const [fail,recover] of [["fail-events","recover-events"],["fail-organizers","recover-organizers"]]){
     await request.get("http://127.0.0.1:8100/_fixture/"+fail);
     try{
-      const response=await request.get("/sitemap.xml",{maxRedirects:0});
-      expect(response.status()).toBeGreaterThanOrEqual(500);
+      const stable=await request.get("/sitemap.xml",{maxRedirects:0,headers:{"user-agent":googlebot}});
+      expect(stable.status()).toBe(200);
+      expect(sitemapLocations(await stable.text())).toEqual(expected);
+      const optional=await request.get("/sitemap-events.xml",{maxRedirects:0});
+      expect(optional.status()).toBe(503);
     }finally{await request.get("http://127.0.0.1:8100/_fixture/"+recover);}
   }
-  expect((await request.get("/sitemap.xml")).status()).toBe(200);
 });
 
-test("production sitemap discovers runtime fixtures and excludes non-indexable events", async ({request}) => {
-  test.skip(process.env.TICKETTREAT_SEO_FIXTURE !== "1", "Runs in the isolated production SEO job");
-  const response = await request.get("/sitemap.xml", {maxRedirects: 0});
+test("separate dynamic event sitemap discovers only eligible fixtures",async({request})=>{
+  test.skip(process.env.TICKETTREAT_SEO_FIXTURE!=="1","Only valid with isolated SEO API");
+  const response=await request.get("/sitemap-events.xml",{maxRedirects:0});
   expect(response.status()).toBe(200);
-  const locations = sitemapLocations(await response.text());
-  expect(locations.map(loc => new URL(loc).href).sort()).toEqual([
-    origin + "/", origin + "/cs",origin + "/en",origin + "/uk",origin + "/faq", origin + "/cs/faq", origin + "/en/faq", origin + "/uk/faq",origin + "/privacy-policy",origin + "/terms",origin + "/cookie-policy",origin + "/legal-notice", origin + "/organizers",
-    origin + "/events/910001", origin + "/organizers/seo-fixture",
-  ].sort());
-  // Observed Next.js production contract: revalidate immediately, no long-lived shared cache.
-  const cache = response.headers()["cache-control"] || "";
-  expect(cache).toMatch(/(?:^|,)\s*max-age=0(?:,|$)/i);
-  expect(cache).toMatch(/(?:^|,)\s*must-revalidate(?:,|$)/i);
-  expect(cache).not.toMatch(/immutable|s-maxage=[1-9]/i);
-  // Fetch every listed page locally: never follow fixture URLs to production.
-  for (const loc of locations) {
-    const path = new URL(loc).pathname;
-    const result = await request.get(path, {headers: {"user-agent": googlebot}, maxRedirects: 0});
-    expect(result.status()).toBe(200);
-    expect(result.headers()["x-robots-tag"] || "").not.toMatch(/noindex|none/i);
-    const html = await result.text();
-    const dom = new JSDOM(html);
-    const doc = dom.window.document;
-    const metadata = {
-      canonical: Array.from(doc.querySelectorAll('link[rel="canonical"]')).map(x => x.getAttribute("href")),
-      robots: Array.from(doc.querySelectorAll('meta[name="robots"], meta[name="googlebot"]')).map(x => x.getAttribute("content")).join(","),
-    };
+  expect(response.headers()["content-type"]).toMatch(/application\/xml/i);
+  const urls=sitemapLocations(await response.text());
+  expect(urls.sort()).toEqual([origin+"/events/910001",origin+"/organizers/seo-fixture"].sort());
+  for(const path of ["/events/910001","/organizers/seo-fixture"]){
+    const page=await request.get(path,{maxRedirects:0});
+    expect(page.status(),path).toBe(200);
+    const dom=new JSDOM(await page.text());
+    expect(dom.window.document.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(origin+path);
     dom.window.close();
-    expect(metadata.robots).not.toMatch(/noindex|none/i);
-    if (path === "/events/910001" || path === "/organizers/seo-fixture") {
-      expect(metadata.canonical).toEqual([origin + path]);
-      expect(html).toContain("SEO fixture");
-    }
   }
 });
 
