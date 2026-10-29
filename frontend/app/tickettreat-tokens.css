@@ -1,32 +1,22 @@
-:root {
-  --tt-tomato: #FF5533;
-  --tt-ultramarine: #3B4CF0;
-  --tt-mustard: #F4B400;
-  --tt-keyline: #15141F;
-  --tt-paper: #F0EBE1;
-  --tt-paper-shade: #E6DFD1;
-  --tt-white: #FFFFFF;
-  --tt-plum: #3B1930;
-  --tt-fire: #F53D00;
-  --tt-font-display: 'Archivo Black', 'Geologica', sans-serif;
-  --tt-font-ui: 'IBM Plex Sans Condensed', 'Onest', sans-serif;
-  --tt-font-mono: 'IBM Plex Mono', monospace;
-  --tt-font-body: 'Onest', system-ui, sans-serif;
-  --tt-stroke: 3px;
-  --tt-radius-label: 20px;
-  --tt-radius-tray: 28px;
-  --tt-radius-pill: 999px;
-  --tt-plate-x: 7px;
-  --tt-plate-y: 6px;
-  --tt-plate-text: 0.05em;
-  --tt-ease: cubic-bezier(.32,.72,0,1);
-  --tt-dur-fast: 500ms;
-  --tt-dur: 700ms;
-  --tt-dur-slow: 1000ms;
-  --tt-maxw: 1240px;
-  --tt-section: clamp(96px, 12vw, 176px);
-  --tt-tap: 44px;
-  --tt-z-menu: 35;
-  --tt-z-nav: 40;
-  --tt-z-grain: 60;
+/* TicketTreat night-poster brand system v1.1. No gradients and no extra colors. */
+:root{
+ --ink:#15141F;--ink2:#1E1D2B;--ink3:#2B2A3A;--line:#3A3949;
+ --paper:#F0EBE1;--shade:#E6DFD1;--mute:#A9A6B3;
+ --tom:#FF5533;--blu:#3B4CF0;--yel:#F4B400;
+ --plum:#3B1930;--fire:#F53D00;
+ --d:'Sofia Sans Extra Condensed','Fira Sans Extra Condensed','Arial Narrow',Impact,system-ui,sans-serif;
+ --u:'Onest',system-ui,sans-serif;--m:'IBM Plex Mono',ui-monospace,monospace;
+ --wm:'Archivo Black','Onest',sans-serif;
+ --r-print:16px;--r-card:22px;--r-pill:999px;
+ --plate-x:7px;--plate-y:8px;--btn-plate:4px 5px;--reg:3px;
+ --ease:cubic-bezier(.32,.72,0,1);--t-fast:300ms;--t-base:500ms;--t-slow:900ms;--t-print:1700ms;
+ --tap:44px;--maxw:1240px;
+ --tt-tomato:var(--tom);--tt-ultramarine:var(--blu);--tt-mustard:var(--yel);
+ --tt-keyline:var(--ink);--tt-paper:var(--paper);--tt-paper-shade:var(--shade);
+ --tt-white:#FFFFFF;--tt-plum:var(--plum);--tt-fire:var(--fire);
+ --tt-font-display:var(--d);--tt-font-ui:var(--u);--tt-font-body:var(--u);--tt-font-mono:var(--m);
+ --tt-stroke:3px;--tt-radius-label:var(--r-print);--tt-radius-tray:var(--r-card);--tt-radius-pill:var(--r-pill);
+ --tt-plate-x:var(--plate-x);--tt-plate-y:var(--plate-y);
+ --tt-ease:var(--ease);--tt-dur-fast:var(--t-fast);--tt-dur:var(--t-base);--tt-dur-slow:var(--t-slow);
+ --tt-maxw:var(--maxw);--tt-tap:var(--tap);
 }

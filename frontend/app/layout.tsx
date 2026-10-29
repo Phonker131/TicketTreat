@@ -5,6 +5,7 @@ import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import "./globals.css";
 import "./tickettreat-tokens.css";
 import "./brand-refresh.css";
+import "./brand-v11.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { PwaBootstrap } from "@/components/PwaBootstrap";
@@ -42,7 +43,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#F0EBE1",
+  themeColor: "#15141F",
 };
 
 export default function RootLayout({
