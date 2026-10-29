@@ -60,6 +60,22 @@ for (const [agent, userAgent] of [["Googlebot", googlebot], ["browser", "Mozilla
   }
 }
 
+test("static diagnostic sitemap is valid XML and independent of API",async({request})=>{
+  const expected=[origin+"/",origin+"/cs",origin+"/faq"];
+  const path="/sitemap-diagnostic.xml";
+  for(const agent of [googlebot,"Mozilla/5.0"]){
+    const opts={headers:{"user-agent":agent},maxRedirects:0};
+    const response=await request.get(path,opts);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toMatch(/application\/xml|text\/xml/i);
+    expect(sitemapLocations(await response.text())).toEqual(expected);
+    const head=await request.head(path,opts);
+    expect(head.status()).toBe(200);
+    expect(head.headers()["content-type"]).toBe(response.headers()["content-type"]);
+    expect((await head.body()).length).toBe(0);
+  }
+});
+
 test("sitemap is valid XML with unique canonical public URLs", async ({request}) => {
   const response = await request.get("/sitemap.xml", {headers: {"user-agent": googlebot}, maxRedirects: 0});
   expect(response.status()).toBe(200);
