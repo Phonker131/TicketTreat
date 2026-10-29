@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {usePathname} from "next/navigation";
 import {useLanguage} from "@/components/LanguageProvider";
 import {openCookieSettings} from "@/lib/cookie-consent";
 
@@ -13,6 +14,7 @@ const labels = {
 
 export function LegalFooter(){
   const {language}=useLanguage();
+  const path=usePathname();
   const tr=labels[language];
   return (
     <footer className="tt-support-footer tt-legal-footer" aria-label="TicketTreat legal information and support">
@@ -32,6 +34,7 @@ export function LegalFooter(){
         <Link href="/legal-notice">{tr.legal}</Link>
         <Link href={language==="ru"?"/faq":"/"+language+"/faq"}>{tr.faq}</Link>
         <Link href="/support">{tr.support}</Link>
+        {path?.startsWith("/admin")&&<Link href="/">{language==="ru"?"Сайт для гостей":language==="cs"?"Web pro návštěvníky":language==="uk"?"Сайт для гостей":"Guest website"}</Link>}
         <Link className="tt-business-footer-link" href="/organizers">
           {language==="ru"?"Для организаторов и фирм":language==="cs"?"Pro pořadatele a firmy":language==="uk"?"Для організаторів і компаній":"For organizers and businesses"}
         </Link>
