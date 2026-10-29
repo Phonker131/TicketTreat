@@ -420,7 +420,7 @@ test("brandbook discovery: accessible feed, swipe and schematic map with mood fi
 
 test("printed ticket QR remains upright and seconds countdown advances",async({page})=>{
   await page.setViewportSize({width:390,height:844});
-  await page.clock.install({time:new Date("2026-10-29T20:33:00Z")});
+  await page.clock.install({time:new Date("2026-10-29T20:33:17Z")});
   await page.addInitScript(()=>localStorage.setItem("tickettreat_web_auth","browser-session"));
   const guest={id:91,access_token:"browser-session",telegram_id:null,username:null,
     first_name:"Guest",last_name:"Example",email:"fixture@example.test",visits:0};
@@ -446,7 +446,7 @@ test("printed ticket QR remains upright and seconds countdown advances",async({p
   const back=page.locator(".tt-ticket-back");
   await expect(front).toBeVisible();
   await expect(page.locator(".tt-countdown-values")).toBeVisible();
-  await expect(page.locator(".tt-countdown-values")).toContainText("43");
+  await expect(page.locator(".tt-countdown-values span").last().locator("strong")).toHaveText("43");
   const seconds=await page.locator(".tt-countdown-values span").last().locator("strong").innerText();
   await page.clock.runFor(2200);
   const after=await page.locator(".tt-countdown-values span").last().locator("strong").innerText();
