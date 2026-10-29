@@ -41,6 +41,16 @@ export function AdminEventClient(){
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
   const [event,setEvent]=useState<ManageEvent|null>(null);
   const [data,setData]=useState<AdminEventTickets|null>(null);
+  const [manualCode,setManualCode]=useState("");
+  const [codeError,setCodeError]=useState("");
+  function normalizePrintedTicketCode(raw:string):string {
+    const normalized=raw.normalize("NFKC").toUpperCase().replace(/[\s-]+/g,"");
+    // Ticket codes have a fixed alphabetic CRD prefix and numeric suffix.
+    // Confusable O/0 and I/1 occur only within the numeric suffix.
+    if(!normalized.startsWith("CRD"))return normalized;
+    return "CRD"+normalized.slice(3).replace(/O/g,"0").replace(/I/g,"1");
+  }
+
   const [emailStatus,setEmailStatus]=useState<EventEmailStatus|null>(null);
   const [pilotInsights,setPilotInsights]=useState<PilotInsights|null>(null);
   const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180],waitlist_offer_minutes:0,event_duration_minutes:180});
@@ -218,6 +228,29 @@ export function AdminEventClient(){
       await reload();setNotice(tr("Фотография удалена."));
     }catch(e){setError(formattedError(e,language))}
     finally{setBusy(false)}
+  }
+  function admitByPrintedCode(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();
+    const code=normalizePrintedTicketCode(manualCode);
+    if(!/^CRD[0-9]{6}$/.test(code)){
+      setCodeError(language==="cs"?"Zadejte platný kód vstupenky, například CRD-000123.":language==="uk"?"Введіть код квитка, наприклад CRD-000123.":language==="en"?"Enter a ticket code such as CRD-000123.":"Введи код билета, например CRD-000123.");
+      return;
+    }
+    const ticket=data?.tickets.find(item=>normalizePrintedTicketCode(item.code)===code);
+    if(!ticket){
+      setCodeError(language==="cs"?"Vstupenka nebyla pro tuto akci nalezena. Zkontrolujte kód.":language==="uk"?"Квиток не знайдено на цій події. Перевір код.":language==="en"?"No matching ticket for this event. Check the code.":"Билет этого ивента не найден. Проверь код.");
+      return;
+    }
+    if(ticket.checked_in_at){
+      setCodeError(language==="cs"?"Tato vstupenka již byla odbavena.":language==="uk"?"За цим квитком уже пройшли.":language==="en"?"This ticket has already been checked in.":"По этому билету уже прошли.");
+      return;
+    }
+    if(ticket.ticket_status!=="active"){
+      setCodeError(language==="cs"?"Vstupenka není aktivní.":language==="uk"?"Квиток неактивний.":language==="en"?"This ticket is not active.":"Билет неактивен.");
+      return;
+    }
+    setCodeError("");
+    void manualCheckIn(ticket.id);
   }
   async function manualCheckIn(ticketId:number){
     const token=getWebToken();if(!token)return;
@@ -595,7 +628,21 @@ export function AdminEventClient(){
           <div className="stat-card"><strong>{data.tickets.filter(t=>t.checked_in_at).length}</strong><span>{tr("Checked in")}</span></div>
           <div className="stat-card"><strong>{data.waitlist.filter(w=>w.status==="waiting").length}</strong><span>{tr("Waitlist")}</span></div>
         </div>
-        <section className="panel"><h2>{tr("Участники")}</h2><div className="participant-list">
+        <section className="panel">
+          <h2>{tr("Участники")}</h2>
+          <form onSubmit={admitByPrintedCode} className="tt-printed-code-form">
+            <label htmlFor="tt-printed-code">{language==="cs"?"Přijmout podle kódu":language==="uk"?"Прийняти за кодом":language==="en"?"Admit by ticket code":"Принять по коду"}</label>
+            <div className="tt-printed-code-inputs">
+              <input id="tt-printed-code" type="text" autoCapitalize="characters" autoComplete="off" spellCheck={false}
+                placeholder="CRD-000123" maxLength={32} value={manualCode} onChange={event=>{setManualCode(event.target.value);setCodeError("");}}/>
+              <button className="button button-primary" type="submit" disabled={busy||!manualCode.trim()}>
+                {language==="cs"?"Přijmout vstupenku":language==="uk"?"Прийняти квиток":language==="en"?"Admit ticket":"Принять билет"}
+              </button>
+            </div>
+            <small>{language==="cs"?"Mezery, velikost písmen a záměny O/0, I/1 nevadí.":language==="uk"?"Пробіли, регістр і плутанина O/0, I/1 не заважають.":language==="en"?"Spaces, letter case and O/0 or I/1 do not matter.":"Пробелы, регистр и путаница O/0 или I/1 не мешают."}</small>
+            {codeError&&<p className="tt-code-error" role="alert">{codeError}</p>}
+          </form>
+          <div className="participant-list">
           {!data.tickets.length&&<p>{tr("Пока нет билетов.")}</p>}
           {data.tickets.map(ticket=><div className="participant-row" key={ticket.id}>
             <div><strong>{ticket.guest?.first_name} {ticket.guest?.last_name}</strong>
