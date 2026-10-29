@@ -321,8 +321,31 @@ test("FAQ search, support link and mobile width are functional",async({page})=>{
   await expect(page.getByRole("link",{name:"Contact support"})).toHaveAttribute("href","/support");
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.goto("/support?lang=en",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("link",{name:/Browse FAQ/})).toHaveAttribute("href","/faq");
+  await expect(page.getByRole("link",{name:/Browse FAQ/})).toHaveAttribute("href","/en/faq");
   await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
-  await expect(page.locator("footer.tt-legal-footer").getByRole("link",{name:"FAQ"})).toHaveAttribute("href","/faq");
-  await expect(page.getByRole("link",{name:/Read FAQ/})).toHaveAttribute("href","/faq");
+  await expect(page.locator("footer.tt-legal-footer").getByRole("link",{name:"FAQ"})).toHaveAttribute("href","/en/faq");
+  await expect(page.getByRole("link",{name:/Read FAQ/})).toHaveAttribute("href","/en/faq");
+});
+
+test("v1.1 dark guest pages preserve contrast and paper organizer controls",async({page})=>{
+  for(const path of ["/","/faq?lang=en","/support?lang=en","/tickets"]){
+    await page.goto(path,{waitUntil:"domcontentloaded"});
+    const scheme=await page.evaluate(()=>{
+      const shell=document.querySelector(".app-shell");
+      if(!shell)return null;
+      const computed=getComputedStyle(shell);
+      return {background:computed.backgroundColor,color:computed.color};
+    });
+    expect(scheme,path).not.toBeNull();
+    expect(scheme?.background,path).toBe("rgb(21, 20, 31)");
+    expect(scheme?.color,path).toBe("rgb(240, 235, 225)");
+  }
+  await page.goto("/admin",{waitUntil:"domcontentloaded"});
+  const light=await page.evaluate(()=>{
+    const shell=document.querySelector(".app-shell");
+    return shell?getComputedStyle(shell).backgroundColor:null;
+  });
+  // The administrator login/view remains on print paper if the admin heading is present.
+  if(await page.locator(".admin-heading").count())
+    expect(light).toBe("rgb(240, 235, 225)");
 });

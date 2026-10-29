@@ -27,6 +27,21 @@ with SessionLocal() as db:
         max_participants=20,
     )
     db.add(event)
+    # Two isolated browser-only events for paid booking and optional-map tests.
+    # The public event SSR route must see the same fixture as client fetches;
+    # browser route interception alone cannot mock a server component request.
+    db.add(main.Event(
+        id=9372,title="Direct organizer payment test",organizer="Independent organizer",
+        location="Prague",price=Decimal("350"),currency="CZK",
+        starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=10),
+        max_participants=30,
+    ))
+    db.add(main.Event(
+        id=9373,title="Venue map test",organizer="Independent organizer",
+        location="Prague 1",price=Decimal("0"),currency="CZK",
+        starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=11),
+        max_participants=20,
+    ))
     guest=main.DemoGuest(
         access_token="ci-browser-guest-not-a-production-secret-"+str(os.getpid()),
         first_name="Browser",last_name="Tester",

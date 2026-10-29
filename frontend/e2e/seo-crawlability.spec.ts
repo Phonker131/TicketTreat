@@ -138,6 +138,9 @@ test("stable primary sitemap remains complete during upstream outages",async({re
   const first=await request.get("/sitemap.xml",{maxRedirects:0});
   expect(first.status()).toBe(200);
   expect(sitemapLocations(await first.text())).toEqual(expected);
+  // General CI has live FastAPI, whereas the SEO contract workflow supplies the
+  // isolated 8100 failure-injection fixture. Validate the static file in both.
+  if(process.env.TICKETTREAT_SEO_FIXTURE==="1")
   for(const [fail,recover] of [["fail-events","recover-events"],["fail-organizers","recover-organizers"]]){
     await request.get("http://127.0.0.1:8100/_fixture/"+fail);
     try{

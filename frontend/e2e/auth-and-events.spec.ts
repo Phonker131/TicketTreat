@@ -6,7 +6,8 @@ test("catalogue renders upcoming events through the live FastAPI gateway",async(
   await page.goto("/");
   await expect(page.getByText("CI browser free event").first()).toBeVisible();
   await expect(page.locator("header .wordmark")).toHaveAttribute("aria-label","TicketTreat");
-  await expect(page.locator(".hero .eyebrow")).toHaveText("TICKETTREAT");
+  await expect(page.locator(".tt-night-kicker").first()).toContainText("TICKETTREAT");
+  await expect(page.getByRole("heading",{level:1})).toBeVisible();
 });
 
 test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({page})=>{
