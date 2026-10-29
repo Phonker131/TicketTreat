@@ -26,7 +26,11 @@ class NightPosterBrandTests(unittest.TestCase):
         events=(FRONTEND/"components"/"EventCard.tsx").read_text(encoding="utf-8")
         self.assertIn('id="events"',home)
         self.assertIn('href="/tickets"',home)
-        self.assertIn('<EventCard key={event.id} event={event}/>',home)
+        discovery=(FRONTEND/"components"/"EventDiscovery.tsx").read_text(encoding="utf-8")
+        self.assertIn('<EventDiscovery events={events} language={language}/>',home)
+        self.assertIn('<EventCard key={event.id} event={event}/>',discovery)
+        self.assertIn('mode==="map"',discovery)
+        self.assertIn('mode==="list"',discovery)
         self.assertIn('href={`/events/${event.id}?lang=${language}`}',events)
         self.assertIn("getEvents(controller.signal)",home)
 
