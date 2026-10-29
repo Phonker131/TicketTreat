@@ -145,3 +145,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 .tt-event-date-sticker span{font:700 10px/1.3 var(--m);letter-spacing:.02em}
 @media(max-width:520px){.tt-night-home .tt-event-date-sticker{bottom:15px;left:18px;padding:8px 10px;min-width:68px}.tt-event-date-sticker strong{font-size:40px}}
 @media(prefers-reduced-motion:reduce){.tt-night-home .tt-event-date-sticker{transform:none}}
+
+/* Flat ink/color plates; no soft color-gradient placeholders. */
+.tt-organizer-cover{background:var(--ink3);background-image:none}
+.tt-pass-photo{position:relative;background-blend-mode:normal;filter:contrast(1.15) grayscale(.25)}
+.tt-pass-photo::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,var(--ink) .65px,transparent 1.15px);background-size:5px 5px;opacity:.12;mix-blend-mode:multiply}

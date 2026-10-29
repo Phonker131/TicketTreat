@@ -108,7 +108,7 @@ export function TicketClient() {
            <span className="tt-pass-brand">TICKETTREAT <span aria-hidden="true">✳</span></span>
            <span className="tt-pass-category">{tr.pass}</span>
          </div>
-         {ticket.event?.image_url&&<div className="tt-pass-photo" style={{backgroundImage:`linear-gradient(0deg,rgba(21,20,31,.55),rgba(21,20,31,.08)),url("${ticket.event.image_url.replace(/"/g,"%22")}")`}}/>}
+         {ticket.event?.image_url&&<div className="tt-pass-photo" style={{backgroundImage:`url("${ticket.event.image_url.replace(/"/g,"%22")}")`}}/>}
          <div className="ticket-main tt-pass-body">
            <p className="eyebrow">TICKETTREAT / #{ticket.code}</p>
            <h1>{ticket.event?.title||"TicketTreat"}</h1>
