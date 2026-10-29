@@ -292,3 +292,30 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 .tt-printed-code-inputs button{min-height:54px}
 .tt-printed-code-form small{color:var(--ink);opacity:.85}
 .tt-code-error{background:#fff0ec;border-left:5px solid var(--fire);border-radius:4px;padding:10px 14px;color:var(--ink);font:600 16px var(--u)}
+
+/* Fix verified by browser: hover previously switched text to dark before
+   the background transition completed, briefly producing only 1.3:1 contrast.
+   Mobile menu keeps one ink/paper pair in all transient states. */
+@media(max-width:1199px){
+  .topbar #tt-primary-nav a{
+    transition:none!important;
+    background-color:var(--ink3)!important;
+    color:var(--paper)!important;
+    opacity:1!important;
+  }
+  .topbar #tt-primary-nav a:hover,
+  .topbar #tt-primary-nav a:focus,
+  .topbar #tt-primary-nav a:focus-visible{
+    background-color:var(--ink3)!important;
+    color:var(--paper)!important;
+    border-color:var(--tom)!important;
+    outline-color:var(--paper)!important;
+  }
+  .topbar #tt-primary-nav a[aria-current="page"],
+  .topbar #tt-primary-nav a[aria-current="page"]:hover,
+  .topbar #tt-primary-nav a[aria-current="page"]:focus-visible{
+    background-color:var(--yel)!important;
+    color:var(--ink)!important;
+    border-color:var(--tom)!important;
+  }
+}
