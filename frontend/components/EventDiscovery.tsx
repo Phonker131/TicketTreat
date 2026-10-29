@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState} from "react";
 import Link from "next/link";
 import {EventCard} from "@/components/EventCard";
+import {BrandIcon} from "@/components/BrandIcon";
 import {eventDisplayDate} from "@/lib/format";
 import type {LanguageCode,TicketTreatEvent} from "@/lib/types";
 
@@ -88,9 +89,9 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
          <h3>{current.title}</h3><p>{current.location||"Praha"}</p>
        </div>
        <div className="tt-swipe-actions">
-         <button type="button" className="tt-discovery-chip" onClick={()=>advance("pass")}>{tr.pass} ←</button>
-         <button type="button" className="tt-discovery-chip is-selected" onClick={()=>advance("want")}>{tr.want} →</button>
-         <button type="button" className="tt-discovery-chip" onClick={()=>advance("view")}>{tr.view} ↑</button>
+         <button type="button" className="tt-discovery-chip" onClick={()=>advance("pass")}><BrandIcon name="cross" size={16}/> {tr.pass}</button>
+         <button type="button" className="tt-discovery-chip is-selected" onClick={()=>advance("want")}><BrandIcon name="heart" size={16}/> {tr.want}</button>
+         <button type="button" className="tt-discovery-chip" onClick={()=>advance("view")}><BrandIcon name="arr-up" size={16}/> {tr.view}</button>
        </div>
        {feedback&&<p role="status">{feedback}</p>}
      </div>:<div className="state-card" role="status">{tr.done} <button type="button" className="button button-secondary" onClick={()=>setIndex(0)}>{tr.reset}</button></div>}
