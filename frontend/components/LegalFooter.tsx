@@ -32,6 +32,9 @@ export function LegalFooter(){
         <Link href="/legal-notice">{tr.legal}</Link>
         <Link href={language==="ru"?"/faq":"/"+language+"/faq"}>{tr.faq}</Link>
         <Link href="/support">{tr.support}</Link>
+        <Link className="tt-business-footer-link" href="/organizers">
+          {language==="ru"?"Для организаторов и фирм":language==="cs"?"Pro pořadatele a firmy":language==="uk"?"Для організаторів і компаній":"For organizers and businesses"}
+        </Link>
         <a href="https://t.me/TicketTreatBot" target="_blank" rel="noopener noreferrer" aria-label="Official TicketTreat Telegram bot">Telegram ↗</a>
       </nav>
     </footer>
