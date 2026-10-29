@@ -14,7 +14,6 @@ import type { TicketTreatEvent, DemoGuest, } from "@/lib/types";
 import type {PaidReservationStatus} from "@/lib/api";
 
 const CHECKOUT_TEXT={"en":{"reserved":"A place has been reserved for you. Confirm it before the deadline.","codeSent":"If eligible, a sign-up code has been sent.","confirmed":"Email verified. You can now get your free ticket.","declined":"Offer declined.","declineConfirm":"Decline the available place?","quickIntro":"No password needed: enter your name and email, then confirm a one-time code.","accept":"I have reviewed the ","and":"and ","getCode":"Send sign-up code","oneTime":"One-time 8-digit code","verify":"Verify and continue","paymentUnavailable":"Paid ticket sales are not available yet. Please check back later.","quickTitle":"Quick signup","alreadyBot":"You are already registered through the Telegram bot. See your bot registration in My tickets."},"cs":{"reserved":"Místo je pro vás rezervováno. Potvrďte ho před uplynutím lhůty.","codeSent":"Pokud je účet způsobilý, byl odeslán registrační kód.","confirmed":"E-mail byl ověřen. Nyní můžete získat vstupenku zdarma.","declined":"Nabídka byla odmítnuta.","declineConfirm":"Odmítnout nabídnuté místo?","quickIntro":"Bez hesla: vyplňte jméno a e-mail a potvrďte jednorázový kód.","accept":"Seznámil/a jsem se s ","and":"a ","getCode":"Odeslat registrační kód","oneTime":"Jednorázový osmimístný kód","verify":"Ověřit e-mail a pokračovat","paymentUnavailable":"Prodej placených vstupenek zatím není dostupný. Zkuste to později.","quickTitle":"Rychlá registrace","alreadyBot":"Už jste zaregistrováni přes Telegram bota. Registraci najdete v sekci Moje vstupenky."},"ru":{"reserved":"Место зарезервировано для тебя. Подтверди его до указанного срока.","codeSent":"Если аккаунт подходит для регистрации, код отправлен.","confirmed":"Email подтверждён. Теперь можно получить бесплатный билет.","declined":"Предложение отклонено.","declineConfirm":"Отказаться от предложенного места?","quickIntro":"Без пароля: укажи имя, email и подтверди одноразовый код. Билет станет доступен после проверки почты.","accept":"Я ознакомился с ","and":"и ","getCode":"Получить код на email","oneTime":"Одноразовый код (8 цифр)","verify":"Подтвердить email","paymentUnavailable":"Продажа платных билетов пока недоступна. Попробуй позже.","quickTitle":"Быстрая регистрация","alreadyBot":"Ты уже записан на этот ивент через Telegram-бота. Запись видна в разделе «Мои билеты»."},"uk":{"reserved":"Місце зарезервовано для тебе. Підтвердь його до кінця терміну.","codeSent":"Якщо акаунт підходить для реєстрації, код надіслано.","confirmed":"Email підтверджено. Тепер можна отримати безкоштовний квиток.","declined":"Пропозицію відхилено.","declineConfirm":"Відмовитися від запропонованого місця?","quickIntro":"Без пароля: введи ім’я, email і підтвердь одноразовий код. Квиток стане доступним після перевірки пошти.","accept":"Я ознайомився з ","and":"та ","getCode":"Отримати код на email","oneTime":"Одноразовий код (8 цифр)","verify":"Підтвердити email","paymentUnavailable":"Продаж платних квитків поки недоступний. Спробуй пізніше.","quickTitle":"Швидка реєстрація","alreadyBot":"Ти вже зареєстрований через Telegram-бота. Запис доступний у розділі «Мої квитки»."}};
-type PaymentMethod = "card" | "apple" | "google";
 
 export function CheckoutClient() {
   const params = useParams<{id: string}>();
@@ -35,7 +34,6 @@ export function CheckoutClient() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [offer,setOffer]=useState<{status:string;expires_at:string|null;position:number|null}|null>(null);
-  const [method, setMethod] = useState<PaymentMethod>("card");
   const [bookingConfig,setBookingConfig] = useState<{demo_payment_mode:boolean;verified_accounts_required:boolean}|null>(null);
 
   const [firstName, setFirstName] = useState("");
@@ -254,46 +252,22 @@ export function CheckoutClient() {
                   </>
                 ) : (
                   <>
-                    <h2>{isFree ? freeLabel : t(language, "payment")}</h2>
-                    {isFree ? <p className="demo-banner">{
+                    <h2>{freeLabel}</h2>
+                    <p className="demo-banner">{
                       language === "ru" ? "Оплата не нужна. После регистрации сразу получишь QR-билет." :
                       language === "uk" ? "Оплата не потрібна. QR-квиток буде доступний одразу." :
                       language === "cs" ? "Platba není potřeba. QR vstupenka bude připravena ihned." :
                       "No payment required. Your QR ticket will be ready immediately."
-                    }</p> : !bookingConfig?.demo_payment_mode ? <div className="state-card">{txt.paymentUnavailable}</div> : <>
-                    <div className="demo-banner">{t(language, "demoHint")}</div>
-                    <div className="payment-methods">
-                      {[
-                        ["card", "💳", t(language, "card")],
-                        ["apple", "", t(language, "applePay")],
-                        ["google", "G", t(language, "googlePay")],
-                      ].map(([key, icon, label]) => (
-                        <button
-                          type="button"
-                          key={key}
-                          className={`payment-method ${method === key ? "selected" : ""}`}
-                          onClick={() => setMethod(key as PaymentMethod)}
-                        >
-                          <span>{icon}</span><strong>{label}</strong>
-                        </button>
-                      ))}
-                    </div>
-                    {method === "card" && (
-                      <div className="fake-card-fields">
-                        <input value="4242 4242 4242 4242" readOnly aria-label="Demo card number" />
-                        <div><input value="12/30" readOnly aria-label="Expiry" /><input value="123" readOnly aria-label="CVC" /></div>
-                      </div>
-                    )}
-                    </>}
+                    }</p>
               <p className="tt-legal-at-collection">
                 {language==="ru"?"Регистрация и обработка данных выполняются по ":language==="uk"?"Реєстрація та обробка даних здійснюються відповідно до ":language==="cs"?"Informace o registraci a zpracování osobních údajů: ":"Registration and data handling: "}
                 <Link href="/terms" target="_blank" rel="noopener noreferrer">{language==="ru"?"условиям использования":language==="uk"?"умов користування":language==="cs"?"Obchodní podmínky":"Terms of Service"}</Link>
                 {" · "}
                 <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">{language==="ru"?"политика конфиденциальности":language==="uk"?"політика конфіденційності":language==="cs"?"Ochrana osobních údajů":"Privacy Policy"}</Link>.
               </p>
-                    {(isFree || bookingConfig?.demo_payment_mode) && <button className="button button-primary button-wide" onClick={performCheckout} disabled={busy}>
-                      {busy ? t(language, "loading") : isFree ? registerLabel : `${t(language, "pay")} ${price}`}
-                    </button>}
+                    <button className="button button-primary button-wide" onClick={performCheckout} disabled={busy}>
+                      {busy ? t(language, "loading") : registerLabel}
+                    </button>
                   </>
                 )}
               </section>
