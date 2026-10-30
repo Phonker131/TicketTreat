@@ -17,6 +17,8 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
   const language=forcedLanguage??contextLanguage;
   const [events,setEvents]=useState<TicketTreatEvent[]>(initialEvents||[]);
   const [loading,setLoading]=useState(initialEvents===null);
+  const [storyReady,setStoryReady]=useState(false);
+  useEffect(()=>setStoryReady(true),[]);
   const [error,setError]=useState<string|null>(null);
   const [landing,setLanding]=useState<SiteLanding|null>(null);
 
@@ -51,7 +53,7 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
           <div className="tt-night-actions">
             <a className="button button-primary tt-night-action" href="#events">{copy.browse}<span className="tt-night-action-arrow" aria-hidden="true">↗</span></a>
             <Link className="button button-secondary tt-night-action-secondary" href="/tickets">{copy.tickets}</Link>
-            <button type="button" className="button button-secondary tt-night-action-secondary"
+            <button type="button" className="button button-secondary tt-night-action-secondary" disabled={!storyReady}
               onClick={()=>window.dispatchEvent(new Event("tickettreat-open-story"))}>
               {language==="ru"?"Как это работает":language==="cs"?"Jak to funguje":language==="uk"?"Як це працює":"How it works"} ↗
             </button>

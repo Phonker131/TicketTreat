@@ -355,3 +355,61 @@ html[data-theme="dark"] .app-shell :is(.tt-broadcast-history,.tt-broadcast-stats
   isolation:isolate;
 }
 .tt-telegram-bottom a img{width:24px;height:24px}
+
+/* Brandbook v1.2 parity: two genuine logo contrast variants. */
+.wordmark-logo-dark{display:none!important}
+html[data-theme="dark"] .wordmark-logo-light{display:none!important}
+html[data-theme="dark"] .wordmark-logo-dark{display:block!important}
+
+/* Public organizer discovery: examples are never links or real profiles. */
+.tt-organizer-ghost{position:relative;min-height:220px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:12px;border:2px dashed var(--theme-line)!important;background:var(--surface)!important;color:var(--fg)!important}
+.tt-organizer-ghost .tt-example-stamp{top:14px;right:14px;left:auto}
+.tt-organizer-ghost-mark{width:60px;height:60px;display:grid;place-items:center;border:2px dashed currentColor;border-radius:14px;font:900 43px/1 var(--u)}
+.tt-organizer-ghost :is(h2,p){margin:0;color:inherit!important}
+.tt-organizer-ghost p{font-size:14px;line-height:1.5;color:var(--fg-mute)!important}
+
+/* The nine slides need distinct illustrations rather than nine copies of one
+   stamp. All examples are decorative and cannot be mistaken for a real ticket. */
+.tt-story{overflow:hidden;overscroll-behavior:contain}
+.tt-story-content{height:100dvh;min-height:0;max-height:min(100dvh,900px);overflow-y:auto;overscroll-behavior:contain;display:grid;grid-template-rows:auto minmax(140px,1fr) auto auto;align-items:stretch;padding:clamp(16px,2vh,26px) 5px calc(20px + env(safe-area-inset-bottom))}
+.tt-story-progress{margin-bottom:0}
+.tt-story-illustration{min-height:0;max-height:none;overflow:hidden}
+.tt-story-scene{display:grid;place-items:center;width:100%;height:100%;max-height:100%;padding:12px;min-width:0}
+.tt-story-copy{min-height:0}
+.tt-story-copy h2{font-size:clamp(36px,9vw,62px);line-height:.95;overflow-wrap:break-word}
+.tt-story-copy>p:last-child{font-size:clamp(15px,3.8vw,18px);line-height:1.4}
+.tt-scene-poster{width:min(66%,225px);height:min(100%,285px);min-height:155px;position:relative;background:var(--paper);color:var(--ink);border:6px solid var(--paper);outline:2px solid var(--ink);transform:rotate(-5deg);box-shadow:8px 9px 0 var(--blu);display:flex;flex-direction:column;justify-content:space-between;text-align:center}
+.tt-scene-poster strong{font:900 clamp(25px,7vw,39px)/.86 var(--d);text-transform:uppercase;padding:0 6px}
+.tt-scene-poster small{background:var(--tom);font:700 9px var(--m);padding:6px}
+.tt-scene-people{flex:1;display:flex;align-items:end;justify-content:center;gap:5px;overflow:hidden;padding:12px}
+.tt-scene-people i{width:29%;height:66%;border-radius:50% 50% 14% 14%;background:var(--ink);position:relative}
+.tt-scene-people i:nth-child(2){height:84%;background:var(--blu)}
+.tt-scene-people i:before{content:"";position:absolute;width:70%;aspect-ratio:1;border-radius:50%;top:-19%;left:15%;background:var(--yel)}
+.tt-scene-chat{width:min(100%,330px);display:grid;gap:9px}
+.tt-scene-bubble{max-width:85%;padding:12px;border:2px solid var(--ink);border-radius:16px;font:650 14px/1.4 var(--u)}
+.tt-scene-bubble.is-guest{justify-self:end;background:var(--paper);color:var(--ink)}
+.tt-scene-bubble.is-waiting{justify-self:start;background:transparent;color:var(--ink)}
+.tt-scene-bubble.is-organizer{justify-self:start;background:var(--ink);color:var(--paper)}
+.tt-scene-table{width:min(100%,350px);border:3px solid var(--ink);background:var(--paper);color:var(--ink);box-shadow:8px 9px 0 var(--tom);font:700 14px/1.35 var(--m)}
+.tt-scene-table>div{display:grid;grid-template-columns:1fr 1.2fr;padding:12px;gap:10px;border-bottom:2px solid var(--ink)}
+.tt-scene-table>div:first-child{background:var(--ink);color:var(--paper)}
+.tt-scene-table>div:last-child{border-bottom:0}
+.tt-scene-queue{width:100%;display:flex;justify-content:center;align-items:flex-end;gap:8px}
+.tt-scene-queue i{width:min(12%,45px);height:85px;background:var(--paper);border-radius:18px 18px 4px 4px;position:relative}
+.tt-scene-queue i:nth-child(even){height:110px;background:var(--yel)}
+.tt-scene-queue i:before{content:"";width:60%;aspect-ratio:1;border-radius:50%;background:var(--ink);position:absolute;top:-12px;left:20%}
+.tt-scene-ticket{width:min(100%,330px);padding:20px 18px;background:var(--ink);color:var(--paper);border:3px dashed var(--paper);transform:rotate(-4deg);display:grid;gap:12px;box-shadow:8px 9px 0 var(--tom)}
+.tt-scene-ticket strong{font:900 clamp(32px,8vw,51px)/.9 var(--d)}
+.tt-scene-ticket small{font:700 11px var(--m)}
+.tt-scene-qr{width:90px;aspect-ratio:1;display:grid;place-items:center;background:var(--paper);color:var(--ink);border:8px solid var(--paper);outline:4px dashed var(--ink);font:900 28px var(--d)}
+.tt-scene-phone{position:relative;height:min(100%,300px);width:auto;aspect-ratio:390/844;min-height:170px;max-width:160px;border:7px solid var(--ink);border-radius:26px;background:var(--paper);color:var(--ink);box-shadow:8px 9px 0 var(--yel);display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:20px 8px 9px;text-align:center;transform:rotate(-4deg)}
+.tt-scene-phone-camera{position:absolute;top:7px;width:10px;height:10px;border-radius:50%;background:var(--ink)}
+.tt-scene-phone>small{font:750 9px/1.2 var(--m)}
+.tt-scene-phone-card{display:grid;gap:7px;width:100%;border:2px solid var(--ink);border-radius:9px;padding:10px 6px}
+.tt-scene-phone-card>span{font:700 10px var(--m)}
+.tt-scene-phone-card strong{font:900 clamp(22px,6vw,32px)/.91 var(--d);text-transform:uppercase}
+.tt-scene-phone-mark{justify-self:center;width:45px;aspect-ratio:1;border-radius:50%;background:var(--tom);border:4px solid var(--ink)}
+.tt-story-stamp{z-index:1}
+@media(max-width:380px){.tt-story-content{gap:9px}.tt-story-copy h2{font-size:35px}.tt-story-nav button{padding:8px 11px}.tt-story-stamp{font-size:10px}}
+@media(max-height:650px){.tt-story-content{grid-template-rows:auto minmax(105px,.8fr) auto auto}.tt-story-copy h2{font-size:clamp(30px,7vw,42px)}.tt-scene-phone{max-height:170px}.tt-story-copy>p:last-child{font-size:14px}}
+@media(prefers-reduced-motion:reduce){.tt-scene-phone,.tt-scene-ticket,.tt-scene-poster{transform:none}}
