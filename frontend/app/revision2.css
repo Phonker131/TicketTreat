@@ -232,3 +232,20 @@ html[data-theme="light"] .tt-example-ticket{border-color:var(--edge)}
  .topbar .topbar-menu-toggle{width:44px;min-width:44px;padding:8px!important}
  .topbar .mode-pill-link{max-width:130px}
 }
+
+/* R2.1: proximity snap on narrative pages, never mandatory. */
+@supports selector(html:has(.tt-night-home)){
+ html:has(.tt-night-home),html:has(.tt-business-landing){scroll-snap-type:y proximity}
+}
+.tt-night-home .tt-night-hero,.tt-night-home .tt-night-events{
+ min-height:calc(100svh - 72px);align-content:center;
+ padding-block:clamp(20px,4svh,48px);
+ scroll-snap-align:start;scroll-margin-top:72px;
+}
+.tt-night-home .tt-night-events{display:grid}
+.tt-night-home .tt-night-hero{display:grid}
+.tt-night-home .tt-home-faq{scroll-snap-align:start}
+@media(max-width:760px){
+ .tt-night-home .tt-night-hero,.tt-night-home .tt-night-events{min-height:calc(100svh - 72px);height:auto}
+}
+@media(prefers-reduced-motion:reduce){html:has(.tt-night-home),html:has(.tt-business-landing){scroll-snap-type:none}}

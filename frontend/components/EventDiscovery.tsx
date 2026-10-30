@@ -30,7 +30,7 @@ function dateLabel(value:string|null,lang:LanguageCode){
 }
 export function EventDiscovery({events,language}:{events:TicketTreatEvent[];language:LanguageCode}){
  const tr=copy[language];
- const [mode,setMode]=useState<Mode>("list");
+ const [mode,setMode]=useState<Mode>("swipe");
  const [mood,setMood]=useState<Mood>("all");
  const [index,setIndex]=useState(0);
  const [feedback,setFeedback]=useState("");
