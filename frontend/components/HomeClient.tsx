@@ -4,6 +4,8 @@ import {useEffect,useState} from "react";
 import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
 import {EventDiscovery} from "@/components/EventDiscovery";
+import {WelcomeStory} from "@/components/WelcomeStory";
+import {GuidedSections} from "@/components/GuidedSections";
 import {useLanguage} from "@/components/LanguageProvider";
 import {getEvents,getSiteLanding,type SiteLanding} from "@/lib/api";
 import {t} from "@/lib/i18n";
@@ -40,6 +42,7 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
   const featured=events.find(event=>Boolean(event.image_url));
   return <div className="app-shell tt-night-home">
     <AppHeader/>
+    <WelcomeStory language={language}/>
     <main className="page tt-night-home-page" lang={language} id="main-content">
       <section className="tt-night-hero" aria-labelledby="tt-night-title">
         <div className="tt-night-hero-copy">
@@ -49,6 +52,10 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
           <div className="tt-night-actions">
             <a className="button button-primary tt-night-action" href="#events">{copy.browse}<span className="tt-night-action-arrow" aria-hidden="true">↗</span></a>
             <Link className="button button-secondary tt-night-action-secondary" href="/tickets">{copy.tickets}</Link>
+            <button type="button" className="button button-secondary tt-night-action-secondary"
+              onClick={()=>window.dispatchEvent(new Event("tickettreat-open-story"))}>
+              {language==="ru"?"Как это работает":language==="cs"?"Jak to funguje":language==="uk"?"Як це працює":"How it works"} ↗
+            </button>
           </div>
           <ol className="tt-night-steps" aria-label="TicketTreat">
             {copy.steps.map((step,index)=><li key={step}><span>{String(index+1).padStart(2,"0")}</span>{step}</li>)}
@@ -76,6 +83,7 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
         {!loading&&!error&&events.length>0&&
           <EventDiscovery events={events} language={language}/>}
       </section>
+      <GuidedSections language={language}/>
       <section className="tt-home-faq" aria-label="TicketTreat FAQ">
         <div><h2>{copy.help}</h2><p>{language==="en"?"Registration, QR tickets and cancellations.":language==="cs"?"Registrace, QR vstupenky a zrušení.":language==="uk"?"Реєстрація, QR-квитки та скасування.":"Регистрация, QR-билеты и отмены."}</p></div>
         <Link href={language==="ru"?"/faq":"/"+language+"/faq"} className="button button-secondary">{copy.faq} ↗</Link>
