@@ -14,7 +14,7 @@ class BrandIdentityTests(unittest.TestCase):
 
     def test_footer_has_four_language_organizer_link(self):
         source=(FRONTEND/"components/LegalFooter.tsx").read_text(encoding="utf-8")
-        self.assertIn('href="/organizers"',source)
+        self.assertIn('className="tt-business-footer-link" href="/business"',source)
         for phrase in ("Для организаторов и фирм","Pro pořadatele a firmy",
                        "Для організаторів і компаній","For organizers and businesses"):
             self.assertIn(phrase,source)
