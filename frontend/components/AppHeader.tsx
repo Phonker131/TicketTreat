@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useLanguage } from "@/components/LanguageProvider";
 import { isTelegramWebApp, getTelegramWebApp } from "@/lib/telegram";
 import { t } from "@/lib/i18n";
@@ -98,6 +99,7 @@ export function AppHeader() {
             <span className="topbar-menu-icon" aria-hidden="true"><span /><span /><span /></span>
             <span className="topbar-menu-label">{menuLabel}</span>
           </button>
+          <ThemeToggle />
           <LanguageSwitcher />
         </div>
       </div>

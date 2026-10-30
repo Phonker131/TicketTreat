@@ -8,6 +8,7 @@ import "./tickettreat-tokens.css";
 import "./brand-refresh.css";
 import "./brand-v11.css";
 import "./brand-v11-coverage.css";
+import "./revision2.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { PwaBootstrap } from "@/components/PwaBootstrap";
@@ -68,7 +69,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className={`${poster.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="ru" suppressHydrationWarning className={`${poster.variable} ${body.variable} ${mono.variable}`}>
+      <head><script dangerouslySetInnerHTML={{__html:"(function(){try{var t=localStorage.getItem('tt4-theme');if(t!=='dark'&&t!=='light')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','light')}})();"}} /></head>
       <body>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
