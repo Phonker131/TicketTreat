@@ -520,3 +520,12 @@ html[data-theme] .app-shell .tt-analytics-dashboard .panel a.tt-analytics-task:f
 @media(prefers-reduced-motion:reduce){
   .tt-analytics-task{transition:none!important}
 }
+
+/* Telegram Mini App footer clearance.
+   The legal footer is a direct child of <body> (RootLayout), OUTSIDE the
+   .app-shell containing the fixed nav. Reserving space on .page alone leaves
+   the footer's last links under the pinned Telegram tab bar at scroll-end.
+   Only apply extra clearance when the Mini App nav actually exists. */
+body:has(.tt-telegram-bottom) > footer.tt-legal-footer{
+  margin-bottom:calc(124px + env(safe-area-inset-bottom, 0px));
+}
