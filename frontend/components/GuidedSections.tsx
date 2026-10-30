@@ -1,6 +1,7 @@
 "use client";
 import {useState} from "react";
 import Link from "next/link";
+import {BrandPhone} from "@/components/BrandScreens";
 import type {LanguageCode} from "@/lib/types";
 const labels={
  ru:{how:"От ссылки до входа: три шага",howSub:"Без лишней переписки. Ваш билет хранится в TicketTreat.",ticket:"Билет, который хочется показать",ticketSub:"Нажмите на настоящий билет в «Моих билетах», чтобы увидеть QR.",levels:"Чаще приходите: больше открывается",levelsSub:"Визит засчитывается после подтверждённого check-in.",steps:["Выберите ивент","Запишитесь","Покажите QR"],details:["Найдите событие в свайпе, ленте или на карте.","Бесплатно: билет сразу. Платно: дождитесь подтверждения организатора.","Откройте билет и покажите QR на входе."],sample:"Пример",open:"Открыть мои билеты",passport:"Посмотреть награды",names:["Новичок","Свой","Инсайдер","VIP"],notReal:"Демонстрационный вид, не действительный билет",back:"Вернуть билет"},
@@ -16,15 +17,7 @@ export function GuidedSections({language}:{language:LanguageCode}){
       <div className="tt-v12-intro"><span>02 / HOW</span><h2 id="tt-how-title">{t.how}</h2><p>{t.howSub}</p></div>
       <div className="tt-v12-phones" role="region" aria-label={t.how}>
        {t.steps.map((step,i)=><div className="tt-v12-phone-card" key={step}>
-          <div className="tt-v12-phone" aria-hidden="true">
-           <i className="tt-v12-camera"/>
-           <div className="tt-v12-phone-display">
-             <small>TICKETTREAT / {String(i+1).padStart(2,"0")}</small>
-             <span className="tt-v12-device-number">{i+1}</span>
-             <img src={i===0?"/brand/glyph-burst.svg":i===1?"/brand/glyph-plus.svg":"/brand/glyph-asterisk.svg"} alt=""/>
-             <b>{step}</b>
-           </div>
-          </div>
+          <BrandPhone kind={i===0?"discover":i===1?"reserve":"ticket"} language={language} compact/>
           <h3>{step}</h3><p>{t.details[i]}</p>
         </div>)}
       </div>
@@ -33,13 +26,13 @@ export function GuidedSections({language}:{language:LanguageCode}){
   <section className="tt-v12-screen tt-v12-ticket" id="ticket-preview" aria-labelledby="tt-ticket-preview-title">
    <div className="tt-v12-screen-content tt-v12-ticket-grid">
     <div className="tt-v12-intro"><span>03 / TICKET</span><h2 id="tt-ticket-preview-title">{t.ticket}</h2><p>{t.ticketSub}</p><Link href="/tickets" className="button button-primary">{t.open} ↗</Link></div>
-    <div className="tt-v12-sample-ticket" role="group" aria-label={t.notReal}>
-     <span className="tt-v12-sample-sticker">{t.sample}</span>
-     {!showBack?<><small>TICKETTREAT / SAMPLE</small><strong>{t.ticket}</strong><p>{t.notReal}</p></>:
-       <><small>TICKETTREAT / SAMPLE</small><div className="tt-v12-sample-qr" aria-hidden="true"><img src="/brand/glyph-burst.svg" alt=""/></div><p>{t.notReal}</p></>}
-     <button type="button" className="tt-v12-sample-action" aria-pressed={showBack} onClick={()=>setShowBack(v=>!v)}>
-       {showBack?t.back:t.steps[2]} ↗
-     </button>
+    <div className="tt-v12-ticket-pair">
+      <BrandPhone kind={showBack?"qr":"ticket"} language={language} compact/>
+      <BrandPhone kind={showBack?"ticket":"qr"} language={language} compact/>
+      <button type="button" className="tt-v12-sample-action" aria-pressed={showBack} onClick={()=>setShowBack(v=>!v)}>
+        {showBack?t.back:t.steps[2]} ↗
+      </button>
+      <span className="tt-v12-pair-disclaimer">{t.sample} / {t.notReal}</span>
     </div>
    </div>
   </section>
