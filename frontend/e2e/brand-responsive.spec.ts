@@ -454,6 +454,7 @@ test("welcome tutorial opens explicitly, supports keyboard and returns focus",as
  await page.goto("/?nostory",{waitUntil:"domcontentloaded"});
  const trigger=page.getByRole("button",{name:/Как это работает|How it works|Jak to funguje|Як це працює/});
  await expect(trigger).toBeVisible();
+ await expect(trigger).toBeEnabled();
  await trigger.focus();
  await trigger.click();
  const dialog=page.getByRole("dialog",{name:/TicketTreat/});
