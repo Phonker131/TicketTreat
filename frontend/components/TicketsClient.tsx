@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import {ExampleTickets} from "@/components/ExampleTickets";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getDemoTickets, getMyAttendance } from "@/lib/api";
 import type {AttendanceHistory} from "@/lib/api";
@@ -57,7 +58,7 @@ export function TicketsClient() {
         {loading ? <div className="state-card">{t(language, "loading")}</div> :
           <>
           {error && <div className="state-card state-error" role="alert">{userFacingError(error,language)}</div>}
-          {tickets.length === 0 && botEvents.length === 0 && <div className="state-card">{t(language, "noTickets")}</div>}
+          {tickets.length === 0 && botEvents.length === 0 && !error && <ExampleTickets language={language}/>}
           {tickets.length > 0 && <div className="ticket-list">
             {tickets.map((ticket) => (
               <Link className={`ticket-row ${ticket.ticket_status === "cancelled" ? "ticket-cancelled" : ""}`} href={`/tickets/${ticket.id}`} key={ticket.id}>
