@@ -652,10 +652,10 @@ body:has(.tt-telegram-bottom) > footer.tt-legal-footer{
    ".page" did not keep its final links above the dock. */
 body:has(.tt-telegram-bottom) .tt-legal-footer{
   box-sizing:border-box;
-  margin-bottom:calc(104px + env(safe-area-inset-bottom))!important;
+  margin-bottom:calc(136px + env(safe-area-inset-bottom))!important;
 }
 @media(max-width:540px){
   body:has(.tt-telegram-bottom) .tt-legal-footer{
-    margin-bottom:calc(112px + env(safe-area-inset-bottom))!important;
+    margin-bottom:calc(144px + env(safe-area-inset-bottom))!important;
   }
 }
