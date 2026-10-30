@@ -328,7 +328,8 @@ test("FAQ search, support link and mobile width are functional",async({page})=>{
   await expect(page.getByRole("link",{name:/Read FAQ/})).toHaveAttribute("href","/en/faq");
 });
 
-test("v1.1 dark guest pages preserve contrast and paper organizer controls",async({page})=>{
+test("v1.2 dark guest pages preserve contrast and dark organizer controls",async({page})=>{
+ await page.addInitScript(()=>localStorage.setItem("tt4-theme","dark"));
   for(const path of ["/","/faq?lang=en","/support?lang=en","/tickets"]){
     await page.goto(path,{waitUntil:"domcontentloaded"});
     const scheme=await page.evaluate(()=>{
@@ -346,9 +347,9 @@ test("v1.1 dark guest pages preserve contrast and paper organizer controls",asyn
     const shell=document.querySelector(".app-shell");
     return shell?getComputedStyle(shell).backgroundColor:null;
   });
-  // The administrator login/view remains on print paper if the admin heading is present.
+  // Organizer workspace follows the active root theme in brandbook v1.2.
   if(await page.locator(".admin-heading").count())
-    expect(light).toBe("rgb(240, 235, 225)");
+    expect(light).toBe("rgb(21, 20, 31)");
 });
 
 test("brand v1.1: mobile menu text stays readable in normal, selected and hover states",async({page})=>{
@@ -501,6 +502,8 @@ test("organizer tutorial uses seven chapters and accessible keyboard tabs",async
  await expect(page.locator(".tt-business-main .tt-v12-screen")).toHaveCount(7);
  const tabs=page.getByRole("tablist").getByRole("tab");
  await expect(tabs).toHaveCount(3);
+ // Wait for hydration before sending keys to React event handlers.
+ await expect(page.locator(".topbar-menu-toggle")).toBeEnabled();
  await tabs.first().focus();
  await page.keyboard.press("ArrowRight");
  await expect(tabs.nth(1)).toHaveAttribute("aria-selected","true");

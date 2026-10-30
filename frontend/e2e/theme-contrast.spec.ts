@@ -2,6 +2,8 @@ import {test,expect} from "@playwright/test";
 
 test("dark admin moderation history and notification widgets retain readable text", async ({page}) => {
   await page.goto("/?nostory",{waitUntil:"domcontentloaded"});
+  // React hydration can remove fixtures injected before client handlers attach.
+  await expect(page.locator(".topbar-menu-toggle")).toBeEnabled();
   await page.evaluate(() => {
     document.documentElement.setAttribute("data-theme","dark");
     const root=document.querySelector(".app-shell");
