@@ -39,7 +39,6 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
     uk:{eyebrow:"PRAHA / TICKETTREAT",headline:["КВИТОК ЗА","ТРИ КРОКИ"],intro:"Обери подію, забронюй місце та покажи QR на вході. Усі квитки в одному місці.",browse:"Переглянути події",tickets:"Мої квитки",city:"НАЙБЛИЖЧІ ПОДІЇ В ЧЕХІЇ",subtitle:"Живі зустрічі та справжні події.",empty:"Афіші незабаром з’являться",steps:["ОБЕРИ","БРОНЮЙ","ПОКАЖИ QR"],poster:"АФІША / СКОРО",details:"Докладніше",help:"Питання про квитки?",faq:"Поширені запитання"},
     en:{eyebrow:"PRAHA / TICKETTREAT",headline:["YOUR TICKET","IN THREE STEPS"],intro:"Find an event, book a spot and show your QR at the door. Keep all tickets in one place.",browse:"Explore events",tickets:"My tickets",city:"UPCOMING IN CZECHIA",subtitle:"Real people, real nights out. Find your next event.",empty:"New posters are coming soon",steps:["CHOOSE","BOOK","SHOW QR"],poster:"POSTER / SOON",details:"View event",help:"Questions about tickets?",faq:"Read FAQ"}
   }[language];
-  const featured=events.find(event=>Boolean(event.image_url));
   return <div className="app-shell tt-night-home">
     <AppHeader/>
     <WelcomeStory language={language}/>
@@ -63,7 +62,7 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
         </div>
         <div className="tt-night-hero-art" aria-hidden="true">
           <div className="tt-night-poster">
-            {featured?.image_url?<img src={featured.image_url} alt="" />:<div className="tt-night-poster-art"><img src="/brand/glyph-burst.svg" alt="" /></div>}
+            <div className="tt-night-poster-art"><img src="/brand/glyph-burst.svg" alt="" /></div>
             <div className="tt-night-poster-stamp">{copy.poster}</div>
             <div className="tt-night-poster-foot"><span>TICKETTREAT</span><span>2026 / PRAHA</span></div>
           </div>
