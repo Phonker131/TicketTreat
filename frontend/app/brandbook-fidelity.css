@@ -174,3 +174,56 @@
 @media(prefers-reduced-motion:reduce){
  .tt-device-phone,.tt-device-laptop,.tt-night-hero-art>.tt-device-phone{transform:none!important;animation:none!important;transition:none!important}
 }
+
+
+/* Three handoff sample tickets are side by side on desktop and a swipeable tray on mobile. */
+.tt-empty-tickets{width:100%;max-width:1200px;margin-inline:auto}
+.tt-example-ticket-tray{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:clamp(14px,2vw,28px);padding:20px 10px 24px 0}
+.tt-example-ticket-tray>div{min-width:0}
+.tt-example-ticket-tray .tt-example-ticket{width:100%;max-width:none;min-height:430px;padding:0;background:var(--tom);border:3px solid var(--ink);color:var(--ink);border-radius:15px;box-shadow:7px 9px 0 var(--tom);transform:rotate(-2deg);animation:tt-print-in .7s steps(17,end) both;overflow:visible}
+.tt-example-ticket-tray>div:nth-child(2) .tt-example-ticket{transform:rotate(2deg);animation-delay:.08s}
+.tt-example-ticket-tray>div:nth-child(3) .tt-example-ticket{transform:rotate(-1deg);animation-delay:.16s}
+.tt-example-ticket-tray .tt-example-blu{background:var(--blu);border-color:var(--paper);color:var(--paper);box-shadow:7px 9px 0 var(--blu)}
+.tt-example-ticket-tray .tt-example-yel{background:var(--plum);border-color:var(--paper);color:var(--paper);box-shadow:7px 9px 0 var(--yel)}
+.tt-example-ticket-tray .tt-example-stamp{z-index:1;top:-10px;left:-8px;right:auto;color:var(--ink)}
+.tt-example-ticket-body{position:relative;height:100%;min-height:430px;padding:clamp(13px,2vw,25px);display:flex;flex-direction:column;justify-content:space-between;gap:12px;overflow:hidden}
+.tt-example-ticket-body small{font:700 10px/1.5 var(--m);color:inherit}
+.tt-example-ticket-body h3{font:900 clamp(41px,5vw,65px)/.87 var(--d);text-transform:uppercase;overflow-wrap:anywhere;max-width:100%;color:inherit;margin:16px 0 8px}
+.tt-example-ticket-symbol{display:grid;place-items:center;font:900 clamp(60px,7vw,115px)/1 var(--u);min-height:70px}
+.tt-example-ticket-body>p{font:750 12px/1.5 var(--m);overflow-wrap:anywhere;margin:0;color:inherit}
+.tt-example-perforation{position:relative;display:block;width:calc(100% + 55px);margin:0 -27px;min-height:0;border-top:3px dashed currentColor;opacity:.7}
+.tt-example-ticket-bottom{display:flex;align-items:center;gap:9px;justify-content:space-between;flex-wrap:wrap}
+.tt-example-ticket-bottom button{width:auto;max-width:100%;min-height:44px;padding:9px 12px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);font:800 12px/1.2 var(--u);border-radius:25px;white-space:normal;overflow-wrap:anywhere}
+.tt-example-ticket-reverse{flex:1;display:grid;align-content:center;justify-items:center;gap:15px;text-align:center;overflow-wrap:anywhere}
+.tt-example-ticket-reverse strong{font:900 clamp(24px,3vw,37px)/.98 var(--d);color:inherit}
+.tt-example-not-qr{width:min(75%,175px);aspect-ratio:1;display:grid;place-items:center;border:7px solid var(--ink);background:var(--paper);color:var(--ink);font:900 50px var(--d)}
+.tt-example-disclaimer{font:650 12px/1.5 var(--m);color:var(--fg-mute);margin:0}
+@keyframes tt-print-in{from{opacity:.25;clip-path:inset(0 0 100% 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+.tt-example-ticket-tray button:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
+/* Zero-visit passport: clearly marked illustrative tiers and locked thresholds. */
+.tt-loyalty-empty-future{margin-top:15px}
+.tt-loyalty-empty-future h4{font:900 clamp(26px,3vw,38px)/1 var(--d);margin:12px 0;text-transform:uppercase}
+.tt-loyalty-empty-future-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tt-loyalty-future-tier{min-width:0;padding:12px;border:2px solid var(--theme-line);border-radius:12px;background:var(--surface-2);color:var(--fg);display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+.tt-loyalty-future-tier.is-current{background:var(--paper);color:var(--ink);border-color:var(--tom)}
+.tt-loyalty-future-tier img{display:block;width:55px;height:55px;object-fit:contain}
+.tt-loyalty-future-tier strong{font:900 clamp(21px,3vw,32px)/.95 var(--d);text-transform:uppercase;overflow-wrap:anywhere;color:inherit}
+.tt-loyalty-future-tier span{font:700 11px/1.35 var(--m);color:inherit}
+.tt-loyalty-future-tier:not(.is-current) img{opacity:.65;filter:grayscale(.7)}
+@media(max-width:900px){
+ .tt-example-ticket-tray{grid-template-columns:repeat(3,minmax(245px,1fr));overflow-x:auto;overflow-y:visible;scroll-snap-type:x proximity;scrollbar-width:thin;padding:15px 10px 25px;max-width:100%;overscroll-behavior-x:contain}
+ .tt-example-ticket-tray>div{scroll-snap-align:start}
+ .tt-example-ticket-body{min-height:380px}
+ .tt-example-ticket-tray .tt-example-ticket{min-height:380px}
+}
+@media(max-width:560px){
+ .tt-example-ticket-tray{grid-template-columns:repeat(3,minmax(245px,80vw))}
+ .tt-empty-tickets{max-width:100%}
+ .tt-loyalty-empty-future-grid{gap:7px}
+ .tt-loyalty-future-tier{padding:9px}
+ .tt-loyalty-future-tier strong{font-size:23px}
+}
+@media(prefers-reduced-motion:reduce){
+ .tt-example-ticket-tray .tt-example-ticket{animation:none!important;transform:none!important}
+ .tt-example-ticket-tray{scroll-behavior:auto}
+}
