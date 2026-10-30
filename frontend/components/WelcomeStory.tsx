@@ -105,7 +105,9 @@ export function WelcomeStory({language}:{language:LanguageCode}){
  return <div ref={root} className="tt-story" role="dialog" aria-modal="true" aria-label={t.name}
   tabIndex={-1} data-ink={slide.ink} onPointerDown={e=>{startX.current=e.clientX;setPaused(true)}}
   onPointerUp={e=>{const x=startX.current;startX.current=null;setPaused(false);if(x===null||(e.target as HTMLElement).closest("button,a"))return;
-   const delta=e.clientX-x;if(Math.abs(delta)>55)setPage(p=>Math.min(8,Math.max(0,p+(delta<0?1:-1))));}}>
+   const delta=e.clientX-x;
+   const direction=Math.abs(delta)>55?(delta<0?1:-1):(e.clientX<e.currentTarget.getBoundingClientRect().left+e.currentTarget.getBoundingClientRect().width/2?-1:1);
+   setPage(p=>Math.min(8,Math.max(0,p+direction)));}}>
    <div className="tt-story-content">
     <div className="tt-story-progress" aria-label={String(page+1)+"/9"}>{slides.map((_,i)=><span key={i} className={i<=page?"done":""}/>)}</div>
     <button type="button" className="tt-story-close" onClick={close} aria-label={t.skip}>× <span>{t.skip}</span></button>

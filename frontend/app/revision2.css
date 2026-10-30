@@ -217,3 +217,18 @@ html[data-theme="light"] .tt-example-ticket{border-color:var(--edge)}
 .tt-organizer-ghost h2{font:900 32px/1 var(--d);text-transform:uppercase;margin:0}
 .tt-organizer-ghost p{font:500 15px/1.5 var(--u);margin:0}
 @media(max-width:700px){.tt-loyalty-empty,.tt-organizer-ghost-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Revision 2: add theme control without mobile horizontal scroll. */
+.tt-theme-toggle svg{width:23px;height:23px;display:block}
+@media(max-width:760px){
+ .topbar .topbar-inner{flex-wrap:wrap;min-width:0;max-width:100%}
+ .topbar .topbar-actions{display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:clamp(5px,1.5vw,12px);max-width:100%;min-width:0}
+ .topbar .mode-pill-link{font-size:clamp(10px,2.8vw,12px);white-space:nowrap;min-width:0;max-width:calc(100vw - 160px);padding:10px clamp(7px,2.2vw,12px)}
+ .topbar .topbar-menu-toggle{min-width:44px;max-width:74px;flex-shrink:0}
+ .topbar .tt-theme-toggle{width:44px;min-width:44px;flex-shrink:0}
+}
+@media(max-width:400px){
+ .topbar .topbar-menu-label{display:none!important}
+ .topbar .topbar-menu-toggle{width:44px;min-width:44px;padding:8px!important}
+ .topbar .mode-pill-link{max-width:130px}
+}
