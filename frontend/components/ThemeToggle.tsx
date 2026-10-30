@@ -27,8 +27,6 @@ export function ThemeToggle(){
   {ru:"Включить тёмную тему",cs:"Zapnout tmavý režim",uk:"Увімкнути темну тему",en:"Switch to dark theme"}[language];
  return <button type="button" className="tt-theme-toggle" aria-label={label} title={label} aria-pressed={mode==="dark"}
  onClick={()=>{const next=mode==="dark"?"light":"dark";try{localStorage.setItem(KEY,next)}catch{}applyTheme(next);setMode(next)}}>
- {mode==="dark"?
-   <svg width="23" height="23" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3M4 4l2 2m12 12 2 2M20 4l-2 2M6 18l-2 2"/></svg>:
-   <svg width="23" height="23" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><path d="M20 16a9 9 0 0 1-12-12 9 9 0 1 0 12 12z"/></svg>}
+ <svg width="23" height="23" viewBox="0 0 52 52" aria-hidden="true" fill="none"><use href={mode==="dark"?"/brand/icons.svg#sun":"/brand/icons.svg#moon"}/></svg>
  </button>;
 }
