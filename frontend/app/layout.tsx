@@ -9,6 +9,7 @@ import "./brand-refresh.css";
 import "./brand-v11.css";
 import "./brand-v11-coverage.css";
 import "./revision2.css";
+import "./brandbook-fidelity.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { PwaBootstrap } from "@/components/PwaBootstrap";
