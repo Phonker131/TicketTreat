@@ -73,8 +73,8 @@ export function AppHeader() {
       </a>
       <div className="topbar-inner">
         <Link href={homepage} className="wordmark" aria-label="TicketTreat">
-          <img src="/tickettreat-wordmark.svg" className="wordmark-logo wordmark-logo-light" width="584" height="120" alt="TicketTreat" />
-          <img src="/tickettreat-wordmark-dark.svg" className="wordmark-logo wordmark-logo-dark" width="584" height="120" alt="" aria-hidden="true" />
+          <img src="/tickettreat-wordmark.svg?v=brandbook-v11-paths" className="wordmark-logo wordmark-logo-light" width="584" height="120" alt="TicketTreat" />
+          <img src="/tickettreat-wordmark-dark.svg?v=brandbook-v11-paths" className="wordmark-logo wordmark-logo-dark" width="584" height="120" alt="" aria-hidden="true" />
         </Link>
 
         <nav id="tt-primary-nav" aria-label={language==="ru"?"Основная навигация":language==="cs"?"Hlavní navigace":language==="uk"?"Основна навігація":"Main navigation"} className={`topbar-nav${menuOpen ? " is-open" : ""}`} onClick={(event) => {

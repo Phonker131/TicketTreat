@@ -413,3 +413,9 @@ html[data-theme="dark"] .wordmark-logo-dark{display:block!important}
 @media(max-width:380px){.tt-story-content{gap:9px}.tt-story-copy h2{font-size:35px}.tt-story-nav button{padding:8px 11px}.tt-story-stamp{font-size:10px}}
 @media(max-height:650px){.tt-story-content{grid-template-rows:auto minmax(105px,.8fr) auto auto}.tt-story-copy h2{font-size:clamp(30px,7vw,42px)}.tt-scene-phone{max-height:170px}.tt-story-copy>p:last-child{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.tt-scene-phone,.tt-scene-ticket,.tt-scene-poster{transform:none}}
+
+/* Official brandbook logo must sit directly on its matching theme surface.
+   Legacy paper plaque hid the white letters in the night variant. */
+.topbar .wordmark{background:transparent!important;border:0!important;padding:0!important;border-radius:0!important;line-height:0}
+.topbar .wordmark:focus-visible{outline:3px solid var(--fg,var(--paper));outline-offset:5px}
+.tt-business-logo{background:transparent!important}
