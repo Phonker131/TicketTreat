@@ -249,3 +249,54 @@ html[data-theme="light"] .tt-example-ticket{border-color:var(--edge)}
  .tt-night-home .tt-night-hero,.tt-night-home .tt-night-events{min-height:calc(100svh - 72px);height:auto}
 }
 @media(prefers-reduced-motion:reduce){html:has(.tt-night-home),html:has(.tt-business-landing){scroll-snap-type:none}}
+
+/* R2.2: organizer dashboard also honors the root theme, preserving paper
+   documents (tickets, printed-code form) as intentionally distinct surfaces. */
+html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard){
+ background:var(--ink)!important;color:var(--paper)!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .page{
+ background:var(--ink)!important;color:var(--paper)!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) :is(.panel,.admin-event-card,.ticket-row,.stat-card,.state-card){
+ background:var(--ink2)!important;color:var(--paper)!important;
+ border-color:var(--line)!important;box-shadow:none!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) :is(.section-heading h1,.section-heading h2,.section-heading p,.panel h2,.panel h3,.panel>p,.form-note,.stat-card span,.stat-card strong){
+ color:var(--paper)!important;opacity:1!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) :is(input,select,textarea){
+ background:var(--ink3)!important;color:var(--paper)!important;border-color:var(--mute)!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .button-secondary{
+ background:var(--ink3)!important;color:var(--paper)!important;border-color:var(--mute)!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .button-primary{
+ background:var(--tom)!important;color:var(--ink)!important;border-color:var(--tom)!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .panel a:not(.button){
+ color:var(--paper)!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .tt-printed-code-form{
+ background:var(--paper)!important;color:var(--ink)!important;border-color:var(--ink)!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-event-actions) .tt-printed-code-form input{
+ background:#fff!important;color:var(--ink)!important;border-color:var(--ink)!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-event-actions) .stats-grid .stat-card,
+html[data-theme="dark"] .app-shell:has(.admin-event-actions) .panel .stat-card{
+ background:var(--ink3)!important;color:var(--paper)!important;border-color:var(--line)!important
+}
+html[data-theme="dark"] .app-shell:has(.admin-event-actions) .panel .stat-card :is(span,strong){
+ color:var(--paper)!important
+}
+/* Light-mode secondary text must never inherit old #A9A6B3 on paper. */
+html[data-theme="light"] .app-shell :is(.form-note,.tt-faq-intro,.tt-support-lead,.ticket-row p,.event-card-location){
+ color:var(--fg-mute)!important
+}
+html[data-theme="light"] .app-shell .status-muted{
+ color:var(--ink)!important;background:var(--shade)!important;border-color:var(--ink)!important
+}
+html[data-theme="light"] :is(a,button,summary,input,select,textarea):focus-visible{
+ outline-color:var(--ink)!important
+}
