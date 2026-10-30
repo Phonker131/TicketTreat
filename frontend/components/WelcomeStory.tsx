@@ -62,11 +62,12 @@ export function WelcomeStory({language}:{language:LanguageCode}){
  const slides=scripts[language],t=labels[language],last=page===slides.length-1;
  useEffect(()=>{
   const params=new URLSearchParams(location.search);
-  if(params.has("nostory"))return;
-  let seen=false;try{seen=localStorage.getItem(KEY)==="1"}catch{}
-  if(params.has("story")||!seen)setOpen(true);
   const show=()=>{setPage(0);setOpen(true)};
   window.addEventListener("tickettreat-open-story",show);
+  if(!params.has("nostory")){
+   let seen=false;try{seen=localStorage.getItem(KEY)==="1"}catch{}
+   if(params.has("story")||!seen)setOpen(true);
+  }
   return()=>window.removeEventListener("tickettreat-open-story",show);
  },[]);
  function close(){
