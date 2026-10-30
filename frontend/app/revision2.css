@@ -319,3 +319,39 @@ html[data-theme="light"] :is(a,button,summary,input,select,textarea):focus-visib
 .tt-business-guest-phone img{width:55%;aspect-ratio:1;object-fit:contain}
 .tt-business-guest-phone b{font:900 clamp(15px,2vw,28px)/.95 var(--d);text-transform:uppercase;text-align:center;overflow-wrap:anywhere}
 @media(max-width:650px){.tt-business-hero-grid .tt-business-laptop{margin:0 auto 40px;width:min(88%,470px)}}
+
+/* Contrast regression guard (2026-10-30).
+   Prior brand-v11-coverage rules forced --ink on every admin <small> and
+   label, even after dark mode changed the panel to --ink2. Keep colors
+   paired with their actual surfaces, not the inherited legacy palette. */
+html[data-theme="dark"] .app-shell:has(:is(.admin-heading,.admin-dashboard,.admin-event-actions,.admin-event-grid,.tt-analytics-dashboard,.organizer-editor)) .panel :is(h1,h2,h3,h4,p,small,label,.form-note),
+html[data-theme="dark"] .app-shell:has(:is(.admin-heading,.admin-dashboard,.admin-event-actions,.admin-event-grid,.tt-analytics-dashboard,.organizer-editor)) .panel .participant-row :is(strong,small),
+html[data-theme="dark"] .app-shell:has(:is(.admin-heading,.admin-dashboard,.admin-event-actions,.admin-event-grid,.tt-analytics-dashboard,.organizer-editor)) :is(.participant-row small,.admin-event-card p,.stat-card span,.stat-card strong){
+  color:var(--paper)!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+html[data-theme="dark"] .app-shell:has(:is(.admin-heading,.admin-dashboard,.admin-event-actions,.admin-event-grid,.tt-analytics-dashboard,.organizer-editor)) .panel :is(.form-note,.participant-row small,.tt-broadcast-history small){
+  color:var(--fg-mute)!important;
+}
+/* Legacy broadcast widgets were hard-coded ink-on-paper; their nested labels
+   stayed black after their enclosing cards adopted dark surfaces. */
+html[data-theme="dark"] .app-shell :is(.tt-broadcast-preview,.tt-broadcast-history,.tt-broadcast-stats>div){
+  background:var(--ink3)!important;
+  color:var(--paper)!important;
+  border-color:var(--line)!important;
+}
+html[data-theme="dark"] .app-shell :is(.tt-broadcast-preview,.tt-broadcast-history,.tt-broadcast-stats>div) :is(p,strong){
+  color:var(--paper)!important;
+}
+html[data-theme="dark"] .app-shell :is(.tt-broadcast-history,.tt-broadcast-stats>div) small{
+  color:var(--fg-mute)!important;
+}
+/* The illustration and Telegram navigation are image-backed stamps; keep
+   full opacity and an isolated paint layer so their inks retain contrast. */
+.tt-telegram-bottom a img,.tt-story-device img{
+  opacity:1;
+  mix-blend-mode:normal;
+  isolation:isolate;
+}
+.tt-telegram-bottom a img{width:24px;height:24px}
