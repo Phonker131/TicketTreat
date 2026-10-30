@@ -94,7 +94,7 @@ export function AppHeader() {
           {<a className="mode-pill mode-pill-link" href={botUrl} target="_blank" rel="noopener noreferrer"
             aria-label={language==="ru"?"Открыть бота TicketTreat в Telegram":language==="cs"?"Otevřít bota TicketTreat na Telegramu":language==="uk"?"Відкрити бота TicketTreat у Telegram":"Open TicketTreat Telegram bot"}
             onClick={e=>{const telegram=getTelegramWebApp();if(insideTelegram && telegram?.openTelegramLink){e.preventDefault();telegram.openTelegramLink(botUrl);}}}>
-            Telegram Mini App ↗
+            <span className="tt-telegram-full-label">Telegram Mini App ↗</span><span className="tt-telegram-compact-label" aria-hidden="true">TG ↗</span>
           </a>}
           <button type="button" className="topbar-menu-toggle" disabled={!menuReady} aria-controls="tt-primary-nav" aria-expanded={menuOpen} aria-label={menuAction} onClick={() => setMenuOpen(open => !open)}>
             <span className="topbar-menu-icon" aria-hidden="true"><span /><span /><span /></span>

@@ -69,8 +69,10 @@ export function AdminSupportClient(){
    finally{setBusy(false)}
  }
  return <div className="app-shell"><AppHeader/><main className="page tt-support-page">
-  <Link href="/admin" className="back-link">{tr.back}</Link>
-  <span className="eyebrow">TICKETTREAT / SUPPORT DESK</span>
+  <div className="tt-support-heading-nav">
+   <Link href="/admin" className="back-link">{tr.back}</Link>
+   <span className="eyebrow">TICKETTREAT / SUPPORT DESK</span>
+  </div>
   <h1>{tr.title}</h1>
   <p className="form-note">{tr.intro}</p>
   {loading&&<div className="state-card">{tr.loading}</div>}
