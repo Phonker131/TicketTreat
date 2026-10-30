@@ -22,8 +22,8 @@ export function BusinessHeader(){
  return <header className="tt-business-header">
    <div className="tt-business-header-content">
      <Link href="/" aria-label="TicketTreat" className="tt-business-logo">
-       <img src="/tickettreat-wordmark.svg" className="wordmark-logo-light" width="148" height="32" alt="TicketTreat"/>
-       <img src="/tickettreat-wordmark-dark.svg" className="wordmark-logo-dark" width="148" height="32" alt="" aria-hidden="true"/>
+       <img src="/tickettreat-wordmark.svg?v=brandbook-v11-paths" className="wordmark-logo-light" width="148" height="32" alt="TicketTreat"/>
+       <img src="/tickettreat-wordmark-dark.svg?v=brandbook-v11-paths" className="wordmark-logo-dark" width="148" height="32" alt="" aria-hidden="true"/>
      </Link>
      <span className="tt-business-header-tag">{t.flag}</span>
      <nav id="tt-business-menu" aria-label={t.flag} className={"tt-business-nav"+(open?" is-open":"")}>

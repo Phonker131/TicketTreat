@@ -38,3 +38,28 @@ test("brandbook: all publicly referenced brand stamps exist",async({request})=>{
   expect(await response.text()).toContain("<svg");
  }
 });
+
+
+test("official vector wordmarks match the brandbook with no font or blend dependencies",async({request,page})=>{
+  for(const [path,letterColor] of [["/tickettreat-wordmark.svg","#15141F"],["/tickettreat-wordmark-dark.svg","#F0EBE1"]]){
+    const res=await request.get(path);
+    expect(res.ok(),path).toBeTruthy();
+    const content=await res.text();
+    expect(content).toContain("viewBox");
+    expect(content).toContain(letterColor);
+    expect(content).toContain("#F4B400");
+    expect(content).toContain("#FF5533");
+    expect(content).toContain("<path");
+    expect(content).not.toMatch(/<text\b|mix-blend-mode|font-family/i);
+  }
+  for(const theme of ["light","dark"]){
+    await page.addInitScript((t)=>localStorage.setItem("tt4-theme",t),theme);
+    await page.goto("/?nostory",{waitUntil:"domcontentloaded"});
+    await expect(page.locator(".wordmark")).toHaveCSS("background-color","rgba(0, 0, 0, 0)");
+    const shown=page.locator(theme==="dark"?".wordmark-logo-dark":".wordmark-logo-light");
+    await expect(shown).toBeVisible();
+    const size=await shown.evaluate(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height}});
+    expect(size.width).toBeGreaterThan(100);
+    expect(size.height).toBeGreaterThan(15);
+  }
+});
