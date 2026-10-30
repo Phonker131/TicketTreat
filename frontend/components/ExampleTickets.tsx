@@ -13,25 +13,30 @@ const demos=[
  {title:"Quiz Night",date:"21.11.2026",color:"blu"},
  {title:"Night Pass",date:"05.12.2026",color:"yel"}
 ] as const;
+function SampleTicket({item,language,index}:{item:(typeof demos)[number];language:LanguageCode;index:number}){
+ const t=copy[language];
+ const [back,setBack]=useState(false);
+ return <article className={"tt-example-ticket tt-example-"+item.color+(back?" is-flipped":"")} aria-label={item.title+" — "+t.sample}>
+  <span className="tt-example-stamp">{t.sample}</span>
+  <div className="tt-example-ticket-body">
+   <small>TICKETTREAT / TT-0000-XXXXXX</small>
+   {back?<div className="tt-example-ticket-reverse">
+     <strong>{t.note}</strong><div className="tt-example-not-qr" aria-hidden="true">QR</div>
+     <small>TT-0000-XXXXXX</small>
+   </div>:<><h3>{item.title}</h3><div className="tt-example-ticket-symbol">✳</div><p>{item.date} · {t.place}</p></>}
+   <span className="tt-example-perforation" aria-hidden="true"/>
+   <div className="tt-example-ticket-bottom"><small>{t.sample} / {index+1}</small><button type="button" aria-pressed={back} onClick={()=>setBack(v=>!v)}>{back?t.hide:t.show} ↗</button></div>
+  </div>
+ </article>
+}
 export function ExampleTickets({language}:{language:LanguageCode}){
  const t=copy[language];
- const [selected,setSelected]=useState(0);
- const [back,setBack]=useState(false);
- const select=(index:number)=>{setSelected(index);setBack(false)};
  return <section className="tt-empty-tickets" aria-label={t.title}>
   <h2>{t.title}</h2><p>{t.intro}</p>
-  <div className="tt-example-ticket-picker" role="tablist" aria-label={t.title}>
-   {demos.map((item,i)=><button key={item.title} type="button" role="tab" id={"tt-example-tab-"+i} aria-controls="tt-example-ticket" aria-selected={selected===i}
-    onClick={()=>select(i)}>{i+1}. {item.title}</button>)}
+  <div className="tt-example-ticket-tray" role="list" aria-label={t.title}>
+    {demos.map((item,i)=><div role="listitem" key={item.title}><SampleTicket item={item} language={language} index={i}/></div>)}
   </div>
-  <div className={"tt-example-ticket tt-example-"+demos[selected].color} id="tt-example-ticket" role="tabpanel" aria-labelledby={"tt-example-tab-"+selected}>
-   <span className="tt-example-stamp">{t.sample}</span>
-   {!back?<><small>TICKETTREAT / TT-0000-XXXXXX</small><h3>{demos[selected].title}</h3><p>{demos[selected].date} · {t.place}</p>
-       <div className="tt-example-glyph"><img src="/brand/glyph-burst.svg" alt=""/></div></>:
-      <><small>TICKETTREAT / TT-0000-XXXXXX</small><div className="tt-example-glyph"><img src="/brand/glyph-cross.svg" alt=""/></div><p>{t.note}</p></>}
-   <button type="button" onClick={()=>setBack(v=>!v)}>{back?t.hide:t.show} ↗</button>
-  </div>
-  <p>{t.note}</p>
+  <p className="tt-example-disclaimer">{t.note}</p>
   <Link href="/" className="button button-primary">{t.find} ↗</Link>
  </section>;
 }
