@@ -478,3 +478,44 @@ test("light theme persists across reload and switches without changing legal tex
  const body=await page.locator("body").evaluate(el=>getComputedStyle(el).backgroundColor);
  expect(body).not.toBe("rgba(0, 0, 0, 0)");
 });
+
+test("first-visit onboarding is shown once and can be reopened with story parameter",async({page})=>{
+ await page.goto("/",{waitUntil:"domcontentloaded"});
+ const dialog=page.getByRole("dialog",{name:/TicketTreat/});
+ await expect(dialog).toBeVisible();
+ await expect(dialog.locator(".tt-story-progress span")).toHaveCount(9);
+ await page.keyboard.press("Escape");
+ await expect(dialog).toBeHidden();
+ expect(await page.evaluate(()=>localStorage.getItem("tt4-story"))).toBe("1");
+ await page.reload({waitUntil:"domcontentloaded"});
+ await expect(dialog).toBeHidden();
+ await page.goto("/?story",{waitUntil:"domcontentloaded"});
+ await expect(dialog).toBeVisible();
+ await page.getByRole("button",{name:/Пропустить|Skip|Přeskočit|Пропустити/}).click();
+ await expect(dialog).toBeHidden();
+});
+
+test("organizer tutorial uses seven chapters and accessible keyboard tabs",async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto("/business?nostory",{waitUntil:"domcontentloaded"});
+ await expect(page.locator(".tt-business-main .tt-v12-screen")).toHaveCount(7);
+ const tabs=page.getByRole("tablist").getByRole("tab");
+ await expect(tabs).toHaveCount(3);
+ await tabs.first().focus();
+ await page.keyboard.press("ArrowRight");
+ await expect(tabs.nth(1)).toHaveAttribute("aria-selected","true");
+ await expect(tabs.nth(1)).toBeFocused();
+ const width=await page.evaluate(()=>document.documentElement.scrollWidth);
+ expect(width).toBeLessThanOrEqual(391);
+});
+
+for(const mode of ["dark","light"] as const){
+ test(`theme ${mode} persists and business page has no horizontal scrolling at 320px`,async({page})=>{
+  await page.setViewportSize({width:320,height:700});
+  await page.addInitScript(theme=>localStorage.setItem("tt4-theme",theme),mode);
+  await page.goto("/business?nostory",{waitUntil:"domcontentloaded"});
+  await expect(page.locator("html")).toHaveAttribute("data-theme",mode);
+  await expect(page.getByRole("button",{name:/Switch to|Включить|Zapnout|Увімкнути/})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(321);
+ });
+}
