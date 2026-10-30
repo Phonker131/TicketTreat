@@ -253,3 +253,17 @@
  .tt-v12-phone-card h3{width:100%;font-size:clamp(26px,7vw,37px);text-align:left}
  .tt-v12-phone-card p{font-size:15px;text-align:left;line-height:1.5}
 }
+
+
+/* Preserve the event's printed color: legacy grayscale posters were visibly
+   at odds with the brandbook and made the tomato/ultramarine plates disappear. */
+.tt-night-home .event-card-poster,
+.tt-night-home .tt-night-poster>img,
+.tt-night-event .tt-night-poster>img{
+  filter:contrast(1.14) saturate(1.24)!important;
+}
+.tt-night-home :is(.event-card-poster,.event-card-accent){background:var(--tom)}
+html[data-theme="light"] .tt-night-home :is(.event-card-poster,.event-card-accent){
+  border:2px solid var(--edge);
+  outline:2px solid var(--edge);
+}

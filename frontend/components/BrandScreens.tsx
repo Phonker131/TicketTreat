@@ -1,3 +1,5 @@
+"use client";
+import {useEffect,useState} from "react";
 import type {LanguageCode,TicketTreatEvent} from "@/lib/types";
 
 type PhoneKind="discover"|"event"|"reserve"|"ticket"|"qr"|"passport";
@@ -10,6 +12,8 @@ const phrases={
 
 export function BrandPhone({kind,language,event,compact=false}:{kind:PhoneKind;language:LanguageCode;event?:TicketTreatEvent|null;compact?:boolean}){
  const tr=phrases[language],title=event?.title||tr.ticket,photo=event?.image_url;
+ const [photoFailed,setPhotoFailed]=useState(false);
+ useEffect(()=>setPhotoFailed(false),[photo]);
  return <div className={"tt-device-phone"+(compact?" tt-device-compact":"")} aria-hidden="true">
   <span className="tt-device-camera"/>
   <div className="tt-device-screen">
@@ -27,7 +31,7 @@ export function BrandPhone({kind,language,event,compact=false}:{kind:PhoneKind;l
       <small>TT-0000-XXXXXX</small>
      </div>:<div className="tt-device-event">
       <small>{kind==="discover"?tr.events:kind==="reserve"?tr.pending:tr.events}</small>
-      <div className="tt-device-event-poster">{photo?<img src={photo} alt="" loading="lazy"/>:<span>✳</span>}</div>
+      <div className="tt-device-event-poster">{photo&&!photoFailed?<img src={photo} alt="" loading="lazy" onError={()=>setPhotoFailed(true)}/>:<span>✳</span>}</div>
       <strong>{title}</strong><small>{event?.location||"PRAHA"} / TICKETTREAT</small>
       <div className="tt-device-event-price">{tr.free}</div>
       <div className="tt-device-event-button">{kind==="reserve"?tr.pending:tr.book} <span>↗</span></div>
