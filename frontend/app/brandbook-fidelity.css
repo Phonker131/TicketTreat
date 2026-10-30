@@ -227,3 +227,25 @@
  .tt-example-ticket-tray .tt-example-ticket{animation:none!important;transform:none!important}
  .tt-example-ticket-tray{scroll-behavior:auto}
 }
+
+/* On narrow screens each explanatory scene gets a readable device instead of
+   squeezing three phone screens into 90px columns. The carousel never scrolls
+   the document horizontally; touch/keyboard users can scroll the viewport. */
+@media(max-width:760px){
+ .tt-v12-phones{display:flex;overflow-x:auto;overflow-y:visible;scroll-snap-type:x proximity;overscroll-behavior-x:contain;scrollbar-width:thin;padding:8px 10px 18px 5px;gap:15px;align-items:stretch}
+ .tt-v12-phone-card{flex:0 0 min(82%,275px);scroll-snap-align:center;justify-items:center;text-align:left;padding:0 4px}
+ .tt-v12-phones .tt-device-phone{width:min(100%,205px);border-width:7px;padding:8px;border-radius:35px;box-shadow:8px 9px 0 var(--blu)}
+ .tt-v12-phones .tt-device-screen{border-radius:25px}
+ .tt-v12-phones .tt-device-camera{width:9px;height:9px;top:12px;left:calc(50% - 5px)}
+ .tt-v12-phones .tt-device-top{padding:20px 8px 8px}
+ .tt-v12-phones .tt-device-top b{font-size:13px}
+ .tt-v12-phones .tt-device-demo{top:47px;right:5px;font-size:8px}
+ .tt-v12-phones .tt-device-event{padding:10px;gap:6px}
+ .tt-v12-phones .tt-device-event>strong{font-size:clamp(22px,7vw,33px)}
+ .tt-v12-phones .tt-device-event>small{font-size:10px}
+ .tt-v12-phones .tt-device-event-button{padding:8px;font-size:10px}
+ .tt-v12-phones .tt-device-bottom{padding:8px 2px}
+ .tt-v12-phones .tt-device-bottom small{font-size:9px}
+ .tt-v12-phone-card h3{width:100%;font-size:clamp(26px,7vw,37px);text-align:left}
+ .tt-v12-phone-card p{font-size:15px;text-align:left;line-height:1.5}
+}
