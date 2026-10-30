@@ -175,3 +175,23 @@ html[data-theme="light"] .tt-v12-levels{background:var(--ink);color:var(--paper)
  .tt-business-laptop-screen{min-height:220px}
  .tt-business-tabs button{width:100%;text-align:left}
 }
+
+/* Revision 2: empty tickets are examples, never actual account records. */
+.tt-empty-tickets{max-width:900px;margin:24px auto 50px;display:grid;justify-items:start;gap:16px}
+.tt-empty-tickets h2{font:900 clamp(39px,6vw,70px)/.92 var(--d);margin:0;text-transform:uppercase}
+.tt-empty-tickets>p{max-width:56ch;line-height:1.6;margin:0}
+.tt-example-ticket-picker{display:flex;flex-wrap:wrap;gap:8px}
+.tt-example-ticket-picker button{min-height:44px;padding:9px 14px;background:var(--surface);color:var(--fg);border:2px solid var(--theme-line);border-radius:999px;font:700 13px var(--u);cursor:pointer}
+.tt-example-ticket-picker button[aria-selected="true"]{background:var(--tom);color:var(--ink);border-color:var(--ink)}
+.tt-example-ticket{position:relative;min-height:380px;max-width:480px;width:min(100%,480px);display:grid;gap:18px;align-content:center;padding:clamp(25px,4vw,45px);background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:var(--r-card);box-shadow:9px 10px 0 var(--blu)}
+.tt-example-ticket.tt-example-tom{box-shadow:9px 10px 0 var(--tom)}
+.tt-example-ticket.tt-example-yel{box-shadow:9px 10px 0 var(--yel)}
+.tt-example-ticket small{font:700 12px var(--m)}
+.tt-example-ticket h3{font:900 clamp(48px,9vw,87px)/.9 var(--d);text-transform:uppercase;margin:0}
+.tt-example-ticket p{font:650 17px var(--u);margin:0}
+.tt-example-ticket button{min-height:52px;border:2px solid var(--ink);background:var(--tom);color:var(--ink);font:800 16px var(--u);border-radius:10px;cursor:pointer}
+.tt-example-glyph{width:140px;height:95px;display:grid;place-items:center}
+.tt-example-glyph img{max-width:85%;max-height:85%;object-fit:contain}
+.tt-example-stamp{position:absolute;right:15px;top:15px;transform:rotate(7deg);font:800 12px var(--m);padding:7px 10px;border:2px solid var(--ink);background:var(--yel);color:var(--ink)}
+html[data-theme="light"] .tt-example-ticket{border-color:var(--edge)}
+@media(max-width:480px){.tt-example-ticket{min-height:340px;padding:23px}.tt-example-ticket h3{font-size:58px}}
