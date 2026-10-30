@@ -3,6 +3,8 @@ import {useEffect,useRef,useState} from "react";
 import type {LanguageCode} from "@/lib/types";
 
 const KEY="tt4-story";
+const visualCopy:Record<LanguageCode,{friends:string;chatA:string;chatB:string;chatC:string;name:string;status:string;waiting:string;approved:string;ticket:string;example:string;event:string;reserve:string;entry:string;ready:string}>={"ru":{"friends":"Вечер с друзьями","chatA":"Здравствуйте! Есть места?","chatB":"Ждём ответ организатора","chatC":"Нужно уточнить оплату","name":"Гость","status":"Статус","waiting":"Ждём ответа","approved":"Подтверждён","ticket":"КВИЗ-НОЧЬ","example":"ПРИМЕР","event":"Ивенты","reserve":"Заявка","entry":"Билет","ready":"Только пример"},"uk":{"friends":"Вечір з друзями","chatA":"Вітаю! Є місця?","chatB":"Чекаємо відповіді","chatC":"Треба уточнити оплату","name":"Гість","status":"Статус","waiting":"Очікує","approved":"Підтверджено","ticket":"КВІЗ-НІЧ","example":"ПРИКЛАД","event":"Події","reserve":"Заявка","entry":"Квиток","ready":"Лише приклад"},"cs":{"friends":"Večer s přáteli","chatA":"Dobrý den, jsou místa?","chatB":"Čekáme na odpověď","chatC":"Je třeba ověřit platbu","name":"Host","status":"Stav","waiting":"Čeká","approved":"Potvrzeno","ticket":"KVÍZOVÝ VEČER","example":"PŘÍKLAD","event":"Akce","reserve":"Rezervace","entry":"Vstupenka","ready":"Pouze ukázka"},"en":{"friends":"A night with friends","chatA":"Hello! Any places left?","chatB":"Waiting for a reply","chatC":"Payment needs checking","name":"Guest","status":"Status","waiting":"Waiting","approved":"Confirmed","ticket":"QUIZ NIGHT","example":"EXAMPLE","event":"Events","reserve":"Reservation","entry":"Ticket","ready":"Illustration only"}};
+
 type Slide={ink:"ink"|"tom"|"paper"|"blu"|"yel";title:string;text:string;step:string};
 const scripts:Record<LanguageCode,Slide[]>={
  ru:[
@@ -59,7 +61,7 @@ const labels={
 export function WelcomeStory({language}:{language:LanguageCode}){
  const [open,setOpen]=useState(false),[page,setPage]=useState(0),[paused,setPaused]=useState(false);
  const root=useRef<HTMLDivElement>(null),previous=useRef<HTMLElement|null>(null),startX=useRef<number|null>(null);
- const slides=scripts[language],t=labels[language],last=page===slides.length-1;
+ const slides=scripts[language],t=labels[language],v=visualCopy[language],last=page===slides.length-1;
  useEffect(()=>{
   const params=new URLSearchParams(location.search);
   const show=()=>{setPage(0);setOpen(true)};
@@ -112,8 +114,37 @@ export function WelcomeStory({language}:{language:LanguageCode}){
     <div className="tt-story-progress" aria-label={String(page+1)+"/9"}>{slides.map((_,i)=><span key={i} className={i<=page?"done":""}/>)}</div>
     <button type="button" className="tt-story-close" onClick={close} aria-label={t.skip}>× <span>{t.skip}</span></button>
     <div className="tt-story-illustration" aria-hidden="true">
-      <span className="tt-story-print-num">{String(page+1).padStart(2,"0")}</span>
-      <div className="tt-story-device"><img src={page===0||page===8?"/brand/glyph-burst.svg":page===3?"/brand/glyph-cross.svg":page===4||page===7?"/brand/glyph-burst.svg":page===5?"/brand/glyph-plus.svg":"/brand/glyph-asterisk.svg"} alt="" /></div>
+      <div className={"tt-story-scene tt-story-scene-"+page}>
+        {(page===0||page===8)&&<div className="tt-scene-poster">
+          <span className="tt-scene-people"><i/><i/><i/></span>
+          <strong>{v.friends}</strong><small>TICKETTREAT / {v.example}</small>
+        </div>}
+        {page===1&&<div className="tt-scene-chat">
+          <span className="tt-scene-bubble is-guest">{v.chatA}</span>
+          <span className="tt-scene-bubble is-waiting">{v.chatB}</span>
+          <span className="tt-scene-bubble is-organizer">{v.chatC}</span>
+        </div>}
+        {page===2&&<div className="tt-scene-table">
+          <div><strong>{v.name}</strong><strong>{v.status}</strong></div>
+          <div><span>01</span><span>{v.waiting}</span></div>
+          <div><span>02</span><span>{v.approved}</span></div>
+          <div><span>03</span><span>{v.waiting}</span></div>
+        </div>}
+        {page===3&&<div className="tt-scene-queue">{[0,1,2,3,4,5].map(n=><i key={n}/>)}</div>}
+        {page===4&&<div className="tt-scene-ticket">
+          <small>TICKETTREAT / {v.example}</small><strong>{v.ticket}</strong>
+          <div className="tt-scene-qr"><span>QR</span></div><small>{v.ready}</small>
+        </div>}
+        {(page===5||page===6||page===7)&&<div className="tt-scene-phone">
+          <span className="tt-scene-phone-camera"/><small>TICKETTREAT</small>
+          <div className="tt-scene-phone-card">
+            <span>{page===5?v.event:page===6?v.reserve:v.entry}</span>
+            <strong>{page===5?v.ticket:page===6?v.approved:v.ticket}</strong>
+            <i className="tt-scene-phone-mark"/>
+          </div>
+          <small>{v.example} / {v.ready}</small>
+        </div>}
+      </div>
       <span className="tt-story-stamp">TICKETTREAT</span>
     </div>
     <div className="tt-story-copy"><p>{slide.step}</p><h2>{slide.title}</h2><p>{slide.text}</p></div>
