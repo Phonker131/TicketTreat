@@ -13,7 +13,7 @@ const widths = [
 for (const viewport of widths) {
   test(`responsive shell at ${viewport.name} (${viewport.width}px)`, async ({page}) => {
     await page.setViewportSize({width:viewport.width,height:viewport.height});
-    await page.goto("/",{waitUntil:"domcontentloaded"});
+    await page.goto("/?nostory",{waitUntil:"domcontentloaded"});
     await expect(page.locator(".topbar")).toBeVisible();
     await expect(page.locator(".tt-night-hero")).toBeVisible();
     await expect(page.locator(".tt-night-hero h1")).toBeVisible();
@@ -26,7 +26,7 @@ for (const viewport of widths) {
 
 test("mobile navigation and accessible keyboard focus",async({page})=>{
   await page.setViewportSize({width:375,height:812});
-  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await page.goto("/?nostory",{waitUntil:"domcontentloaded"});
   const nav=page.locator(".topbar-nav");
   const menu=page.locator(".topbar-menu-toggle");
   await expect(menu).toHaveAttribute("aria-label","Открыть меню");
@@ -47,7 +47,7 @@ test("mobile navigation and accessible keyboard focus",async({page})=>{
 for(const width of [320,375,390,430,768,850,1024,1199]){
   test(`mobile navbar stays inside ${width}px and closes after link navigation`,async({page})=>{
     await page.setViewportSize({width,height:812});
-    await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+    await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
     const nav=page.locator(".topbar-nav");
     const toggle=page.locator(".topbar-menu-toggle");
     await expect(toggle).toBeEnabled();
@@ -77,7 +77,7 @@ for(const width of [320,375,390,430,768,850,1024,1199]){
 
 test("mobile menu animates on open and close and marks the current page",async({page})=>{
   await page.setViewportSize({width:390,height:844});
-  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
   const menu=page.locator(".topbar-menu-toggle");
   const nav=page.locator("#tt-primary-nav");
   await expect(menu).toBeEnabled();
@@ -106,7 +106,7 @@ test("mobile menu animates on open and close and marks the current page",async({
 test("reduced motion removes animations without hiding navigation",async({page})=>{
   await page.emulateMedia({reducedMotion:"reduce"});
   await page.setViewportSize({width:320,height:700});
-  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
   const menu=page.locator(".topbar-menu-toggle");
   const nav=page.locator("#tt-primary-nav");
   await expect(menu).toBeEnabled();
@@ -122,13 +122,13 @@ test("reduced motion removes animations without hiding navigation",async({page})
 
 test("desktop navbar remains permanently visible",async({page})=>{
   await page.setViewportSize({width:1440,height:900});
-  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
   await expect(page.locator(".topbar-nav")).toBeVisible();
   await expect(page.locator(".topbar-menu-toggle")).toBeHidden();
 });
 
 test("public pilot header opens the official TicketTreat bot", async ({page}) => {
-  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await page.goto("/?nostory",{waitUntil:"domcontentloaded"});
   const bot = page.locator("a.mode-pill-link");
   await expect(bot).toHaveAttribute("href","https://t.me/TicketTreatBot");
   await expect(bot).toContainText("Telegram Mini App");
@@ -142,7 +142,7 @@ test("registration does not reveal platform-owner recovery or JSON export", asyn
 });
 
 test("homepage footer exposes Google OAuth legal links and copyright for guests", async ({page}) => {
-  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
   const footer=page.locator("footer.tt-legal-footer");
   await expect(footer).toBeVisible();
   await expect(footer.getByText(/© 20\d\d TicketTreat/)).toBeVisible();
@@ -220,7 +220,7 @@ test("priced events never show TicketTreat fake payment or automatic paid ticket
 
 test("support center is linked publicly, does not permit anonymous complaints and works on mobile",async({page})=>{
   await page.setViewportSize({width:375,height:812});
-  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await page.goto("/?nostory",{waitUntil:"domcontentloaded"});
   await expect(page.locator(".topbar-menu-toggle")).toBeEnabled();
   await page.locator(".topbar-menu-toggle").click();
   await expect(page.locator(".topbar-nav")).toBeVisible();
@@ -240,7 +240,7 @@ test("support admin page does not expose inbox to signed-out visitors",async({pa
 });
 
 test("cookie consent is opt-in, rejecting persists and preferences can be changed",async({page})=>{
-  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
   const banner=page.getByTestId("tt-cookie-banner");
   await expect(banner).toBeVisible();
   await expect(banner.getByRole("button",{name:"Allow cookies"})).toBeVisible();
@@ -292,7 +292,7 @@ test("Google Maps iframe never loads until opt-in and is removed on withdrawal",
 
 test("Cookie banner remains usable on 320px narrow devices",async({page})=>{
   await page.setViewportSize({width:320,height:700});
-  await page.goto("/?lang=cs",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=cs&nostory",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("button",{name:"Odmítnout volitelné"})).toBeVisible();
   await expect(page.getByRole("button",{name:"Povolit cookies"})).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
@@ -323,7 +323,7 @@ test("FAQ search, support link and mobile width are functional",async({page})=>{
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.goto("/support?lang=en",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("link",{name:/Browse FAQ/})).toHaveAttribute("href","/en/faq");
-  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
   await expect(page.locator("footer.tt-legal-footer").getByRole("link",{name:"FAQ"})).toHaveAttribute("href","/en/faq");
   await expect(page.getByRole("link",{name:/Read FAQ/})).toHaveAttribute("href","/en/faq");
 });
@@ -398,7 +398,7 @@ test("brandbook discovery: accessible feed, swipe and schematic map with mood fi
       registered_count:2,spots_left:28,price:"350",currency:"CZK",languages:["en"],
       image_url:null,starts_at:"2026-11-21T19:00:00",is_cancelled:false}])
   }));
-  await page.goto("/?lang=en",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("button",{name:"Swipe",exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"Map",exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"Feed",exact:true})).toBeVisible();
@@ -427,7 +427,7 @@ test("venue-local countdown parses Prague wall time and UTC offsets correctly",(
 });
 test("mobile page has a non-sticky header to prevent overlapping content",async({page})=>{
   await page.setViewportSize({width:390,height:844});
-  await page.goto("/?lang=cs",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=cs&nostory",{waitUntil:"domcontentloaded"});
   await expect(page.locator(".topbar")).toHaveCSS("position","relative");
   const intro=page.locator(".tt-night-events .section-heading");
   await intro.scrollIntoViewIfNeeded();
@@ -438,7 +438,7 @@ test("mobile page has a non-sticky header to prevent overlapping content",async(
 });
 test("printed ticket and administrator style rules keep correct high contrast",async({page})=>{
   await page.setViewportSize({width:390,height:844});
-  await page.goto("/?lang=cs",{waitUntil:"domcontentloaded"});
+  await page.goto("/?lang=cs&nostory",{waitUntil:"domcontentloaded"});
   const rulePresent=await page.evaluate(()=>{
     const sheets=Array.from(document.styleSheets).filter(s=>{try{return s.cssRules.length>0}catch{return false}});
     const styles=sheets.flatMap(s=>Array.from(s.cssRules).map(r=>r.cssText));
@@ -446,4 +446,35 @@ test("printed ticket and administrator style rules keep correct high contrast",a
       styles.some(s=>s.includes("admin-event-actions")&&s.includes("stat-card"));
   });
   expect(rulePresent).toBe(true);
+});
+
+test("welcome tutorial opens explicitly, supports keyboard and returns focus",async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto("/?nostory",{waitUntil:"domcontentloaded"});
+ const trigger=page.getByRole("button",{name:/Как это работает|How it works|Jak to funguje|Як це працює/});
+ await expect(trigger).toBeVisible();
+ await trigger.focus();
+ await trigger.click();
+ const dialog=page.getByRole("dialog",{name:/TicketTreat/});
+ await expect(dialog).toBeVisible();
+ await expect(dialog.locator(".tt-story-progress span")).toHaveCount(9);
+ await page.keyboard.press("ArrowRight");
+ await expect(dialog.locator(".tt-story-copy")).toContainText("2/5");
+ await page.keyboard.press("Escape");
+ await expect(dialog).toBeHidden();
+ await expect(trigger).toBeFocused();
+ await page.reload({waitUntil:"domcontentloaded"});
+ await expect(dialog).toBeHidden();
+});
+test("light theme persists across reload and switches without changing legal text",async({page})=>{
+ await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
+ const button=page.getByRole("button",{name:/Switch to (light|dark) theme/});
+ await expect(button).toBeVisible();
+ await button.click();
+ const theme=await page.locator("html").getAttribute("data-theme");
+ expect(["light","dark"]).toContain(theme);
+ await page.reload({waitUntil:"domcontentloaded"});
+ await expect(page.locator("html")).toHaveAttribute("data-theme",theme!);
+ const body=await page.locator("body").evaluate(el=>getComputedStyle(el).backgroundColor);
+ expect(body).not.toBe("rgba(0, 0, 0, 0)");
 });
