@@ -90,6 +90,15 @@ export function LoyaltyClient(){
        <li>{language==="ru"?"Получите действительный билет":language==="cs"?"Získejte platnou vstupenku":language==="uk"?"Отримайте дійсний квиток":"Get a valid ticket"}</li>
        <li>{language==="ru"?"Покажите QR на входе":language==="cs"?"Ukažte QR u vstupu":language==="uk"?"Покажіть QR на вході":"Show your QR at check-in"}</li>
       </ol>
+      <div className="tt-loyalty-empty-future">
+        <h4>{language==="ru"?"Что вас ждёт":language==="uk"?"Що на вас чекає":language==="cs"?"Co vás čeká":"What comes next"}</h4>
+        <div className="tt-loyalty-empty-future-grid">{levels.map(([name,amount],i)=><article key={name} className={"tt-loyalty-future-tier"+(i===0?" is-current":"")}>
+           <span>{i===0?(language==="ru"?"Ваш уровень":language==="uk"?"Ваш рівень":language==="cs"?"Vaše úroveň":"Your tier"):"🔒 "+amount+" CHECK-INS"}</span>
+           <img src={i===0?"/brand/glyph-plus.svg":i===1?"/brand/glyph-asterisk.svg":i===2?"/brand/glyph-burst.svg":"/brand/glyph-wave.svg"} alt="" loading="lazy"/>
+           <strong>{names[language][name]}</strong>
+           <span>{i===0?"0 / 3":(language==="ru"?"Ещё "+amount+" визитов":language==="uk"?"Ще "+amount+" відвідувань":language==="cs"?"Zbývá "+amount+" návštěv":amount+" more visits")}</span>
+        </article>)}</div>
+      </div>
       <div className="tt-loyalty-stamp-grid">{Array.from({length:6},(_,i)=><div key={i} className={i===0?"is-sample":""}>
        {i===0?<><img src="/brand/glyph-burst.svg" alt=""/><small>{language==="ru"?"Пример":language==="cs"?"Příklad":language==="uk"?"Приклад":"Example"}</small></>:<span aria-hidden="true">+</span>}
       </div>)}</div>

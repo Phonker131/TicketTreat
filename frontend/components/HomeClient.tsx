@@ -5,6 +5,7 @@ import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
 import {EventDiscovery} from "@/components/EventDiscovery";
 import {WelcomeStory} from "@/components/WelcomeStory";
+import {BrandPhone} from "@/components/BrandScreens";
 import {GuidedSections} from "@/components/GuidedSections";
 import {useLanguage} from "@/components/LanguageProvider";
 import {getEvents,getSiteLanding,type SiteLanding} from "@/lib/api";
@@ -62,17 +63,13 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
             {copy.steps.map((step,index)=><li key={step}><span>{String(index+1).padStart(2,"0")}</span>{step}</li>)}
           </ol>
         </div>
-        <div className="tt-night-hero-art" aria-hidden="true">
-          <div className="tt-night-poster">
-            <div className="tt-night-poster-art"><img src="/brand/glyph-burst.svg" alt="" /></div>
-            <div className="tt-night-poster-stamp">{copy.poster}</div>
-            <div className="tt-night-poster-foot"><span>TICKETTREAT</span><span>2026 / PRAHA</span></div>
-          </div>
-          <img className="tt-night-glyph tt-night-glyph-plus" src="/brand/glyph-plus.svg" alt="" />
-          <img className="tt-night-glyph tt-night-glyph-wave" src="/brand/glyph-wave.svg" alt="" />
+        <div className="tt-night-hero-art" role="img" aria-label="TicketTreat live-event interface preview">
+          <BrandPhone kind="discover" language={language} event={events[0]}/>
+          <img className="tt-night-glyph tt-night-glyph-plus" src="/brand/glyph-plus.svg" alt="" aria-hidden="true"/>
+          <img className="tt-night-glyph tt-night-glyph-wave" src="/brand/glyph-wave.svg" alt="" aria-hidden="true"/>
         </div>
       </section>
-      <section className="section tt-night-events" id="events" aria-labelledby="tt-events-heading">
+      <section className="section tt-v12-screen tt-night-events" id="events" aria-labelledby="tt-events-heading">
         <div className="section-heading"><div>
           <p className="tt-night-kicker">TICKETTREAT / EVENTS</p>
           <h2 id="tt-events-heading">{copy.city}</h2>

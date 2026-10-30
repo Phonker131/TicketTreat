@@ -1,7 +1,10 @@
 "use client";
-import {useState} from "react";
+import {useEffect,useState,type FormEvent} from "react";
+import {createSupportTicket} from "@/lib/api";
+import {getWebToken} from "@/lib/session";
 import Link from "next/link";
-import {AppHeader} from "@/components/AppHeader";
+import {BrandPhone,BrandLaptop} from "@/components/BrandScreens";
+import {BusinessHeader} from "@/components/BusinessHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 
 const words={
@@ -13,7 +16,21 @@ const words={
 export function BusinessLandingClient(){
  const {language}=useLanguage(),t=words[language];
  const [step,setStep]=useState(0);
- return <div className="app-shell tt-business-landing"><AppHeader/>
+ const [tabsReady,setTabsReady]=useState(false);
+ useEffect(()=>setTabsReady(true),[]);
+ const [organization,setOrganization]=useState(""),[contact,setContact]=useState(""),[email,setEmail]=useState(""),[eventTypes,setEventTypes]=useState("");
+ const [formState,setFormState]=useState<"idle"|"sending"|"sent">("idle"),[formError,setFormError]=useState("");
+ async function sendRequest(e:FormEvent<HTMLFormElement>){
+   e.preventDefault();setFormError("");
+   if(!getWebToken()){setFormError(language==="ru"?"Войдите в профиль TicketTreat, затем отправьте заявку.":language==="uk"?"Увійдіть у профіль TicketTreat, потім надішліть заявку.":language==="cs"?"Nejprve se přihlaste do TicketTreat a pak žádost odešlete.":"Sign in to TicketTreat before submitting your application.");return;}
+   setFormState("sending");
+   try{
+     await createSupportTicket("other","Organizer application: "+organization.trim(),
+       ["Organization: "+organization.trim(),"Contact: "+contact.trim(),"Email: "+email.trim(),"Events: "+eventTypes.trim()].join("\n"));
+     setFormState("sent");
+   }catch(err){setFormError(err instanceof Error?err.message:String(err));setFormState("idle");}
+ }
+ return <div className="app-shell tt-business-landing"><BusinessHeader/>
  <main id="main-content" className="tt-business-main">
   <section className="tt-v12-screen tt-business-hero" id="business-top">
    <div className="tt-v12-screen-content tt-business-hero-grid">
@@ -21,32 +38,28 @@ export function BusinessLandingClient(){
      <div className="tt-business-actions"><Link className="button button-primary" href="/admin">{t.open} ↗</Link>
       <Link className="button button-secondary" href="/organizer/apply">{t.apply}</Link></div>
     </div>
-    <div className="tt-business-laptop" role="img" aria-label={t.note}><div className="tt-business-laptop-screen">
-     <small>TICKETTREAT / ORGANIZER</small><h3>{t.steps[1]}</h3>
-     {t.feature.slice(0,3).map((feature,i)=><div className="tt-business-metric" key={i}><span>{String(i+1).padStart(2,"0")}</span>{feature}</div>)}
-     </div><span className="tt-business-laptop-base"/>
-     <div className="tt-business-guest-phone" aria-hidden="true"><span>TICKETTREAT / SAMPLE</span>
-       <img src="/brand/glyph-burst.svg" alt=""/><b>{t.steps[2]}</b></div>
+    <div className="tt-business-preview-stack">
+      <BrandLaptop language={language} kind="overview"/>
+      <BrandPhone language={language} kind="ticket" compact/>
     </div>
    </div>
   </section>
   <section id="business-how" className="tt-v12-screen tt-business-how"><div className="tt-v12-screen-content">
    <div className="tt-v12-intro"><span>02 / HOW</span><h2>{t.how}</h2></div>
    <div className="tt-business-tabs" role="tablist" aria-label={t.how}>
-    {t.steps.map((name,i)=><button key={i} id={"tt-business-tab-"+i} role="tab" type="button" aria-controls="tt-business-panel"
+    {t.steps.map((name,i)=><button key={i} id={"tt-business-tab-"+i} role="tab" type="button" disabled={!tabsReady} aria-controls="tt-business-panel"
       aria-selected={step===i} tabIndex={step===i?0:-1} onClick={()=>setStep(i)}
       onKeyDown={e=>{let next=step;if(e.key==="ArrowRight")next=(step+1)%3;else if(e.key==="ArrowLeft")next=(step+2)%3;else if(e.key==="Home")next=0;else if(e.key==="End")next=2;else return;e.preventDefault();setStep(next);document.getElementById("tt-business-tab-"+next)?.focus()}}>
       <span>{i+1}</span>{name}</button>)}
    </div>
    <div id="tt-business-panel" role="tabpanel" aria-labelledby={"tt-business-tab-"+step} className="tt-business-tab-panel">
     <div><h3>{t.steps[step]}</h3><p>{t.stepText[step]}</p><Link href="/admin" className="button button-secondary">{t.open} ↗</Link></div>
-    <div className="tt-business-laptop" aria-hidden="true"><div className="tt-business-laptop-screen">
-      <small>TICKETTREAT / {step+1}</small><div className="tt-business-placeholder-art"><img src={step===0?"/brand/glyph-plus.svg":step===1?"/brand/glyph-asterisk.svg":"/brand/glyph-burst.svg"} alt=""/></div></div><span className="tt-business-laptop-base"/></div>
+    <BrandLaptop language={language} kind={step===0?"create":step===1?"guests":"checkin"}/>
    </div>
   </div></section>
   <section id="business-sides" className="tt-v12-screen tt-business-sides"><div className="tt-v12-screen-content">
    <div className="tt-v12-intro"><span>03 / GUEST + ORGANIZER</span><h2>{t.two}</h2></div>
-   <div className="tt-business-triptych">{t.side.map((txt,i)=><article key={i}><span>0{i+1}</span><div><img src={i===0?"/brand/glyph-ticket.svg":i===1?"/brand/glyph-burst.svg":"/brand/glyph-asterisk.svg"} alt=""/></div><p>{txt}</p></article>)}</div>
+   <div className="tt-business-triptych tt-business-side-devices">{t.side.map((txt,i)=><article key={i}><span>0{i+1}</span><div>{i===1?<BrandLaptop language={language} kind="guests"/>:<BrandPhone kind={i===0?"reserve":"passport"} language={language} compact/>}</div><p>{txt}</p></article>)}</div>
   </div></section>
   <section id="business-features" className="tt-v12-screen tt-business-features"><div className="tt-v12-screen-content">
    <div className="tt-v12-intro"><span>04 / FEATURES</span><h2>{t.features}</h2></div>
@@ -62,7 +75,16 @@ export function BusinessLandingClient(){
   </div></section>
   <section id="business-connect" className="tt-v12-screen tt-business-connect"><div className="tt-v12-screen-content">
    <div className="tt-v12-intro"><span>07 / START</span><h2>{t.connect}</h2><p>{t.connectText}</p></div>
-   <div className="tt-business-actions"><Link href="/organizer/apply" className="button button-primary">{t.apply} ↗</Link><Link href="/admin" className="button button-secondary">{t.open}</Link></div>
+   <form className="tt-business-apply-form" onSubmit={sendRequest}>
+      <label>{language==="ru"?"Организация":language==="uk"?"Організація":language==="cs"?"Organizace":"Organization"}<input required minLength={2} maxLength={100} autoComplete="organization" value={organization} onChange={e=>setOrganization(e.target.value)}/></label>
+      <label>{language==="ru"?"Контактное лицо":language==="uk"?"Контактна особа":language==="cs"?"Kontaktní osoba":"Contact person"}<input required minLength={2} maxLength={100} autoComplete="name" value={contact} onChange={e=>setContact(e.target.value)}/></label>
+      <label>Email<input required type="email" autoComplete="email" maxLength={160} value={email} onChange={e=>setEmail(e.target.value)}/></label>
+      <label>{language==="ru"?"Какие мероприятия планируете?":language==="uk"?"Які події плануєте?":language==="cs"?"Jaké akce plánujete?":"What kind of events?"}<textarea required minLength={10} maxLength={1000} rows={3} value={eventTypes} onChange={e=>setEventTypes(e.target.value)}/></label>
+      {formError&&<p className="tt-business-form-error" role="alert">{formError} <Link href="/profile">{language==="ru"?"Войти":language==="uk"?"Увійти":language==="cs"?"Přihlásit se":"Sign in"} ↗</Link></p>}
+      {formState==="sent"&&<p className="tt-business-form-success" role="status">{language==="ru"?"Заявка отправлена в службу поддержки TicketTreat. Мы ответим через тикет и email аккаунта.":language==="uk"?"Заявку надіслано до підтримки TicketTreat. Відповімо в зверненні та на email.":language==="cs"?"Žádost byla odeslána podpoře TicketTreat. Odpovíme v požadavku a e-mailem.":"Application received by TicketTreat support. We will reply in the ticket and by account email."}</p>}
+      <button type="submit" className="button button-primary" disabled={formState==="sending"||formState==="sent"}>{formState==="sending"?"…":t.apply} ↗</button>
+      <p className="tt-business-apply-note">{language==="ru"?"Для отправки нужен аккаунт с подтверждённым email. Данные заявки доступны администраторам через службу поддержки.":language==="uk"?"Для надсилання потрібен акаунт з підтвердженим email. Заявку отримають адміністратори підтримки.":language==="cs"?"K odeslání potřebujete účet s ověřeným e-mailem. Žádost obdrží administrátoři podpory.":"A verified TicketTreat account is required. The application is delivered to the support admins."}</p>
+    </form>
   </div></section>
  </main></div>;
 }

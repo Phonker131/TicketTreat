@@ -1,0 +1,269 @@
+/* TicketTreat handoff v1.2: interactive production-safe device artwork and legibility.
+   Physical UI uses semantic theme colors; ticket prints deliberately use the ink/paper palette. */
+.tt-night-home .tt-night-hero{min-height:calc(100svh - 72px);padding:clamp(20px,4svh,48px) 0;overflow-x:clip;align-items:center}
+.tt-night-home .tt-night-hero h1{font-size:clamp(54px,9.4vw,144px);line-height:.87;overflow-wrap:normal;word-break:normal;hyphens:none;max-width:100%}
+.tt-night-hero-art{min-height:0;display:grid;place-items:center}
+.tt-night-hero-art>.tt-device-phone{width:min(100%,318px);height:min(72svh,660px);aspect-ratio:auto;transform:rotate(3deg)}
+.tt-night-events{border-top:1px solid var(--theme-line);min-height:calc(100svh - 72px);padding:clamp(20px,4svh,48px) 0!important}
+.tt-night-events .section-heading{margin-bottom:clamp(10px,2svh,24px)}
+.tt-v12-screen :is(h1,h2,h3,p,strong),.tt-business-landing :is(h1,h2,h3,p,strong){min-width:0;overflow-wrap:break-word}
+.tt-v12-intro h2,.tt-business-landing .tt-v12-intro h1{font-size:clamp(37px,6vw,82px);line-height:.98;letter-spacing:0}
+.tt-business-landing .tt-v12-intro h1{font-size:clamp(52px,7.5vw,115px)}
+.tt-night-home .section-heading h2{font-size:clamp(43px,6.5vw,92px);line-height:1}
+.tt-v12-phone-card h3{font-size:clamp(23px,2.5vw,36px);line-height:1.04;margin:14px 0 8px}
+.tt-v12-phone-card p{font-size:clamp(13px,1.25vw,16px);line-height:1.42}
+.tt-v12-phones{align-items:start}
+.tt-v12-phones .tt-device-phone{width:min(100%,205px);height:auto}
+.tt-v12-ticket-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.tt-v12-ticket-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-items:center;gap:12px;align-items:center}
+.tt-v12-ticket-pair>.tt-device-phone{width:min(100%,225px)}
+.tt-v12-ticket-pair>.tt-device-phone:nth-child(2){transform:rotate(5deg)}
+.tt-v12-ticket-pair .tt-v12-sample-action{grid-column:1/-1;width:100%}
+.tt-v12-sample-action{border:2px solid var(--ink);background:var(--tom);color:var(--ink);padding:12px 16px;min-height:48px;border-radius:10px;font:750 15px/1.3 var(--u);cursor:pointer}
+.tt-v12-pair-disclaimer{grid-column:1/-1;font:700 11px/1.5 var(--m);text-align:center;overflow-wrap:anywhere}
+
+/* Real-interface style phones: no stale image screenshots, no dummy valid QR. */
+.tt-device-phone{--dev-outline:var(--ink);position:relative;box-sizing:border-box;width:min(100%,245px);aspect-ratio:390/844;border:7px solid var(--ink);border-radius:46px;padding:9px;background:var(--ink);box-shadow:10px 12px 0 var(--blu);color:var(--paper);overflow:hidden;flex-shrink:0}
+.tt-device-phone.tt-device-compact{border-width:6px;border-radius:31px;padding:6px}
+.tt-device-screen{position:relative;width:100%;height:100%;border-radius:36px;background:#1E1D2B;color:var(--paper);display:flex;flex-direction:column;overflow:hidden;min-width:0;isolation:isolate}
+.tt-device-compact .tt-device-screen{border-radius:25px}
+.tt-device-camera{position:absolute;top:15px;left:calc(50% - 5px);z-index:3;width:11px;height:11px;background:var(--paper);border-radius:50%;border:1px solid var(--ink)}
+.tt-device-top{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:3px;padding:22px 9px 9px;border-bottom:1px solid #3A3949}
+.tt-device-top b{font:900 clamp(9px,1vw,15px)/1 var(--u);letter-spacing:0;color:var(--paper);white-space:nowrap}
+.tt-device-top b span{color:var(--yel)}
+.tt-device-top small{font-size:12px}
+.tt-device-demo{position:absolute;top:47px;right:5px;z-index:5;padding:3px 5px;background:var(--yel);color:var(--ink);border:1px solid var(--ink);font:700 8px/1 var(--m);transform:rotate(6deg)}
+.tt-device-event{flex:1;display:flex;flex-direction:column;align-items:stretch;justify-content:space-around;gap:6px;padding:12px 10px;min-height:0}
+.tt-device-event>small{font:700 clamp(8px,.9vw,11px)/1.4 var(--m);color:var(--paper);opacity:1}
+.tt-device-event>strong{font:900 clamp(20px,2.6vw,35px)/.92 var(--d);text-transform:uppercase;overflow-wrap:anywhere;color:var(--paper)}
+.tt-device-event-poster{min-height:0;flex:1;max-height:50%;border:5px solid var(--paper);border-radius:9px;background:var(--tom);display:grid;place-items:center;overflow:hidden}
+.tt-device-event-poster img{width:100%;height:100%;object-fit:cover;filter:contrast(1.12) saturate(.75)}
+.tt-device-event-poster>span{color:var(--ink);font-size:clamp(45px,7vw,85px);font-weight:900}
+.tt-device-event-price{align-self:flex-start;padding:5px 7px;border-radius:100px;background:var(--paper);color:var(--ink);font:800 10px var(--m)}
+.tt-device-event-button{display:flex;justify-content:space-between;align-items:center;gap:4px;background:var(--tom);color:var(--ink);border-radius:30px;padding:8px;font:800 10px/1.2 var(--u);overflow-wrap:anywhere}
+.tt-device-event-button span{display:grid;place-items:center;width:21px;height:21px;background:var(--ink);color:var(--paper);border-radius:50%;flex-shrink:0}
+.tt-device-bottom{flex:0 0 auto;display:flex;align-items:center;justify-content:space-around;gap:4px;border-top:1px solid #3A3949;padding:8px 2px}
+.tt-device-bottom>span{display:grid;justify-items:center;font-size:14px;line-height:1}
+.tt-device-bottom small{font:700 clamp(6px,.75vw,9px)/1.3 var(--u);text-align:center;max-width:64px;overflow-wrap:anywhere}
+.tt-device-ticket{height:100%;min-height:0;display:flex;flex-direction:column;justify-content:space-around;gap:6px;padding:16px 9px 10px;background:var(--blu);color:var(--paper);text-align:left;overflow:hidden}
+.tt-device-ticket strong{font:900 clamp(24px,3.4vw,48px)/.9 var(--d);text-transform:uppercase;overflow-wrap:anywhere}
+.tt-device-ticket small{font:700 clamp(8px,.8vw,10px)/1.3 var(--m);overflow-wrap:anywhere}
+.tt-device-ticket>span{font:750 10px var(--u)}
+.tt-device-ticket-symbol{flex:1;display:grid;place-items:center;color:var(--yel);font-size:clamp(60px,6vw,110px)}
+.tt-device-ticket-back{background:var(--paper);color:var(--ink)}
+.tt-device-ticket-back strong{font:900 14px/1.1 var(--u)}
+.tt-device-qr{width:min(85%,170px);aspect-ratio:1;align-self:center;display:grid;place-items:center;background:#fff;border:9px solid var(--ink);outline:3px solid var(--ink);color:var(--ink)}
+.tt-device-qr span{font:900 clamp(30px,5vw,60px) var(--d);color:var(--ink)}
+.tt-device-passport{background:var(--paper);color:var(--ink);flex:1;padding:22px 12px;display:grid;align-content:space-around;gap:8px}
+.tt-device-passport strong{font:900 clamp(29px,3vw,47px)/.9 var(--d);overflow-wrap:anywhere}
+.tt-device-passport small{font:700 9px var(--m)}
+.tt-device-stamp{display:grid;place-items:center;border:2px solid var(--ink);border-radius:8px;background:var(--yel);aspect-ratio:1;width:65%;justify-self:center;font-size:60px}
+.tt-device-progress{display:flex;gap:3px}.tt-device-progress i{height:8px;flex:1;border:2px solid var(--ink);border-radius:4px}
+
+/* Organizer laptop: 16/10 screen, rigid offset plate, readable at all sizes. */
+.tt-device-laptop{position:relative;width:100%;min-width:0;max-width:680px;background:var(--ink);padding:11px 11px 27px;border:3px solid var(--ink);border-radius:16px 16px 0 0;box-shadow:9px 11px 0 var(--blu)}
+.tt-device-laptop-screen{aspect-ratio:16/10;width:100%;min-width:0;display:grid;grid-template-columns:23% minmax(0,1fr);overflow:hidden;background:var(--paper);color:var(--ink);border-radius:6px}
+.tt-device-laptop-base{position:absolute;left:-3.5%;right:-3.5%;bottom:-2px;height:14px;background:#3A3949;border-radius:0 0 20px 20px}
+.tt-device-laptop-sidebar{background:var(--ink2);color:var(--paper);display:flex;flex-direction:column;gap:8%;padding:12% 8%;min-width:0}
+.tt-device-laptop-sidebar b{font:900 clamp(15px,2vw,30px)/1 var(--u);color:var(--paper)}
+.tt-device-laptop-sidebar b span{color:var(--tom)}
+.tt-device-laptop-sidebar small{font:700 clamp(7px,.92vw,12px)/1.3 var(--u);overflow-wrap:anywhere;color:var(--paper)}
+.tt-device-laptop-content{padding:clamp(8px,2vw,22px);display:flex;flex-direction:column;gap:7%;overflow:hidden;min-width:0}
+.tt-device-laptop-content>.tt-device-demo-label{font:700 clamp(7px,.8vw,11px)/1.2 var(--m);color:var(--ink)}
+.tt-device-laptop-content>strong{font:900 clamp(18px,3vw,42px)/.91 var(--d);text-transform:uppercase;overflow-wrap:anywhere;color:var(--ink)}
+.tt-device-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.tt-device-metrics>div{padding:6px;border:2px solid var(--ink);display:grid;gap:3px;min-width:0}
+.tt-device-metrics b{font:900 clamp(15px,2.5vw,30px)/1 var(--d)}
+.tt-device-metrics span{font:600 clamp(6px,.9vw,12px)/1.2 var(--u);overflow-wrap:anywhere}
+.tt-device-rows{display:grid;gap:0;min-height:0}
+.tt-device-rows>div{display:flex;justify-content:space-between;gap:5px;padding:5px 0;border-bottom:1px solid var(--ink);font:700 clamp(7px,1vw,12px)/1.2 var(--u)}
+.tt-device-rows span{max-width:85%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tt-device-rows i{font-style:normal}
+.tt-device-form{display:grid;gap:4px;min-height:0}
+.tt-device-form label{font:700 clamp(7px,.9vw,11px)/1.4 var(--u);color:var(--ink)}
+.tt-device-form label span{display:block;padding:3px 6px;border:1px solid var(--ink);background:#fff;color:var(--ink);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.tt-device-submit{background:var(--tom);color:var(--ink);padding:5px 6px;border-radius:20px;font:800 clamp(7px,1vw,11px)/1.2 var(--u);text-align:center}
+
+/* Organizer landing has its own one-row header and direct application flow. */
+.tt-business-header{position:sticky;top:0;z-index:110;height:72px;background:var(--bg);color:var(--fg);border-bottom:1px solid var(--theme-line)}
+.tt-business-header-content{width:min(100%,1550px);height:100%;padding:0 clamp(12px,2vw,32px);margin:auto;display:flex;align-items:center;gap:clamp(8px,1.5vw,22px);min-width:0}
+.tt-business-logo{display:flex;align-items:center;flex-shrink:0;width:148px;height:44px}
+.tt-business-logo img{width:148px;height:auto;object-fit:contain;max-width:100%}
+.tt-business-header-tag{font:750 10px/1.2 var(--m);padding:5px 7px;background:var(--yel);color:var(--ink);white-space:nowrap}
+.tt-business-nav{display:flex;gap:clamp(9px,1.3vw,20px);min-width:0;margin-left:auto}
+.tt-business-nav a{white-space:nowrap;text-decoration:none;font:650 clamp(12px,1vw,15px)/1.3 var(--u);color:var(--fg);padding:6px 0;border-bottom:2px solid transparent}
+.tt-business-nav a:hover,.tt-business-nav a:focus-visible{border-color:var(--tom)}
+.tt-business-guest-link{white-space:nowrap;color:var(--fg-mute);font:650 12px var(--u);text-decoration:underline}
+.tt-business-header-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.tt-business-signin{white-space:nowrap;padding:10px 12px;border:2px solid var(--ink);border-radius:50px;background:var(--paper);color:var(--ink);font:800 13px/1.2 var(--u);text-decoration:none;min-height:44px}
+.tt-business-menu-toggle{display:none;border:2px solid var(--theme-line);border-radius:8px;background:var(--surface);color:var(--fg);min-height:44px;min-width:44px;font:750 20px/1 var(--u)}
+.tt-business-header :is(a,button):focus-visible{outline:3px solid var(--tom);outline-offset:3px}
+.tt-business-preview-stack{position:relative;min-width:0;width:100%;padding:10px 23px 18px 0}
+.tt-business-preview-stack>.tt-device-laptop{width:100%}
+.tt-business-preview-stack>.tt-device-phone{position:absolute;z-index:2;bottom:-14%;right:-1%;width:25%;border-width:4px;padding:3px;border-radius:18px;box-shadow:4px 5px 0 var(--blu)}
+.tt-business-preview-stack>.tt-device-phone .tt-device-screen{border-radius:11px}
+.tt-business-preview-stack>.tt-device-phone :is(.tt-device-top,.tt-device-bottom){padding:4px 2px}
+.tt-business-preview-stack>.tt-device-phone :is(.tt-device-event,.tt-device-ticket){padding:6px 4px}
+.tt-business-preview-stack>.tt-device-phone .tt-device-camera{display:none}
+.tt-business-side-devices article>div{min-height:240px;overflow:hidden;display:grid;place-items:center;padding:10px;isolation:isolate;background:transparent}
+.tt-business-side-devices article>div>.tt-device-phone{width:min(100%,130px);box-shadow:5px 6px 0 var(--blu)}
+.tt-business-side-devices article>div>.tt-device-laptop{width:100%;box-shadow:5px 6px 0 var(--blu)}
+.tt-business-side-devices article>div :is(.tt-device-phone,.tt-device-laptop){max-height:100%}
+.tt-business-apply-form{width:min(100%,600px);margin:0 auto;display:grid;gap:14px}
+.tt-business-apply-form label{font:750 15px/1.3 var(--u);display:grid;gap:7px;color:var(--fg)}
+.tt-business-apply-form :is(input,textarea){background:var(--surface);color:var(--fg);border:2px solid var(--theme-line);border-radius:12px;min-height:54px;padding:12px 13px;width:100%;min-width:0;max-width:100%;font:550 16px/1.5 var(--u)}
+.tt-business-apply-form :is(input,textarea):focus-visible{outline:3px solid var(--tom);outline-offset:3px}
+.tt-business-apply-form .button{width:100%;justify-content:center;min-height:56px;white-space:normal;overflow-wrap:break-word}
+.tt-business-apply-form :is(.tt-business-form-error,.tt-business-form-success,.tt-business-apply-note){font:550 14px/1.5 var(--u);margin:0}
+.tt-business-form-error{border-left:5px solid var(--fire);padding:10px;background:var(--surface);color:var(--fg)}
+.tt-business-form-success{border-left:5px solid var(--yel);padding:10px;background:var(--surface);color:var(--fg)}
+
+/* Text/contrast regression guards: prevent overflowing headings and accidental black-on-ink. */
+.tt-business-landing :is(.tt-v12-intro,.tt-business-tab-panel,.tt-business-feature-grid li,.tt-business-triptych article){min-width:0;max-width:100%}
+.tt-business-landing :is(.tt-v12-intro h1,.tt-v12-intro h2,.tt-business-tab-panel h3,.tt-business-feature-grid strong){overflow-wrap:break-word;hyphens:auto;line-height:1.01}
+.tt-business-landing .tt-v12-screen:nth-child(2n) :is(.tt-business-apply-form label,.tt-business-apply-note){color:var(--ink)}
+.tt-business-landing .tt-v12-screen:nth-child(2n) :is(.tt-business-apply-form input,.tt-business-apply-form textarea){background:var(--paper);color:var(--ink);border-color:var(--ink)}
+.tt-night-home :is(.tt-night-hero,.tt-night-events,.tt-v12-screen){min-width:0}
+.tt-business-landing .tt-business-signin:hover{transform:translate(-1px,-1px)}
+.tt-business-landing :is(a,button,input,textarea):focus-visible{outline:3px solid var(--tom);outline-offset:3px}
+@media(max-width:1360px){.tt-business-header-tag{display:none}}
+@media(max-width:1180px){.tt-business-guest-link{display:none}}
+@media(max-width:960px){
+ .tt-business-nav{display:none;position:absolute;left:12px;right:12px;top:72px;background:var(--surface);color:var(--fg);border:2px solid var(--theme-line);border-radius:0 0 14px 14px;padding:16px;flex-direction:column;gap:7px;box-shadow:5px 6px 0 var(--tom)}
+ .tt-business-nav.is-open{display:flex}
+ .tt-business-nav a{min-height:44px;padding:10px}
+ .tt-business-menu-toggle{display:block}
+ .tt-business-header-actions{margin-left:auto}
+}
+@media(max-width:760px){
+ .tt-night-home .tt-night-hero{grid-template-columns:minmax(0,1fr);gap:12px}
+ .tt-night-home .tt-night-hero h1{font-size:clamp(49px,12vw,80px);line-height:.88}
+ .tt-night-hero-art>.tt-device-phone{width:min(50vw,240px);height:auto;aspect-ratio:390/844}
+ .tt-v12-screen{padding:clamp(20px,4svh,48px) 14px}
+ .tt-v12-phones{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .tt-v12-phones .tt-device-phone{width:100%;border:4px solid var(--ink);padding:3px;border-radius:21px;box-shadow:4px 5px 0 var(--blu)}
+ .tt-v12-phones .tt-device-screen{border-radius:13px}
+ .tt-v12-phones .tt-device-camera{width:5px;height:5px;top:8px;left:calc(50% - 2px)}
+ .tt-v12-phones .tt-device-top{padding:13px 3px 3px}
+ .tt-v12-phones .tt-device-demo{top:21px;right:1px;font-size:5px}
+ .tt-v12-phones .tt-device-event{padding:5px 3px;gap:2px}
+ .tt-v12-phones .tt-device-event>strong{font-size:clamp(9px,3.1vw,18px)}
+ .tt-v12-phones .tt-device-event>small{font-size:6px}
+ .tt-v12-phones .tt-device-event-button{padding:3px;font-size:7px}
+ .tt-v12-phones .tt-device-bottom{padding:4px 1px}
+ .tt-v12-phones .tt-device-bottom small{font-size:5px}
+ .tt-v12-phone-card h3{font-size:clamp(16px,3.5vw,24px);margin:10px 0 5px}
+ .tt-v12-phone-card p{font-size:clamp(11px,2.5vw,13px);line-height:1.35}
+ .tt-v12-ticket-grid{grid-template-columns:minmax(0,1fr)}
+ .tt-v12-ticket-pair{width:min(100%,480px);margin:auto}
+ .tt-v12-ticket-pair>.tt-device-phone{width:min(100%,180px)}
+ .tt-business-preview-stack{width:min(100%,540px);margin:auto}
+ .tt-business-header-content{padding:0 10px}
+ .tt-business-logo,.tt-business-logo img{width:120px}
+ .tt-business-header-actions{gap:4px}
+}
+@media(max-width:380px){
+ .tt-business-logo,.tt-business-logo img{width:80px}
+ .tt-business-header-content{gap:2px;padding:0 7px}
+ .tt-business-header-actions{gap:2px}
+ .tt-business-signin{font-size:10px;padding:6px}
+ .tt-business-menu-toggle{min-width:40px;width:40px}
+ .tt-business-header-actions .tt-theme-toggle{width:40px;height:40px;min-width:40px}
+ .tt-business-signin{font-size:11px;padding:7px}
+ .tt-night-home .tt-night-hero h1{font-size:clamp(45px,11.5vw,56px)}
+ .tt-device-top b{font-size:8px}
+ .tt-v12-phones .tt-device-ticket strong{font-size:14px}
+ .tt-business-side-devices article>div{min-height:170px}
+}
+@media(prefers-reduced-motion:reduce){
+ .tt-device-phone,.tt-device-laptop,.tt-night-hero-art>.tt-device-phone{transform:none!important;animation:none!important;transition:none!important}
+}
+
+
+/* Three handoff sample tickets are side by side on desktop and a swipeable tray on mobile. */
+.tt-empty-tickets{width:100%;max-width:1200px;margin-inline:auto}
+.tt-example-ticket-tray{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:clamp(14px,2vw,28px);padding:20px 10px 24px 0}
+.tt-example-ticket-tray>div{min-width:0}
+.tt-example-ticket-tray .tt-example-ticket{width:100%;max-width:none;min-height:430px;padding:0;background:var(--tom);border:3px solid var(--ink);color:var(--ink);border-radius:15px;box-shadow:7px 9px 0 var(--tom);transform:rotate(-2deg);animation:tt-print-in .7s steps(17,end) both;overflow:visible}
+.tt-example-ticket-tray>div:nth-child(2) .tt-example-ticket{transform:rotate(2deg);animation-delay:.08s}
+.tt-example-ticket-tray>div:nth-child(3) .tt-example-ticket{transform:rotate(-1deg);animation-delay:.16s}
+.tt-example-ticket-tray .tt-example-blu{background:var(--blu);border-color:var(--paper);color:var(--paper);box-shadow:7px 9px 0 var(--blu)}
+.tt-example-ticket-tray .tt-example-yel{background:var(--plum);border-color:var(--paper);color:var(--paper);box-shadow:7px 9px 0 var(--yel)}
+.tt-example-ticket-tray .tt-example-stamp{z-index:1;top:-10px;left:-8px;right:auto;color:var(--ink)}
+.tt-example-ticket-body{position:relative;height:100%;min-height:430px;padding:clamp(13px,2vw,25px);display:flex;flex-direction:column;justify-content:space-between;gap:12px;overflow:hidden}
+.tt-example-ticket-body small{font:700 10px/1.5 var(--m);color:inherit}
+.tt-example-ticket-body h3{font:900 clamp(41px,5vw,65px)/.87 var(--d);text-transform:uppercase;overflow-wrap:anywhere;max-width:100%;color:inherit;margin:16px 0 8px}
+.tt-example-ticket-symbol{display:grid;place-items:center;font:900 clamp(60px,7vw,115px)/1 var(--u);min-height:70px}
+.tt-example-ticket-body>p{font:750 12px/1.5 var(--m);overflow-wrap:anywhere;margin:0;color:inherit}
+.tt-example-perforation{position:relative;display:block;width:calc(100% + 55px);margin:0 -27px;min-height:0;border-top:3px dashed currentColor;opacity:.7}
+.tt-example-ticket-bottom{display:flex;align-items:center;gap:9px;justify-content:space-between;flex-wrap:wrap}
+.tt-example-ticket-bottom button{width:auto;max-width:100%;min-height:44px;padding:9px 12px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);font:800 12px/1.2 var(--u);border-radius:25px;white-space:normal;overflow-wrap:anywhere}
+.tt-example-ticket-reverse{flex:1;display:grid;align-content:center;justify-items:center;gap:15px;text-align:center;overflow-wrap:anywhere}
+.tt-example-ticket-reverse strong{font:900 clamp(24px,3vw,37px)/.98 var(--d);color:inherit}
+.tt-example-not-qr{width:min(75%,175px);aspect-ratio:1;display:grid;place-items:center;border:7px solid var(--ink);background:var(--paper);color:var(--ink);font:900 50px var(--d)}
+.tt-example-disclaimer{font:650 12px/1.5 var(--m);color:var(--fg-mute);margin:0}
+@keyframes tt-print-in{from{opacity:.25;clip-path:inset(0 0 100% 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+.tt-example-ticket-tray button:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
+/* Zero-visit passport: clearly marked illustrative tiers and locked thresholds. */
+.tt-loyalty-empty-future{margin-top:15px}
+.tt-loyalty-empty-future h4{font:900 clamp(26px,3vw,38px)/1 var(--d);margin:12px 0;text-transform:uppercase}
+.tt-loyalty-empty-future-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tt-loyalty-future-tier{min-width:0;padding:12px;border:2px solid var(--theme-line);border-radius:12px;background:var(--surface-2);color:var(--fg);display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+.tt-loyalty-future-tier.is-current{background:var(--paper);color:var(--ink);border-color:var(--tom)}
+.tt-loyalty-future-tier img{display:block;width:55px;height:55px;object-fit:contain}
+.tt-loyalty-future-tier strong{font:900 clamp(21px,3vw,32px)/.95 var(--d);text-transform:uppercase;overflow-wrap:anywhere;color:inherit}
+.tt-loyalty-future-tier span{font:700 11px/1.35 var(--m);color:inherit}
+.tt-loyalty-future-tier:not(.is-current) img{opacity:.65;filter:grayscale(.7)}
+@media(max-width:900px){
+ .tt-example-ticket-tray{grid-template-columns:repeat(3,minmax(245px,1fr));overflow-x:auto;overflow-y:visible;scroll-snap-type:x proximity;scrollbar-width:thin;padding:15px 10px 25px;max-width:100%;overscroll-behavior-x:contain}
+ .tt-example-ticket-tray>div{scroll-snap-align:start}
+ .tt-example-ticket-body{min-height:380px}
+ .tt-example-ticket-tray .tt-example-ticket{min-height:380px}
+}
+@media(max-width:560px){
+ .tt-example-ticket-tray{grid-template-columns:repeat(3,minmax(245px,80vw))}
+ .tt-empty-tickets{max-width:100%}
+ .tt-loyalty-empty-future-grid{gap:7px}
+ .tt-loyalty-future-tier{padding:9px}
+ .tt-loyalty-future-tier strong{font-size:23px}
+}
+@media(prefers-reduced-motion:reduce){
+ .tt-example-ticket-tray .tt-example-ticket{animation:none!important;transform:none!important}
+ .tt-example-ticket-tray{scroll-behavior:auto}
+}
+
+/* On narrow screens each explanatory scene gets a readable device instead of
+   squeezing three phone screens into 90px columns. The carousel never scrolls
+   the document horizontally; touch/keyboard users can scroll the viewport. */
+@media(max-width:760px){
+ .tt-v12-phones{display:flex;overflow-x:auto;overflow-y:visible;scroll-snap-type:x proximity;overscroll-behavior-x:contain;scrollbar-width:thin;padding:8px 10px 18px 5px;gap:15px;align-items:stretch}
+ .tt-v12-phone-card{flex:0 0 min(82%,275px);scroll-snap-align:center;justify-items:center;text-align:left;padding:0 4px}
+ .tt-v12-phones .tt-device-phone{width:min(100%,205px);border-width:7px;padding:8px;border-radius:35px;box-shadow:8px 9px 0 var(--blu)}
+ .tt-v12-phones .tt-device-screen{border-radius:25px}
+ .tt-v12-phones .tt-device-camera{width:9px;height:9px;top:12px;left:calc(50% - 5px)}
+ .tt-v12-phones .tt-device-top{padding:20px 8px 8px}
+ .tt-v12-phones .tt-device-top b{font-size:13px}
+ .tt-v12-phones .tt-device-demo{top:47px;right:5px;font-size:8px}
+ .tt-v12-phones .tt-device-event{padding:10px;gap:6px}
+ .tt-v12-phones .tt-device-event>strong{font-size:clamp(22px,7vw,33px)}
+ .tt-v12-phones .tt-device-event>small{font-size:10px}
+ .tt-v12-phones .tt-device-event-button{padding:8px;font-size:10px}
+ .tt-v12-phones .tt-device-bottom{padding:8px 2px}
+ .tt-v12-phones .tt-device-bottom small{font-size:9px}
+ .tt-v12-phone-card h3{width:100%;font-size:clamp(26px,7vw,37px);text-align:left}
+ .tt-v12-phone-card p{font-size:15px;text-align:left;line-height:1.5}
+}
+
+
+/* Preserve the event's printed color: legacy grayscale posters were visibly
+   at odds with the brandbook and made the tomato/ultramarine plates disappear. */
+.tt-night-home .event-card-poster,
+.tt-night-home .tt-night-poster>img,
+.tt-night-event .tt-night-poster>img{
+  filter:contrast(1.14) saturate(1.24)!important;
+}
+.tt-night-home :is(.event-card-poster,.event-card-accent){background:var(--tom)}
+html[data-theme="light"] .tt-night-home :is(.event-card-poster,.event-card-accent){
+  border:2px solid var(--edge);
+  outline:2px solid var(--edge);
+}
