@@ -25,10 +25,11 @@ test("brandbook: onboarding nine steps each show distinct illustrative content",
   await expect(story).toHaveCount(0);
 });
 
-test("brandbook: organizer directory includes two non-clickable example slots",async({page})=>{
+test("brandbook: organizer directory shows one non-clickable example",async({page})=>{
   await page.goto("/organizers?nostory",{waitUntil:"domcontentloaded"});
-  await expect(page.locator(".tt-organizer-ghost")).toHaveCount(2);
+  await expect(page.locator(".tt-organizer-ghost")).toHaveCount(1);
   await expect(page.locator(".tt-organizer-ghost a")).toHaveCount(0);
+  await expect(page.locator(".tt-organizer-ghost h2")).toBeVisible();
 });
 
 test("brandbook: all publicly referenced brand stamps exist",async({request})=>{

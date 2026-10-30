@@ -24,11 +24,11 @@ export function OrganizerDirectoryClient({profiles}:{profiles:OrganizerPublicSum
        <p>{p.bio.slice(0,180)}</p>
        <strong className="tt-organizer-link">{t.view} ↗</strong>
      </Link>)}
-     {[0,1].map((n)=><div key={"future-"+n} className="panel tt-organizer-ghost" aria-label={t.future}>
+     <div className="panel tt-organizer-ghost" aria-label={t.future}>
        <span className="tt-example-stamp">{t.example}</span>
        <div className="tt-organizer-ghost-mark" aria-hidden="true">+</div>
        <h2>{t.future}</h2><p>{t.futureHint}</p>
-     </div>)}
+     </div>
    </div>
    {!profiles.length&&<p className="form-note">{t.empty}</p>}
 
