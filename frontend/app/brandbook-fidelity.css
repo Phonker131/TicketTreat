@@ -650,12 +650,10 @@ body:has(.tt-telegram-bottom) > footer.tt-legal-footer{
 /* In the Telegram Mini App, the fixed 4-tab dock sits outside the page
    flow. The legal footer is a sibling of the app shell, so padding only
    ".page" did not keep its final links above the dock. */
-body:has(.tt-telegram-bottom) .tt-legal-footer{
+body:has(.tt-telegram-bottom) > footer.tt-legal-footer{
   box-sizing:border-box;
-  margin-bottom:calc(136px + env(safe-area-inset-bottom))!important;
-}
-@media(max-width:540px){
-  body:has(.tt-telegram-bottom) .tt-legal-footer{
-    margin-bottom:calc(144px + env(safe-area-inset-bottom))!important;
-  }
+  /* Padding contributes to scrollHeight. A bottom margin on the last
+     <body> child can collapse, leaving final links under the fixed dock. */
+  margin-bottom:0!important;
+  padding-bottom:calc(156px + env(safe-area-inset-bottom, 0px))!important;
 }
