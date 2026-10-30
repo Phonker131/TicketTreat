@@ -24,7 +24,10 @@ export function BusinessLandingClient(){
     <div className="tt-business-laptop" role="img" aria-label={t.note}><div className="tt-business-laptop-screen">
      <small>TICKETTREAT / ORGANIZER</small><h3>{t.steps[1]}</h3>
      {t.feature.slice(0,3).map((feature,i)=><div className="tt-business-metric" key={i}><span>{String(i+1).padStart(2,"0")}</span>{feature}</div>)}
-     </div><span className="tt-business-laptop-base"/></div>
+     </div><span className="tt-business-laptop-base"/>
+     <div className="tt-business-guest-phone" aria-hidden="true"><span>TICKETTREAT / SAMPLE</span>
+       <img src="/brand/glyph-burst.svg" alt=""/><b>{t.steps[2]}</b></div>
+    </div>
    </div>
   </section>
   <section id="business-how" className="tt-v12-screen tt-business-how"><div className="tt-v12-screen-content">

@@ -300,3 +300,31 @@ html[data-theme="light"] .app-shell .status-muted{
 html[data-theme="light"] :is(a,button,summary,input,select,textarea):focus-visible{
  outline-color:var(--ink)!important
 }
+
+/* R2.1: one instructional phone per mobile view, swipe horizontally between
+   the three steps rather than shrinking all three to unreadable thumbnails. */
+@media(max-width:760px){
+ .tt-v12-phones{display:grid;grid-template-columns:none;grid-auto-flow:column;
+  grid-auto-columns:minmax(0,100%);gap:12px;overflow-x:auto;overflow-y:visible;
+  padding:8px 10px 18px;scroll-snap-type:x mandatory;scrollbar-width:thin;
+  scroll-padding-inline:0;-webkit-overflow-scrolling:touch}
+ .tt-v12-phone-card{scroll-snap-align:center;width:100%;gap:6px}
+ .tt-v12-phone{width:min(62vw,260px);max-height:min(50svh,470px);
+  border:7px solid var(--ink);border-radius:36px}
+ .tt-v12-phone-display{padding:20px 10px 16px;border-radius:27px}
+ .tt-v12-phone-display small{font-size:10px}
+ .tt-v12-device-number{font-size:56px}
+ .tt-v12-phone-card h3{font-size:clamp(29px,7vw,39px)}
+ .tt-v12-phone-card p{font-size:15px;line-height:1.5;max-width:33ch}
+ .tt-v12-phones:focus-visible{outline:3px solid var(--ring);outline-offset:3px}
+}
+.tt-business-hero-grid .tt-business-laptop{overflow:visible}
+.tt-business-guest-phone{position:absolute;width:33%;min-height:45%;
+ right:-4%;bottom:-12%;background:var(--ink);color:var(--paper);
+ border:5px solid var(--ink);border-radius:24px;padding:14px 7px;
+ box-shadow:7px 9px 0 var(--blu);display:grid;justify-items:center;
+ align-content:space-around;gap:6px;transform:rotate(6deg)}
+.tt-business-guest-phone span{font:800 8px var(--m);text-align:center}
+.tt-business-guest-phone img{width:55%;aspect-ratio:1;object-fit:contain}
+.tt-business-guest-phone b{font:900 clamp(15px,2vw,28px)/.95 var(--d);text-transform:uppercase;text-align:center;overflow-wrap:anywhere}
+@media(max-width:650px){.tt-business-hero-grid .tt-business-laptop{margin:0 auto 40px;width:min(88%,470px)}}
