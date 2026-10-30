@@ -163,7 +163,11 @@
  .tt-business-header-actions{gap:4px}
 }
 @media(max-width:380px){
- .tt-business-logo,.tt-business-logo img{width:95px}
+ .tt-business-logo,.tt-business-logo img{width:80px}
+ .tt-business-header-content{gap:2px;padding:0 7px}
+ .tt-business-header-actions{gap:2px}
+ .tt-business-signin{font-size:10px;padding:6px}
+ .tt-business-menu-toggle{min-width:40px;width:40px}
  .tt-business-header-actions .tt-theme-toggle{width:40px;height:40px;min-width:40px}
  .tt-business-signin{font-size:11px;padding:7px}
  .tt-night-home .tt-night-hero h1{font-size:clamp(45px,11.5vw,56px)}
