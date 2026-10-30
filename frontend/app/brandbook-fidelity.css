@@ -646,3 +646,16 @@ body:has(.tt-telegram-bottom) > footer.tt-legal-footer{
 @media(prefers-reduced-motion:reduce){
   .app-shell .form-stack .event-language-options .event-language-option{transition:none!important}
 }
+
+/* In the Telegram Mini App, the fixed 4-tab dock sits outside the page
+   flow. The legal footer is a sibling of the app shell, so padding only
+   ".page" did not keep its final links above the dock. */
+body:has(.tt-telegram-bottom) .tt-legal-footer{
+  box-sizing:border-box;
+  margin-bottom:calc(104px + env(safe-area-inset-bottom))!important;
+}
+@media(max-width:540px){
+  body:has(.tt-telegram-bottom) .tt-legal-footer{
+    margin-bottom:calc(112px + env(safe-area-inset-bottom))!important;
+  }
+}

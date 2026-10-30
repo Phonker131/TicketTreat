@@ -114,3 +114,23 @@ test("event language selector stays readable and selectable at mobile and deskto
   }
  }
 });
+
+test("Telegram Mini App dock never covers legal footer links on scroll to bottom",async({page})=>{
+ for(const width of [320,390,430]){
+  await page.setViewportSize({width,height:760});
+  await page.goto("/?nostory&lang=en",{waitUntil:"domcontentloaded"});
+  await expect(page.locator(".tt-legal-footer")).toBeVisible();
+  await page.evaluate(()=>{
+    document.body.insertAdjacentHTML("beforeend",`<nav class="tt-telegram-bottom" id="test-dock"><a href="/">Events</a><a href="/tickets">My tickets</a><a href="/loyalty">Rewards</a><a href="/profile">My profile</a></nav>`);
+  });
+  await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));
+  await expect.poll(()=>page.evaluate(()=>{
+    const footer=document.querySelector(".tt-legal-footer")!;
+    const last=footer.querySelector("nav a:last-of-type")!;
+    const dock=document.querySelector("#test-dock")!;
+    return Math.round(dock.getBoundingClientRect().top-last.getBoundingClientRect().bottom);
+  })).toBeGreaterThan(5);
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+  await page.locator("#test-dock").evaluate(el=>el.remove());
+ }
+});
