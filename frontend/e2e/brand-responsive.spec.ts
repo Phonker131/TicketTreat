@@ -579,6 +579,12 @@ for(const [width,height,theme] of [
     await page.setViewportSize({width,height});
     await page.addInitScript(t=>localStorage.setItem("tt4-theme",t),theme);
     await page.goto("/?nostory&lang=en",{waitUntil:"domcontentloaded"});
+    // First-visit consent banner legitimately covers the lower viewport;
+    // test the footer after an explicit user rejection, as in the screenshot.
+    const banner=page.getByTestId("tt-cookie-banner");
+    await expect(banner).toBeVisible();
+    await banner.getByRole("button",{name:"Reject optional"}).click();
+    await expect(banner).toHaveCount(0);
     const footer=page.locator("body > footer.tt-legal-footer");
     await expect(footer).toBeVisible();
     const normalMargin=await footer.evaluate(el=>parseFloat(getComputedStyle(el).marginBottom));
