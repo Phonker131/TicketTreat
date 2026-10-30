@@ -473,10 +473,19 @@ html[data-theme] .app-shell .tt-analytics-dashboard .panel a.tt-analytics-task:f
   .topbar .topbar-inner{
     width:calc(100% - 24px);
     min-height:70px;
-    flex-wrap:nowrap;
+    flex-wrap:wrap;
     align-items:center;
     gap:5px;
     padding:8px 0;
+  }
+  /* The expandable nav must occupy its own full-width flex row. Keeping
+     nowrap made the open menu push the logo and links off-screen. */
+  .topbar .topbar-nav{
+    order:3;
+    flex:0 0 100%;
+    width:100%;
+    min-width:0;
+    max-width:100%;
   }
   .topbar .wordmark{flex:0 1 auto;min-width:0;max-width:140px}
   .topbar .wordmark-logo{width:clamp(104px,29vw,140px);max-width:100%;height:auto}
