@@ -195,3 +195,25 @@ html[data-theme="light"] .tt-v12-levels{background:var(--ink);color:var(--paper)
 .tt-example-stamp{position:absolute;right:15px;top:15px;transform:rotate(7deg);font:800 12px var(--m);padding:7px 10px;border:2px solid var(--ink);background:var(--yel);color:var(--ink)}
 html[data-theme="light"] .tt-example-ticket{border-color:var(--edge)}
 @media(max-width:480px){.tt-example-ticket{min-height:340px;padding:23px}.tt-example-ticket h3{font-size:58px}}
+
+/* Empty loyalty stays at zero and never increments the actual passport. */
+.tt-loyalty-empty{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin:25px 0;padding:clamp(25px,4vw,45px);border:2px solid var(--theme-line);border-radius:var(--r-card);background:var(--surface);color:var(--fg)}
+.tt-loyalty-empty .tt-example-stamp{position:absolute;top:12px;right:12px;background:var(--yel);color:var(--ink);border:2px solid var(--ink);padding:5px 9px;transform:rotate(6deg);font:800 12px var(--m)}
+.tt-loyalty-empty h2{font:900 clamp(45px,7vw,79px)/.92 var(--d);text-transform:uppercase;margin:15px 0}
+.tt-loyalty-empty p{font:500 17px/1.6 var(--u);max-width:45ch}
+.tt-loyalty-empty-how h3{font:900 clamp(30px,4vw,45px)/1 var(--d);text-transform:uppercase}
+.tt-loyalty-empty-how li{margin-bottom:10px;font:600 15px/1.55 var(--u)}
+.tt-loyalty-example-progress{display:flex;gap:8px;margin:30px 0 13px}
+.tt-loyalty-example-progress span{height:13px;flex:1;border:2px dashed var(--theme-line);border-radius:5px}
+.tt-loyalty-stamp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0 25px}
+.tt-loyalty-stamp-grid>div{position:relative;aspect-ratio:1;border:2px dashed var(--theme-line);border-radius:12px;display:grid;place-items:center;min-width:0;overflow:hidden}
+.tt-loyalty-stamp-grid>div.is-sample{border:2px solid var(--tom)}
+.tt-loyalty-stamp-grid img{width:65%;height:65%;object-fit:contain}
+.tt-loyalty-stamp-grid small{position:absolute;bottom:2px;background:var(--yel);padding:3px 5px;color:var(--ink);font:800 10px var(--m)}
+.tt-loyalty-stamp-grid span{font:900 45px var(--d);opacity:.4}
+.tt-organizer-ghost-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:30px 0}
+.tt-organizer-ghost{border:2px dashed var(--theme-line);background:var(--surface);color:var(--fg);min-height:200px;display:grid;align-content:center;justify-items:start;padding:clamp(20px,3vw,35px);border-radius:var(--r-card);gap:8px}
+.tt-organizer-ghost>span{font:900 50px var(--d)}
+.tt-organizer-ghost h2{font:900 32px/1 var(--d);text-transform:uppercase;margin:0}
+.tt-organizer-ghost p{font:500 15px/1.5 var(--u);margin:0}
+@media(max-width:700px){.tt-loyalty-empty,.tt-organizer-ghost-grid{grid-template-columns:minmax(0,1fr)}}
