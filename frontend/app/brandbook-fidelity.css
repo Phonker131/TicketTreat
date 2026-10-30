@@ -267,3 +267,87 @@ html[data-theme="light"] .tt-night-home :is(.event-card-poster,.event-card-accen
   border:2px solid var(--edge);
   outline:2px solid var(--edge);
 }
+
+/* Mobile navigation button — 2026-10-30.
+   Override the legacy broad paper pill. Keep the visible control compact,
+   and retain its descriptive aria-label for screen readers. */
+@media(max-width:1199px){
+  .topbar .topbar-menu-toggle{
+    box-sizing:border-box;
+    display:inline-flex;
+    width:44px;
+    min-width:44px;
+    max-width:44px;
+    height:44px;
+    min-height:44px;
+    max-height:44px;
+    flex:0 0 44px;
+    align-items:center;
+    justify-content:center;
+    gap:0;
+    margin:0;
+    padding:0!important;
+    border:2px solid var(--theme-line,var(--line));
+    border-radius:13px;
+    background:var(--surface-2,var(--ink3));
+    color:var(--fg,var(--paper));
+    box-shadow:none;
+    font-size:0;
+    line-height:1;
+    overflow:visible;
+    transition:background-color 180ms ease,color 180ms ease,border-color 180ms ease,transform 180ms ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .topbar .topbar-menu-toggle>.topbar-menu-label{display:none!important}
+  .topbar .topbar-menu-icon{
+    display:block;
+    position:relative;
+    flex:0 0 20px;
+    width:20px;
+    height:20px;
+    color:inherit;
+  }
+  .topbar .topbar-menu-icon>span{
+    position:absolute;
+    left:1px;
+    width:18px;
+    height:2.5px;
+    border-radius:999px;
+    background:currentColor!important;
+    transform-origin:center;
+  }
+  .topbar .topbar-menu-icon>span:nth-child(1){top:3px}
+  .topbar .topbar-menu-icon>span:nth-child(2){top:9px}
+  .topbar .topbar-menu-icon>span:nth-child(3){top:15px}
+  .topbar .topbar-menu-toggle:hover:not(:disabled){
+    border-color:var(--tom);
+  }
+  .topbar .topbar-menu-toggle[aria-expanded="true"],
+  .topbar .topbar-menu-toggle[aria-expanded="true"]:hover{
+    background:var(--tom)!important;
+    border-color:var(--tom)!important;
+    color:var(--ink)!important;
+    box-shadow:none;
+  }
+  .topbar .topbar-menu-toggle:focus-visible{
+    outline:3px solid var(--tom);
+    outline-offset:3px;
+  }
+  .topbar .topbar-menu-toggle:active:not(:disabled){
+    transform:translateY(1px);
+    box-shadow:none;
+  }
+  html[data-theme="light"] .topbar .topbar-menu-toggle:not([aria-expanded="true"]){
+    background:var(--ink)!important;
+    border-color:var(--ink)!important;
+    color:var(--paper)!important;
+  }
+  html[data-theme="light"] .topbar .topbar-menu-toggle[aria-expanded="true"]{
+    background:var(--tom)!important;
+    border-color:var(--ink)!important;
+    color:var(--ink)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .topbar .topbar-menu-toggle{transition:none!important}
+}

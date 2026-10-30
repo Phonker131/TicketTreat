@@ -523,3 +523,47 @@ for(const mode of ["dark","light"] as const){
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(321);
  });
 }
+
+
+for(const theme of ["dark","light"] as const){
+  for(const width of [320,390,768,1024,1199]){
+    test(`compact brand menu button: ${theme}, ${width}px`,async({page})=>{
+      await page.setViewportSize({width,height:844});
+      await page.addInitScript((mode)=>localStorage.setItem("tt4-theme",mode),theme);
+      await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
+      const button=page.locator(".topbar-menu-toggle");
+      await expect(button).toBeEnabled();
+      await expect(button).toHaveAttribute("aria-label","Open menu");
+      await expect(button.locator(".topbar-menu-label")).toBeHidden();
+      const dims=await button.evaluate(el=>{
+        const rect=el.getBoundingClientRect();
+        const icon=el.querySelector(".topbar-menu-icon")!.getBoundingClientRect();
+        return {x:rect.x,width:rect.width,height:rect.height,centerErrorX:Math.abs((icon.left+icon.width/2)-(rect.left+rect.width/2)),centerErrorY:Math.abs((icon.top+icon.height/2)-(rect.top+rect.height/2))};
+      });
+      expect(dims.width).toBeCloseTo(44,0);
+      expect(dims.height).toBeCloseTo(44,0);
+      expect(dims.x).toBeGreaterThanOrEqual(0);
+      expect(dims.x+dims.width).toBeLessThanOrEqual(width+1);
+      expect(dims.centerErrorX).toBeLessThanOrEqual(1.5);
+      expect(dims.centerErrorY).toBeLessThanOrEqual(1.5);
+      await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+      const colors=await button.evaluate(el=>{
+        const s=getComputedStyle(el);
+        const getRgb=(color:string)=>[...(color.matchAll(/[\d.]+/g))].map(x=>Number(x[0])).slice(0,3);
+        const lum=(rgb:number[])=>{
+          const a=rgb.map(n=>{const v=n/255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4)});
+          return .2126*a[0]+.7152*a[1]+.0722*a[2];
+        };
+        const fg=lum(getRgb(s.color)),bg=lum(getRgb(s.backgroundColor));
+        return (Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
+      });
+      expect(colors).toBeGreaterThanOrEqual(4.5);
+      await button.click();
+      await expect(button).toHaveAttribute("aria-expanded","true");
+      await expect(page.locator("#tt-primary-nav")).toBeVisible();
+      await expect(button).toHaveCSS("background-color","rgb(255, 85, 51)");
+      await page.keyboard.press("Escape");
+      await expect(button).toHaveAttribute("aria-expanded","false");
+    });
+  }
+}
