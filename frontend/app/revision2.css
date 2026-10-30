@@ -1,0 +1,46 @@
+/* TicketTreat handoff revision 2: theme role variables and light-mode parity. */
+:root{--tt-ink-2:#1E1D2B;--tt-ink-3:#2B2A3A;--tt-line:#3A3949;--tt-mute:#A9A6B3;--tt-text-soft:#55525C;--tt-field:#FBF9F4}
+html[data-theme="dark"],html[data-theme="night"]{
+ --bg:#15141F;--fg:#F0EBE1;--fg-mute:#A9A6B3;--surface:#1E1D2B;--surface-2:#2B2A3A;--theme-line:#3A3949;
+ --edge:transparent;--section-alt:#F0EBE1;--ring:#F0EBE1;--btn-bg:#FF5533;--btn-fg:#15141F;--btn-plate:#F0EBE1;color-scheme:dark;
+}
+html[data-theme="light"],html[data-theme="paper"]{
+ --bg:#F0EBE1;--fg:#15141F;--fg-mute:#55525C;--surface:#FBF9F4;--surface-2:#E6DFD1;--theme-line:rgba(21,20,31,.45);
+ --edge:#15141F;--section-alt:#E6DFD1;--ring:#15141F;--btn-bg:#15141F;--btn-fg:#F0EBE1;--btn-plate:#FF5533;color-scheme:light;
+}
+html,body,.app-shell,.tt-night-home{background:var(--bg,var(--ink));color:var(--fg,var(--paper))}
+.tt-theme-toggle{width:44px;height:44px;min-width:44px;border:2px solid var(--theme-line,var(--line));background:var(--surface,var(--ink2));color:var(--fg,var(--paper));border-radius:50%;cursor:pointer;display:grid;place-items:center;font:700 27px/1 var(--u)}
+.tt-theme-toggle:focus-visible{outline:3px solid var(--ring,var(--paper));outline-offset:3px}
+html[data-theme="light"] .app-shell:not(:has(.admin-heading,.admin-event-actions,.admin-dashboard,.tt-analytics-dashboard,.organizer-editor)) .page,
+html[data-theme="light"] .tt-night-home{background:var(--bg);color:var(--fg)}
+html[data-theme="light"] .tt-night-home .tt-night-hero{background:var(--bg);color:var(--fg)}
+html[data-theme="light"] .tt-night-home :is(.tt-night-hero h1,.section-heading h2,.tt-night-intro,.tt-night-steps li){color:var(--fg)}
+html[data-theme="light"] .tt-night-home .tt-night-kicker,
+html[data-theme="light"] .tt-night-home .section-heading p:not(.tt-night-kicker){color:var(--fg-mute)}
+html[data-theme="light"] .tt-night-home .tt-night-events{border-color:var(--theme-line)}
+html[data-theme="light"] .tt-night-home .event-card{background:var(--bg);color:var(--fg)}
+html[data-theme="light"] .tt-night-home .event-card :is(h2,h3,.event-card-meta){color:var(--fg)}
+html[data-theme="light"] .app-shell :is(.panel,.state-card,.ticket-row,.detail-item,.tt-faq-item,.tt-faq-help){background:var(--surface);color:var(--fg);border:1px solid var(--edge)}
+html[data-theme="light"] .app-shell :is(.panel,.state-card,.ticket-row) :is(h1,h2,h3,p,small,.form-note){color:var(--fg)}
+html[data-theme="light"] .app-shell :is(.section-heading h1,.section-heading h2,.section-heading p){color:var(--fg)}
+html[data-theme="light"] .app-shell .panel a:not(.button){color:var(--fg)}
+html[data-theme="light"] .app-shell :is(input,textarea,select){background:var(--surface);color:var(--fg);border-color:var(--theme-line)}
+html[data-theme="light"] .app-shell :is(.button-secondary,.button-outline){background:var(--bg);color:var(--fg);border:2px solid var(--fg)}
+html[data-theme="light"] .app-shell .button-primary{background:var(--btn-bg);color:var(--btn-fg);border-color:var(--edge);box-shadow:4px 5px 0 var(--btn-plate)}
+html[data-theme="light"] .topbar{background:var(--bg)!important;color:var(--fg)!important;border-color:var(--theme-line)!important}
+html[data-theme="light"] .topbar-nav a{color:var(--fg)!important}
+html[data-theme="light"] .topbar-menu-toggle{background:var(--fg)!important;color:var(--bg)!important}
+html[data-theme="light"] .topbar .topbar-menu-icon span{background:currentColor!important}
+html[data-theme="light"] .language-flag-trigger{border-color:var(--edge);background:var(--surface);color:var(--fg)}
+html[data-theme="light"] .tt-legal-footer{background:var(--surface)!important;color:var(--fg)!important;border-color:var(--theme-line)!important}
+html[data-theme="light"] .tt-legal-footer :is(a,button){color:var(--fg)!important}
+html[data-theme="light"] .tt-discovery-chip:not(.is-selected){background:var(--surface);color:var(--fg);border-color:var(--theme-line)}
+html[data-theme="light"] :is(.tt-discovery-label,.tt-swipe-hint){color:var(--fg-mute)}
+html[data-theme="light"] :is(.tt-night-poster,.tt-night-event .tt-night-poster,.tt-tier-print){border:2px solid var(--edge)}
+html[data-theme="light"] .app-shell .tt-pass :is(h1,h2,p,small){color:var(--ink)}
+@media(max-width:1199px){
+ html[data-theme="light"] .topbar #tt-primary-nav{background:var(--bg);border-color:var(--theme-line)}
+ html[data-theme="light"] .topbar #tt-primary-nav a:not([aria-current="page"]){background:var(--surface)!important;color:var(--fg)!important;border:2px solid var(--edge)!important}
+ html[data-theme="light"] .topbar #tt-primary-nav a[aria-current="page"]{background:var(--yel)!important;color:var(--ink)!important}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}}
