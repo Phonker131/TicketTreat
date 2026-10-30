@@ -46,11 +46,11 @@ html[data-theme="light"] .app-shell .tt-pass :is(h1,h2,p,small){color:var(--ink)
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}}
 
 /* Handoff R2.1: spacious single-purpose full viewport chapters. */
-.tt-v12-screen{min-height:calc(100svh - 72px);display:grid;align-content:center;padding:clamp(20px,4svh,48px) max(16px,calc((100vw - var(--maxw))/2));overflow-x:clip;scroll-snap-align:start;scroll-margin-top:72px}
-.tt-v12-screen-content{width:100%;max-width:var(--maxw);margin:0 auto}
+.tt-v12-screen{min-height:calc(100svh - 72px);display:grid;grid-template-columns:minmax(0,1fr);align-content:center;padding:clamp(20px,4svh,48px) max(16px,calc((100vw - var(--maxw))/2));overflow-x:clip;scroll-margin-top:72px}
+.tt-v12-screen-content{min-width:0;width:100%;max-width:var(--maxw);margin:0 auto}
 .tt-v12-screen .tt-v12-intro{max-width:680px;margin-bottom:clamp(20px,4svh,48px)}
 .tt-v12-intro>span{font:700 12px/1.5 var(--m);letter-spacing:.08em}
-.tt-v12-intro h2{font:900 clamp(48px,7vw,91px)/.92 var(--d);letter-spacing:-.015em;text-transform:uppercase;margin:15px 0}
+.tt-v12-intro h2{font:900 clamp(48px,7vw,91px)/.92 var(--d);letter-spacing:0;text-transform:uppercase;margin:15px 0}
 .tt-v12-intro p{font:500 clamp(16px,2vw,21px)/1.6 var(--u);max-width:54ch}
 .tt-v12-how{background:var(--section-alt);color:var(--ink)}
 .tt-v12-ticket{background:var(--bg);color:var(--fg)}
@@ -101,7 +101,7 @@ html[data-theme="light"] .tt-v12-levels{background:var(--ink);color:var(--paper)
 .tt-story-stamp{position:absolute;bottom:6px;right:10%;padding:7px 10px;font:800 12px var(--m);background:var(--yel);color:var(--ink);border:2px solid var(--ink);transform:rotate(7deg)}
 .tt-story-copy{text-align:left;min-height:175px}
 .tt-story-copy>p:first-child{font:750 11px var(--m);letter-spacing:.05em;text-transform:uppercase}
-.tt-story-copy h2{font:900 clamp(45px,9vw,70px)/.91 var(--d);text-transform:uppercase;letter-spacing:-.015em;margin:10px 0 14px}
+.tt-story-copy h2{font:900 clamp(45px,9vw,70px)/.91 var(--d);text-transform:uppercase;letter-spacing:0;margin:10px 0 14px}
 .tt-story-copy>p:last-child{font:550 clamp(16px,2vw,19px)/1.6 var(--u);margin:0}
 .tt-story-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding-top:12px}
 .tt-story-nav button{min-height:44px;padding:10px 15px;border:2px solid currentColor;border-radius:9px;background:transparent;color:inherit;font:750 14px var(--u);cursor:pointer}
@@ -131,7 +131,7 @@ html[data-theme="light"] .tt-v12-levels{background:var(--ink);color:var(--paper)
 .tt-business-landing .tt-v12-screen:nth-child(2n+1){background:var(--bg);color:var(--fg)}
 .tt-business-landing .tt-v12-screen:nth-child(2n) :is(h1,h2,h3,p){color:var(--ink)}
 .tt-business-hero-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);align-items:center;gap:clamp(25px,5vw,90px)}
-.tt-business-landing .tt-v12-intro h1{font:900 clamp(62px,8.7vw,126px)/.9 var(--d);letter-spacing:-.02em;text-transform:uppercase;margin:15px 0}
+.tt-business-landing .tt-v12-intro h1{font:900 clamp(62px,8.7vw,126px)/.9 var(--d);letter-spacing:0;text-transform:uppercase;margin:15px 0}
 .tt-business-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}
 .tt-business-actions .button{min-height:48px;display:inline-flex;align-items:center;padding:12px 20px;text-align:center;white-space:normal}
 .tt-business-laptop{position:relative;min-width:0;padding:11px 11px 24px;background:var(--ink);border:3px solid var(--ink);border-radius:16px 16px 0 0;box-shadow:9px 11px 0 var(--blu)}
@@ -233,22 +233,17 @@ html[data-theme="light"] .tt-example-ticket{border-color:var(--edge)}
  .topbar .mode-pill-link{max-width:130px}
 }
 
-/* R2.1: proximity snap on narrative pages, never mandatory. */
-@supports selector(html:has(.tt-night-home)){
- html:has(.tt-night-home),html:has(.tt-business-landing){scroll-snap-type:y proximity}
-}
+/* Narrative sections use ordinary document scrolling, including on iOS. */
 .tt-night-home .tt-night-hero,.tt-night-home .tt-night-events{
  min-height:calc(100svh - 72px);align-content:center;
  padding-block:clamp(20px,4svh,48px);
- scroll-snap-align:start;scroll-margin-top:72px;
+ scroll-margin-top:72px;
 }
 .tt-night-home .tt-night-events{display:grid}
 .tt-night-home .tt-night-hero{display:grid}
-.tt-night-home .tt-home-faq{scroll-snap-align:start}
 @media(max-width:760px){
  .tt-night-home .tt-night-hero,.tt-night-home .tt-night-events{min-height:calc(100svh - 72px);height:auto}
 }
-@media(prefers-reduced-motion:reduce){html:has(.tt-night-home),html:has(.tt-business-landing){scroll-snap-type:none}}
 
 /* R2.2: organizer dashboard also honors the root theme, preserving paper
    documents (tickets, printed-code form) as intentionally distinct surfaces. */
@@ -301,22 +296,18 @@ html[data-theme="light"] :is(a,button,summary,input,select,textarea):focus-visib
  outline-color:var(--ink)!important
 }
 
-/* R2.1: one instructional phone per mobile view, swipe horizontally between
-   the three steps rather than shrinking all three to unreadable thumbnails. */
+/* Keep each instruction and its illustration together in normal mobile flow. */
 @media(max-width:760px){
- .tt-v12-phones{display:grid;grid-template-columns:none;grid-auto-flow:column;
-  grid-auto-columns:minmax(0,100%);gap:12px;overflow-x:auto;overflow-y:visible;
-  padding:8px 10px 18px;scroll-snap-type:x mandatory;scrollbar-width:thin;
-  scroll-padding-inline:0;-webkit-overflow-scrolling:touch}
- .tt-v12-phone-card{scroll-snap-align:center;width:100%;gap:6px}
- .tt-v12-phone{width:min(62vw,260px);max-height:min(50svh,470px);
-  border:7px solid var(--ink);border-radius:36px}
- .tt-v12-phone-display{padding:20px 10px 16px;border-radius:27px}
+ .tt-v12-phones{grid-template-columns:minmax(0,1fr);gap:32px;padding:8px 10px 18px}
+ .tt-v12-phone-card{width:100%;min-width:0;gap:6px}
+ .tt-v12-phone{width:min(100%,200px);aspect-ratio:390/844;
+  border:7px solid var(--ink);border-radius:30px}
+ .tt-v12-phone-display{padding:20px 10px 16px;border-radius:21px}
  .tt-v12-phone-display small{font-size:10px}
  .tt-v12-device-number{font-size:56px}
- .tt-v12-phone-card h3{font-size:clamp(29px,7vw,39px)}
- .tt-v12-phone-card p{font-size:15px;line-height:1.5;max-width:33ch}
- .tt-v12-phones:focus-visible{outline:3px solid var(--ring);outline-offset:3px}
+ .tt-v12-phone-display img{width:64px;height:64px;flex-shrink:0}
+ .tt-v12-phone-card h3{font-size:clamp(29px,7vw,36px);margin:16px 0 0}
+ .tt-v12-phone-card p{font-size:15px;line-height:1.5;max-width:33ch;margin:0}
 }
 .tt-business-hero-grid .tt-business-laptop{overflow:visible}
 .tt-business-guest-phone{position:absolute;width:33%;min-height:45%;

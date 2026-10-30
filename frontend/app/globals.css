@@ -175,7 +175,7 @@ button {
   margin: 0;
   font-size: clamp(32px, 8vw, 64px);
   line-height: 0.98;
-  letter-spacing: -0.04em;
+  letter-spacing:0;
   font-weight: 900;
 }
 
@@ -202,7 +202,7 @@ button {
 .join-card h2 {
   margin: 0;
   font-size: 25px;
-  letter-spacing: -0.02em;
+  letter-spacing:0;
 }
 
 .section-heading p {
@@ -262,7 +262,7 @@ button {
   margin: 12px 0 6px;
   font-size: 22px;
   line-height: 1.08;
-  letter-spacing: -0.025em;
+  letter-spacing:0;
 }
 
 .event-card-location,
@@ -556,7 +556,7 @@ button {
   margin: 10px 0 6px;
   font-size: clamp(32px, 7vw, 52px);
   line-height: 1;
-  letter-spacing: -.035em;
+  letter-spacing:0;
 }
 .checkout-header p, .admin-heading p { color: var(--muted); margin: 0; }
 

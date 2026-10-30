@@ -14,7 +14,7 @@ export function GuidedSections({language}:{language:LanguageCode}){
   <section className="tt-v12-screen tt-v12-how" id="how" aria-labelledby="tt-how-title">
     <div className="tt-v12-screen-content">
       <div className="tt-v12-intro"><span>02 / HOW</span><h2 id="tt-how-title">{t.how}</h2><p>{t.howSub}</p></div>
-      <div className="tt-v12-phones" role="region" aria-label={t.how} tabIndex={0}>
+      <div className="tt-v12-phones" role="region" aria-label={t.how}>
        {t.steps.map((step,i)=><div className="tt-v12-phone-card" key={step}>
           <div className="tt-v12-phone" aria-hidden="true">
            <i className="tt-v12-camera"/>
