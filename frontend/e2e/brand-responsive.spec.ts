@@ -587,8 +587,8 @@ for(const [width,height,theme] of [
     await expect(banner).toHaveCount(0);
     const footer=page.locator("body > footer.tt-legal-footer");
     await expect(footer).toBeVisible();
-    const normalMargin=await footer.evaluate(el=>parseFloat(getComputedStyle(el).marginBottom));
-    expect(normalMargin).toBeLessThanOrEqual(40);
+    const normalPadding=await footer.evaluate(el=>parseFloat(getComputedStyle(el).paddingBottom));
+    expect(normalPadding).toBeLessThanOrEqual(40);
     // Inject only the fixed nav (same class and intrinsic item size as the
     // AppHeader mini app). The tested CSS depends exclusively on its presence.
     await page.evaluate(()=>{
@@ -602,7 +602,7 @@ for(const [width,height,theme] of [
     });
     const nav=page.locator(".tt-telegram-bottom");
     await expect(nav).toBeVisible();
-    await expect.poll(()=>footer.evaluate(el=>parseFloat(getComputedStyle(el).marginBottom)))
+    await expect.poll(()=>footer.evaluate(el=>parseFloat(getComputedStyle(el).paddingBottom)))
       .toBeGreaterThan(120);
     await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:"instant"}));
     await expect.poll(()=>page.evaluate(()=>{
