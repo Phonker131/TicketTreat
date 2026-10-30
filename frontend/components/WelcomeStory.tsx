@@ -110,7 +110,7 @@ export function WelcomeStory({language}:{language:LanguageCode}){
     <button type="button" className="tt-story-close" onClick={close} aria-label={t.skip}>× <span>{t.skip}</span></button>
     <div className="tt-story-illustration" aria-hidden="true">
       <span className="tt-story-print-num">{String(page+1).padStart(2,"0")}</span>
-      <div className="tt-story-device"><img src={page===0||page===8?"/brand/glyph-burst.svg":page===3?"/brand/glyph-stairs.svg":page===4||page===7?"/brand/glyph-ticket.svg":page===5?"/brand/glyph-arrow.svg":"/brand/glyph-dots.svg"} alt="" /></div>
+      <div className="tt-story-device"><img src={page===0||page===8?"/brand/glyph-burst.svg":page===3?"/brand/glyph-cross.svg":page===4||page===7?"/brand/glyph-burst.svg":page===5?"/brand/glyph-plus.svg":"/brand/glyph-asterisk.svg"} alt="" /></div>
       <span className="tt-story-stamp">TICKETTREAT</span>
     </div>
     <div className="tt-story-copy"><p>{slide.step}</p><h2>{slide.title}</h2><p>{slide.text}</p></div>
