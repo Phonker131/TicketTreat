@@ -403,7 +403,7 @@ test("brandbook discovery: accessible feed, swipe and schematic map with mood fi
   await expect(page.getByRole("button",{name:"Swipe",exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"Map",exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"Feed",exact:true})).toBeVisible();
-  await expect(page.getByText("Prague Quiz Night")).toBeVisible();
+  await expect(page.locator(".tt-discovery").getByText("Prague Quiz Night").first()).toBeVisible();
   await page.getByRole("button",{name:"Swipe",exact:true}).click();
   const swipe=page.getByRole("group",{name:"Prague Quiz Night"});
   await expect(swipe).toBeVisible();
@@ -412,12 +412,12 @@ test("brandbook discovery: accessible feed, swipe and schematic map with mood fi
   await expect(page.getByText("No more posters")).toBeVisible();
   await page.getByRole("button",{name:"Map",exact:true}).click();
   await expect(page.getByRole("img",{name:"Prague schematic, not a navigation map."})).toBeVisible();
-  await expect(page.getByText("Prague Quiz Night")).toBeVisible();
+  await expect(page.locator(".tt-discovery").getByText("Prague Quiz Night").first()).toBeVisible();
   await page.getByRole("button",{name:"Meet people",exact:true}).click();
   await expect(page.getByText("No events match this mood.")).toBeVisible();
   await page.getByRole("button",{name:"Anything",exact:true}).click();
   await page.getByRole("button",{name:"Feed",exact:true}).click();
-  await expect(page.getByText("Prague Quiz Night")).toBeVisible();
+  await expect(page.locator(".tt-discovery").getByText("Prague Quiz Night").first()).toBeVisible();
 });
 
 test("venue-local countdown parses Prague wall time and UTC offsets correctly",()=>{
@@ -504,7 +504,7 @@ test("organizer tutorial uses seven chapters and accessible keyboard tabs",async
  const tabs=page.getByRole("tablist").getByRole("tab");
  await expect(tabs).toHaveCount(3);
  // Wait for hydration before sending keys to React event handlers.
- await expect(page.locator(".topbar-menu-toggle")).toBeEnabled();
+ await expect(page.locator(".tt-business-menu-toggle")).toBeVisible();
  await tabs.first().focus();
  await page.keyboard.press("ArrowRight");
  await expect(tabs.nth(1)).toHaveAttribute("aria-selected","true");

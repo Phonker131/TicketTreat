@@ -13,6 +13,8 @@ for(const theme of ["dark","light"] as const){
     const oversized=await page.locator("main h1,main h2,main h3").evaluateAll(els=>els.filter(el=>{
       const r=el.getBoundingClientRect();
       // only visible headings; wrapping must not leak outside the page.
+      // Neighboring slides in a horizontally scrollable tutorial are not page overflow.
+      if(el.closest(".tt-v12-phones,.tt-example-ticket-tray"))return false;
       return r.width>0 && (r.left< -2 || r.right>window.innerWidth+2);
     }).map(el=>({text:el.textContent?.slice(0,65),rect:el.getBoundingClientRect().toJSON()})));
     expect(oversized,path+" heading bounds").toEqual([]);
