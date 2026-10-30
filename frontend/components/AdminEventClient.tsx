@@ -419,9 +419,13 @@ export function AdminEventClient(){
         </label>
         <fieldset className="event-language-fieldset"><legend>{tr("Языки")}</legend>
         <div className="event-language-options">
-          {([["en","🇬🇧 English"],["cs","🇨🇿 Čeština"],["ru","🇷🇺 Русский"],["uk","🇺🇦 Українська"]] as const).map(([id,label])=>
-            <label key={id}><input type="checkbox" checked={languages.includes(id)}
-              onChange={e=>setLanguages(s=>e.target.checked?[...s,id]:s.filter(x=>x!==id))}/>{label}</label>)}
+          {([["en","🇬🇧","English"],["cs","🇨🇿","Čeština"],["ru","🇷🇺","Русский"],["uk","🇺🇦","Українська"]] as const).map(([id,flag,name])=>
+            <label className="event-language-option" key={id}>
+              <input type="checkbox" checked={languages.includes(id)}
+                onChange={e=>setLanguages(s=>e.target.checked?[...s,id]:s.filter(x=>x!==id))}/>
+              <span className="event-language-flag" aria-hidden="true">{flag}</span>
+              <span className="event-language-name">{name}</span>
+            </label>)}
         </div></fieldset>
         <label>{tr("Новый постер (необязательно)")}<input type="file" accept="image/png,image/jpeg,image/webp"
           onChange={e=>setPoster(e.target.files?.[0]||null)}/></label>

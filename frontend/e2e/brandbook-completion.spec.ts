@@ -56,3 +56,61 @@ test("sample tickets do not present a QR code as real admission",async({page})=>
   await expect(tray).toContainText("Not a valid");
  }
 });
+
+
+test("event language selector stays readable and selectable at mobile and desktop widths",async({page})=>{
+ for(const mode of ["dark","light"] as const)for(const width of [320,375,390,430,768,1280]){
+  await page.setViewportSize({width,height:844});
+  await page.addInitScript(t=>localStorage.setItem("tt4-theme",t),mode);
+  await page.goto("/?nostory&lang=en",{waitUntil:"domcontentloaded"});
+  await expect(page.locator(".topbar-menu-toggle")).toBeEnabled();
+  await page.evaluate(()=>{
+   const shell=document.querySelector(".app-shell");
+   if(!shell)throw Error("Missing app shell");
+   shell.insertAdjacentHTML("beforeend",`<form class="panel form-stack" id="language-test-fixture">
+     <fieldset class="event-language-fieldset"><legend>Event languages</legend>
+      <div class="event-language-options">
+       <label class="event-language-option"><input type="checkbox" name="languages" value="en" checked><span class="event-language-flag" aria-hidden="true">🇬🇧</span><span class="event-language-name">English</span></label>
+       <label class="event-language-option"><input type="checkbox" name="languages" value="cs"><span class="event-language-flag" aria-hidden="true">🇨🇿</span><span class="event-language-name">Čeština</span></label>
+       <label class="event-language-option"><input type="checkbox" name="languages" value="ru" checked><span class="event-language-flag" aria-hidden="true">🇷🇺</span><span class="event-language-name">Русский</span></label>
+       <label class="event-language-option"><input type="checkbox" name="languages" value="uk"><span class="event-language-flag" aria-hidden="true">🇺🇦</span><span class="event-language-name">Українська</span></label>
+      </div></fieldset></form>`);
+  });
+  const fixture=page.locator("#language-test-fixture");
+  await expect(fixture.locator("label")).toHaveCount(4);
+  const boxes=fixture.locator('input[type="checkbox"]');
+  await expect(boxes.nth(0)).toBeChecked();
+  await expect(boxes.nth(1)).not.toBeChecked();
+  await fixture.getByText("Čeština").click();
+  await expect(boxes.nth(1)).toBeChecked();
+  await fixture.getByText("Čeština").click();
+  await expect(boxes.nth(1)).not.toBeChecked();
+  const metrics=await fixture.evaluate((el)=>{
+   const rows=[...el.querySelectorAll(".event-language-option")];
+   const info=rows.map(row=>{
+    const box=row.querySelector("input")!.getBoundingClientRect();
+    const label=row.querySelector(".event-language-name")!.getBoundingClientRect();
+    const container=row.getBoundingClientRect();
+    const style=getComputedStyle(row);
+    return {bw:box.width,bh:box.height,lw:label.width,lh:label.height,
+      contained:box.left>=container.left&&label.right<=container.right+1,
+      flex:style.display==="flex"};
+   });
+   const field=el.querySelector(".event-language-fieldset")!.getBoundingClientRect();
+   return {info,fieldWidth:field.width,inView:field.left>=-1&&field.right<=innerWidth+1,
+           noOverflow:document.documentElement.scrollWidth<=innerWidth+1};
+  });
+  expect(metrics.noOverflow,`${mode}, ${width}`).toBe(true);
+  expect(metrics.inView).toBe(true);
+  for(const row of metrics.info){
+   expect(row.bw).toBeGreaterThanOrEqual(20);
+   expect(row.bw).toBeLessThanOrEqual(24);
+   expect(row.bh).toBeGreaterThanOrEqual(20);
+   expect(row.bh).toBeLessThanOrEqual(24);
+   expect(row.lw).toBeGreaterThan(75);
+   expect(row.lh).toBeLessThan(30);
+   expect(row.contained).toBe(true);
+   expect(row.flex).toBe(true);
+  }
+ }
+});

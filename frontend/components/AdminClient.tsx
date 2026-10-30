@@ -176,10 +176,12 @@ export function AdminClient() {
           onChange={e=>{const f=e.target.files?.[0];if(!f){setPreview("");return;}if(f.size>4*1024*1024){setError("msg:tooBig");return;}const url=URL.createObjectURL(f);setPreview(url);}}/></label>
         {preview&&<><img className="event-poster-preview" src={preview} alt="Poster preview"/></>}
         <fieldset className="event-language-fieldset"><legend>{tr("Языки ивента")}</legend><div className="event-language-options">
-          <label><input type="checkbox" name="languages" value="en" defaultChecked/>🇬🇧 English</label>
-          <label><input type="checkbox" name="languages" value="cs"/>🇨🇿 Čeština</label>
-          <label><input type="checkbox" name="languages" value="ru" defaultChecked/>🇷🇺 Русский</label>
-          <label><input type="checkbox" name="languages" value="uk"/>🇺🇦 Українська</label>
+          {([["en","🇬🇧","English"],["cs","🇨🇿","Čeština"],["ru","🇷🇺","Русский"],["uk","🇺🇦","Українська"]] as const).map(([id,flag,name])=>
+            <label className="event-language-option" key={id}>
+              <input type="checkbox" name="languages" value={id} defaultChecked={id==="en"||id==="ru"}/>
+              <span className="event-language-flag" aria-hidden="true">{flag}</span>
+              <span className="event-language-name">{name}</span>
+            </label>)}
         </div></fieldset>
         <div className="two-col"><label>{tr("Начало")}<input name="starts_at" type="datetime-local" required/></label>
         <label>{tr("Мест")}<input name="max_participants" type="number" min="1" defaultValue="30" required/></label></div>
