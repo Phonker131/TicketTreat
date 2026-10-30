@@ -567,3 +567,61 @@ for(const theme of ["dark","light"] as const){
     });
   }
 }
+
+/* The footer lives OUTSIDE .app-shell. Verify a simulated Telegram tab bar
+   does not cover the last legal link at scroll-end, including in both themes.
+   No signed Telegram launch data or user session is needed for this layout test. */
+for(const [width,height,theme] of [
+  [320,700,"dark"],[390,844,"dark"],[430,932,"dark"],
+  [390,844,"light"],[768,1024,"dark"]
+] as const){
+  test(`Mini App footer clears pinned nav at scroll-end (${width}px, ${theme})`,async({page})=>{
+    await page.setViewportSize({width,height});
+    await page.addInitScript(t=>localStorage.setItem("tt4-theme",t),theme);
+    await page.goto("/?nostory&lang=en",{waitUntil:"domcontentloaded"});
+    // First-visit consent banner legitimately covers the lower viewport;
+    // test the footer after an explicit user rejection, as in the screenshot.
+    const banner=page.getByTestId("tt-cookie-banner");
+    await expect(banner).toBeVisible();
+    await banner.getByRole("button",{name:"Reject optional"}).click();
+    await expect(banner).toHaveCount(0);
+    const footer=page.locator("body > footer.tt-legal-footer");
+    await expect(footer).toBeVisible();
+    const normalMargin=await footer.evaluate(el=>parseFloat(getComputedStyle(el).marginBottom));
+    expect(normalMargin).toBeLessThanOrEqual(40);
+    // Inject only the fixed nav (same class and intrinsic item size as the
+    // AppHeader mini app). The tested CSS depends exclusively on its presence.
+    await page.evaluate(()=>{
+      const header=document.querySelector(".topbar");
+      if(!header)throw Error("No header");
+      const nav=document.createElement("nav");
+      nav.className="tt-telegram-bottom";
+      nav.setAttribute("aria-label","TicketTreat navigation");
+      nav.innerHTML=Array.from({length:4},(_,i)=>`<a href="/tickets"><span style="width:24px;height:24px;display:block"></span><span>${["Events","My tickets","Rewards","My profile"][i]}</span></a>`).join("");
+      header.appendChild(nav);
+    });
+    const nav=page.locator(".tt-telegram-bottom");
+    await expect(nav).toBeVisible();
+    await expect.poll(()=>footer.evaluate(el=>parseFloat(getComputedStyle(el).marginBottom)))
+      .toBeGreaterThan(120);
+    await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:"instant"}));
+    await expect.poll(()=>page.evaluate(()=>{
+      const finalLink=document.querySelector("body > footer.tt-legal-footer .tt-legal-footer-links a:last-of-type");
+      const bar=document.querySelector(".tt-telegram-bottom");
+      if(!finalLink||!bar)throw Error("Missing footer link or nav");
+      const linkRect=finalLink.getBoundingClientRect(),navRect=bar.getBoundingClientRect();
+      return navRect.top-linkRect.bottom;
+    })).toBeGreaterThanOrEqual(16);
+    const geometry=await page.evaluate(()=>{
+      const link=document.querySelector("body > footer.tt-legal-footer .tt-legal-footer-links a:last-of-type")!;
+      const r=link.getBoundingClientRect();
+      const hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+      return {visible:r.top>=0&&r.bottom<=innerHeight,
+        hit:hit===link||link.contains(hit),
+        overflow:document.documentElement.scrollWidth>innerWidth+1};
+    });
+    expect(geometry.visible).toBe(true);
+    expect(geometry.hit).toBe(true);
+    expect(geometry.overflow).toBe(false);
+  });
+}
