@@ -73,7 +73,29 @@ export function LoyaltyClient(){
   !passport?<div className="state-card">{tr.signin} <Link href="/profile">→</Link></div>:
   <>
    <div className="panel loyalty-overview"><strong>{tr.season}: {passport.season}</strong><span>{tr.total}: {passport.total_lifetime_visits}</span></div>
-   {passport.studios.length===0?<div className="state-card">{tr.empty}</div>:
+   {passport.studios.length===0?<section className="tt-loyalty-empty">
+     <span className="tt-example-stamp">{language==="ru"?"Пример":language==="cs"?"Příklad":language==="uk"?"Приклад":"Example"}</span>
+     <div className="tt-loyalty-empty-main"><h2>{names[language].newcomer}</h2>
+       <p>{language==="ru"?"Уровень и награды появятся после участия у организатора. Визиты считаются только по отметкам на входе.":
+          language==="cs"?"Úroveň a odměny se zobrazí po účasti u pořadatele. Počítají se jen skutečná odbavení.":
+          language==="uk"?"Рівень і нагороди з'являться після участі в організатора. Враховуються лише справжні відмітки на вході.":
+          "Your level and rewards appear after joining an organizer's events. Only actual check-ins count."}</p>
+       <div className="tt-loyalty-example-progress"><span/><span/><span/></div>
+       <strong>{language==="ru"?"Начните с первого визита":language==="cs"?"Začněte první návštěvou":language==="uk"?"Почніть із першого візиту":"Start with your first visit"}</strong>
+     </div>
+     <div className="tt-loyalty-empty-how">
+      <h3>{language==="ru"?"Как получить визит":language==="cs"?"Jak získat návštěvu":language==="uk"?"Як зарахувати візит":"How to earn a visit"}</h3>
+      <ol>
+       <li>{language==="ru"?"Выбери событие":language==="cs"?"Vyberte akci":language==="uk"?"Оберіть подію":"Choose an event"}</li>
+       <li>{language==="ru"?"Получите действительный билет":language==="cs"?"Získejte platnou vstupenku":language==="uk"?"Отримайте дійсний квиток":"Get a valid ticket"}</li>
+       <li>{language==="ru"?"Покажите QR на входе":language==="cs"?"Ukažte QR u vstupu":language==="uk"?"Покажіть QR на вході":"Show your QR at check-in"}</li>
+      </ol>
+      <div className="tt-loyalty-stamp-grid">{Array.from({length:6},(_,i)=><div key={i} className={i===0?"is-sample":""}>
+       {i===0?<><img src="/brand/glyph-burst.svg" alt=""/><small>{language==="ru"?"Пример":language==="cs"?"Příklad":language==="uk"?"Приклад":"Example"}</small></>:<span aria-hidden="true">+</span>}
+      </div>)}</div>
+      <Link href="/" className="button button-primary">{language==="ru"?"Смотреть ивенты":language==="cs"?"Zobrazit akce":language==="uk"?"Переглянути події":"Explore events"} ↗</Link>
+     </div>
+    </section>:
    <div className="loyalty-grid">{passport.studios.map(s=><PassportCard key={s.organizer_id} studio={s} language={language}/>)}</div>}
    <p className="form-note loyalty-explanation">{tr.detail}</p>
   </>}

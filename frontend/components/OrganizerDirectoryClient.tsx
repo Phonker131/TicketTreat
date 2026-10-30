@@ -25,5 +25,12 @@ export function OrganizerDirectoryClient({profiles}:{profiles:OrganizerPublicSum
        <strong className="tt-organizer-link">{t.view} ↗</strong>
      </Link>)}
    </div>:<div className="state-card">{t.empty}</div>}
+   <div className="tt-organizer-ghost-grid" aria-label={t.empty}>
+    {[0,1].map((i)=><div key={i} className="tt-organizer-ghost">
+      <span aria-hidden="true">+</span>
+      <h2>{language==="ru"?"Здесь будет профиль":language==="cs"?"Zde bude profil":language==="uk"?"Тут буде профіль":"A profile will appear here"}</h2>
+      <p>{language==="ru"?"Когда организатор опубликует его.":language==="cs"?"Až jej pořadatel zveřejní.":language==="uk"?"Коли організатор його опублікує.":"Once an organizer publishes it."}</p>
+    </div>)}
+   </div>
  </main></div>;
 }
