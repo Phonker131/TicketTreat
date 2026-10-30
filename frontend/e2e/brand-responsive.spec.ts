@@ -504,7 +504,7 @@ test("organizer tutorial uses seven chapters and accessible keyboard tabs",async
  const tabs=page.getByRole("tablist").getByRole("tab");
  await expect(tabs).toHaveCount(3);
  // Wait for hydration before sending keys to React event handlers.
- await expect(page.locator(".tt-business-menu-toggle")).toBeVisible();
+ await expect(tabs.first()).toBeEnabled();
  await tabs.first().focus();
  await page.keyboard.press("ArrowRight");
  await expect(tabs.nth(1)).toHaveAttribute("aria-selected","true");

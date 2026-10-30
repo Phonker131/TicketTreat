@@ -1,5 +1,5 @@
 "use client";
-import {useState,type FormEvent} from "react";
+import {useEffect,useState,type FormEvent} from "react";
 import {createSupportTicket} from "@/lib/api";
 import {getWebToken} from "@/lib/session";
 import Link from "next/link";
@@ -16,6 +16,8 @@ const words={
 export function BusinessLandingClient(){
  const {language}=useLanguage(),t=words[language];
  const [step,setStep]=useState(0);
+ const [tabsReady,setTabsReady]=useState(false);
+ useEffect(()=>setTabsReady(true),[]);
  const [organization,setOrganization]=useState(""),[contact,setContact]=useState(""),[email,setEmail]=useState(""),[eventTypes,setEventTypes]=useState("");
  const [formState,setFormState]=useState<"idle"|"sending"|"sent">("idle"),[formError,setFormError]=useState("");
  async function sendRequest(e:FormEvent<HTMLFormElement>){
@@ -45,7 +47,7 @@ export function BusinessLandingClient(){
   <section id="business-how" className="tt-v12-screen tt-business-how"><div className="tt-v12-screen-content">
    <div className="tt-v12-intro"><span>02 / HOW</span><h2>{t.how}</h2></div>
    <div className="tt-business-tabs" role="tablist" aria-label={t.how}>
-    {t.steps.map((name,i)=><button key={i} id={"tt-business-tab-"+i} role="tab" type="button" aria-controls="tt-business-panel"
+    {t.steps.map((name,i)=><button key={i} id={"tt-business-tab-"+i} role="tab" type="button" disabled={!tabsReady} aria-controls="tt-business-panel"
       aria-selected={step===i} tabIndex={step===i?0:-1} onClick={()=>setStep(i)}
       onKeyDown={e=>{let next=step;if(e.key==="ArrowRight")next=(step+1)%3;else if(e.key==="ArrowLeft")next=(step+2)%3;else if(e.key==="Home")next=0;else if(e.key==="End")next=2;else return;e.preventDefault();setStep(next);document.getElementById("tt-business-tab-"+next)?.focus()}}>
       <span>{i+1}</span>{name}</button>)}
