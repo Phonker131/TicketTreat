@@ -60,7 +60,7 @@ We did not programmatically change repository rulesets or invite anyone. Those G
 ## Rollback if a UI release breaks
 
 - Prefer **revert the single bad PR on `release/tickettreat-production`**, run CI, merge and verify Railway again. This preserves newer successful changes.
-- For an emergency full source rollback, create a new recovery branch from the saved backup SHA, inspect migration/API compatibility and prepare a reviewed PR. Do **not** blindly force-push production, rewrite SQL history, or overwrite the database.
+- For an emergency full source rollback, branch from the **current release head**, then restore the selected files from `backup/production-2026-10-31-pre-collaboration` using `git restore --source origin/backup/production-2026-10-31-pre-collaboration -- frontend/` (adjust the paths deliberately), commit the restoration and open a reviewed PR. A PR from the old snapshot branch alone will NOT revert newer commits, because it is behind release. Inspect migration/API compatibility and run CI. Do **not** blindly force-push production, rewrite SQL history, or overwrite the database.
 - DB restore is a separate incident operation requiring a verified, encrypted backup and isolated rehearsal; see `docs/PRODUCTION_OPERATIONS.md`.
 
 **Scope:** website UI and design contributions. Platform payments and Apple Wallet stay outside the free-pilot work.
