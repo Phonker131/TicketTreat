@@ -1,0 +1,49 @@
+name: SEO live sitemap HTTP probe
+on:
+  pull_request:
+    branches: [release/tickettreat-production]
+    paths:
+      - '.github/workflows/seo-live-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe public XML from outside Railway with two User-Agents
+        shell: bash
+        run: |
+          set -u
+          for path in sitemap.xml sitemap-diagnostic.xml sitemap-events.xml robots.txt; do
+            for agent in "Mozilla/5.0 (SEO external check)" "Googlebot/2.1 (+http://www.google.com/bot.html)"; do
+              echo "::group::GET /$path; user agent $agent"
+              curl -sS --compressed --connect-timeout 8 --max-time 20 --retry 1 --retry-delay 1 \
+                --user-agent "$agent" \
+                --dump-header /tmp/tt-headers --output /tmp/tt-body \
+                --write-out 'http_code=%{http_code} redirects=%{num_redirects} final_url=%{url_effective} remote_ip=%{remote_ip} downloaded_bytes=%{size_download}\n' \
+                "https://tickettreat.eu/$path"
+              rc=$?
+              echo "curl_exit=$rc"
+              if [ -f /tmp/tt-headers ]; then
+                grep -Ei '^(HTTP/|content-type:|content-length:|location:|cache-control:|server:|x-robots-tag:)' /tmp/tt-headers || true
+              fi
+              if [ -f /tmp/tt-body ]; then
+                python3 - "$path" <<'PY'
+          import sys, pathlib, xml.etree.ElementTree as ET
+          name = sys.argv[1]
+          body = pathlib.Path("/tmp/tt-body").read_bytes()
+          print("body_length=", len(body), "first_bytes=", repr(body[:90]))
+          if name.endswith(".xml"):
+              try:
+                  root=ET.fromstring(body)
+                  locations=[el.text for el in root.findall("{http://www.sitemaps.org/schemas/sitemap/0.9}url/{http://www.sitemaps.org/schemas/sitemap/0.9}loc")]
+                  print("xml_root=",root.tag, "url_count=",len(locations), "url_sample=",locations[:3])
+              except Exception as ex:
+                  print("xml_parse_error=",repr(ex))
+          PY
+              fi
+              echo "::endgroup::"
+            done
+          done
