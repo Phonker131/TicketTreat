@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Email verification, password reset, expiring recovery challenges and session revocation.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant security/DB tests and document migration or rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 """Email ownership verification and password recovery for website accounts.
 
 Codes are hashed at rest; sending is rate limited; password reset revokes all
