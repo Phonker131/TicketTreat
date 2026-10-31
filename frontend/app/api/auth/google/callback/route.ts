@@ -1,3 +1,9 @@
+/* TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+ * Google OAuth callback, redirect validation and secure session establishment.
+ * Do not change casually. Submit a PR and request @Phonker131 approval;
+ * verify auth/security E2E tests and document the impact and recovery.
+ * See docs/CRITICAL_CODE_AREAS.md. Comments are not access controls.
+ */
 import {NextRequest, NextResponse} from "next/server";
 
 export async function GET(req: NextRequest) {
