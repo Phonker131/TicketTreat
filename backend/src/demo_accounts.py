@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Website credentials, account-session hashes and profile identity. Preserve session revocation, password validation and account isolation.
+# Do not change this file casually. Open a PR and request @Phonker131 review;
+# run security/DB integration tests and document migration or rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md (comments alone do not enforce access).
 """Manual website accounts and organizer CSV for the TicketTreat platform.
 
 Separate from Telegram users. New passwords are Argon2id; PBKDF2 legacy
