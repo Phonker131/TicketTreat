@@ -1,6 +1,7 @@
 import {test, expect} from "@playwright/test";
 import robotsParser from "robots-parser";
 import {JSDOM} from "jsdom";
+import {seoImageUrl} from "../lib/seo-image";
 
 const origin = "https://tickettreat.eu";
 const googlebot = "Googlebot/2.1 (+http://www.google.com/bot.html)";
@@ -202,5 +203,16 @@ test("advertised dynamic sitemap fails with retryable 503 and no false empty XML
     expect(sitemapLocations(await stable.text())).toHaveLength(13);
   }finally{
     await request.get("http://127.0.0.1:8100/_fixture/recover-events");
+  }
+});
+
+test("SEO preview images resolve absolute HTTPS URLs without unsafe schemes",()=>{
+  expect(seoImageUrl("/demo/events/42/poster")).toBe("https://tickettreat.eu/demo/events/42/poster");
+  expect(seoImageUrl("https://tickettreat.eu/images/cover.webp")).toBe("https://tickettreat.eu/images/cover.webp");
+  expect(seoImageUrl("https://images.example.test/poster.jpg")).toBe("https://images.example.test/poster.jpg");
+  for(const value of ["", "//evil.test/cover.jpg", "http://example.test/poster.jpg",
+    "javascript:alert(1)", "https://user:password@images.example.test/a.png",
+    "/\\\\evil.test/cover.png", "/path\nheader", "  /poster.png"]){
+    expect(seoImageUrl(value),value).toBeUndefined();
   }
 });
