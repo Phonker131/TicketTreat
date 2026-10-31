@@ -21,7 +21,7 @@ const organizer = {
   slug: "seo-fixture", display_name: "SEO fixture organizer", bio: "SEO fixture bio", city: "Prague",
   website_url: "", instagram: "", logo_url: null, cover_url: null,
 };
-let eventsAvailable=true,organizersAvailable=true;
+let eventsAvailable=true,organizersAvailable=true,emptyContent=false;
 const routes = new Map([
   ["/health", {ok: true}], ["/events", events], ["/events/910001", event],
   ["/demo/public/organizers", [organizer]],
@@ -33,11 +33,14 @@ const server = createServer((req, res) => {
   if(path==="/_fixture/recover-events"){eventsAvailable=true;res.writeHead(200);res.end("ok");return;}
   if(path==="/_fixture/fail-organizers"){organizersAvailable=false;res.writeHead(200);res.end("ok");return;}
   if(path==="/_fixture/recover-organizers"){organizersAvailable=true;res.writeHead(200);res.end("ok");return;}
+  if(path==="/_fixture/empty-content"){emptyContent=true;res.writeHead(200);res.end("ok");return;}
+  if(path==="/_fixture/recover-content"){emptyContent=false;res.writeHead(200);res.end("ok");return;}
   if((path==="/events"&&!eventsAvailable)||(path==="/demo/public/organizers"&&!organizersAvailable)){
     res.writeHead(503,{"Content-Type":"application/json"});res.end('{"detail":"fixture unavailable"}');return;
   }
   res.writeHead(routes.has(path) ? 200 : 404, {"Content-Type": "application/json", "Cache-Control": "no-store"});
-  res.end(JSON.stringify(routes.get(path) ?? {detail: "Not found"}));
+  const payload=emptyContent&&(path==="/events"||path==="/demo/public/organizers")?[]:routes.get(path);
+  res.end(JSON.stringify(payload ?? {detail: "Not found"}));
 });
 server.listen(8100, "127.0.0.1");
 for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => server.close(() => process.exit(0)));
