@@ -4,7 +4,7 @@ TicketTreat is deployed to Railway from **`release/tickettreat-production`**, NO
 
 ## Frontend/design collaboration
 
-Use the shared `dev/frontend-design` branch for UI experiments without triggering Railway production deployments, or create a short-lived feature branch from the current release. `frontend/components/**`, CSS, public assets and UI pages are free-edit areas; database, auth and security protocols are owner-reviewed. Keep any working branch up to date before submitting a PR.
+**The existing Railway Frontend now follows `dev/frontend-design` and serves `https://tickettreat.eu`.** Pushing UI work there automatically updates the public website; this is the free-pilot live preview, NOT an isolated staging environment. Backend/API/Bot/database remain on `release/tickettreat-production`. Use a short-lived feature branch if you want to test code privately before merging it into the shared UI branch. `frontend/components/**`, CSS, public assets and UI pages are free-edit areas; database, auth and security protocols are owner-reviewed. Keep any working branch up to date before submitting a PR.
 
 **Snapshot for code rollback:** `backup/production-2026-10-31-pre-collaboration` at `acfc225881b519b5a77b7fa71e5135ecb0dba8cf`. This is **source only**, not a PostgreSQL data backup. Do not push to or delete it.
 
@@ -12,10 +12,10 @@ Full step-by-step instructions: [frontend/design collaboration and rollback](doc
 
 ## Safe collaboration
 
-1. Create a short-lived branch from `release/tickettreat-production` (for example `feature/event-card-layout`).
-2. Make ordinary UI/content/localization changes on that branch. Keep each PR narrowly scoped.
-3. Open a PR **targeting `release/tickettreat-production`**; do not push directly to that branch.
-4. Wait for all required GitHub CI checks and an approving review before merging.
+1. For a visible UI change, work on `dev/frontend-design` (or merge a `feature/event-card-layout` branch into it). The direct dev push may trigger the public Frontend deployment.
+2. Make ordinary UI/content/localization changes only. Review the change locally and avoid auth, gateway, secrets, dependencies and CI changes without owner review.
+3. To include the tested UI in the reviewed release history, open a PR **targeting `release/tickettreat-production`**; do not push directly to that branch. The live website already follows the dev branch.
+4. Confirm the Frontend Railway deployment is SUCCESS and check `tickettreat.eu`; then wait for the release PR's CI and review before merging into release.
 5. The repo owner coordinates production releases, data migrations, secret rotation and rollback.
 
 ### Restricted areas — get approval before changing

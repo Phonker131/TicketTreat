@@ -8,7 +8,7 @@ TicketTreat is an actively deployed, free-pilot event platform at [tickettreat.e
 
 ## Collaborating on UI & design
 
-UI contributors can work in `dev/frontend-design` without redeploying production. The source-code fallback is `backup/production-2026-10-31-pre-collaboration` (a code snapshot, **not** a backup of database records). Sensitive database, authentication, API-gateway and webhook code is marked for owner review in `.github/CODEOWNERS`. See [frontend collaboration and safe rollback](docs/FRONTEND_COLLABORATION_AND_ROLLBACK.md) and [contribution rules](CONTRIBUTING.md). Branch protection must still be enabled in GitHub Settings to **enforce** code-owner approvals.
+UI contributors can work in `dev/frontend-design`; **that branch now automatically deploys the existing Railway Frontend to the public `https://tickettreat.eu` website**. This is intentional for the pre-launch pilot, not a separate staging environment. TicketTreat API, Backend, Bot and Postgres are not switched to the design branch. The source-code fallback is `backup/production-2026-10-31-pre-collaboration` (a code snapshot, **not** a backup of database records). Sensitive database, authentication, API-gateway and webhook code is marked for owner review in `.github/CODEOWNERS`. See [frontend collaboration and safe rollback](docs/FRONTEND_COLLABORATION_AND_ROLLBACK.md) and [contribution rules](CONTRIBUTING.md). Branch protection must still be enabled in GitHub Settings to **enforce** code-owner approvals.
 
 ## Features in the deployed pilot
 
