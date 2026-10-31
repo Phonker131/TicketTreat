@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Global-admin/organizer permissions, scope checks and check-in locking. Never replace server-side authorization with UI-only checks.
+# Do not change this file casually. Open a PR and request @Phonker131 review;
+# run security/DB integration tests and document migration or rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md (comments alone do not enforce access).
 """Web organizer and global-admin access control.
 
 Global admins MUST be explicitly granted by immutable website account IDs
