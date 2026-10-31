@@ -161,7 +161,7 @@ test("separate dynamic event sitemap discovers only eligible fixtures",async({re
   expect(response.headers()["content-type"]).toMatch(/application\/xml/i);
   expect(response.headers()["cache-control"]).toMatch(/must-revalidate/i);
   const urls=sitemapLocations(await response.text());
-  expect(urls.sort()).toEqual([origin+"/events/910001",origin+"/organizers/seo-fixture"].sort());
+  expect(urls.sort()).toEqual([origin+"/organizers",origin+"/events/910001",origin+"/organizers/seo-fixture"].sort());
   for(const path of ["/events/910001","/organizers/seo-fixture"]){
     const page=await request.get(path,{maxRedirects:0});
     expect(page.status(),path).toBe(200);
@@ -203,6 +203,24 @@ test("advertised dynamic sitemap fails with retryable 503 and no false empty XML
     expect(sitemapLocations(await stable.text())).toHaveLength(13);
   }finally{
     await request.get("http://127.0.0.1:8100/_fixture/recover-events");
+  }
+});
+
+test("dynamic sitemap is never empty when there are no future public events or organizers",async({request})=>{
+  test.skip(process.env.TICKETTREAT_SEO_FIXTURE!=="1","Requires isolated SEO fixture");
+  await request.get("http://127.0.0.1:8100/_fixture/empty-content");
+  try{
+    const response=await request.get("/sitemap-events.xml",{headers:{"user-agent":googlebot},maxRedirects:0});
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toMatch(/application\\/xml/i);
+    expect(sitemapLocations(await response.text())).toEqual([origin+"/organizers"]);
+    const directory=await request.get("/organizers",{maxRedirects:0});
+    expect(directory.status()).toBe(200);
+    const dom=new JSDOM(await directory.text());
+    expect(dom.window.document.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(origin+"/organizers");
+    dom.window.close();
+  }finally{
+    await request.get("http://127.0.0.1:8100/_fixture/recover-content");
   }
 });
 
