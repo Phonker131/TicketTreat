@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Checksum-tracked migration ledger, advisory locking and atomic DDL. Do not modify applied migrations or bypass this runner.
+# Do not change this file casually. Open a PR and request @Phonker131 review;
+# run security/DB integration tests and document migration or rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md (comments alone do not enforce access).
 """Apply reviewed SQL migrations once, transactionally, with PostgreSQL locking.
 
 Usage from repo root:
