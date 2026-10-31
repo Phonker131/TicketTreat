@@ -212,7 +212,7 @@ test("dynamic sitemap is never empty when there are no future public events or o
   try{
     const response=await request.get("/sitemap-events.xml",{headers:{"user-agent":googlebot},maxRedirects:0});
     expect(response.status()).toBe(200);
-    expect(response.headers()["content-type"]).toMatch(/application\\/xml/i);
+    expect(response.headers()["content-type"]).toMatch(/application\/xml/i);
     expect(sitemapLocations(await response.text())).toEqual([origin+"/organizers"]);
     const directory=await request.get("/organizers",{maxRedirects:0});
     expect(directory.status()).toBe(200);
