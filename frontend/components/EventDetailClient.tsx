@@ -30,6 +30,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   const [error, setError] = useState<string | null>(null);
   const [demoPayments,setDemoPayments]=useState(false);
   const [mapOpen,setMapOpen]=useState(false);
+  const [shareNotice,setShareNotice]=useState("");
   const [mapConsent,setMapConsent]=useState(false);
   useEffect(()=>{
     const sync=()=>setMapConsent(hasExternalMediaConsent());
@@ -60,6 +61,29 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
 
   const mapUrl=mapQuery(event);
   const eventUrl=typeof window!=="undefined" ? window.location.origin+`/events/${event.id}` : `/events/${event.id}`;
+
+  const shareUrl=`https://tickettreat.eu/events/${event.id}`;
+  const shareWords={
+    ru:{button:"Поделиться",telegram:"Telegram",whatsapp:"WhatsApp",copied:"Ссылка на мероприятие скопирована.",unavailable:"Не удалось скопировать ссылку. Используй Telegram или WhatsApp."},
+    uk:{button:"Поділитися",telegram:"Telegram",whatsapp:"WhatsApp",copied:"Посилання на подію скопійовано.",unavailable:"Не вдалося скопіювати посилання. Скористайся Telegram або WhatsApp."},
+    cs:{button:"Sdílet akci",telegram:"Telegram",whatsapp:"WhatsApp",copied:"Odkaz na akci byl zkopírován.",unavailable:"Odkaz se nepodařilo zkopírovat. Použijte Telegram nebo WhatsApp."},
+    en:{button:"Share event",telegram:"Telegram",whatsapp:"WhatsApp",copied:"Event link copied.",unavailable:"Could not copy the link. Use Telegram or WhatsApp instead."},
+  }[language];
+  async function shareEvent(){
+    setShareNotice("");
+    try {
+      if(typeof navigator.share==="function"){
+        await navigator.share({title:event.title,url:shareUrl});
+        return;
+      }
+      await navigator.clipboard.writeText(shareUrl);
+      setShareNotice(shareWords.copied);
+    }catch(error){
+      if(error instanceof Error && error.name==="AbortError")return;
+      setShareNotice(shareWords.unavailable);
+    }
+  }
+
   const posterUrl=preview&&!event.publication?.visible&&event.image_url?.includes(`/demo/events/${event.id}/poster`)
     ? `/api/gateway/demo/events/${event.id}/poster` : event.image_url;
   const galleryUrls=preview&&!event.publication?.visible
@@ -118,9 +142,15 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
           <h2>{language==="ru"?"Как добраться и сохранить дату":language==="cs"?"Místo a kalendář":language==="uk"?"Як дістатися та календар":"Venue and calendar"}</h2>
           <div className="admin-event-actions">
             {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar(event,eventUrl)}>↓ {language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
+            {!preview&&<>
+              <button type="button" className="button button-outline" onClick={shareEvent}>{shareWords.button}</button>
+              <a className="button button-outline" href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.telegram}`}>{shareWords.telegram}</a>
+              <a className="button button-outline" href={`https://wa.me/?text=${encodeURIComponent(event.title+" "+shareUrl)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.whatsapp}`}>{shareWords.whatsapp}</a>
+            </>}
             {mapUrl&&<><a className="button button-outline" href={mapUrl} target="_blank" rel="noopener noreferrer">↗ {language==="ru"?"Открыть карту":language==="cs"?"Otevřít mapu":language==="uk"?"Відкрити карту":"Open map"}</a>
               <button type="button" className="button button-outline" onClick={()=>setMapOpen(v=>!v)}>{mapOpen?previewWords.hideMap:previewWords.showMap}</button></>}
           </div>
+          {shareNotice&&<p role="status" className="form-note">{shareNotice}</p>}
           {mapOpen&&mapUrl&&(mapConsent ? <iframe title={previewWords.mapTitle} loading="lazy" referrerPolicy="no-referrer"
             style={{width:"100%",height:300,border:0,borderRadius:12,marginTop:16}}
             src={`https://maps.google.com/maps?q=${encodeURIComponent([event.location,event.city,event.country_code].filter(Boolean).join(", "))}&output=embed`} /> : <div className="state-card tt-map-consent-placeholder" role="status">
