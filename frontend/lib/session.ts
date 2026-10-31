@@ -1,3 +1,9 @@
+/* TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+ * Client session lifecycle and signed Telegram identity boundary; never persist bearer secrets.
+ * Do not change casually. Submit a PR and request @Phonker131 approval;
+ * verify auth/security E2E tests and document the impact and recovery.
+ * See docs/CRITICAL_CODE_AREAS.md. Comments are not access controls.
+ */
 import type { DemoGuest } from "@/lib/types";
 import { getDemoGuest, getWebProfile, authenticateTelegram } from "@/lib/api";
 import { getTelegramWebApp } from "@/lib/telegram";
