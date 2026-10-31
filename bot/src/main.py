@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Telegram bot admin/organizer actions, ticket check-in and identity synchronization.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant integration tests and document security/rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 from __future__ import annotations
 
 import copy
