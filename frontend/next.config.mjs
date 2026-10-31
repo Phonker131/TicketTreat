@@ -1,3 +1,9 @@
+/* TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+ * Security headers, API and private-page caching rules. Regressions here can
+ * expose authenticated data or weaken the browser's security boundary.
+ * Obtain @Phonker131 review and test before changing. See
+ * docs/CRITICAL_CODE_AREAS.md. This comment is not an access restriction.
+ */
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
