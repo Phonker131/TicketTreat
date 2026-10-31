@@ -2,6 +2,14 @@
 
 TicketTreat is deployed to Railway from **`release/tickettreat-production`**, NOT from the GitHub default branch `main`. A merged change to the release branch can trigger a real deployment.
 
+## Frontend/design collaboration
+
+Use the shared `dev/frontend-design` branch for UI experiments without triggering Railway production deployments, or create a short-lived feature branch from the current release. `frontend/components/**`, CSS, public assets and UI pages are free-edit areas; database, auth and security protocols are owner-reviewed. Keep any working branch up to date before submitting a PR.
+
+**Snapshot for code rollback:** `backup/production-2026-10-31-pre-collaboration` at `acfc225881b519b5a77b7fa71e5135ecb0dba8cf`. This is **source only**, not a PostgreSQL data backup. Do not push to or delete it.
+
+Full step-by-step instructions: [frontend/design collaboration and rollback](docs/FRONTEND_COLLABORATION_AND_ROLLBACK.md).
+
 ## Safe collaboration
 
 1. Create a short-lived branch from `release/tickettreat-production` (for example `feature/event-card-layout`).
