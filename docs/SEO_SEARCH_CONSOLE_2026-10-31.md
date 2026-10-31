@@ -32,3 +32,13 @@ This is a dated snapshot, **not** a promise of Google indexing. The domain prope
 6. Reinspect mobile Safari content and monitor Googlebot response codes after release.
 
 No Search Console submission or indexed-page count has been claimed here. The connected analytics service can read submitted-sitemap information but does **not** offer a sitemap-submit action.
+
+
+## 31 October follow-up: dynamic sitemap report
+
+The connected Search Console sitemap report subsequently returned:
+- `https://tickettreat.eu/sitemap-events.xml` submitted at 2026-10-31 11:43:30 UTC, last downloaded at 11:43:31 UTC, **one reported error, zero discovered URLs**.
+- Railway frontend HTTP logs recorded `/sitemap-events.xml` HTTP 200 at 11:43:31 UTC for a request identifying as Googlebot. A 200 alone does not confirm valid or nonempty XML, nor does it authenticate the client's actual crawler identity.
+- This surfaced an actual edge case: when both dynamic sources return valid but empty arrays, the response is a syntactically correct `<urlset>` **with no `<url>` elements**. Google treats empty sitemaps as an error. The new implementation includes the valid canonical `/organizers` directory page as a minimal baseline, plus future events and organizer profiles when present. A dedicated isolated test covers empty data sources.
+- The Search Console API available here exposes an error **count**, not the human-readable error details. Therefore the empty-sitemap edge case is a confirmed code defect and a **plausible explanation**, not an independently confirmed diagnosis of Google's specific error. Click the affected sitemap in Search Console to see its exact error text and resubmit after the fix is online.
+- The stable main `/sitemap.xml` remains unchanged, including its 13 static URLs.
