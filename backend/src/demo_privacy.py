@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# GDPR account erasure/export and challenge revocation. Changes require privacy and retention review.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant security/DB tests and document rollback or migration risk.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 """Account privacy requests with proof-of-identity and an auditable lifecycle.
 
 A request is NOT an immediate erasure: active event bookings, organizer records,
