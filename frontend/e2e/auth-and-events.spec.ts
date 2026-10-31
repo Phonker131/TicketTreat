@@ -125,3 +125,32 @@ test("Google linking explains missing TicketTreat password instead of silently d
   await button.click();
   await expect(page.getByText(/Enter your TicketTreat account password first|Сначала введи пароль от аккаунта TicketTreat|Nejdříve zadej heslo TicketTreat|Спочатку введи пароль TicketTreat/)).toBeVisible();
 });
+
+test("public event can be shared with a canonical URL without needing external apps",async({page})=>{
+  await page.addInitScript(()=>{
+    Object.defineProperty(navigator,"share",{configurable:true,value:undefined});
+    Object.defineProperty(navigator,"clipboard",{configurable:true,value:{
+      writeText:async(value:string)=>{(window as unknown as {__ttSharedLink?:string}).__ttSharedLink=value;},
+    }});
+  });
+  await page.goto("/?nostory&lang=en");
+  const eventId=await page.evaluate(async()=>{
+    const response=await fetch("/api/gateway/events");
+    if(!response.ok)throw new Error("Test events unavailable");
+    const events=await response.json() as {id:number;title:string}[];
+    const event=events.find(item=>item.title==="CI browser free event");
+    if(!event)throw new Error("Missing browser fixture event");
+    return event.id;
+  });
+  await page.goto(`/events/${eventId}?lang=en`);
+  const share=page.getByRole("button",{name:"Share event",exact:true});
+  await expect(share).toBeVisible();
+  await share.click();
+  await expect(page.getByRole("status")).toContainText("Event link copied.");
+  expect(await page.evaluate(()=>(window as unknown as {__ttSharedLink?:string}).__ttSharedLink))
+    .toBe(`https://tickettreat.eu/events/${eventId}`);
+  await expect(page.getByRole("link",{name:"Share event: Telegram"}))
+    .toHaveAttribute("href",new RegExp("^https://t\\.me/share/url\\?"));
+  await expect(page.getByRole("link",{name:"Share event: WhatsApp"}))
+    .toHaveAttribute("href",new RegExp("^https://wa\\.me/\\?"));
+});
