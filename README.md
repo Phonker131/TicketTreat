@@ -6,6 +6,10 @@ TicketTreat is an actively deployed, free-pilot event platform at [tickettreat.e
 
 > **Launch status (24 October 2026):** production services are online and the free-event flow is deployed. Code-level CI, encrypted database backups, a successful isolated production-backup restore drill, and Telegram webhook delivery are in place. This **does not** certify a completed public pilot, payment processing, legal/GDPR readiness or live end-user acceptance. TicketTreat does not collect payments itself during the pilot.
 
+## Collaborating on UI & design
+
+UI contributors can work in `dev/frontend-design` without redeploying production. The source-code fallback is `backup/production-2026-10-31-pre-collaboration` (a code snapshot, **not** a backup of database records). Sensitive database, authentication, API-gateway and webhook code is marked for owner review in `.github/CODEOWNERS`. See [frontend collaboration and safe rollback](docs/FRONTEND_COLLABORATION_AND_ROLLBACK.md) and [contribution rules](CONTRIBUTING.md). Branch protection must still be enabled in GitHub Settings to **enforce** code-owner approvals.
+
 ## Features in the deployed pilot
 
 | Users | Organizers / operations |
