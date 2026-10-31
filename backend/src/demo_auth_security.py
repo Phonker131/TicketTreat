@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Argon2id/PBKDF2 verification, rate limits and timing defenses. Never weaken hash parameters or bypass throttling.
+# Do not change this file casually. Open a PR and request @Phonker131 review;
+# run security/DB integration tests and document migration or rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md (comments alone do not enforce access).
 """Argon2id hashes, legacy PBKDF2 verification and PostgreSQL rate limits."""
 from __future__ import annotations
 import hashlib
