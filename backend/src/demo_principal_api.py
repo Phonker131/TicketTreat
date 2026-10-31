@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Server-derived ticket ownership across browser/Telegram. Never treat guessed guest tokens as authority.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant security/DB tests and document rollback or migration risk.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 """Authenticated, token-free URLs for event tickets and bookings.
 
 The website passes its HttpOnly web-session cookie through Next.js, while the
