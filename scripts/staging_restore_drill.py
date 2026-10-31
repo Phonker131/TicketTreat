@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Restore rehearsal isolation; never point a staging restore at production.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant security/DB tests and document migration or rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 """One-shot disaster-recovery drill in an isolated local PostgreSQL 18 cluster.
 
 No production DATABASE_URL is accepted. The encrypted backup is fetched from

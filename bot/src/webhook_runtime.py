@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Telegram webhook secret header validation, replay handling and request size limits.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant integration tests and document security/rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 """Authenticated Telegram Bot API webhook for the TicketTreat bot.
 
 The shared bot token is never exposed in URLs or logs. Telegram's secret-token

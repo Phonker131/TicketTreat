@@ -1,3 +1,9 @@
+/* TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+ * Same-origin API gateway, HttpOnly cookie, CSRF/origin protection and backend trust boundary.
+ * Do not change casually. Submit a PR and request @Phonker131 approval;
+ * verify auth/security E2E tests and document the impact and recovery.
+ * See docs/CRITICAL_CODE_AREAS.md. Comments are not access controls.
+ */
 import { NextRequest, NextResponse } from "next/server";
 
 /**

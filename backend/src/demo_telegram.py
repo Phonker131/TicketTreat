@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Telegram-signed initData and account linking. Never trust caller-supplied Telegram IDs.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant security/DB tests and document rollback or migration risk.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 """Verified Telegram Mini App identity bridge for TicketTreat.
 
 Security model:

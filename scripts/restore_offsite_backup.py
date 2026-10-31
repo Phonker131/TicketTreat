@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Offsite backup decryption and restoration destinations. Never restore into live production by accident.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant integration tests and document security/rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 """Retrieve and decrypt one offsite backup for an *isolated staging* restore.
 
 Never automatically connect to or overwrite a database. Manually run

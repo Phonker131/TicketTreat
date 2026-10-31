@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Waitlist claim transitions, reservation capacity and concurrent state changes.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant security/DB tests and document migration or rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 """Optional, transactionally reserved waitlist offers for free events.
 
 Default legacy behaviour is auto-promotion. Organizers may opt into a timed

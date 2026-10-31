@@ -1,0 +1,49 @@
+# TicketTreat — security-critical code ownership.
+# IMPORTANT: CODEOWNERS requests reviews; it does NOT block merges by itself.
+# An administrator must enable "Require review from Code Owners" in the
+# branch protection/ruleset for release/tickettreat-production.
+# Keep this file on the TARGET branch of every PR.
+# Owner: @Phonker131. Add a second trusted maintainer only after approval.
+
+# All server-side code (not only the named modules) requires review: even a new
+# endpoint, model, bot handler or backup job can bypass an existing safeguard.
+/backend/                         @Phonker131
+/bot/src/                         @Phonker131
+/scripts/                         @Phonker131
+
+# Production database schema, connections and migration ledger.
+/backend/migrations/              @Phonker131
+/backend/src/db/                  @Phonker131
+/scripts/preflight_database.py    @Phonker131
+/scripts/backup_postgres.py       @Phonker131
+/scripts/offsite_backup.py        @Phonker131
+/scripts/restore_offsite_backup.py @Phonker131
+/scripts/staging_restore_drill.py @Phonker131
+
+# Backend identity, authorization, sessions, data ownership, check-in.
+/backend/src/main.py              @Phonker131
+/backend/src/demo_accounts.py     @Phonker131
+/backend/src/demo_auth_security.py @Phonker131
+/backend/src/demo_account_recovery.py @Phonker131
+/backend/src/demo_google.py       @Phonker131
+/backend/src/demo_mfa.py          @Phonker131
+/backend/src/demo_roles.py        @Phonker131
+/backend/src/demo_principal_api.py @Phonker131
+/backend/src/demo_telegram.py     @Phonker131
+/backend/src/demo_privacy.py      @Phonker131
+/backend/src/demo_paid_reservations.py @Phonker131
+/backend/src/demo_waitlist_offers.py @Phonker131
+
+# Cookie and OAuth gateway, identity lifecycle and HTTP security headers.
+/frontend/app/api/                @Phonker131
+/frontend/lib/session.ts          @Phonker131
+/frontend/lib/api.ts              @Phonker131
+/frontend/next.config.mjs         @Phonker131
+
+# Telegram secret validation and registration/check-in integrations.
+/bot/src/webhook_runtime.py       @Phonker131
+/bot/src/main.py                  @Phonker131
+
+# Deployment and CI security gates cannot be silently relaxed.
+/.github/CODEOWNERS               @Phonker131
+/.github/workflows/               @Phonker131

@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Production FastAPI endpoints include booking, capacity, QR check-in and authorization paths. Even small changes can affect data isolation.
+# Do not change this file casually. Open a PR and request @Phonker131 review;
+# run security/DB integration tests and document migration or rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md (comments alone do not enforce access).
 from __future__ import annotations
 
 import base64

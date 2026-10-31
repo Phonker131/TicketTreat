@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Encrypted database backups: secret keys, protected storage and recovery integrity.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant integration tests and document security/rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 """Encrypted offsite PostgreSQL backup for a dedicated Railway cron worker.
 
 Requires: pip install -r backend/src/requirements.txt boto3
