@@ -63,6 +63,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   const eventUrl=typeof window!=="undefined" ? window.location.origin+`/events/${event.id}` : `/events/${event.id}`;
 
   const shareUrl=`https://tickettreat.eu/events/${event.id}`;
+  const shareTitle=event.title;
   const shareWords={
     ru:{button:"Поделиться",telegram:"Telegram",whatsapp:"WhatsApp",copied:"Ссылка на мероприятие скопирована.",unavailable:"Не удалось скопировать ссылку. Используй Telegram или WhatsApp."},
     uk:{button:"Поділитися",telegram:"Telegram",whatsapp:"WhatsApp",copied:"Посилання на подію скопійовано.",unavailable:"Не вдалося скопіювати посилання. Скористайся Telegram або WhatsApp."},
@@ -73,7 +74,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
     setShareNotice("");
     try {
       if(typeof navigator.share==="function"){
-        await navigator.share({title:event.title,url:shareUrl});
+        await navigator.share({title:shareTitle,url:shareUrl});
         return;
       }
       await navigator.clipboard.writeText(shareUrl);
