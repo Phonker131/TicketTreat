@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Google OAuth state, PKCE, nonce, account binding and session issuance. Never trust unverified external identities.
+# Do not change this file casually. Open a PR and request @Phonker131 review;
+# run security/DB integration tests and document migration or rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md (comments alone do not enforce access).
 """Google authorization-code login. No email-based automatic account linking."""
 from __future__ import annotations
 
