@@ -1,6 +1,7 @@
 import {test, expect} from "@playwright/test";
 import robotsParser from "robots-parser";
 import {JSDOM} from "jsdom";
+import {seoImageUrl} from "../lib/seo-image";
 
 const origin = "https://tickettreat.eu";
 const googlebot = "Googlebot/2.1 (+http://www.google.com/bot.html)";
@@ -89,7 +90,7 @@ test("robots allows noindex HTML routes while blocking API",async({request})=>{
   const response=await request.get("/robots.txt",{maxRedirects:0});
   expect(response.status()).toBe(200);
   const robots=robotsParser(origin+"/robots.txt",await response.text());
-  expect(robots.getSitemaps()).toEqual([origin+"/sitemap.xml"]);
+  expect(robots.getSitemaps()).toEqual([origin+"/sitemap.xml",origin+"/sitemap-events.xml"]);
   for(const agent of ["Googlebot","Bingbot","TicketTreatAuditBot"]){
     for(const path of ["/","/sitemap.xml","/faq","/cs/faq","/en/faq","/uk/faq",
       "/organizers","/events/910001","/privacy-policy","/cookie-policy","/terms","/legal-notice",
@@ -155,9 +156,10 @@ test("stable primary sitemap remains complete during upstream outages",async({re
 
 test("separate dynamic event sitemap discovers only eligible fixtures",async({request})=>{
   test.skip(process.env.TICKETTREAT_SEO_FIXTURE!=="1","Only valid with isolated SEO API");
-  const response=await request.get("/sitemap-events.xml",{maxRedirects:0});
+  const response=await request.get("/sitemap-events.xml",{maxRedirects:0,headers:{"user-agent":googlebot}});
   expect(response.status()).toBe(200);
   expect(response.headers()["content-type"]).toMatch(/application\/xml/i);
+  expect(response.headers()["cache-control"]).toMatch(/must-revalidate/i);
   const urls=sitemapLocations(await response.text());
   expect(urls.sort()).toEqual([origin+"/events/910001",origin+"/organizers/seo-fixture"].sort());
   for(const path of ["/events/910001","/organizers/seo-fixture"]){
@@ -181,5 +183,36 @@ test("localized home pages have search-friendly descriptions and reciprocal href
       expect(doc.querySelector('link[rel="alternate"][hreflang="'+locale+'"]'),path).not.toBeNull();
     }
     dom.window.close();
+  }
+});
+
+// When dynamic discovery fails, the advertised supplemental file must report
+// a retryable error instead of claiming an empty set of events/organizers.
+test("advertised dynamic sitemap fails with retryable 503 and no false empty XML",async({request})=>{
+  test.skip(process.env.TICKETTREAT_SEO_FIXTURE!=="1","Requires isolated SEO fixture");
+  const robotsText=await (await request.get("/robots.txt")).text();
+  expect(robotsText).toContain("Sitemap: "+origin+"/sitemap-events.xml");
+  await request.get("http://127.0.0.1:8100/_fixture/fail-events");
+  try{
+    const response=await request.get("/sitemap-events.xml",{headers:{"user-agent":googlebot},maxRedirects:0});
+    expect(response.status()).toBe(503);
+    expect(response.headers()["cache-control"]).toMatch(/no-store/i);
+    expect(await response.text()).not.toContain("<urlset");
+    const stable=await request.get("/sitemap.xml",{headers:{"user-agent":googlebot}});
+    expect(stable.status()).toBe(200);
+    expect(sitemapLocations(await stable.text())).toHaveLength(13);
+  }finally{
+    await request.get("http://127.0.0.1:8100/_fixture/recover-events");
+  }
+});
+
+test("SEO preview images resolve absolute HTTPS URLs without unsafe schemes",()=>{
+  expect(seoImageUrl("/demo/events/42/poster")).toBe("https://tickettreat.eu/demo/events/42/poster");
+  expect(seoImageUrl("https://tickettreat.eu/images/cover.webp")).toBe("https://tickettreat.eu/images/cover.webp");
+  expect(seoImageUrl("https://images.example.test/poster.jpg")).toBe("https://images.example.test/poster.jpg");
+  for(const value of ["", "//evil.test/cover.jpg", "http://example.test/poster.jpg",
+    "javascript:alert(1)", "https://user:password@images.example.test/a.png",
+    "/\\\\evil.test/cover.png", "/path\nheader", "  /poster.png"]){
+    expect(seoImageUrl(value),value).toBeUndefined();
   }
 });

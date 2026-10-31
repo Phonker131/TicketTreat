@@ -3,6 +3,7 @@ import {EventDetailClient} from "@/components/EventDetailClient";
 import {lookupPublicEvent,isUpcomingEvent} from "@/lib/public-events";
 import {notFound} from "next/navigation";
 import type {TicketTreatEvent} from "@/lib/types";
+import {seoImageUrl} from "@/lib/seo-image";
 
 type Props={params:Promise<{id:string}>};
 const origin="https://tickettreat.eu";
@@ -20,9 +21,8 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
   const name=event.title.trim().slice(0,160);
   const description=(event.description||"Узнайте подробности мероприятия и забронируйте билет на TicketTreat.")
     .replace(/\s+/g," ").trim().slice(0,280);
-  const poster=event.image_url && /^https:\/\//i.test(event.image_url)?[{
-    url:event.image_url,alt:name,
-  }]:undefined;
+  const image=seoImageUrl(event.image_url);
+  const poster=image?[{url:image,alt:name}]:undefined;
   const url=`/events/${event.id}`;
   return {
     title:name,
@@ -57,7 +57,8 @@ function structuredEvent(event:TicketTreatEvent):Record<string,unknown>|null {
     ...(event.description?{description:event.description}:{}),
     ...(event.organizer?{organizer:{"@type":"Organization",name:event.organizer}}:{}),
   };
-  if(event.image_url && /^https:\/\//i.test(event.image_url))result.image=event.image_url;
+  const image=seoImageUrl(event.image_url);
+  if(image)result.image=image;
   if(Number(event.price||0)===0)result.offers={
     "@type":"Offer",url,price:"0",priceCurrency:event.currency||"CZK",
     availability:event.spots_left===0?"https://schema.org/SoldOut":"https://schema.org/InStock",
