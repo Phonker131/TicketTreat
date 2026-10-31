@@ -34,10 +34,20 @@
 /backend/src/demo_paid_reservations.py @Phonker131
 /backend/src/demo_waitlist_offers.py @Phonker131
 
+# Normal design/front-end work is intentionally UNOWNED by this file:
+# /frontend/components/**, /frontend/app/*.css, /frontend/public/**,
+# and UI page.tsx/layout.tsx (outside protected API/security paths).
+# Teammates can edit those without security code-owner review. Production
+# merge still uses PRs and CI once the release-branch ruleset is configured.
+
 # Cookie and OAuth gateway, identity lifecycle and HTTP security headers.
 /frontend/app/api/                @Phonker131
 /frontend/lib/session.ts          @Phonker131
 /frontend/lib/api.ts              @Phonker131
+/frontend/lib/telegram.ts         @Phonker131
+/frontend/middleware.ts           @Phonker131
+/frontend/package.json            @Phonker131
+/frontend/package-lock.json       @Phonker131
 /frontend/next.config.mjs         @Phonker131
 
 # Telegram secret validation and registration/check-in integrations.
