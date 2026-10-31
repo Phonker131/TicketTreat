@@ -2,7 +2,9 @@ import {publicEvents,isUpcomingEvent} from "@/lib/public-events";
 import {publicOrganizersStrict} from "@/lib/public-organizers";
 
 // Optional supplemental sitemap: dynamic URLs never jeopardize the stable primary sitemap.
-// This endpoint is NOT currently advertised in robots.txt or submitted to Search Console.
+// Advertised in robots.txt alongside the stable primary sitemap.
+// Keep the canonical organizer directory as a baseline to avoid returning an empty
+// urlset when there are temporarily no future public events or organizer profiles.
 const origin="https://tickettreat.eu";
 export const dynamic="force-dynamic";
 const tag=(s:string)=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");
@@ -13,7 +15,7 @@ export async function GET(){
     return new Response("Supplemental sitemap temporarily unavailable",{
       status:503,headers:{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"}
     });
-  const urls=new Set<string>();
+  const urls=new Set<string>([origin+"/organizers"]);
   for(const e of events)if(isUpcomingEvent(e))urls.add(origin+"/events/"+e.id);
   for(const o of organizers){
     if(typeof o.slug==="string"&&/^[a-z0-9](?:[a-z0-9-]{1,69}[a-z0-9])?$/.test(o.slug))
