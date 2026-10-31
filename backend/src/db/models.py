@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# SQLAlchemy table mappings/relations; schema changes must match reviewed, forward-only SQL migrations and data-integrity tests.
+# Do not change this file casually. Open a PR and request @Phonker131 review;
+# run security/DB integration tests and document migration or rollback impact.
+# See docs/CRITICAL_CODE_AREAS.md (comments alone do not enforce access).
 from sqlalchemy import (
     BigInteger,
     Boolean,
