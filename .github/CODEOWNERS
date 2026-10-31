@@ -5,6 +5,12 @@
 # Keep this file on the TARGET branch of every PR.
 # Owner: @Phonker131. Add a second trusted maintainer only after approval.
 
+# All server-side code (not only the named modules) requires review: even a new
+# endpoint, model, bot handler or backup job can bypass an existing safeguard.
+/backend/                         @Phonker131
+/bot/src/                         @Phonker131
+/scripts/                         @Phonker131
+
 # Production database schema, connections and migration ledger.
 /backend/migrations/              @Phonker131
 /backend/src/db/                  @Phonker131
