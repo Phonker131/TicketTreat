@@ -1,3 +1,8 @@
+# TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED
+# Privileged MFA TOTP, encrypted factor secrets and session elevation. Never add bypasses.
+# Do not change casually: open a PR, obtain @Phonker131 approval, run
+# relevant security/DB tests and document rollback or migration risk.
+# See docs/CRITICAL_CODE_AREAS.md. Comments do not enforce permissions.
 """TOTP multifactor authentication for privileged website accounts.
 
 This module protects server-side organizer/admin APIs using a per-session
