@@ -40,6 +40,27 @@ def require_invite(db, event_id: int, presented: str | None) -> None:
         raise HTTPException(status_code=404, detail="event_not_found")
 
 
+
+def require_media_access(db, event_id: int, presented: str | None,
+                         authorization: str | None) -> None:
+    """Private media: accept valid invitation OR authenticated event owner.
+
+    An owner may preview a private event's poster/gallery without possessing
+    the invitation token; an unrelated logged-in account cannot bypass it.
+    """
+    try:
+        require_invite(db, event_id, presented)
+        return
+    except HTTPException:
+        if not authorization:
+            raise
+    try:
+        from demo_roles import account_lookup, ensure_owner
+        ensure_owner(db, event_id, account_lookup(db, authorization))
+    except HTTPException:
+        raise HTTPException(status_code=404, detail="event_not_found") from None
+
+
 def set_visibility(db, event_id: int, visibility: str) -> None:
     if visibility not in {"public", "link_only"}:
         raise HTTPException(status_code=422, detail="invalid_event_visibility")
