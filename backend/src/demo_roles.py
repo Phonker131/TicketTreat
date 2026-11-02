@@ -694,8 +694,8 @@ def install_demo_roles(app, get_db, main):
                              authorization:str|None=Header(default=None),
                              invite:str|None=None):
         if publication_state(db,event_id)["visible"]:
-            from demo_event_access import require_invite
-            require_invite(db,event_id,invite)
+            from demo_event_access import require_media_access
+            require_media_access(db,event_id,invite,authorization)
         else:
             ensure_owner(db,event_id,account_lookup(db,authorization))
         image=db.query(EventGalleryImage).filter(
