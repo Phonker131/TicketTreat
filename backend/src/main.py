@@ -63,6 +63,7 @@ from demo_support import SupportTicket, SupportMessage, SupportAdminRead, instal
 from demo_paid_reservations import PaidReservation, pending_count, install_paid_admin_api, install_paid_expiry_worker
 from demo_quick_signup import QuickSignupPending,QuickPrivacyConsent
 from demo_publication import EventPublication, state as event_publication_state, require_published
+from demo_event_access import EventAccess, is_unlisted, public_only, require_invite
 from demo_waitlist_offers import WaitlistOffer, offer_count, maybe_offer_next, expire_for_event, ensure_available_offer, accept_offer, install_waitlist_offer_worker
 from demo_pilot_ops import EventPilotSettings, EventCheckinStaff, booking_cutoff_reached, install_pilot_ops
 from demo_organizer_analytics import install_organizer_analytics
@@ -960,6 +961,7 @@ def event_to_dict(
     data: dict[str, Any] = {
         "id": event.id,
         "publication": event_publication_state(db,event.id) if db is not None else {"status":"published","publish_at":None,"visible":True},
+        "visibility": "link_only" if db is not None and is_unlisted(db,event.id) else "public",
         "title": event.title,
         # Old platform-owned events retain their original DB data, but render
         # the current product brand across the website, bot and ticket emails.
@@ -1546,7 +1548,7 @@ def list_events(
         .all()
     )
 
-    events = [event for event in events if event_publication_state(db,event.id)["visible"]]
+    events = public_only(db, [event for event in events if event_publication_state(db,event.id)["visible"]])
     if not include_past:
         events = [
             event
@@ -1577,6 +1579,7 @@ def list_events(
 def get_event(
     event_id: int,
     db: Session = Depends(get_db),
+    x_event_invite: str | None = Header(default=None),
 ):
     event = (
         db.query(Event)
@@ -1585,10 +1588,9 @@ def get_event(
     )
 
     if event is None:
-        return {
-            "error": "event_not_found",
-        }
+        raise HTTPException(status_code=404, detail="event_not_found")
     require_published(db,event_id)
+    require_invite(db,event_id,x_event_invite)
 
     return event_to_dict(
         event,
@@ -1894,6 +1896,7 @@ def register_to_event(
     event_id: int,
     payload: EventRegistrationCreate,
     db: Session = Depends(get_db),
+    x_event_invite: str | None = Header(default=None),
 ):
     # Serialize capacity-changing operations on the same event row.
     event = (
@@ -1909,6 +1912,7 @@ def register_to_event(
         }
 
     require_published(db,event_id)
+    require_invite(db,event_id,x_event_invite)
     if getattr(event, "is_cancelled", False):
         return {
             "error": "event_cancelled",
@@ -2670,8 +2674,11 @@ def decode_demo_poster(data_url: str) -> tuple[str, bytes]:
 
 @app.get("/demo/events/{event_id}/poster")
 def get_demo_event_poster(event_id: int, db: Session = Depends(get_db),
-                          authorization: str | None = Header(default=None)):
-    if not event_publication_state(db,event_id)["visible"]:
+                          authorization: str | None = Header(default=None),
+                          invite: str | None = None):
+    if event_publication_state(db,event_id)["visible"]:
+        require_invite(db,event_id,invite)
+    else:
         from demo_roles import account_lookup, ensure_owner
         ensure_owner(db,event_id,account_lookup(db,authorization))
     poster = db.query(DemoEventPoster).filter(DemoEventPoster.event_id == event_id).first()
@@ -2872,6 +2879,7 @@ def demo_checkout(
     db: Session = Depends(get_db),
     authorization: str | None = Header(default=None),
     x_telegram_init_data: str | None = Header(default=None),
+    x_event_invite: str | None = Header(default=None),
 ):
     # A genuinely free event never needs a payment provider.
     # Paid events still require explicit DEMO_PAYMENT_MODE until a real
@@ -2898,6 +2906,7 @@ def demo_checkout(
     if event is None:
         raise HTTPException(status_code=404, detail="event_not_found")
     require_published(db,event_id)
+    require_invite(db,event_id,x_event_invite)
 
     free_event = price_decimal(event.price) <= 0
     acquisition_source = "telegram" if x_telegram_init_data else payload.source
@@ -3017,6 +3026,7 @@ def join_demo_waitlist(
     db: Session = Depends(get_db),
     authorization: str | None = Header(default=None),
     x_telegram_init_data: str | None = Header(default=None),
+    x_event_invite: str | None = Header(default=None),
 ):
     guest = get_demo_guest_by_token(db, payload.guest_token)
 
@@ -3040,6 +3050,7 @@ def join_demo_waitlist(
     if event is None:
         raise HTTPException(status_code=404, detail="event_not_found")
     require_published(db,event_id)
+    require_invite(db,event_id,x_event_invite)
 
     if telegram_guest_has_bot_registration(db, guest, event_id):
         raise HTTPException(status_code=409, detail="already_registered_via_bot")
