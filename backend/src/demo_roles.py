@@ -154,6 +154,7 @@ def save_media(db, event_id, gallery_urls=None, video_url=None):
 
 
 class CreateManageEvent(BaseModel):
+    visibility: str = Field(default="public",pattern="^(public|link_only)$")
     country_code: str = Field(default="CZ", min_length=2, max_length=2)
     city: str = Field(default="", max_length=100)
     title: str = Field(min_length=1, max_length=255)
@@ -189,6 +190,10 @@ class UpdateManageEvent(BaseModel):
     gallery_urls: list[str] | None = None
     video_url: str | None = None
     reminder_text: str | None = Field(default=None, max_length=1000)
+
+class EventVisibilityUpdate(BaseModel):
+    visibility: str = Field(pattern="^(public|link_only)$")
+
 
 class PublicationUpdate(BaseModel):
     status: str = Field(pattern="^(draft|published|scheduled)$")
@@ -328,6 +333,8 @@ def event_data(event, db, main) -> dict[str,Any]:
     data["owner_account_id"]=owner.owner_account_id if owner else None
     setting=main.get_payment_settings(db,event.id)
     data["payment_instructions"]=setting.payment_instructions if setting else ""
+    from demo_event_access import organizer_invite_url
+    data["invite_url"]=organizer_invite_url(db,event.id)
     return data
 
 def validate_payload(languages: list[str]|None, currency: str|None) -> None:
@@ -399,7 +406,7 @@ def install_demo_roles(app, get_db, main):
         if payload.starts_at is None:
             raise HTTPException(status_code=422,detail="date_required")
         # Existing bot event-creation logic remains the source of truth.
-        values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","reminder_minutes"})
+        values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","reminder_minutes","visibility"})
         validate_media_urls(payload.gallery_urls,payload.video_url)
         from main import EventCreate
         values["payment_instructions"]=payload.payment_instructions.strip() if payload.price > 0 else ""
@@ -417,6 +424,8 @@ def install_demo_roles(app, get_db, main):
         db.add(EventPilotSettings(event_id=eid,reminder_minutes_json=json.dumps(reminder_intervals)))
         db.add(EventOwnership(event_id=eid,owner_account_id=account.id))
         set_publication(db,eid,"draft")
+        from demo_event_access import set_visibility
+        set_visibility(db,eid,payload.visibility)
         save_place(db, DemoEventPlace, "event_id", eid, payload.country_code, payload.city)
         if payload.poster_data_url:
             poster_setup(db,main,request,event,payload.poster_data_url)
@@ -424,6 +433,21 @@ def install_demo_roles(app, get_db, main):
         audit(db,eid,account.id,"create")
         db.commit()
         db.refresh(event)
+        return event_data(event,db,main)
+
+    @app.put("/demo/manage/events/{event_id}/visibility")
+    def change_visibility(event_id: int, payload: EventVisibilityUpdate,
+                          account: WebAccount=Depends(managing),
+                          db: Session=Depends(get_db)):
+        ensure_owner(db,event_id,account)
+        event=db.get(main.Event,event_id)
+        if event is None:
+            raise HTTPException(404,"event_not_found")
+        from demo_event_access import set_visibility, is_unlisted
+        previous="link_only" if is_unlisted(db,event_id) else "public"
+        set_visibility(db,event_id,payload.visibility)
+        audit(db,event_id,account.id,"visibility",f"{previous}->{payload.visibility}")
+        db.commit()
         return event_data(event,db,main)
 
     @app.put("/demo/manage/events/{event_id}/publication")
@@ -667,8 +691,12 @@ def install_demo_roles(app, get_db, main):
 
     @app.get("/demo/events/{event_id}/gallery/{image_id}")
     def public_gallery_image(event_id:int,image_id:int,db:Session=Depends(get_db),
-                             authorization:str|None=Header(default=None)):
-        if not publication_state(db,event_id)["visible"]:
+                             authorization:str|None=Header(default=None),
+                             invite:str|None=None):
+        if publication_state(db,event_id)["visible"]:
+            from demo_event_access import require_invite
+            require_invite(db,event_id,invite)
+        else:
             ensure_owner(db,event_id,account_lookup(db,authorization))
         image=db.query(EventGalleryImage).filter(
             EventGalleryImage.id==image_id,
