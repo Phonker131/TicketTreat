@@ -29,6 +29,7 @@ class PrivateInvitesE2E(unittest.TestCase):
             db.add(event)
             db.flush()
             event_id=event.id
+            db.add(main.DemoEventPoster(event_id=event_id, content_type="image/png", image_bytes=b"private-poster-test"))
             set_publication(db,event_id,"published")
             set_visibility(db,event_id,"link_only")
             token=db.get(EventAccess,event_id).invite_token
@@ -42,6 +43,10 @@ class PrivateInvitesE2E(unittest.TestCase):
             self.assertNotIn(event_id,[x["id"] for x in listed.json()])
             self.assertEqual(client.get(f"/events/{event_id}").status_code,404)
             self.assertEqual(client.get(f"/events/{event_id}",headers={"X-Event-Invite":"invalid"}).status_code,404)
+            self.assertEqual(client.get(f"/demo/events/{event_id}/poster").status_code,404)
+            poster=client.get(f"/demo/events/{event_id}/poster?invite={token}")
+            self.assertEqual(poster.status_code,200,poster.text)
+            self.assertEqual(poster.headers["cache-control"],"private, no-store")
             info=client.get(f"/events/{event_id}",headers={"X-Event-Invite":token})
             self.assertEqual(info.status_code,200,info.text)
             self.assertEqual(info.json()["visibility"],"link_only")
