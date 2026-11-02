@@ -17,6 +17,9 @@ import type { TicketTreatEvent } from "@/lib/types";
 export function EventDetailClient({preview=false,initialEvent=null}:{preview?:boolean;initialEvent?:TicketTreatEvent|null}) {
   const params = useParams<{id: string}>();
   const query=useSearchParams();
+  const invite=query.get("invite");
+  const inviteToken=invite&&/^[A-Za-z0-9_-]{43}$/.test(invite)?invite:null;
+  const inviteQuery=inviteToken?`invite=${encodeURIComponent(inviteToken)}`:"";
   const source=(query.get("utm_source")||query.get("ref")||"").toLowerCase();
   const attributed=/^[a-z0-9_-]{1,40}$/.test(source)?`&utm_source=${encodeURIComponent(source)}`:"";
   const {language} = useLanguage();
@@ -45,9 +48,9 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   useEffect(() => {
     if (!params?.id) return;
     const token=getWebToken();
-    const result=preview ? (token ? getManageEvent(Number(params.id),token) : Promise.reject(new Error("Login required"))) : getEvent(params.id);
+    const result=preview ? (token ? getManageEvent(Number(params.id),token) : Promise.reject(new Error("Login required"))) : getEvent(params.id,undefined,inviteToken);
     result.then(setEvent).catch((e) => setError(e instanceof Error ? e.message : "error"));
-  }, [params?.id,preview]);
+  }, [params?.id,preview,inviteToken]);
 
   useEffect(()=>{getBookingConfig().then(cfg=>setDemoPayments(cfg.demo_payment_mode)).catch(()=>{});},[]);
 
@@ -60,9 +63,9 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   }
 
   const mapUrl=mapQuery(event);
-  const eventUrl=typeof window!=="undefined" ? window.location.origin+`/events/${event.id}` : `/events/${event.id}`;
+  const eventUrl=typeof window!=="undefined" ? window.location.origin+`/events/${event.id}${inviteQuery?`?${inviteQuery}`:""}` : `/events/${event.id}`;
 
-  const shareUrl=`https://tickettreat.eu/events/${event.id}`;
+  const shareUrl=`https://tickettreat.eu/events/${event.id}${inviteQuery?`?${inviteQuery}`:""}`;
   const shareTitle=event.title;
   const shareWords={
     ru:{button:"Поделиться",telegram:"Telegram",whatsapp:"WhatsApp",copied:"Ссылка на мероприятие скопирована.",unavailable:"Не удалось скопировать ссылку. Используй Telegram или WhatsApp."},
@@ -85,12 +88,14 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
     }
   }
 
+  const addInviteToMedia=(url:string)=>event.visibility==="link_only"&&inviteQuery&&url.startsWith("/api/gateway/demo/events/")
+    ?url+(url.includes("?")?"&":"?")+inviteQuery:url;
   const posterUrl=preview&&!event.publication?.visible&&event.image_url?.includes(`/demo/events/${event.id}/poster`)
-    ? `/api/gateway/demo/events/${event.id}/poster` : event.image_url;
+    ? `/api/gateway/demo/events/${event.id}/poster` : event.image_url?addInviteToMedia(event.image_url):null;
   const galleryUrls=preview&&!event.publication?.visible
     ? (event.gallery_urls||[]).map(url=>url.includes(`/demo/events/${event.id}/gallery/`)?
         `/api/gateway/demo/events/${event.id}/gallery/${url.split("/").pop()}`:url)
-    : event.gallery_urls||[];
+    : (event.gallery_urls||[]).map(addInviteToMedia);
 
   const langs = event.languages?.length
     ? event.languages.map((code) => LANGUAGE_NAMES[language][code]).join(", ")
@@ -101,6 +106,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
       <AppHeader />
       <main className="page event-page">
         <Link href={preview?`/admin/events/${event.id}`:"/"} className="back-link">← {preview?previewWords.manage:t(language, "back")}</Link>
+        {!preview&&event.visibility==="link_only"&&<div className="state-card" role="status">{language==="ru"?"🔒 Закрытое мероприятие. Доступ только по ссылке-приглашению.":language==="cs"?"🔒 Soukromá událost. Přístup pouze přes pozvánku.":language==="uk"?"🔒 Закрита подія. Доступ лише за запрошенням.":"🔒 Invitation-only event. Share this private link only with invited guests."}</div>}
         {preview&&<div className="state-card" role="status"><strong>{previewWords.title}</strong> {event.publication?.visible?previewWords.published:previewWords.draft}</div>}
 
         <section className="event-hero">
@@ -175,15 +181,15 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
                 : (language==="ru"?"Платёж производится напрямую организатору, не через TicketTreat. Уточни у организатора способ оплаты, регистрацию и возврат.":language==="cs"?"Platba probíhá přímo pořadateli, nikoli přes TicketTreat. Podmínky platby, registrace a vrácení peněz sdělí pořadatel.":language==="uk"?"Оплата здійснюється безпосередньо організатору, а не через TicketTreat. Уточни в організатора умови оплати, реєстрації та повернення.":"Payment is arranged directly with the organizer, not through TicketTreat. Ask the organizer about payment, registration and refunds.")}</p>
             </div>
             {Number(event.price||0)>0 ? (
-              <Link className="button button-primary" href={`/checkout/${event.id}`}>
+              <Link className="button button-primary" href={`/checkout/${event.id}${inviteQuery?`?${inviteQuery}`:""}`}>
                 {event.spots_left===0
                   ? (language==="ru"?"Проверить мою заявку":language==="cs"?"Zkontrolovat žádost":language==="uk"?"Перевірити заявку":"Check my application")
                   : (language==="ru"?"Заявка на оплату — 24 часа":language==="cs"?"Rezervovat na 24 hodin":language==="uk"?"Заявка на оплату — 24 години":"Reserve for 24 hours")}
               </Link>
             ) : event.spots_left === 0 ? (
-              <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}`}>{t(language, "waitlist")}</Link>
+              <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}${inviteQuery?`&${inviteQuery}`:""}`}>{t(language, "waitlist")}</Link>
             ) : (
-              <Link className="button button-primary" href={`/checkout/${event.id}${attributed?`?utm_source=${encodeURIComponent(source)}`:""}`}>{t(language, "join")}</Link>
+              <Link className="button button-primary" href={`/checkout/${event.id}${inviteQuery||attributed?`?${[inviteQuery,attributed.replace(/^&/,"")].filter(Boolean).join("&")}`:""}`}>{t(language, "join")}</Link>
             )}
           </section>
         )}
