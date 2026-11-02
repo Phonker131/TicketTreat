@@ -546,6 +546,7 @@ def install_demo_roles(app, get_db, main):
             description=source.description,max_participants=source.max_participants,
             price=source.price or Decimal("0"),currency=source.currency or "CZK",
             starts_at=payload.starts_at or source.starts_at,
+            visibility="link_only" if __import__("demo_event_access").is_unlisted(db,event_id) else "public",
             languages=languages,country_code=place.country_code,city=place.city,
             gallery_urls=external,video_url=video,poster_data_url=poster,
             reminder_minutes=__import__("demo_pilot_ops").effective_settings(db, source.id)["reminder_minutes"],
@@ -710,7 +711,7 @@ def install_demo_roles(app, get_db, main):
         else:
             content=image.image_bytes
         return Response(content=content,media_type=image.content_type,
-                        headers={"Cache-Control":"public, max-age=3600",
+                        headers={"Cache-Control":"private, no-store" if __import__("demo_event_access").is_unlisted(db,event_id) else "public, max-age=3600",
                                  "X-Content-Type-Options":"nosniff"})
 
     @app.post("/demo/manage/events/{event_id}/gallery",status_code=201)
