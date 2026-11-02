@@ -26,12 +26,13 @@ export type EventLookup=
  |{status:"found";event:TicketTreatEvent}
  |{status:"missing"}
  |{status:"unavailable"};
-export async function lookupPublicEvent(id:string):Promise<EventLookup>{
+export async function lookupPublicEvent(id:string,invite?:string):Promise<EventLookup>{
   if(!/^[1-9][0-9]{0,8}$/.test(id))return {status:"missing"};
   if(!/^https?:\/\//.test(backend))return {status:"unavailable"};
   try{
     const r=await fetch(backend+"/events/"+id,{
-      cache:"no-store",signal:AbortSignal.timeout(4500),redirect:"error"
+      cache:"no-store",signal:AbortSignal.timeout(4500),redirect:"error",
+      headers:invite && /^[A-Za-z0-9_-]{43}$/.test(invite)?{"X-Event-Invite":invite}:{}
     });
     if(r.status===404||r.status===410)return {status:"missing"};
     if(!r.ok)return {status:"unavailable"};
