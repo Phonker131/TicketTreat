@@ -10,7 +10,7 @@ import re
 import secrets
 
 from fastapi import HTTPException
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import CheckConstraint, Column, ForeignKey, Integer, String
 from db.base import Base
 
 TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$")
@@ -18,6 +18,7 @@ TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$")
 
 class EventAccess(Base):
     __tablename__ = "demo_event_invites"
+    __table_args__ = (CheckConstraint("length(invite_token) = 43", name="ck_demo_event_invites_token_len"),)
     event_id = Column(Integer, ForeignKey("events.id", ondelete="CASCADE"), primary_key=True)
     invite_token = Column(String(64), nullable=False, unique=True)
 
