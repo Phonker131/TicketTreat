@@ -5,15 +5,18 @@ import {notFound} from "next/navigation";
 import type {TicketTreatEvent} from "@/lib/types";
 import {seoImageUrl} from "@/lib/seo-image";
 
-type Props={params:Promise<{id:string}>};
+type Props={params:Promise<{id:string}>;searchParams:Promise<{invite?:string}>};
+const validInvite=(s?:string)=>s&&/^[A-Za-z0-9_-]{43}$/.test(s)?s:undefined;
 const origin="https://tickettreat.eu";
 
-export async function generateMetadata({params}:Props):Promise<Metadata>{
+export async function generateMetadata({params,searchParams}:Props):Promise<Metadata>{
   const {id}=await params;
-  const found=await lookupPublicEvent(id);
+  const invite=validInvite((await searchParams).invite);
+  const found=await lookupPublicEvent(id,invite);
   if(found.status==="unavailable")throw new Error("Event upstream unavailable");
   if(found.status==="missing")return {title:"Event not found",robots:{index:false,follow:false}};
   const event=found.event;
+  if(event.visibility==="link_only")return {title:event.title,robots:{index:false,follow:false},referrer:"no-referrer"};
   if(!isUpcomingEvent(event))return {
     title:"Мероприятие",
     robots:{index:false,follow:true},
@@ -66,13 +69,14 @@ function structuredEvent(event:TicketTreatEvent):Record<string,unknown>|null {
   return result;
 }
 
-export default async function EventPage({params}:Props){
+export default async function EventPage({params,searchParams}:Props){
   const {id}=await params;
-  const found=await lookupPublicEvent(id);
+  const invite=validInvite((await searchParams).invite);
+  const found=await lookupPublicEvent(id,invite);
   if(found.status==="unavailable")throw new Error("Event upstream unavailable");
   if(found.status==="missing")notFound();
   const event=found.event;
-  const schema=structuredEvent(event);
+  const schema=event.visibility==="link_only"?null:structuredEvent(event);
   return <>
     {schema&&<script type="application/ld+json" dangerouslySetInnerHTML={{
       __html:JSON.stringify(schema).replace(/</g,"\\u003c"),
