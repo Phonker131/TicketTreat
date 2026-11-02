@@ -13,7 +13,7 @@ import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
   editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,orderManageGallery,
-  setManagePublication,duplicateManageEvent,
+  setManagePublication,setManageVisibility,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
   getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
   getManagePaidReservations,decidePaidReservation,
@@ -314,9 +314,24 @@ export function AdminEventClient(){
     catch(e){setError(formattedError(e,language));}
     finally{setBusy(false);}
   }
+  async function changeVisibility(visibility:"public"|"link_only"){
+    if(!event||event.visibility===visibility)return;
+    if(!window.confirm(visibility==="public"?
+      (language==="ru"?"Сделать мероприятие доступным всем и показать в каталоге?":language==="cs"?"Zveřejnit událost v katalogu?":language==="uk"?"Показати подію всім у каталозі?":"Make this event public and list it in the catalog?"):
+      (language==="ru"?"Скрыть мероприятие из каталога и открыть только по новой секретной ссылке?":language==="cs"?"Skrýt akci v katalogu a přístup povolit pouze přes nový odkaz?":language==="uk"?"Приховати подію з каталогу та відкрити лише за новим посиланням?":"Hide from the catalog and require a new invitation link?")))return;
+    const token=getWebToken();if(!token)return;
+    setBusy(true);setError("");setNotice("");
+    try{await setManageVisibility(token,eventId,visibility);await reload();
+      setNotice(visibility==="link_only"?
+        (language==="ru"?"Закрытый доступ включён. Скопируй ссылку-приглашение ниже.":"Invitation-only access enabled. Copy the private link below."):
+        (language==="ru"?"Мероприятие стало публичным.":"Event is now public."));
+    }catch(e){setError(formattedError(e,language))}finally{setBusy(false)}
+  }
   async function publication(status:"draft"|"scheduled"|"published"){
     const token=getWebToken();if(!token||!event)return;
-    if(status==="published"&&!window.confirm(tr("Открыть мероприятие для всех и разрешить бесплатную регистрацию?")))return;
+    if(status==="published"&&!window.confirm(event.visibility==="link_only"?
+      (language==="ru"?"Открыть регистрацию только по ссылке-приглашению?":"Allow registration only via the invitation link?"):
+      tr("Открыть мероприятие для всех и разрешить бесплатную регистрацию?")))return;
     if(status==="draft"&&!window.confirm(tr("Снять мероприятие с публикации? Это возможно только без участников.")))return;
     setBusy(true);setError("");setNotice("");
     try{
@@ -337,7 +352,8 @@ export function AdminEventClient(){
   }
   async function downloadPromotionQR(){
     if(!event||!event.publication?.visible)return;
-    const url=window.location.origin+`/events/${eventId}`;
+    const url=event.visibility==="link_only"?event.invite_url:window.location.origin+`/events/${eventId}`;
+    if(!url)return;
     const png=await QRCode.toDataURL(url,{width:960,margin:3,
       color:{dark:"#1E0A28",light:"#FFFFFF"}});
     const link=document.createElement("a");
@@ -346,7 +362,10 @@ export function AdminEventClient(){
   }
   async function copyEventLink(){
     if(!event?.publication?.visible)return;
-    try{await navigator.clipboard.writeText(window.location.origin+`/events/${eventId}`);setNotice(tr("Публичная ссылка скопирована."));}
+    const url=event.visibility==="link_only"?event.invite_url:window.location.origin+`/events/${eventId}`;
+    if(!url)return;
+    try{await navigator.clipboard.writeText(url);setNotice(event.visibility==="link_only"?
+      (language==="ru"?"Секретная ссылка-приглашение скопирована.":"Private invite link copied."):tr("Публичная ссылка скопирована."));}
     catch{setError(tr("Не удалось скопировать ссылку. Открой публичную страницу."))}
   }
   async function csv(){
@@ -381,11 +400,23 @@ export function AdminEventClient(){
         {!event.is_cancelled&&<button type="button" className="button button-outline" disabled={busy}
           onClick={openCancelDialog}>{tr("Отменить ивент")}</button>}
         <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
-        {event.publication?.visible&&<Link className="button button-outline" href={`/events/${event.id}`}>{tr("Публичная страница ↗")}</Link>}
+        {event.publication?.visible&&<Link className="button button-outline" href={event.invite_url||`/events/${event.id}`}>{language==="ru"?"Страница мероприятия ↗":"Event page ↗"}</Link>}
         <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>{tr("Копировать ивент")}</button>
       </div>
       {!event.is_cancelled&&<section className="panel form-stack">
         <h2>{tr("Публикация мероприятия")}</h2>
+        <label>{language==="ru"?"Видимость":language==="cs"?"Viditelnost":language==="uk"?"Видимість":"Visibility"}
+          <select value={event.visibility||"public"} disabled={busy} onChange={e=>void changeVisibility(e.target.value as "public"|"link_only")}>
+            <option value="public">{language==="ru"?"Публичное (каталог)":language==="cs"?"Veřejné (katalog)":language==="uk"?"Публічне (каталог)":"Public (catalog)"}</option>
+            <option value="link_only">{language==="ru"?"Закрытое (по ссылке)":language==="cs"?"Soukromé (přes odkaz)":language==="uk"?"Закрите (за посиланням)":"Private (invitation link)"}</option>
+          </select>
+        </label>
+        {event.visibility==="link_only"&&<div className="state-card" role="status">
+          🔒 {language==="ru"?"Мероприятие скрыто из каталога и Google. Чтобы открыть его, нужна секретная ссылка. Любой обладатель ссылки может передать её другим.":language==="cs"?"Akce není v katalogu ani ve vyhledávačích. Odkaz může předat kdokoli, kdo jej získá.":language==="uk"?"Подія прихована з каталогу та Google. Кожен, хто має посилання, може ним поділитися.":"Unlisted: only guests with the private invitation link can view or book. Anyone who has the link may share it."}
+          {event.invite_url&&<div className="admin-event-actions" style={{marginTop:10}}>
+            <button type="button" className="button button-primary" onClick={copyEventLink}>{language==="ru"?"Скопировать приглашение":language==="cs"?"Kopírovat pozvánku":language==="uk"?"Скопіювати запрошення":"Copy invitation link"}</button>
+          </div>}
+        </div>}
         <p className="form-note">{tr("Статус:")} <strong>{event.publication?.status==="draft"?tr("Черновик"):event.publication?.status==="scheduled"?tr("Запланировано"):tr("Опубликовано")}</strong>. {tr("Новые ивенты скрыты до публикации. Для платных ивентов укажи инструкцию прямой оплаты организатору; подтверждение оплаченных заявок доступно ниже.")}</p>
         {event.publication?.publish_at&&<p>{tr("Автопубликация:")} {new Date(event.publication.publish_at).toLocaleString(localeForLanguage(language))}</p>}
         <div className="admin-event-actions">

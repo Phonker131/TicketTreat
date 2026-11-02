@@ -40,6 +40,7 @@ export type TicketTreatEvent = {
   reminder_text?: string | null;
   reminder_minutes_before?: number | null;
   publication?: {status:"draft"|"scheduled"|"published";publish_at:string|null;visible:boolean};
+  visibility?: "public"|"link_only";
   is_cancelled: boolean;
   cancellation_reason?: string | null;
 };
@@ -131,5 +132,5 @@ export type ManageIdentity = {
   email: string;
   role: "participant" | "organizer" | "global_admin";
 };
-export type ManageEvent = TicketTreatEvent & {owner_account_id: number | null;payment_instructions?:string};
+export type ManageEvent = TicketTreatEvent & {owner_account_id: number | null;payment_instructions?:string;invite_url?:string|null};
 export type OrganizerIdentity = {account_id: number;name: string;email: string};

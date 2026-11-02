@@ -115,6 +115,7 @@ export function AdminClient() {
       if(!reminderMinutes.length||!reminderMessage.trim())throw new Error("reminder_settings_required");
       const event=await addManageEvent(token,{
         title:String(data.get("title")||"").trim(),
+        visibility:data.get("visibility")==="link_only"?"link_only":"public",
         organizer:String(data.get("organizer")||"TicketTreat").trim(),
         description:String(data.get("description")||"").trim(),
         gallery_urls:String(data.get("gallery_urls")||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean),
@@ -170,6 +171,13 @@ export function AdminClient() {
         <label>{tr("Организатор")}<input name="organizer" defaultValue="TicketTreat" /></label>
         <label>{tr("Адрес или место проведения")}<input name="location" required /></label>
         <label>{tr("Описание")}<textarea name="description" rows={4}/></label>
+        <label>{language==="ru"?"Доступ к мероприятию":language==="cs"?"Přístup k události":language==="uk"?"Доступ до події":"Event visibility"}
+          <select name="visibility" defaultValue="public">
+            <option value="public">{language==="ru"?"Публичное — в каталоге":language==="cs"?"Veřejné — v katalogu":language==="uk"?"Публічна — у каталозі":"Public — listed in the catalog"}</option>
+            <option value="link_only">{language==="ru"?"Закрытое — только по ссылке":language==="cs"?"Soukromé — pouze přes odkaz":language==="uk"?"Закрита — лише за посиланням":"Private — invitation link only"}</option>
+          </select>
+          <small className="form-note">{language==="ru"?"Случайная ссылка появится после создания. Мероприятие не будет видно в каталоге.":language==="cs"?"Po vytvoření vznikne soukromý odkaz; událost se nezobrazí v katalogu.":language==="uk"?"Після створення з'явиться приватне посилання; подія не буде у каталозі.":"A private invitation link will be generated. The event is not discoverable in the catalog."}</small>
+        </label>
         <label>{ui.photo}<textarea name="gallery_urls" rows={4} placeholder="https://example.com/event-photo.jpg"/></label>
         <label>{ui.video}<input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=…"/></label>
         <label>{tr("Постер JPG/PNG/WebP до 4 МБ")}<input name="poster" type="file" accept="image/jpeg,image/png,image/webp"
@@ -216,7 +224,7 @@ export function AdminClient() {
             [ev.title,ev.city,ev.organizer,ev.location].some(v=>String(v||"").toLocaleLowerCase().includes(term)));
         }).sort((a,b)=>sortMode==="title"?a.title.localeCompare(b.title):sortMode==="soonest"?
           (Date.parse(a.starts_at||"")||Infinity)-(Date.parse(b.starts_at||"")||Infinity):b.id-a.id).map(ev=><Link key={ev.id} href={`/admin/events/${ev.id}`} className="admin-event-card">
-          <small>#{ev.id} · {ev.is_cancelled?ui.cancelled:ev.publication?.status==="draft"?ui.draft:ev.publication?.status==="scheduled"?ui.scheduled:ui.published}</small>
+          <small>#{ev.id} · {ev.visibility==="link_only"?"🔒 ": ""}{ev.is_cancelled?ui.cancelled:ev.publication?.status==="draft"?ui.draft:ev.publication?.status==="scheduled"?ui.scheduled:ui.published}</small>
           <h3>{ev.title}</h3>
           <p>{ev.location||"—"}</p>
           <div><span>{ev.registered_count??0} {ui.guests}</span>

@@ -51,9 +51,10 @@ def install_principal_api(app,get_db,main):
 
     @app.post("/demo/me/events/{event_id}/paid-reservations",status_code=201)
     def create_paid_reservation(event_id:int,payload:FreeBooking,
+             x_event_invite:str|None=Header(default=None),
              guest=Depends(guest_for),db:Session=Depends(get_db)):
         from demo_paid_reservations import apply
-        return apply(db,main,event_id,guest,payload.language,payload.source)
+        return apply(db,main,event_id,guest,payload.language,payload.source,x_event_invite)
 
     @app.get("/demo/me/events/{event_id}/paid-reservations")
     def own_paid_reservation(event_id:int,guest=Depends(guest_for),
@@ -129,6 +130,7 @@ def install_principal_api(app,get_db,main):
     @app.post("/demo/me/events/{event_id}/checkout")
     def checkout(event_id:int,payload:FreeBooking,
                  background_tasks:BackgroundTasks,
+                 x_event_invite:str|None=Header(default=None),
                  authorization:str|None=Header(default=None),
                  x_telegram_init_data:str|None=Header(default=None),
                  guest=Depends(guest_for),db:Session=Depends(get_db)):
@@ -137,7 +139,7 @@ def install_principal_api(app,get_db,main):
             payload=main.DemoCheckoutCreate(guest_token=guest.access_token,language=payload.language,source=payload.source),
             background_tasks=background_tasks,
             db=db,authorization=authorization,
-            x_telegram_init_data=x_telegram_init_data)
+            x_telegram_init_data=x_telegram_init_data,x_event_invite=x_event_invite)
 
     @app.get("/demo/me/events/{event_id}/waitlist/status")
     def waitlist_status(event_id:int,guest=Depends(guest_for),db:Session=Depends(get_db)):
@@ -165,19 +167,22 @@ def install_principal_api(app,get_db,main):
     @app.post("/demo/me/events/{event_id}/waitlist/claim")
     def claim_waitlist_offer(event_id:int,payload:FreeBooking,
                             background_tasks:BackgroundTasks,
+                            x_event_invite:str|None=Header(default=None),
                             authorization:str|None=Header(default=None),
                             x_telegram_init_data:str|None=Header(default=None),
                             guest=Depends(guest_for),db:Session=Depends(get_db)):
         from demo_waitlist_offers import ensure_available_offer, expire_for_event
         event=db.query(main.Event).filter(main.Event.id==event_id).with_for_update().first()
         if event is None:raise HTTPException(404,"event_not_found")
+        from demo_event_access import require_invite
+        require_invite(db,event_id,x_event_invite)
         expire_for_event(db,event_id)
         if ensure_available_offer(db,event,guest) is None:
             raise HTTPException(409,"waitlist_offer_unavailable_or_expired")
         return main.demo_checkout(event_id=event_id,
             payload=main.DemoCheckoutCreate(guest_token=guest.access_token,language=payload.language),
             background_tasks=background_tasks,db=db,authorization=authorization,
-            x_telegram_init_data=x_telegram_init_data)
+            x_telegram_init_data=x_telegram_init_data,x_event_invite=x_event_invite)
 
     @app.post("/demo/me/events/{event_id}/waitlist/decline")
     def decline_waitlist_offer(event_id:int,guest=Depends(guest_for),
@@ -197,9 +202,11 @@ def install_principal_api(app,get_db,main):
 
     @app.post("/demo/me/events/{event_id}/waitlist")
     def waitlist(event_id:int,
+                 x_event_invite:str|None=Header(default=None),
                  authorization:str|None=Header(default=None),
                  x_telegram_init_data:str|None=Header(default=None),
                  guest=Depends(guest_for),db:Session=Depends(get_db)):
         return main.join_demo_waitlist(
             event_id=event_id,payload=main.DemoWaitlistCreate(guest_token=guest.access_token),
-            db=db,authorization=authorization,x_telegram_init_data=x_telegram_init_data)
+            db=db,authorization=authorization,x_telegram_init_data=x_telegram_init_data,
+            x_event_invite=x_event_invite)

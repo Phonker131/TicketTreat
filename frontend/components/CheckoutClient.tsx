@@ -25,6 +25,8 @@ export function CheckoutClient() {
 
   const eventId = Number(params?.id);
   const wantsWaitlist = search.get("waitlist") === "1";
+  const candidate=search.get("invite");
+  const invite=candidate&&/^[A-Za-z0-9_-]{43}$/.test(candidate)?candidate:null;
   const rawSource=(search.get("utm_source")||search.get("ref")||"direct").toLowerCase();
   const attributionSource=/^[a-z0-9_-]{1,40}$/.test(rawSource)?rawSource:"direct";
 
@@ -45,8 +47,8 @@ export function CheckoutClient() {
 
   useEffect(() => {
     if (!Number.isFinite(eventId)) return;
-    getEvent(eventId).then(setEvent).catch(err => setMessage(userFacingError(err,language)));
-  }, [eventId, language]);
+    getEvent(eventId,undefined,invite).then(setEvent).catch(err => setMessage(userFacingError(err,language)));
+  }, [eventId, language, invite]);
 
   useEffect(()=>{getBookingConfig().then(setBookingConfig).catch(()=>setBookingConfig({demo_payment_mode:false,verified_accounts_required:true}));},[]);
 
@@ -102,12 +104,12 @@ export function CheckoutClient() {
     setMessage(null);
     try {
       if(offer?.status==="offered"){
-        const result=await claimWaitlistOffer(event.id,language);
+        const result=await claimWaitlistOffer(event.id,language,invite);
         router.push(`/tickets/${result.ticket.id}?registered=1`);
         return;
       }
       if (wantsWaitlist || event.spots_left === 0) {
-        const result = await joinWaitlist(event.id, guest.access_token);
+        const result = await joinWaitlist(event.id, guest.access_token,invite);
         if(result.status==="offered"){
           const next=await getWaitlistOfferStatus(event.id);setOffer(next);
           setMessage("msg:reserved");
@@ -118,7 +120,7 @@ export function CheckoutClient() {
       }
 
       if (!isFree) await new Promise((resolve) => setTimeout(resolve, 900));
-      const result = await demoCheckout(event.id, guest.access_token, language, attributionSource);
+      const result = await demoCheckout(event.id, guest.access_token, language, attributionSource,invite);
       router.push(`/tickets/${result.ticket.id}${isFree ? "?registered=1" : "?paid=1"}`);
     } catch (err) {
       const text = err instanceof Error ? err.message : "Error";
@@ -157,7 +159,7 @@ export function CheckoutClient() {
             </section>
 
             {!isFree ? (
-              <PaidCheckout event={event} guest={guest} language={language} source={attributionSource}/>
+              <PaidCheckout event={event} guest={guest} language={language} source={attributionSource} invite={invite}/>
             ) : !guest ? (
               <>
               <section className="panel account-signup-banner">
@@ -281,9 +283,9 @@ export function CheckoutClient() {
   );
 }
 
-function PaidCheckout({event,guest,language,source}:{
+function PaidCheckout({event,guest,language,source,invite}:{
   event:TicketTreatEvent;guest:DemoGuest|null;
-  language:"en"|"cs"|"ru"|"uk";source:string;
+  language:"en"|"cs"|"ru"|"uk";source:string;invite:string|null;
 }){
   const [state,setState]=useState<PaidReservationStatus|null>(null);
   const [busy,setBusy]=useState(false);
@@ -310,7 +312,7 @@ function PaidCheckout({event,guest,language,source}:{
   async function apply(){
     setBusy(true);setError("");
     try{
-      await requestPaidReservation(event.id,language,source);
+      await requestPaidReservation(event.id,language,source,invite);
       await refresh();
     }catch(e){setError(userFacingError(e,language))}
     finally{setBusy(false)}

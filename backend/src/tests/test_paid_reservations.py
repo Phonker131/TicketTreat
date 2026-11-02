@@ -44,6 +44,11 @@ class TestTicket(Base):
 
 class ReservationTests(unittest.TestCase):
     def setUp(self):
+        # These isolated SQLite payment tests do not model the production event
+        # invitation table; authorization is exercised in integration_private_event_invites.
+        invite_patch=patch("demo_event_access.require_invite")
+        invite_patch.start()
+        self.addCleanup(invite_patch.stop)
         engine=create_engine("sqlite://",connect_args={"check_same_thread":False},poolclass=StaticPool)
         for table in (TestEvent.__table__,TestGuest.__table__,TestTicket.__table__,PaidReservation.__table__):
             table.create(engine)
