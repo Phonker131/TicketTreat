@@ -75,12 +75,14 @@ def _lock_event(db,main,event_id):
     expire_for_event(db,event_id)
     return event
 
-def apply(db,main,event_id,guest,language="en",source="direct"):
+def apply(db,main,event_id,guest,language="en",source="direct",invite_token=None):
     event=_lock_event(db,main,event_id)
     from demo_publication import require_published
     from demo_pilot_ops import booking_cutoff_reached
     if main.price_decimal(event.price)<=0:raise HTTPException(409,"paid_reservation_not_required")
     require_published(db,event_id)
+    from demo_event_access import require_invite
+    require_invite(db,event_id,invite_token)
     if event.is_cancelled or event.starts_at is None or main.event_has_started(event):
         raise HTTPException(409,"event_unavailable")
     if booking_cutoff_reached(db,event):raise HTTPException(409,"event_registration_closed")
