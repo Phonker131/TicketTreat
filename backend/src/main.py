@@ -2688,7 +2688,7 @@ def get_demo_event_poster(event_id: int, db: Session = Depends(get_db),
     return Response(
         content=poster.image_bytes,
         media_type=poster.content_type,
-        headers={"Cache-Control": "public, max-age=300"},
+        headers={"Cache-Control": "private, no-store" if is_unlisted(db,event_id) else "public, max-age=300"},
     )
 
 
