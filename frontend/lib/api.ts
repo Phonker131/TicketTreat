@@ -91,13 +91,19 @@ export function getEvents(
   );
 }
 
+/** 256-bit invitation is sent in a header, never embedded in API query/log URLs. */
+function inviteHeader(invite?:string|null):HeadersInit {
+  return invite && /^[A-Za-z0-9_-]{43}$/.test(invite) ? {"X-Event-Invite":invite} : {};
+}
+
 export function getEvent(
   eventId: string | number,
   signal?: AbortSignal,
+  invite?:string|null,
 ): Promise<TicketTreatEvent> {
   return request<TicketTreatEvent>(
     `/events/${encodeURIComponent(String(eventId))}`,
-    {signal},
+    {signal,headers:inviteHeader(invite)},
   );
 }
 
@@ -125,11 +131,12 @@ export function demoCheckout(
   guestToken: string,
   language: "en" | "cs" | "ru" | "uk" = "en",
   source = "direct",
+  invite?:string|null,
 ): Promise<DemoCheckoutResponse> {
   return request<DemoCheckoutResponse>(
     signedIdentityAvailable()? `/demo/me/events/${eventId}/checkout` : `/demo/events/${eventId}/checkout`,
     {
-      method: "POST",
+      method: "POST",headers:inviteHeader(invite),
       body: JSON.stringify(signedIdentityAvailable()?{language,source}:{guest_token:guestToken,language,source}),
     },
   );
@@ -138,9 +145,10 @@ export function demoCheckout(
 export function joinWaitlist(
   eventId: number,
   guestToken: string,
+  invite?:string|null,
 ): Promise<{status: string; position?: number}> {
   return request(signedIdentityAvailable()? `/demo/me/events/${eventId}/waitlist` : `/demo/events/${eventId}/waitlist`, {
-    method: "POST",
+    method: "POST",headers:inviteHeader(invite),
     body: JSON.stringify(signedIdentityAvailable()?{}:{guest_token:guestToken}),
   });
 }
@@ -324,6 +332,12 @@ export function getManageEvent(id: number, token: string): Promise<import("@/lib
 }
 export function addManageEvent(token: string, payload: Record<string, unknown>): Promise<import("@/lib/types").ManageEvent> {
   return request("/demo/manage/events", {method:"POST",headers:accountHeaders(token),body:JSON.stringify(payload)});
+}
+export function setManageVisibility(token:string,eventId:number,visibility:"public"|"link_only"):
+  Promise<import("@/lib/types").ManageEvent>{
+  return request(`/demo/manage/events/${eventId}/visibility`,{
+    method:"PUT",headers:accountHeaders(token),body:JSON.stringify({visibility})
+  });
 }
 export function setManagePublication(token:string,eventId:number,payload:{status:"draft"|"scheduled"|"published";publish_at?:string}):
   Promise<import("@/lib/types").ManageEvent>{
@@ -530,10 +544,10 @@ export type PaidReservation = {
 };
 export type PaidReservationStatus = {status:PaidReservation["status"]|"not_joined";
   reservation:PaidReservation|null;payment_instructions:string|null;};
-export function requestPaidReservation(eventId:number,language:"en"|"cs"|"ru"|"uk",source="direct"):
+export function requestPaidReservation(eventId:number,language:"en"|"cs"|"ru"|"uk",source="direct",invite?:string|null):
   Promise<{reservation:PaidReservation;payment_instructions:string|null}>{
   return request(`/demo/me/events/${eventId}/paid-reservations`,{
-    method:"POST",body:JSON.stringify({language,source}),
+    method:"POST",headers:inviteHeader(invite),body:JSON.stringify({language,source}),
   });
 }
 export function getOwnPaidReservation(eventId:number):Promise<PaidReservationStatus>{
@@ -723,9 +737,9 @@ export type WaitlistOfferStatus = {status:string;expires_at:string|null;position
 export function getWaitlistOfferStatus(eventId:number):Promise<WaitlistOfferStatus>{
   return request(`/demo/me/events/${eventId}/waitlist/status`);
 }
-export function claimWaitlistOffer(eventId:number,language:string):Promise<DemoCheckoutResponse>{
+export function claimWaitlistOffer(eventId:number,language:string,invite?:string|null):Promise<DemoCheckoutResponse>{
   return request(`/demo/me/events/${eventId}/waitlist/claim`,{
-    method:"POST",body:JSON.stringify({language})
+    method:"POST",headers:inviteHeader(invite),body:JSON.stringify({language})
   });
 }
 export function declineWaitlistOffer(eventId:number):Promise<{status:string}>{
