@@ -112,6 +112,13 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
     if (imageSession && !headers.has("Authorization"))
       headers.set("Authorization", "Bearer " + imageSession);
   }
+  // Only event endpoints can receive invite bearer tokens. Never log them or
+  // forward them to authentication/support/organizer or external hosts.
+  const invite=req.headers.get("x-event-invite");
+  if (invite && /^[A-Za-z0-9_-]{43}$/.test(invite) &&
+      (/^\/events\/\d+$/.test(checked) || /^\/demo\/(?:me\/)?events\/\d+\//.test(checked))) {
+    headers.set("X-Event-Invite",invite);
+  }
   const signedLaunch = req.headers.get("x-telegram-init-data");
   if (signedLaunch && signedLaunch.length <= 8192) {
     headers.set("X-Telegram-Init-Data", signedLaunch);
