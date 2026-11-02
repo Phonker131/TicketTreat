@@ -2677,7 +2677,8 @@ def get_demo_event_poster(event_id: int, db: Session = Depends(get_db),
                           authorization: str | None = Header(default=None),
                           invite: str | None = None):
     if event_publication_state(db,event_id)["visible"]:
-        require_invite(db,event_id,invite)
+        from demo_event_access import require_media_access
+        require_media_access(db,event_id,invite,authorization)
     else:
         from demo_roles import account_lookup, ensure_owner
         ensure_owner(db,event_id,account_lookup(db,authorization))
