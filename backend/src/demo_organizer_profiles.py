@@ -238,8 +238,9 @@ def install_organizer_public_profiles(app, get_db, main):
                  .join(EventOwnership, EventOwnership.event_id == main.Event.id)
                  .filter(EventOwnership.owner_account_id == row.account_id)
                  .order_by(main.Event.starts_at.desc()).limit(250).all())
-        published = [event for event in owned
-                     if publication_state(db, event.id)["visible"] and not event.is_cancelled]
+        from demo_event_access import public_only
+        published = public_only(db, [event for event in owned
+                     if publication_state(db, event.id)["visible"] and not event.is_cancelled])
         upcoming = [event for event in published if not main.event_is_past(event)]
         history = [event for event in published if main.event_is_past(event)]
         to_public = lambda event: main.event_to_dict(event, db=db)
