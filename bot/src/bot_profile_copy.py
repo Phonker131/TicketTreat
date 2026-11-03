@@ -1,4 +1,4 @@
-"""TicketTreat BotFather copy and four-language bot onboarding.
+"""TicketTreat BotFather copy and CS/EN-only bot onboarding.
 
 English and Russian text is transcribed from botfather-texts.md supplied by the
 product team. Czech and Ukrainian are faithful new localizations.
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-LANGUAGES = ("en", "ru", "cs", "uk")
+LANGUAGES = ("en", "cs")
 DEFAULT_LANGUAGE = "en"
 
 BOT_CONTENT = {
@@ -257,7 +257,8 @@ def welcome_text(language_code: str | None, first_name: str | None) -> str:
 
 
 def validate_profile_copy() -> None:
-    for lang, data in BOT_CONTENT.items():
+    for lang in LANGUAGES:
+        data = BOT_CONTENT[lang]
         if len(data["description"]) > 512 or len(data["about"]) > 120:
             raise ValueError(f"Telegram BotFather text too long: {lang}")
         if len(data["commands"]) > 100 or len({c for c, _ in data["commands"]}) != len(data["commands"]):
@@ -277,7 +278,7 @@ def configure_botfather_profile(bot_token: str, requests_module) -> None:
         return
     validate_profile_copy()
     root = "https://api.telegram.org/bot" + bot_token + "/"
-    for language_code in ("", "en", "ru", "cs", "uk"):
+    for language_code in ("", "en", "cs"):
         copy = BOT_CONTENT[language_code or "en"]
         lang = {"language_code": language_code} if language_code else {}
         for getter, setter, field, desired in (
@@ -303,6 +304,30 @@ def configure_botfather_profile(bot_token: str, requests_module) -> None:
             except Exception as exc:
                 # A failure in profile configuration must never interrupt user updates.
                 print(f"TicketTreat bot profile setup failed: {setter} {language_code or 'default'} ({type(exc).__name__})", flush=True)
+
+
+    # Retire historical Russian/Ukrainian BotFather overrides. A bot locale
+    # with empty description uses the English default instead of stale copy.
+    for old_code in ("ru", "uk"):
+        for setter, field, desired in (
+            ("setMyDescription", "description", ""),
+            ("setMyShortDescription", "short_description", ""),
+        ):
+            try:
+                response = requests_module.post(
+                    root + setter, json={"language_code":old_code,field:desired},
+                    timeout=10,
+                )
+                if not response.ok or response.json().get("ok") is not True:
+                    raise RuntimeError("telegram_cleanup_failed")
+            except Exception as exc:
+                print(f"TicketTreat old locale cleanup skipped: {setter} {old_code} ({type(exc).__name__})",flush=True)
+        try:
+            response=requests_module.post(root+"deleteMyCommands",json={"language_code":old_code},timeout=10)
+            if not response.ok or response.json().get("ok") is not True:
+                raise RuntimeError("telegram_cleanup_failed")
+        except Exception as exc:
+            print(f"TicketTreat old command cleanup skipped: {old_code} ({type(exc).__name__})",flush=True)
 
 
 validate_profile_copy()
