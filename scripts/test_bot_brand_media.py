@@ -11,7 +11,7 @@ import brand_avatar
 
 
 def verify_image(content:bytes, size:tuple[int,int], label:str)->None:
-    assert content.startswith(b"\\xff\\xd8"),f"{label}: not a JPEG"
+    assert content.startswith(bytes.fromhex("ffd8")),f"{label}: not a JPEG"
     with Image.open(BytesIO(content)) as image:
         assert image.size==size,(label,image.size)
         assert image.format=="JPEG",(label,image.format)
