@@ -146,6 +146,13 @@ export function OrganizerAnalyticsClient(){
             <button className="button button-outline" type="button" disabled={!campaignLink} onClick={()=>void copyText(campaignLink)}>{cm.copyLink}</button>
             <button className="button button-primary" type="button" disabled={!campaignLink} onClick={()=>void copyText(`${cm.postIntro} ${campaignEvent.title}!\n${campaignLink}`)}>{cm.copyPost}</button>
           </div>
+          {campaignEvent.channels.length>0&&<div className="tt-analytics-scroll">
+            <h3>{cm.sourceTitle} · {campaignEvent.title}</h3>
+            <table className="tt-analytics-table">
+              <thead><tr><th>{cm.sourceName}</th><th>{cm.bookings}</th><th>{cm.checked}</th><th>{cm.rate}</th></tr></thead>
+              <tbody>{campaignEvent.channels.map(x=><tr key={x.source}><td>{x.source}</td><td>{x.registrations}</td><td>{x.checked_in}</td><td>{x.registrations?`${(x.checked_in*100/x.registrations).toFixed(1)}%`:t.notAvailable}</td></tr>)}</tbody>
+            </table>
+          </div>}
         </div>}
       </section>
       <section className="panel">
