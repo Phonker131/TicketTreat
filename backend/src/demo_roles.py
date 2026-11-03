@@ -924,9 +924,18 @@ def install_demo_roles(app, get_db, main):
         if ticket is None:
             raise HTTPException(status_code=404,detail="ticket_not_found")
         ensure_owner(db,ticket.event_id,account)
-        first_checkin=ticket.checked_in_at is None
+        # A QR token is a single-use admission credential. Do not report
+        # success for a replay; preserve the existing read-only ticket state.
+        if ticket.ticket_status != "active":
+            raise HTTPException(status_code=409,detail="ticket_not_active")
+        event=db.get(main.Event,ticket.event_id)
+        if event is None or event.is_cancelled:
+            raise HTTPException(status_code=409,detail="event_cancelled")
+        if ticket.checked_in_at is not None:
+            return {"status":"already_checked_in",
+                    "ticket":redact_organizer_ticket(main.demo_ticket_to_dict(ticket,db))}
         result=main.demo_admin_check_in(qr_token,_admin_key="",db=db)
-        if first_checkin and result.get("status")=="checked_in":
+        if result.get("status")=="checked_in":
             audit(db,ticket.event_id,account.id,"checkin",f"ticket:{ticket.id}")
             db.commit()
         return {**result,"ticket":redact_organizer_ticket(result["ticket"])}
