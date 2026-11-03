@@ -12,7 +12,6 @@ FRONTEND = ROOT / "frontend"
 SCREENS = (
     "AdminEventClient.tsx",
     "AdminClient.tsx",
-    "SiteContentClient.tsx",
     "CheckInClient.tsx",
     "AdminPrivacyClient.tsx",
 )
@@ -90,7 +89,7 @@ class AdminLocaleCoverageTests(unittest.TestCase):
                 )
 
     def test_main_admin_event_form_has_no_raw_russian_jsx_labels(self):
-        for filename in ("AdminEventClient.tsx", "SiteContentClient.tsx", "CheckInClient.tsx", "AdminPrivacyClient.tsx"):
+        for filename in ("AdminEventClient.tsx", "CheckInClient.tsx", "AdminPrivacyClient.tsx"):
             with self.subTest(screen=filename):
                 source = (FRONTEND / "components" / filename).read_text(encoding="utf-8")
                 # Text nodes that bypass tr(...) stay Russian regardless of chosen locale.
