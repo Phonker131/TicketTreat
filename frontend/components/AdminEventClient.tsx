@@ -196,7 +196,6 @@ export function AdminEventClient(){
     try{
       await deleteManageEvent(token,event.id);
       router.replace("/admin");
-      router.refresh();
     }catch(e){
       setError(formattedError(e,language));
       setBusy(false);
