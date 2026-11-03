@@ -1,12 +1,11 @@
 import type {Metadata} from "next";
-import {notFound} from "next/navigation";
+import {notFound,permanentRedirect} from "next/navigation";
 import {FaqClient} from "@/components/FaqClient";
 import {faqAlternates} from "@/lib/faq-seo";
 type Params={params:Promise<{locale:string}>};
 const meta={
  cs:{title:"Často kladené otázky",description:"Odpovědi na otázky o akcích, vstupenkách s QR kódem, Telegramu a podpoře TicketTreat."},
- en:{title:"Frequently Asked Questions",description:"Answers about TicketTreat event registration, QR tickets, Telegram and organizer-direct payments."},
- uk:{title:"Поширені запитання",description:"Відповіді про події, QR-квитки, Telegram, оплату організатору й підтримку TicketTreat."}
+ en:{title:"Frequently Asked Questions",description:"Answers about TicketTreat event registration, QR tickets, Telegram and organizer-direct payments."}
 } as const;
 type Locale=keyof typeof meta;
 function supported(x:string):x is Locale{return Object.prototype.hasOwnProperty.call(meta,x);}
@@ -25,6 +24,7 @@ export async function generateMetadata({params}:Params):Promise<Metadata>{
 }
 export default async function LocalizedFaq({params}:Params){
   const {locale}=await params;
+  if(locale==="uk")permanentRedirect("/en/faq");
   if(!supported(locale))notFound();
   return <FaqClient forcedLanguage={locale}/>;
 }
