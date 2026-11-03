@@ -14,7 +14,7 @@ test("dark organizer heading and badge have readable text; hover creates no ghos
   await page.setViewportSize({width:1440,height:900});
   await page.addInitScript(()=>localStorage.setItem("tt4-theme","dark"));
   await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
-  await expect(page.locator(".topbar")).toBeVisible();
+  await expect(page.locator(".topbar-menu-toggle")).toBeEnabled();
   await page.evaluate(()=>{
     document.querySelector(".app-shell")?.insertAdjacentHTML("beforeend",`
       <main class="page">
