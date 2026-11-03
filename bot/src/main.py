@@ -156,14 +156,12 @@ def backend_request(
 # =========================================================
 # Interface languages / i18n
 # =========================================================
-SUPPORTED_INTERFACE_LANGUAGES = ("en", "cs", "ru", "uk")
+SUPPORTED_INTERFACE_LANGUAGES = ("en", "cs")
 DEFAULT_INTERFACE_LANGUAGE = "en"
 
 LANGUAGE_SELECTOR_LABELS = {
     "en": "🇬🇧 English",
     "cs": "🇨🇿 Čeština",
-    "ru": "🇷🇺 Русский",
-    "uk": "🇺🇦 Українська",
 }
 
 LANGUAGE_NAMES = {
@@ -585,9 +583,7 @@ def get_interface_language(
             f"/users/{telegram_id}/language",
             timeout=5,
         )
-        language = str(
-            data.get("language") or DEFAULT_INTERFACE_LANGUAGE
-        ).lower()
+        language = normalize_language(data.get("language"))
     except Exception:
         language = DEFAULT_INTERFACE_LANGUAGE
 
@@ -607,7 +603,16 @@ def remember_telegram_language(user) -> str:
     try:
         result = backend_request("GET", f"/users/{telegram_id}/language", timeout=5)
         if result.get("explicit"):
-            chosen = normalize_language(result.get("language")) or chosen
+            saved = str(result.get("language") or "").lower()
+            chosen = normalize_language(saved)
+            # Legacy RU/UK settings were valid before the CS/EN-only pilot.
+            # Persist the new supported language so bot reminders also follow
+            # the migrated preference. Do not touch ticket/identity records.
+            if saved not in SUPPORTED_INTERFACE_LANGUAGES:
+                backend_request(
+                    "PUT", f"/users/{telegram_id}/language",
+                    json={"language": chosen}, timeout=5,
+                )
         else:
             # Persist the Telegram locale so the backend's event reminders
             # and ticket notices use the same language as the bot UI.
@@ -639,10 +644,7 @@ def set_interface_language(
         timeout=10,
     )
 
-    language = str(
-        data.get("language") or language
-    ).lower()
-
+    language = normalize_language(data.get("language") or language)
     user_language_cache[telegram_id] = language
     return language
 
@@ -657,7 +659,7 @@ def localized_language_name(
 
     return LANGUAGE_NAMES.get(
         interface_language,
-        LANGUAGE_NAMES["ru"],
+        LANGUAGE_NAMES["en"],
     ).get(
         str(language_code).lower(),
         str(language_code).upper(),
@@ -907,7 +909,7 @@ def get_event_languages_keyboard(
 
     keyboard.add(
         InlineKeyboardButton(
-            "✅ Готово",
+            "✅ Done / Hotovo",
             callback_data=f"{callback_prefix}:done",
         )
     )
@@ -2033,12 +2035,15 @@ def start(message):
             )
             return
 
-    # First refresh the persistent reply menu; Telegram cannot attach both a
-    # reply keyboard and inline shortcuts to the same message.
-    bot.send_message(
-        message.chat.id,
+    # One branded welcome photo carries the persistent reply menu; the
+    # second message below keeps compact Mini App actions as inline buttons.
+    # An inaccessible asset or Telegram media failure must never block /start.
+    from brand_avatar import send_branded_welcome
+    send_branded_welcome(
+        bot, message.chat.id,
         preserve_custom(welcome_text(lang, getattr(message.from_user, "first_name", None))),
-        reply_markup=get_main_menu(message.from_user.id),
+        get_main_menu(message.from_user.id),
+        language=lang,
     )
     send_start_shortcuts(message, copy)
 
