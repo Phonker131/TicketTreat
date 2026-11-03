@@ -1,7 +1,9 @@
 """TicketTreat bot identity and welcome media use the website's actual PWA icon.
 
 The source of truth is frontend/public/app-icon-256.png, the same file served
-by frontend/lib/brand-image.tsx at /brand/icon/{size}. Keep interface text
+by frontend/lib/brand-image.tsx at /brand/icon/{size}. The icon must
+match the live blue site version rather than the stale red release asset.
+Keep interface text
 in the localized Telegram caption instead of making a second branded image.
 """
 from __future__ import annotations
