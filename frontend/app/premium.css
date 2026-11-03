@@ -876,8 +876,8 @@ html[data-theme="light"],html[data-theme="paper"]{--mute:#4C555C}
  color:var(--tp-fg)!important;font:600 15px/1.25 var(--u)!important;text-decoration:none!important;text-align:left;cursor:pointer;transition:color .2s,padding .25s var(--ease)}
 .tt-support-footer .tt-legal-footer-links a:hover,.tt-legal-footer-links .tt-cookie-settings-link:hover{color:var(--tom)!important;padding-left:6px!important;background:none!important}
 .tt-legal-footer-links .tt-cookie-settings-link{font-family:var(--u);width:100%}
-.tt-support-footer .tt-legal-footer-links a:last-child{grid-column:1 / -1;justify-self:start;margin-top:14px;min-height:48px;padding:0 22px!important;border:0!important;border-radius:99px!important;background:var(--tom)!important;color:var(--ink)!important;font-weight:700!important;box-shadow:4px 5px 0 var(--tp-plate)!important}
-.tt-support-footer .tt-legal-footer-links a:last-child:hover{padding-left:22px!important;color:var(--ink)!important;transform:translate(-1px,-1px);box-shadow:6px 7px 0 var(--tp-plate)!important}
+/* Telegram is a footer navigation link, not the former offset-plate CTA.
+   Do not resurrect a:last-child hover shadows or dark-on-dark text here. */
 .tt-legal-footer-links .tt-business-footer-link{color:var(--tp-fg)!important}
 @media (max-width:760px){
  .tt-support-footer.tt-legal-footer{grid-template-columns:minmax(0,1fr);gap:18px;margin-top:20px!important}
@@ -1129,11 +1129,24 @@ html body :is(.button-secondary,.button-outline):hover:not(:disabled){border-col
 html body .button:active:not(:disabled){transform:scale(.97)!important}
 html body .button:disabled{opacity:.55}
 html body .tt-home-faq .button-secondary{border-color:color-mix(in srgb,var(--paper) 40%,transparent)!important;color:var(--paper)!important}
-/* the footer's Telegram link is a plain link like the others */
-.tt-support-footer .tt-legal-footer-links a:last-child{grid-column:auto!important;justify-self:stretch!important;margin-top:0!important;min-height:46px!important;padding:6px 0!important;
- border-radius:0!important;border:0!important;border-bottom:1px solid var(--tp-line)!important;background:none!important;color:var(--tp-fg)!important;font-weight:600!important;box-shadow:none!important;transform:none!important}
+/* Telegram stays a plain footer link, including :hover/:focus-visible.
+   It must never inherit the legacy raised button's white offset-plate shadow. */
+.tt-support-footer .tt-legal-footer-links a:last-child{
+ grid-column:auto!important;justify-self:stretch!important;margin-top:0!important;min-height:46px!important;padding:6px 0!important;
+ border-radius:0!important;border:0!important;border-bottom:1px solid var(--tp-line)!important;
+ background:transparent!important;color:var(--tp-fg)!important;
+ font-weight:600!important;box-shadow:none!important;transform:none!important;
+}
 .tt-support-footer .tt-legal-footer-links a,.tt-legal-footer-links .tt-cookie-settings-link{transition:color .2s!important}
 .tt-support-footer .tt-legal-footer-links a:hover,.tt-legal-footer-links .tt-cookie-settings-link:hover{padding-left:0!important;color:var(--tom)!important}
+html body .tt-support-footer.tt-legal-footer .tt-legal-footer-links a:last-child:is(:hover,:focus-visible){
+ padding:6px 0!important;background:transparent!important;color:var(--tp-fg)!important;
+ border-bottom-color:var(--tp-line)!important;box-shadow:none!important;transform:none!important;
+ text-decoration:underline!important;text-underline-offset:4px;
+}
+html body .tt-support-footer.tt-legal-footer .tt-legal-footer-links a:last-child:focus-visible{
+ outline:2px solid var(--tp-fg)!important;outline-offset:4px;
+}
 
 /* ---- header controls: all 44px, one outline style ---- */
 @media (max-width:900px){html body .button.tp-hide-m{display:none!important}}
