@@ -11,8 +11,8 @@ class NightPosterBrandTests(unittest.TestCase):
     def test_night_poster_tokens_and_high_contrast_logo(self):
         css=(FRONTEND/"app"/"tickettreat-tokens.css").read_text(encoding="utf-8")
         night=(FRONTEND/"app"/"brand-v11.css").read_text(encoding="utf-8")
-        for rule in ("--ink:#15141F","--paper:#F0EBE1","--tom:#FF5533",
-                     "--blu:#3B4CF0","--yel:#F4B400","--tt-font-display:var(--d)"):
+        for rule in ("--ink:#02070A","--paper:#F0EBE1","--tom:#0297DE",
+                     "--blu:#FC734D","--yel:#FC734D","--tt-font-display:var(--d)"):
             self.assertIn(rule,css)
         for rule in (".tt-night-hero",".tt-night-poster",".tt-night-home .event-card",
                      "prefers-reduced-motion",".topbar .wordmark{background:var(--paper)",
@@ -29,7 +29,8 @@ class NightPosterBrandTests(unittest.TestCase):
         discovery=(FRONTEND/"components"/"EventDiscovery.tsx").read_text(encoding="utf-8")
         self.assertIn('<EventDiscovery events={events} language={language}/>',home)
         self.assertIn('<EventCard key={event.id} event={event}/>',discovery)
-        self.assertIn('mode==="map"',discovery)
+        self.assertIn('type Mode="swipe"|"list"',discovery)
+        self.assertIn('<SwipeDeck events={filtered} index={index}',discovery)
         self.assertIn('mode==="list"',discovery)
         self.assertIn('href={`/events/${event.id}?lang=${language}`}',events)
         self.assertIn("getEvents(controller.signal)",home)

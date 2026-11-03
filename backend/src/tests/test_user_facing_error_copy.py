@@ -62,8 +62,9 @@ class UserFacingCopyTests(unittest.TestCase):
     def test_cookie_labels_keep_privacy_choice_semantics(self):
         cookie = (FRONTEND / "components/CookieConsentBanner.tsx").read_text(encoding="utf-8")
         consent = (FRONTEND / "lib/cookie-consent.ts").read_text(encoding="utf-8")
-        for text in ('Разрешить cookies', 'Allow cookies', 'Povolit cookies', 'Дозволити cookies'):
+        for text in ('Принять все', 'Accept all', 'Přijmout vše', 'Прийняти всі'):
             self.assertIn(f'accept:"{text}"', cookie)
+        self.assertIn('noTracking:', cookie)
         self.assertIn('onClick={() => decide(true)}', cookie)
         self.assertIn('onClick={() => decide(false)}', cookie)
         self.assertIn('saveConsent(externalMedia)', cookie)
