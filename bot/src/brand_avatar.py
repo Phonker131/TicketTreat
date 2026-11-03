@@ -132,7 +132,7 @@ def update_bot_avatar(bot_token:str,photo_file:Path|None=None)->bool:
             return True
         print(f"TicketTreat avatar update unsuccessful (HTTP {response.status_code})",flush=True)
     except (requests.RequestException,ValueError,OSError,ImportError) as exc:
-        print(f"TicketTreat avatar update unavailable ({type(exc).__name__})",flush=True)
+        print(f"TicketTreat avatar update unavailable ({type(exc).__name__}: {exc})",flush=True)
     return False
 
 
