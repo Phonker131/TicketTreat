@@ -23,9 +23,9 @@ export function OrganizerDirectoryClient({profiles}:{profiles:OrganizerPublicSum
          {p.logo_url?<img src={p.logo_url} alt="" loading="lazy"/>:p.display_name.slice(0,2).toUpperCase()}
        </div>
        <h2>{p.display_name}</h2>
-       {p.city&&<p>📍 {p.city}</p>}
+       {p.city&&<p>{p.city}</p>}
        <p>{p.bio.slice(0,180)}</p>
-       <strong className="tt-organizer-link">{t.view} ↗</strong>
+       <strong className="tt-organizer-link">{t.view}</strong>
      </Link>)}
      <div className="panel tt-organizer-ghost" aria-label={t.future}>
        <span className="tt-example-stamp">{t.example}</span>
@@ -35,7 +35,7 @@ export function OrganizerDirectoryClient({profiles}:{profiles:OrganizerPublicSum
    </div>
    {!profiles.length&&<p className="form-note">{t.empty}</p>}
    <section className="tp-pitch" aria-label={premium[language].pitch.title}>
-    <div className="tp-pitch-copy"><h2>{premium[language].pitch.title}</h2><p>{premium[language].pitch.text}</p><Link href="/business" className="button button-primary">{premium[language].pitch.cta} ↗</Link></div>
+    <div className="tp-pitch-copy"><h2>{premium[language].pitch.title}</h2><p>{premium[language].pitch.text}</p><Link href="/business" className="button button-primary">{premium[language].pitch.cta}</Link></div>
     <LaptopFrame glow="blu" className="tp-pitch-laptop"><LaptopScreenView kind="overview" language={language}/></LaptopFrame>
    </section>
 

@@ -1090,3 +1090,204 @@ html[data-theme="light"] .tp-feed .event-card::after,html[data-theme="light"] .t
 }
 
 .tp-scr picture{display:contents}
+
+/* =====================================================================================
+   v6 system layer. Written after checking real phones (iPhone Safari, Android Chrome).
+   One section rhythm, one button, one control size, no glows, no forced full-screen sections.
+   Loaded last on purpose: it settles the older layers instead of adding another variant.
+   ===================================================================================== */
+:root{--sec-y:clamp(44px,6.4vw,96px);--head-gap:clamp(18px,2.4vw,32px);--btn-h:48px;--ctl-h:44px}
+
+/* ---- sections take the height of their content; spacing comes from one rhythm ---- */
+html body :is(.tt-night-home,.tt-business-main) .tt-v12-screen,
+html body .tt-night-home .tt-night-events{min-height:0!important;padding-block:var(--sec-y)!important}
+html body .tt-v12-screen .tt-v12-intro{margin:0 0 var(--head-gap)!important}
+html body .tt-v12-screen .tt-v12-intro p{margin:12px 0 0!important;max-width:58ch}
+html body .tt-v12-screen .tt-v12-intro h2{margin:0!important}
+@media (max-width:900px){
+ html body .tt-night-home .tt-night-hero{min-height:0!important;padding-top:28px!important;padding-bottom:40px!important}
+ html body .tt-business-main .tt-business-hero{min-height:0!important}
+}
+
+/* ---- no section-number labels, no kickers ---- */
+html body .tt-night-kicker{display:none!important}
+
+/* ---- no decorative glows ---- */
+.tp-ground,.tp-ticket-sec::before,.tp-levels::before{display:none!important}
+.tp-seg .tp-seg-pill,.tp-tab-pill{box-shadow:none!important}
+
+/* ---- one button. Same height everywhere, pill shape, 2px border on both kinds so they line up, no offset plates,
+        no movement on hover; a small press on tap ---- */
+html body .button{display:inline-flex!important;align-items:center;justify-content:center;gap:8px;min-height:var(--btn-h)!important;padding:0 22px!important;
+ border-radius:999px!important;border:2px solid transparent!important;box-shadow:none!important;transform:none!important;filter:none!important;
+ font:700 15px/1.15 var(--u)!important;letter-spacing:0!important;text-transform:none!important;text-decoration:none!important;white-space:nowrap;
+ transition:background-color .2s,border-color .2s,color .2s,transform .15s}
+html body .button-primary,html body .button-sun{background:var(--tom)!important;color:var(--ink)!important}
+html body .button-primary:hover:not(:disabled){background:color-mix(in srgb,var(--tom) 86%,var(--paper))!important}
+html body :is(.button-secondary,.button-outline){background:transparent!important;color:var(--tp-fg)!important;border-color:var(--tp-line)!important}
+html body :is(.button-secondary,.button-outline):hover:not(:disabled){border-color:var(--tp-fg)!important}
+html body .button:active:not(:disabled){transform:scale(.97)!important}
+html body .button:disabled{opacity:.55}
+html body .tt-home-faq .button-secondary{border-color:color-mix(in srgb,var(--paper) 40%,transparent)!important;color:var(--paper)!important}
+/* the footer's Telegram link is a plain link like the others */
+.tt-support-footer .tt-legal-footer-links a:last-child{grid-column:auto!important;justify-self:stretch!important;margin-top:0!important;min-height:46px!important;padding:6px 0!important;
+ border-radius:0!important;border:0!important;border-bottom:1px solid var(--tp-line)!important;background:none!important;color:var(--tp-fg)!important;font-weight:600!important;box-shadow:none!important;transform:none!important}
+.tt-support-footer .tt-legal-footer-links a,.tt-legal-footer-links .tt-cookie-settings-link{transition:color .2s!important}
+.tt-support-footer .tt-legal-footer-links a:hover,.tt-legal-footer-links .tt-cookie-settings-link:hover{padding-left:0!important;color:var(--tom)!important}
+
+/* ---- header controls: all 44px, one outline style ---- */
+@media (max-width:900px){html body .button.tp-hide-m{display:none!important}}
+html[data-theme] body :is(.topbar-actions,.tt-business-header-actions){display:flex;align-items:center;gap:8px}
+html[data-theme] body .tt-theme-toggle{display:inline-grid!important;place-items:center}
+html[data-theme] body :is(.tt-theme-toggle,.topbar-menu-toggle,.tt-business-menu-toggle){align-items:center;justify-content:center;place-items:center;width:var(--ctl-h)!important;height:var(--ctl-h)!important;min-width:var(--ctl-h)!important;
+ min-height:var(--ctl-h)!important;padding:0!important;border-radius:999px!important;border:1.5px solid var(--tp-line)!important;background:transparent!important;color:var(--tp-fg)!important;box-shadow:none!important;transform:none!important}
+html[data-theme] body .language-flag-trigger{display:inline-flex!important;align-items:center;justify-content:center;gap:4px;height:var(--ctl-h)!important;min-height:var(--ctl-h)!important;width:auto!important;min-width:var(--ctl-h)!important;
+ padding:0 10px 0 12px!important;border-radius:999px!important;border:1.5px solid var(--tp-line)!important;background:transparent!important;color:var(--tp-fg)!important;box-shadow:none!important;font:600 14px/1 var(--u)!important}
+html[data-theme] body :is(.topbar .mode-pill-link,.tt-business-signin){display:inline-flex!important;align-items:center;justify-content:center;height:var(--ctl-h)!important;min-height:var(--ctl-h)!important;max-width:none!important;
+ padding:0 16px!important;border-radius:999px!important;border:1.5px solid var(--tp-line)!important;background:transparent!important;color:var(--tp-fg)!important;box-shadow:none!important;transform:none!important;
+ font:600 14px/1 var(--u)!important;letter-spacing:0!important;text-transform:none!important;white-space:nowrap}
+html[data-theme] body :is(.tt-theme-toggle,.topbar-menu-toggle,.tt-business-menu-toggle,.language-flag-trigger,.topbar .mode-pill-link,.tt-business-signin):hover{border-color:var(--tp-fg)!important}
+html[data-theme] body :is(.tt-theme-toggle,.topbar-menu-toggle,.tt-business-menu-toggle,.language-flag-trigger,.topbar .mode-pill-link,.tt-business-signin):active{transform:scale(.95)!important}
+html[data-theme] body .tt-theme-toggle svg{width:20px!important;height:20px!important}
+.topbar-menu-toggle .topbar-menu-label{display:none!important}
+/* burger: the same three bars in both headers, turning into a cross when open */
+.tp-burger{position:relative;display:block;width:18px;height:14px}
+.tp-burger i{position:absolute;left:0;right:0;height:2px;border-radius:2px;background:currentColor;transition:transform .25s var(--ease),opacity .2s}
+.tp-burger i:nth-child(1){top:0}.tp-burger i:nth-child(2){top:6px}.tp-burger i:nth-child(3){top:12px}
+[aria-expanded="true"] .tp-burger i:nth-child(1){transform:translateY(6px) rotate(45deg)}
+[aria-expanded="true"] .tp-burger i:nth-child(2){opacity:0}
+[aria-expanded="true"] .tp-burger i:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+/* ---- icons: one stroke weight, one size per context, centred ---- */
+:is(.tp-mood,.tp-seg button,.tp-tabbar a) svg{stroke-width:2;display:block;flex:none}
+:is(.tp-mood,.tp-seg button) svg{width:18px;height:18px}
+
+/* ---- how it works. Desktop: steps left, phone right. Phones: the three steps only, all text visible ---- */
+.tp-how-list b{font-variant-numeric:tabular-nums}
+.tp-how-list.is-auto .is-on .tp-how-bar{animation:tp-fill 5.2s linear forwards}
+.tp-how-list:not(.is-auto) .tp-how-bar{display:none}
+@media (max-width:900px){
+ .tp-how-phone{display:none!important}
+ .tp-how-list{display:grid!important;gap:10px;margin:0;padding:0;list-style:none}
+ .tp-how-list button{grid-template-columns:36px minmax(0,1fr)!important;gap:14px!important;padding:16px!important;border-radius:20px!important;align-items:start!important;
+  background:var(--tp-surf)!important;box-shadow:0 0 0 1.5px var(--tp-line)!important;cursor:default}
+ .tp-how-list button:hover{transform:none!important}
+ .tp-how-list b{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;background:var(--tom);color:var(--ink)!important;font:800 17px/1 var(--u)!important}
+ .tp-how-list strong{font-size:24px!important;line-height:1!important}
+ .tp-how-list small{display:block!important;margin-top:6px!important;font-size:15px!important}
+}
+
+/* ---- ticket: the copy comes first, then the screen ---- */
+@media (max-width:900px){
+ .tp-ticket-grid{display:grid!important;gap:20px!important}
+ .tp-pair-single{order:0!important;margin:0!important}
+ .tp-pair-single .tp-phone-wrap{--k:.78;--crop:560px}
+ .tp-ticket-actions{display:flex;flex-wrap:wrap;gap:8px}
+ .tp-ticket-actions .button{flex:1 1 auto}
+}
+@media (max-width:370px){.tp-pair-single .tp-phone-wrap{--k:.72}}
+
+/* ---- levels: a plain grid, four cards on desktop, two by two on phones ---- */
+.tp-levels-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:0 0 28px;padding:0;list-style:none}
+html body .tp-level{min-width:0!important;min-height:0!important;display:flex!important;flex-direction:column;align-items:flex-start;gap:10px;padding:22px!important;border-radius:22px;box-shadow:none!important}
+html body .tp-level strong{font-size:clamp(30px,2.6vw,40px)!important;line-height:.95!important}
+html body .tp-level small{font-size:15px;line-height:1.35;max-width:none}
+html body .tp-level em{margin-top:auto!important}
+@media (max-width:900px){
+ .tp-levels-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:22px}
+ html body .tp-level{padding:16px!important;gap:8px;border-radius:18px}
+ html body .tp-level strong{font-size:26px!important}
+ html body .tp-level small{font-size:14px}
+}
+
+/* ---- home FAQ card ---- */
+html body .tt-night-home .tt-home-faq{margin:0 auto!important}
+@media (max-width:760px){html body .tt-night-home .tt-home-faq{padding:20px!important;gap:14px}}
+
+/* ---- business page ---- */
+.tt-business-feature-grid li>span{display:none!important}
+html body .tt-business-feature-grid li{min-height:0!important}
+html body .tt-business-timeline .tt-business-triptych article{min-height:0!important}
+html body .tt-business-faq-list details{min-height:0!important}
+html body .tt-business-faq-list summary{min-height:56px;display:flex;align-items:center;padding:14px 18px!important}
+html body .tt-business-tab-panel{gap:20px!important;align-items:center}
+@media (max-width:900px){
+ html body .tt-business-tabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px!important;overflow:visible!important;margin:0 0 18px!important;padding:0!important;-webkit-mask-image:none!important;mask-image:none!important}
+ html body .tt-business-tabs button{display:flex!important;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:6px;min-width:0!important;width:auto!important;min-height:72px!important;
+  padding:12px!important;border-radius:16px!important;white-space:normal!important;text-align:left;font:600 13.5px/1.2 var(--u)!important}
+ html body .tt-business-tabs button span{display:grid;place-items:center;width:24px;height:24px;border-radius:999px;font:800 12px/1 var(--u)}
+ html body .tt-business-tab-panel{display:grid!important;grid-template-columns:minmax(0,1fr)!important}
+ html body .tt-business-tab-panel h3{margin:0 0 8px!important}
+ html body .tt-business-tab-panel p{margin:0 0 14px!important}
+}
+/* carousels on phones show one whole slide at a time, nothing half-cut at the edge */
+@media (max-width:900px){
+ .tp-sides-mobile .tp-embla{overflow:hidden;margin:0!important;padding:0!important}
+ .tp-sides-mobile .tp-embla-slide{flex:0 0 100%!important;min-width:0;padding:0 2px}
+}
+.tt-business-side-devices article>span{display:none!important}
+
+/* ---- v6b: settle the remaining conflicts found on real phones ---- */
+/* the light theme painted the menu button black */
+html[data-theme] body .topbar .topbar-menu-toggle:not([data-x]){background:var(--tp-bg)!important;color:var(--tp-fg)!important;border-color:var(--tp-line)!important}
+/* open menu: the button fills with the accent */
+html[data-theme] body .topbar .topbar-menu-toggle[aria-expanded="true"]:not([data-x]){background:var(--tom)!important;color:var(--ink)!important;border-color:var(--tom)!important}
+html[data-theme] body .topbar .topbar-menu-toggle:not([data-x]) .topbar-menu-icon>span{background:currentColor!important}
+
+/* stickers and posters sit straight; only the swipe stamps tilt while a card is dragged */
+html body :is(.tp-stamp,.tt-example-stamp,.tt-v12-sample-sticker,.tt-event-date-sticker,.tt-swipe-date,.tp-stamps .is-on,.tp-stamps-lg .is-sample,.tp-deck-empty-art){transform:none!important}
+html body .event-page .event-image{transform:none!important}
+.tp-mood:hover svg{transform:none!important}
+html body .tp-stamp{top:-11px!important;left:16px!important;padding:6px 10px!important;border-radius:999px!important;font:700 11px/1 var(--u)!important;letter-spacing:.02em!important;box-shadow:none!important;border:0!important}
+html body .tt-example-stamp{top:14px!important;right:14px!important;padding:6px 10px!important;border-radius:999px!important;border:0!important;font:700 11px/1 var(--u)!important;box-shadow:none!important}
+
+/* loyalty stamp grid: the number is enough */
+.tp-stamps-lg span:not(.is-sample) small{display:none!important}
+
+/* organizers page heading matches the rest of the site */
+html body .tt-organizer-directory>h1{font:900 clamp(40px,6vw,72px)/.92 var(--d)!important;text-transform:uppercase;letter-spacing:0;margin:0 0 10px!important}
+
+/* tickets: one whole sample ticket at a time on phones */
+@media (max-width:900px){
+ .tp-wallet-mobile .tp-embla{overflow:hidden;margin:0!important}
+ .tp-wallet-mobile .tp-embla-slide{flex:0 0 100%!important}
+}
+
+/* event page on phones: facts as one compact list, booking card in the flow */
+@media (max-width:760px){
+ html body .event-page .detail-grid{grid-template-columns:minmax(0,1fr)!important;gap:0!important;padding:4px 16px!important;border-radius:20px;background:var(--tp-surf);box-shadow:0 0 0 1.5px var(--tp-line)}
+ html body .event-page .detail-item{display:flex!important;align-items:baseline;justify-content:space-between;gap:16px;padding:13px 0!important;border-radius:0!important;background:none!important;box-shadow:none!important;border-bottom:1px solid var(--tp-line)!important}
+ html body .event-page .detail-item:last-child{border-bottom:0!important}
+ html body .event-page .detail-item span{flex:none}
+ html body .event-page .detail-item strong{font-size:15.5px!important;text-align:right}
+ html body .event-page .join-card{position:static!important;backdrop-filter:none!important}
+}
+
+/* business hero on phones: the devices sit under the buttons, never on top of them */
+@media (max-width:900px){
+ html body .tt-business-preview-stack{min-height:0!important;height:clamp(250px,64vw,330px);margin-top:28px!important}
+ html body .tt-business-preview-stack .tp-phone-wrap{--k:.44!important;--crop:560px}
+ html body .tt-business-preview-stack .tp-lap-wrap{--k:.26!important}
+ html body .tt-business-tab-panel>div:first-child{position:relative;z-index:2}
+ html body .tt-business-tab-panel p{display:block!important}
+ html body .tt-business-tab-panel .tp-lap-wrap{margin-top:8px!important}
+}
+
+/* timeline cards: number, title and text sit together */
+html body .tt-business-timeline .tt-business-triptych article{gap:8px!important;min-height:0!important}
+html body .tt-business-timeline .tt-business-triptych article h3{margin:4px 0 0!important}
+html body .tt-business-timeline .tt-business-triptych article p{margin:0!important}
+/* hero: no decorative stickers, the headline keeps its two lines on desktop */
+.tp-hero-glyph{display:none!important}
+@media (min-width:901px){html body .tt-night-hero h1{font-size:clamp(56px,6.2vw,104px)!important;line-height:.9!important}}
+
+/* business page in the dark theme: no paper-coloured sections in the middle of a dark page */
+html[data-theme="dark"] body .tt-business-main :is(.tt-business-how,.tt-business-features,.tt-business-faq){background:var(--tp-bg)!important;color:var(--tp-fg)!important}
+html[data-theme="dark"] body .tt-business-main :is(.tt-business-how,.tt-business-features,.tt-business-faq) :is(h2,h3,summary,strong){color:var(--tp-fg)!important}
+html[data-theme="dark"] body .tt-business-main :is(.tt-business-how,.tt-business-features,.tt-business-faq) p{color:var(--tp-mute)!important}
+html[data-theme="dark"] body .tt-business-main :is(.tt-business-feature-grid li,.tt-business-faq-list details,.tt-business-triptych article,.tt-business-tabs button:not([aria-selected="true"])){background:var(--tp-surf)!important;border-color:var(--tp-line)!important;color:var(--tp-fg)!important;box-shadow:none!important}
+html[data-theme="dark"] body .tt-business-main .tt-business-tabs button[aria-selected="true"]{background:var(--tom)!important;border-color:var(--tom)!important;color:var(--ink)!important}
+html[data-theme="dark"] body .tt-business-main .tt-business-tabs button:not([aria-selected="true"]) span{color:var(--tp-fg)!important}
+
+/* no coloured glow under the heart button */
+html body .tp-round.is-want{box-shadow:none!important}

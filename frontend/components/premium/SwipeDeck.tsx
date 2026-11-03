@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useState,type KeyboardEvent} from "react";
+import {useEffect,useRef,useState,type KeyboardEvent} from "react";
 import {animate,useMotionValue,useReducedMotion,useTransform} from "motion/react";
 import * as M from "motion/react-m";
 import {BrandIcon} from "@/components/BrandIcon";
@@ -11,10 +11,12 @@ type Labels={want:string;pass:string;view:string;done:string;doneText:string;res
 
 function Poster({event}:{event:TicketTreatEvent}){
  const [failed,setFailed]=useState(false);
- useEffect(()=>setFailed(false),[event.image_url]);
+ const img=useRef<HTMLImageElement>(null);
+ // A photo that failed before hydration never reaches onError, so the fallback is also checked on mount.
+ useEffect(()=>{const el=img.current;setFailed(!!el&&el.complete&&el.naturalWidth===0)},[event.image_url]);
  if(!event.image_url||failed)return <PosterArt seed={event.id} className="tp-deck-art"/>;
  // eslint-disable-next-line @next/next/no-img-element
- return <img className="tp-duo" data-duo={event.id%2?"orange":"blue"} src={event.image_url} alt="" draggable={false} loading="lazy" decoding="async" onError={()=>setFailed(true)}/>;
+ return <img ref={img} className="tp-duo" data-duo={event.id%2?"orange":"blue"} src={event.image_url} alt="" draggable={false} loading="lazy" decoding="async" onError={()=>setFailed(true)}/>;
 }
 
 function Face({event,date,price}:{event:TicketTreatEvent;date:string;price:string}){

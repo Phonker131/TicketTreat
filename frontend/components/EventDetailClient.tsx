@@ -136,7 +136,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         {event.video_url && <section className="panel" style={{marginBottom:20}}>
           <h2>{language==="ru"?"Видео мероприятия":language==="uk"?"Відео події":language==="cs"?"Video z akce":"Event video"}</h2>
           <a className="button button-outline" href={event.video_url} target="_blank" rel="noopener noreferrer">
-          {language==="ru"?"Смотреть видео ↗":language==="uk"?"Дивитися відео ↗":language==="cs"?"Zobrazit video ↗":"Watch video ↗"}</a>
+          {language==="ru"?"Смотреть видео":language==="uk"?"Дивитися відео":language==="cs"?"Zobrazit video":"Watch video"}</a>
         </section>}
         <section className="detail-grid">
           <div className="detail-item"><span>{t(language, "startsAt")}</span><strong>{formatDate(event.starts_at, language)}</strong></div>
@@ -149,13 +149,13 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         <section className="panel" style={{marginTop:20,marginBottom:20}}>
           <h2>{language==="ru"?"Как добраться и сохранить дату":language==="cs"?"Místo a kalendář":language==="uk"?"Як дістатися та календар":"Venue and calendar"}</h2>
           <div className="admin-event-actions">
-            {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar(event,eventUrl)}>↓ {language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
+            {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar(event,eventUrl)}>{language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
             {!preview&&<>
               <button type="button" className="button button-outline" onClick={shareEvent}>{shareWords.button}</button>
               <a className="button button-outline" href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.telegram}`}>{shareWords.telegram}</a>
               <a className="button button-outline" href={`https://wa.me/?text=${encodeURIComponent(event.title+" "+shareUrl)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.whatsapp}`}>{shareWords.whatsapp}</a>
             </>}
-            {mapUrl&&<><a className="button button-outline" href={mapUrl} target="_blank" rel="noopener noreferrer">↗ {language==="ru"?"Открыть карту":language==="cs"?"Otevřít mapu":language==="uk"?"Відкрити карту":"Open map"}</a>
+            {mapUrl&&<><a className="button button-outline" href={mapUrl} target="_blank" rel="noopener noreferrer">{language==="ru"?"Открыть карту":language==="cs"?"Otevřít mapu":language==="uk"?"Відкрити карту":"Open map"}</a>
               <button type="button" className="button button-outline" onClick={()=>setMapOpen(v=>!v)}>{mapOpen?previewWords.hideMap:previewWords.showMap}</button></>}
           </div>
           {shareNotice&&<p role="status" className="form-note">{shareNotice}</p>}

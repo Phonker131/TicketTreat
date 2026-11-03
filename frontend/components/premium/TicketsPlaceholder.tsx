@@ -87,11 +87,10 @@ export function TicketsPlaceholder({language}:{language:LanguageCode}){
  const icons:("scan"|"clock"|"chk")[]=["scan","clock","chk"];
  return <section className="tp-tickets-empty" aria-labelledby="tp-tickets-title">
   <div className="tp-te-copy">
-   <p className="tp-kicker">{premium[language].tabs[1]} · {c.count}</p>
    <h2 id="tp-tickets-title">{c.title}</h2>
    <p className="tp-te-intro">{c.intro}</p>
    <ul className="tp-te-points">{c.points.map((p,i)=><li key={p}><i><BrandIcon name={icons[i]} size={20}/></i>{p}</li>)}</ul>
-   <div className="tp-te-actions"><Link href="/" className="button button-primary">{c.find} ↗</Link></div>
+   <div className="tp-te-actions"><Link href="/" className="button button-primary">{c.find}</Link></div>
    <p className="tp-te-note">{c.note}</p>
   </div>
   <div className="tp-te-stage">
@@ -112,7 +111,6 @@ export function TicketsPlaceholder({language}:{language:LanguageCode}){
     </div></div>
     <div className="tp-dots" role="tablist" aria-label={c.title}>{samples.map((_,i)=><button key={i} type="button" role="tab" aria-selected={snap===i} aria-label={String(i+1)} className={snap===i?"is-on":""} onClick={()=>embla?.scrollTo(i)}/>)}</div>
    </div>
-   <p className="tp-te-hint">{flip[top]?c.back:c.flip} ↻</p>
   </div>
  </section>;
 }

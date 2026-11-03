@@ -35,8 +35,8 @@ export function BusinessHeader(){
      <Link href="/" className="tt-business-guest-link">{t.guest}</Link>
      <div className="tt-business-header-actions">
        <ThemeToggle/><LanguageSwitcher/>
-       <Link href="/admin" className="tt-business-signin">{t.signin} <span aria-hidden="true">↗</span></Link>
-       <button type="button" className="tt-business-menu-toggle" aria-expanded={open} aria-controls="tt-business-menu" onClick={()=>setOpen(v=>!v)} aria-label={open?t.close:t.open}>{open?"×":"☰"}</button>
+       <Link href="/admin" className="tt-business-signin">{t.signin}</Link>
+       <button type="button" className="tt-business-menu-toggle" aria-expanded={open} aria-controls="tt-business-menu" onClick={()=>setOpen(v=>!v)} aria-label={open?t.close:t.open}><span className="tp-burger" aria-hidden="true"><i/><i/><i/></span></button>
      </div>
    </div>
  </header>;

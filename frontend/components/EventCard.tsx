@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {useEffect,useState} from "react";
+import {useEffect,useRef,useState} from "react";
 
 import { useLanguage } from "@/components/LanguageProvider";
 import {
@@ -65,7 +65,9 @@ export function EventCard({
 }) {
   const { language } = useLanguage();
   const [posterUnavailable,setPosterUnavailable]=useState(false);
-  useEffect(()=>setPosterUnavailable(false),[event.image_url]);
+  const poster=useRef<HTMLImageElement>(null);
+  // A poster that failed before hydration never reaches onError, so the fallback is also checked on mount.
+  useEffect(()=>{const el=poster.current;setPosterUnavailable(!!el&&el.complete&&el.naturalWidth===0)},[event.image_url]);
 
   const startsAt=event.starts_at?eventDisplayDate(event.starts_at):null;
   const validStart=startsAt&&!Number.isNaN(startsAt.date.getTime());
@@ -89,7 +91,7 @@ export function EventCard({
       <div className="tt-event-poster-wrap">
         {event.image_url && !posterUnavailable ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img className="event-card-poster tp-duo" data-duo={event.id%2?"orange":"blue"} src={event.image_url} alt={event.title} loading="lazy" onError={()=>setPosterUnavailable(true)}/>
+          <img ref={poster} className="event-card-poster tp-duo" data-duo={event.id%2?"orange":"blue"} src={event.image_url} alt={event.title} loading="lazy" onError={()=>setPosterUnavailable(true)}/>
         ) : (
           <PosterArt seed={event.id} className="tp-card-art" label={event.title}/>
         )}

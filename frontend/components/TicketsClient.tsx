@@ -78,7 +78,7 @@ export function TicketsClient() {
               </Link>
             ))}
           </div>}
-          <p><Link href="/loyalty" className="button button-outline">{language==="ru"?"Мои награды и уровни →":language==="cs"?"Moje odměny a úrovně →":language==="uk"?"Мої нагороди та рівні →":"My rewards and tiers →"}</Link></p>
+          <p><Link href="/loyalty" className="button button-outline">{language==="ru"?"Мои награды и уровни":language==="cs"?"Moje odměny a úrovně":language==="uk"?"Мої нагороди та рівні":"My rewards and tiers"}</Link></p>
           {attendance&&<section className="panel" style={{marginTop:20}}>
             <h2>{language==="ru"?"История посещений":language==="cs"?"Historie návštěv":language==="uk"?"Історія відвідувань":"Attendance history"}</h2>
             <p>{attendance.visit_count} {language==="cs"?"návštěv":language==="ru"?"посещений":language==="uk"?"відвідувань":"check-ins"} {attendance.visit_count>=attendance.limited_to?(language==="cs"?"(posledních 100)":language==="ru"?"(последние 100)":language==="uk"?"(останні 100)":"(last 100)"):""}</p>

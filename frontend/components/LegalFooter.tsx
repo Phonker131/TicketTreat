@@ -38,7 +38,7 @@ export function LegalFooter(){
         <Link className="tt-business-footer-link" href="/business">
           {language==="ru"?"Для организаторов и фирм":language==="cs"?"Pro pořadatele a firmy":language==="uk"?"Для організаторів і компаній":"For organizers and businesses"}
         </Link>
-        <a href="https://t.me/TicketTreatBot" target="_blank" rel="noopener noreferrer" aria-label="Official TicketTreat Telegram bot">Telegram ↗</a>
+        <a href="https://t.me/TicketTreatBot" target="_blank" rel="noopener noreferrer" aria-label="Official TicketTreat Telegram bot">Telegram</a>
       </nav>
     </footer>
   );

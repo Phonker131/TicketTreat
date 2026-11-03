@@ -44,10 +44,10 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
   },[]);
 
   const copy={
-    ru:{eyebrow:"PRAHA / TICKETTREAT",headline:["БИЛЕТ ЗА","ТРИ КАСАНИЯ"],intro:"Выбери ивент, запишись и покажи QR на входе. Все билеты в одном месте.",browse:"Смотреть ивенты",tickets:"Мои билеты",city:"БЛИЖАЙШИЕ В ЧЕХИИ",subtitle:"Живые встречи, настоящие места. Выбирай свой вечер.",empty:"Афиши скоро появятся",steps:["ВЫБЕРИ","ЗАПИШИСЬ","ПОКАЖИ QR"],poster:"АФИША / СКОРО",details:"Подробнее",help:"Вопросы о билетах?",faq:"Частые вопросы"},
-    cs:{eyebrow:"PRAHA / TICKETTREAT",headline:["VSTUPENKA NA","TŘI KROKY"],intro:"Vyber si akci, zarezervuj místo a u vstupu ukaž QR. Vstupenky máš na jednom místě.",browse:"Zobrazit akce",tickets:"Moje vstupenky",city:"NEJBLIŽŠÍ AKCE V ČESKU",subtitle:"Skuteční lidé a večery, na které se těšíš.",empty:"Plakáty se tu brzy objeví",steps:["VYBER","REZERVUJ","UKAŽ QR"],poster:"PLAKÁT / BRZY",details:"Podrobnosti",help:"Otázky ke vstupenkám?",faq:"Časté otázky"},
-    uk:{eyebrow:"PRAHA / TICKETTREAT",headline:["КВИТОК ЗА","ТРИ КРОКИ"],intro:"Обери подію, забронюй місце та покажи QR на вході. Усі квитки в одному місці.",browse:"Переглянути події",tickets:"Мої квитки",city:"НАЙБЛИЖЧІ ПОДІЇ В ЧЕХІЇ",subtitle:"Живі зустрічі та справжні події.",empty:"Афіші незабаром з’являться",steps:["ОБЕРИ","БРОНЮЙ","ПОКАЖИ QR"],poster:"АФІША / СКОРО",details:"Докладніше",help:"Питання про квитки?",faq:"Поширені запитання"},
-    en:{eyebrow:"PRAHA / TICKETTREAT",headline:["YOUR TICKET","IN THREE STEPS"],intro:"Find an event, book a spot and show your QR at the door. Keep all tickets in one place.",browse:"Explore events",tickets:"My tickets",city:"UPCOMING IN CZECHIA",subtitle:"Real people, real nights out. Find your next event.",empty:"New posters are coming soon",steps:["CHOOSE","BOOK","SHOW QR"],poster:"POSTER / SOON",details:"View event",help:"Questions about tickets?",faq:"Read FAQ"}
+    ru:{eyebrow:"PRAHA / TICKETTREAT",headline:["БИЛЕТ ЗА","ТРИ КАСАНИЯ"],intro:"Выбери ивент, запишись и покажи QR на входе. Все билеты в одном месте.",browse:"Смотреть ивенты",tickets:"Мои билеты",city:"БЛИЖАЙШИЕ В ЧЕХИИ",subtitle:"Живые встречи, настоящие места. Выбирай свой вечер.",empty:"Афиши скоро появятся",poster:"АФИША / СКОРО",details:"Подробнее",help:"Вопросы о билетах?",faq:"Частые вопросы"},
+    cs:{eyebrow:"PRAHA / TICKETTREAT",headline:["VSTUPENKA NA","TŘI KROKY"],intro:"Vyber si akci, zarezervuj místo a u vstupu ukaž QR. Vstupenky máš na jednom místě.",browse:"Zobrazit akce",tickets:"Moje vstupenky",city:"NEJBLIŽŠÍ AKCE V ČESKU",subtitle:"Skuteční lidé a večery, na které se těšíš.",empty:"Plakáty se tu brzy objeví",poster:"PLAKÁT / BRZY",details:"Podrobnosti",help:"Otázky ke vstupenkám?",faq:"Časté otázky"},
+    uk:{eyebrow:"PRAHA / TICKETTREAT",headline:["КВИТОК ЗА","ТРИ КРОКИ"],intro:"Обери подію, забронюй місце та покажи QR на вході. Усі квитки в одному місці.",browse:"Переглянути події",tickets:"Мої квитки",city:"НАЙБЛИЖЧІ ПОДІЇ В ЧЕХІЇ",subtitle:"Живі зустрічі та справжні події.",empty:"Афіші незабаром з’являться",poster:"АФІША / СКОРО",details:"Докладніше",help:"Питання про квитки?",faq:"Поширені запитання"},
+    en:{eyebrow:"PRAHA / TICKETTREAT",headline:["YOUR TICKET","IN THREE STEPS"],intro:"Find an event, book a spot and show your QR at the door. Keep all tickets in one place.",browse:"Explore events",tickets:"My tickets",city:"UPCOMING IN CZECHIA",subtitle:"Real people, real nights out. Find your next event.",empty:"New posters are coming soon",poster:"POSTER / SOON",details:"View event",help:"Questions about tickets?",faq:"Read FAQ"}
   }[language];
   return <div className="app-shell tt-night-home">
     <AppHeader/>
@@ -59,16 +59,13 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
           <h1 id="tt-night-title"><span>{copy.headline[0]}</span><span>{copy.headline[1]}</span></h1>
           <p className="tt-night-intro">{copy.intro}</p>
           <div className="tt-night-actions">
-            <a className="button button-primary tt-night-action" href="#events">{copy.browse}<span className="tt-night-action-arrow" aria-hidden="true">↗</span></a>
+            <a className="button button-primary tt-night-action" href="#events">{copy.browse}</a>
             <Link className="button button-secondary tt-night-action-secondary tp-hide-m" href="/tickets">{copy.tickets}</Link>
             <button type="button" className="button button-secondary tt-night-action-secondary" disabled={!storyReady}
               onClick={()=>window.dispatchEvent(new Event("tickettreat-open-story"))}>
-              {language==="ru"?"Как это работает":language==="cs"?"Jak to funguje":language==="uk"?"Як це працює":"How it works"} ↗
+              {language==="ru"?"Как это работает":language==="cs"?"Jak to funguje":language==="uk"?"Як це працює":"How it works"}
             </button>
           </div>
-          <ol className="tt-night-steps" aria-label="TicketTreat">
-            {copy.steps.map((step,index)=><li key={step}><span>{String(index+1).padStart(2,"0")}</span>{step}</li>)}
-          </ol>
         </div>
         <div className="tp-hero-art" role="img" aria-label="TicketTreat live-event interface preview">
           <PhoneFrame glow="tom" className="tp-hero-phone"><PhoneScreen kind="discover" language={language} priority/></PhoneFrame>
@@ -92,7 +89,7 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
       <GuidedSections language={language}/>
       <section className="tt-home-faq" aria-label="TicketTreat FAQ">
         <div><h2>{copy.help}</h2><p>{language==="en"?"Registration, QR tickets and cancellations.":language==="cs"?"Registrace, QR vstupenky a zrušení.":language==="uk"?"Реєстрація, QR-квитки та скасування.":"Регистрация, QR-билеты и отмены."}</p></div>
-        <Link href={language==="ru"?"/faq":"/"+language+"/faq"} className="button button-secondary">{copy.faq} ↗</Link>
+        <Link href={language==="ru"?"/faq":"/"+language+"/faq"} className="button button-secondary">{copy.faq}</Link>
       </section>
     </main>
   </div>;
