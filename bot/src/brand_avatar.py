@@ -1,8 +1,8 @@
-"""TicketTreat bot avatar and /start media from the *official website SVG*.
+"""TicketTreat bot identity and welcome media use the website's actual PWA icon.
 
-No duplicate logo assets: both images derive from frontend/public/tickettreat-
-mark.svg and tickettreat-wordmark.svg. Keep BotFather avatar updates one-shot,
-but the welcome picture is rendered locally and cached in the bot process.
+The source of truth is frontend/public/app-icon-256.png, the same file served
+by frontend/lib/brand-image.tsx at /brand/icon/{size}. Keep interface text
+in the localized Telegram caption instead of making a second branded image.
 """
 from __future__ import annotations
 
@@ -14,75 +14,40 @@ from pathlib import Path
 
 import requests
 
-BRAND_ROOT=Path(__file__).resolve().parents[2]/"frontend"/"public"
-MARK=BRAND_ROOT/"tickettreat-mark.svg"
-WORDMARK=BRAND_ROOT/"tickettreat-wordmark.svg"
-PAPER=(240,235,225)
-INK=(2,7,10)
-ORANGE=(255,85,51)
-BLUE=(2,151,222)
+BRAND_ROOT = Path(__file__).resolve().parents[2] / "frontend" / "public"
+SITE_ICON = BRAND_ROOT / "app-icon-256.png"
 
 
-def _raster_svg(path:Path, *, output_width:int) -> "Image.Image":
+@lru_cache(maxsize=1)
+def welcome_photo(language: str = "en") -> bytes:
+    """The exact PNG pixels used by the website, irrespective of language."""
     from PIL import Image
-    import cairosvg
-    if not path.is_file():
-        raise FileNotFoundError(f"TicketTreat brand asset missing: {path.name}")
-    png=cairosvg.svg2png(bytestring=path.read_bytes(), output_width=output_width)
-    with Image.open(io.BytesIO(png)) as rendered:
-        return rendered.convert("RGBA")
-
-
-def _font(size:int, bold:bool=False):
-    from PIL import ImageFont
-    options=(
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold
-        else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf" if bold
-        else "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
-    )
-    for path in options:
-        if Path(path).is_file():
-            return ImageFont.truetype(path,size)
-    return ImageFont.load_default()
+    if not SITE_ICON.is_file():
+        raise FileNotFoundError("Official TicketTreat app-icon-256.png is missing")
+    data = SITE_ICON.read_bytes()
+    with Image.open(io.BytesIO(data)) as icon:
+        if icon.format != "PNG" or icon.width != icon.height:
+            raise ValueError("Official TicketTreat icon must be a square PNG")
+        icon.verify()
+    return data
 
 
 @lru_cache(maxsize=1)
 def brand_avatar_jpeg() -> bytes:
-    """Site TT ticket symbol, centered so Telegram's round crop stays legible."""
+    """Website icon, centered in a 512px JPEG for Telegram's circular crop."""
     from PIL import Image
-    canvas=Image.new("RGB",(512,512),INK)
-    icon=_raster_svg(MARK,output_width=390)
-    canvas.paste(icon,(61,61),icon)
-    out=io.BytesIO()
-    canvas.save(out,format="JPEG",quality=95,optimize=True)
-    return out.getvalue()
-
-
-@lru_cache(maxsize=2)
-def welcome_photo(language:str="en")->bytes:
-    """1200x630 photo-safe welcome plate, matching the site wordmark and palette."""
-    from PIL import Image,ImageDraw
-    lang="cs" if language=="cs" else "en"
-    image=Image.new("RGB",(1200,630),INK)
-    draw=ImageDraw.Draw(image)
-    # The site renders its exact traced logo on paper, never black on dark.
-    draw.rounded_rectangle((48,45,1152,585),radius=30,fill=PAPER)
-    draw.rounded_rectangle((48,45,1152,69),radius=12,fill=ORANGE)
-    logo=_raster_svg(WORDMARK,output_width=780)
-    if logo.height>190:
-        logo.thumbnail((780,190),Image.Resampling.LANCZOS)
-    image.paste(logo,((1200-logo.width)//2,135),logo)
-    title="VSTUPENKY NA AKCE V ČESKU" if lang=="cs" else "EVENT TICKETS IN CZECHIA"
-    subtitle="Objev akce  •  Rezervuj místo  •  Ukaž QR kód" if lang=="cs" else "Explore events  •  Book a spot  •  Show your QR"
-    font=_font(47,True)
-    small=_font(30,False)
-    draw.text((600,379),title,fill=INK,font=font,anchor="mm")
-    draw.text((600,462),subtitle,fill=INK,font=small,anchor="mm")
-    draw.rounded_rectangle((503,520,697,534),radius=7,fill=BLUE)
-    out=io.BytesIO()
-    image.save(out,format="JPEG",quality=91,optimize=True)
-    return out.getvalue()
+    from PIL import ImageOps
+    with Image.open(io.BytesIO(welcome_photo())) as source:
+        rgba = source.convert("RGBA")
+        backdrop = Image.new("RGBA", rgba.size, (240, 235, 225, 255))
+        backdrop.alpha_composite(rgba)
+        image = backdrop.convert("RGB")
+    image = ImageOps.contain(image, (512, 512), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", (512, 512), (240, 235, 225))
+    canvas.paste(image, ((512 - image.width) // 2, (512 - image.height) // 2))
+    result = io.BytesIO()
+    canvas.save(result, format="JPEG", quality=95, optimize=True)
+    return result.getvalue()
 
 
 def send_branded_welcome(bot,chat_id:int,text:str,reply_markup,*,language:str="en")->None:
@@ -128,7 +93,7 @@ def update_bot_avatar(bot_token:str,photo_file:Path|None=None)->bool:
             timeout=20,
         )
         if response.status_code==200 and response.json().get("ok") is True:
-            print("TicketTreat brand avatar successfully updated",flush=True)
+            print("TicketTreat website app-icon avatar successfully updated",flush=True)
             return True
         print(f"TicketTreat avatar update unsuccessful (HTTP {response.status_code})",flush=True)
     except (requests.RequestException,ValueError,OSError,ImportError) as exc:
