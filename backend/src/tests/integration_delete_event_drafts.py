@@ -27,6 +27,7 @@ from demo_publication import EventPublication
 from demo_pilot_ops import EventPilotSettings
 from demo_geography import DemoEventPlace
 from demo_event_access import EventAccess
+from demo_email import EventNotice, EmailOutbox
 
 
 class DeleteUnusedDraftE2E(unittest.TestCase):
@@ -94,6 +95,7 @@ class DeleteUnusedDraftE2E(unittest.TestCase):
             db.add(main.DemoEventPoster(
                 event_id=event_id,content_type="image/png",image_bytes=b"fake-test-png"
             ))
+            db.add(EventNotice(event_id=event_id,kind="change",message="Draft edited, nobody notified"))
             db.add(EventGalleryImage(
                 event_id=event_id,content_type="image/png",image_bytes=b"test-gallery",
             ))
@@ -112,7 +114,7 @@ class DeleteUnusedDraftE2E(unittest.TestCase):
             for model in (EventOwnership, EventPublication, EventAccess,
                           EventPilotSettings, DemoEventPlace, EventMedia,
                           main.DemoEventPoster, main.EventLanguageSetting,
-                          EventGalleryImage):
+                          EventGalleryImage, EventNotice):
                 self.assertIsNone(db.query(model).filter(
                     model.__table__.c.event_id==event_id).first(),model.__name__)
             self.assertEqual(db.query(EventModerationLog).filter(
@@ -134,6 +136,28 @@ class DeleteUnusedDraftE2E(unittest.TestCase):
         self.assertEqual(response.json()["detail"],"only_unpublished_drafts_can_be_deleted")
         with SessionLocal() as db:
             self.assertIsNotNone(db.get(main.Event,event_id))
+
+    def test_draft_with_queued_notification_cannot_be_deleted(self):
+        event_id=self._create_draft()
+        with SessionLocal() as db:
+            notice=EventNotice(event_id=event_id,kind="change",message="Queued notice")
+            db.add(notice)
+            db.flush()
+            db.add(EmailOutbox(
+                event_key="integration-draft-delete-"+secrets.token_hex(10),
+                kind="event_notice",recipient="test-recipient@example.invalid",
+                notice_id=notice.id,state="pending",next_attempt_at=now(),
+                language="en",
+            ))
+            db.commit()
+        response=self.client.delete(f"/demo/manage/events/{event_id}",headers={
+            "Authorization":"Bearer "+self.owner_token
+        })
+        self.assertEqual(response.status_code,409,response.text)
+        self.assertEqual(response.json()["detail"],"draft_has_activity_cannot_delete")
+        with SessionLocal() as db:
+            self.assertIsNotNone(db.get(main.Event,event_id))
+            self.assertTrue(db.query(EventNotice.id).filter(EventNotice.event_id==event_id).first())
 
     def test_draft_with_historical_ticket_cannot_be_deleted(self):
         event_id=self._create_draft()
