@@ -78,3 +78,54 @@ for(const width of [320,390,430]){
     expect(position.scrollOverflow).toBe(false);
   });
 }
+
+
+/* Footer regression: the final Telegram item is a navigation link, not a
+   raised CTA. Older a:last-child:hover overrode the plain-link style and
+   painted dark-on-dark text plus a white L-shaped offset shadow. */
+for(const theme of ["dark","light"] as const){
+  for(const width of [390,1440]){
+    test(`Telegram footer link stays readable without offset plate: ${theme} ${width}px`,async({page})=>{
+      await page.setViewportSize({width,height:850});
+      await page.addInitScript(value=>localStorage.setItem("tt4-theme",value),theme);
+      await page.goto("/loyalty?lang=en",{waitUntil:"domcontentloaded"});
+      const footer=page.locator("footer.tt-legal-footer");
+      const telegram=footer.getByRole("link",{name:"Official TicketTreat Telegram bot"});
+      await expect(telegram).toBeVisible();
+      await expect(telegram).toHaveAttribute("href","https://t.me/TicketTreatBot");
+
+      const inspect=()=>telegram.evaluate(el=>{
+        const s=getComputedStyle(el);
+        const footerStyle=getComputedStyle(el.closest("footer")!);
+        const rgb=(color:string)=>{
+          const values=color.match(/rgba?\\(\\s*(\\d+)\\D+(\\d+)\\D+(\\d+)/);
+          if(!values)throw Error("Expected RGB color: "+color);
+          return values.slice(1,4).map(Number);
+        };
+        const luminance=(v:number[])=>v.map(x=>{const n=x/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;})
+          .reduce((sum,n,i)=>sum+n*[.2126,.7152,.0722][i],0);
+        const a=luminance(rgb(s.color)),b=luminance(rgb(footerStyle.backgroundColor));
+        const rect=el.getBoundingClientRect();
+        return {contrast:(Math.max(a,b)+.05)/(Math.min(a,b)+.05),
+          shadow:s.boxShadow,transform:s.transform,label:el.textContent?.trim(),
+          visible:rect.width>70&&rect.height>=40};
+      });
+      const normal=await inspect();
+      expect(normal.label).toBe("Telegram");
+      expect(normal.contrast).toBeGreaterThanOrEqual(4.5);
+      expect(normal.shadow).toBe("none");
+      expect(normal.visible).toBe(true);
+
+      await telegram.hover();
+      const hover=await inspect();
+      expect(hover.contrast).toBeGreaterThanOrEqual(4.5);
+      expect(hover.shadow).toBe("none");
+      expect(hover.transform).toBe("none");
+
+      await telegram.focus();
+      const focus=await inspect();
+      expect(focus.contrast).toBeGreaterThanOrEqual(4.5);
+      expect(focus.shadow).toBe("none");
+    });
+  }
+}
