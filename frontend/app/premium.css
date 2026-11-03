@@ -1661,3 +1661,67 @@ html body .app-shell:has(.admin-heading) .admin-event-actions .button.button-pri
 @media(max-width:560px){
   html body .app-shell:has(.admin-heading) .admin-heading h1{font-size:clamp(38px,10vw,55px)}
 }
+
+
+/* Profile summary: pair tile surface and text with the active theme.
+   Previous v1.1 rule kept near-black tiles even on the paper theme and
+   global button colors became unreadable on those tiles (iPhone Safari). */
+html[data-theme="light"] body .app-shell .profile-overview .profile-fact,
+html[data-theme="paper"] body .app-shell .profile-overview .profile-fact {
+  background:var(--paper)!important;
+  color:var(--ink)!important;
+  border:1.5px solid color-mix(in srgb,var(--ink) 22%,transparent)!important;
+}
+html[data-theme="dark"] body .app-shell .profile-overview .profile-fact,
+html[data-theme="night"] body .app-shell .profile-overview .profile-fact {
+  background:var(--ink2)!important;
+  color:var(--paper)!important;
+  border:1.5px solid var(--line)!important;
+}
+html[data-theme="light"] body .app-shell .profile-overview .profile-fact span,
+html[data-theme="paper"] body .app-shell .profile-overview .profile-fact span {
+  color:#4c555c!important;
+}
+html[data-theme="dark"] body .app-shell .profile-overview .profile-fact span,
+html[data-theme="night"] body .app-shell .profile-overview .profile-fact span {
+  color:#aebbc5!important;
+}
+html body .app-shell .profile-overview .profile-fact strong {
+  color:inherit!important;
+}
+html[data-theme="light"] body .app-shell .profile-overview .profile-fact .button-outline,
+html[data-theme="paper"] body .app-shell .profile-overview .profile-fact .button-outline {
+  color:var(--ink)!important;
+  border-color:var(--ink)!important;
+  background:transparent!important;
+}
+html[data-theme="dark"] body .app-shell .profile-overview .profile-fact .button-outline,
+html[data-theme="night"] body .app-shell .profile-overview .profile-fact .button-outline {
+  color:var(--paper)!important;
+  border-color:var(--paper)!important;
+  background:transparent!important;
+}
+html body .app-shell .profile-overview .profile-fact .button-outline {
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  min-height:40px!important;
+  padding:6px 10px!important;
+  white-space:normal;
+  text-align:center;
+  overflow-wrap:anywhere;
+  box-shadow:none!important;
+}
+@media(max-width:480px){
+  html body .app-shell .profile-overview .profile-facts {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+  html body .app-shell .profile-overview .profile-fact {
+    min-width:0;
+    padding:13px;
+  }
+  html body .app-shell .profile-overview .profile-fact:last-child {
+    grid-column:1 / -1;
+  }
+}
