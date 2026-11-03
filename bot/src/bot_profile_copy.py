@@ -1,7 +1,7 @@
-"""TicketTreat BotFather copy and four-language bot onboarding.
+"""TicketTreat Telegram-facing interface: English and Czech only.
 
-English and Russian text is transcribed from botfather-texts.md supplied by the
-product team. Czech and Ukrainian are faithful new localizations.
+Legacy Russian/Ukrainian strings are retained for archived content tests but are
+never selected for live bot UI or published as Telegram command descriptions.
 Telegram Bot API allows descriptions, about text and commands per locale.
 No token or user data is stored here.
 """
@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import re
 
-LANGUAGES = ("en", "ru", "cs", "uk")
+LANGUAGES = ("en", "cs")
+DEPRECATED_LANGUAGES = ("ru", "uk")
 DEFAULT_LANGUAGE = "en"
 
 BOT_CONTENT = {
     "en": {
-        "description": """You're on the list. TicketTreat books you a spot at events in Prague, issues your ticket and reminds you when it's time to go.
+        "description": """You're on the list. TicketTreat books you a spot at events across Czechia, issues your ticket and reminds you when it's time to go.
 
 What I do:
 • show upcoming events and book your spot
@@ -24,10 +25,10 @@ What I do:
 • keep your guest passport: your level grows with real visits
 
 Press "Start".""",
-        "about": "Events in Prague: booking, QR ticket and reminders in one place.",
+        "about": "Events in Czechia: booking, QR tickets and reminders in one place.",
         "start": """Hi, {name}! This is TicketTreat.
 
-Book a spot at events in Prague, get your ticket and don't forget to show up.
+Book a spot at events across Czechia, get your ticket and don't forget to show up.
 
 /events  upcoming events
 /tickets  my tickets
@@ -94,7 +95,7 @@ Pick an event, tap "Book a spot" and your ticket arrives here.""",
         "unavailable": "TicketTreat Mini App временно недоступен.",
     },
     "cs": {
-        "description": """Jsi na seznamu. TicketTreat ti rezervuje místo na akcích v Praze, vystaví vstupenku a připomene, kdy vyrazit.
+        "description": """Jsi na seznamu. TicketTreat ti rezervuje místo na akcích v Česku, vystaví vstupenku a připomene, kdy vyrazit.
 
 Co umím:
 • ukázat nadcházející akce a rezervovat místo
@@ -104,10 +105,10 @@ Co umím:
 • vést tvůj návštěvnický pas: úroveň roste se skutečnými návštěvami
 
 Stiskni „Start“.""",
-        "about": "Akce v Praze: rezervace, QR vstupenky a připomínky na jednom místě.",
+        "about": "Akce v Česku: rezervace, QR vstupenky a připomínky na jednom místě.",
         "start": """Ahoj, {name}! Tady TicketTreat.
 
-Rezervuj si místo na akcích v Praze, získej vstupenku a nenech si ujít začátek.
+Rezervuj si místo na akcích v Česku, získej vstupenku a nenech si ujít začátek.
 
 /events  nadcházející akce
 /tickets  moje vstupenky
@@ -257,7 +258,8 @@ def welcome_text(language_code: str | None, first_name: str | None) -> str:
 
 
 def validate_profile_copy() -> None:
-    for lang, data in BOT_CONTENT.items():
+    for lang in LANGUAGES:
+        data = BOT_CONTENT[lang]
         if len(data["description"]) > 512 or len(data["about"]) > 120:
             raise ValueError(f"Telegram BotFather text too long: {lang}")
         if len(data["commands"]) > 100 or len({c for c, _ in data["commands"]}) != len(data["commands"]):
@@ -277,14 +279,17 @@ def configure_botfather_profile(bot_token: str, requests_module) -> None:
         return
     validate_profile_copy()
     root = "https://api.telegram.org/bot" + bot_token + "/"
-    for language_code in ("", "en", "ru", "cs", "uk"):
-        copy = BOT_CONTENT[language_code or "en"]
+    for language_code in ("", "en", "cs", "ru", "uk"):
+        # Telegram retains localized bot metadata from prior deployments.
+        # Clear removed locales so Russian/Ukrainian users see EN fallback.
+        removed = language_code in DEPRECATED_LANGUAGES
+        copy = BOT_CONTENT["en" if removed else language_code or "en"]
         lang = {"language_code": language_code} if language_code else {}
         for getter, setter, field, desired in (
-            ("getMyDescription", "setMyDescription", "description", copy["description"]),
-            ("getMyShortDescription", "setMyShortDescription", "short_description", copy["about"]),
+            ("getMyDescription", "setMyDescription", "description", "" if removed else copy["description"]),
+            ("getMyShortDescription", "setMyShortDescription", "short_description", "" if removed else copy["about"]),
             ("getMyCommands", "setMyCommands", "commands",
-             [{"command": name, "description": label} for name, label in copy["commands"]]),
+             [] if removed else [{"command": name, "description": label} for name, label in copy["commands"]]),
         ):
             try:
                 response = requests_module.post(root + getter, json=lang, timeout=8)

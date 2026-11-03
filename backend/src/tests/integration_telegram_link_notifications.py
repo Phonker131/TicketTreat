@@ -75,7 +75,7 @@ class LinkExistingTicketTests(unittest.TestCase):
                         headers={"Authorization":"Bearer "+web_token})
                     self.assertEqual(response.status_code,200,response.text)
                     self.assertTrue(response.json()["linked"])
-                    send.assert_called_once_with(telegram_id,ticket_name,ticket_id,True,"ru")
+                    send.assert_called_once_with(telegram_id,ticket_name,ticket_id,True,"en")
                 with SessionLocal() as db:
                     self.assertIsNotNone(db.get(DemoTelegramIdentity,telegram_id))
                     cards=main.get_user_events(telegram_id,include_web_tickets=True,db=db)

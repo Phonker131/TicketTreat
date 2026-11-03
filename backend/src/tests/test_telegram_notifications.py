@@ -46,7 +46,7 @@ class TelegramNotificationTests(unittest.TestCase):
         item = SimpleNamespace(kind="event_notice", language="ru")
         notice = SimpleNamespace(id=45, event_id=22, kind="cancel", message="Срочно <отмена> & перенос")
         text, _ = render_message(item, example_event(), notice)
-        self.assertIn("Мероприятие отменено", text)
+        self.assertIn("Event cancelled", text)
         self.assertIn("&lt;отмена&gt;", text)
         self.assertIn("&amp; перенос", text)
 
