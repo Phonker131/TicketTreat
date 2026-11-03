@@ -89,6 +89,13 @@ for(const theme of ["dark","light"] as const){
       await page.setViewportSize({width,height:850});
       await page.addInitScript(value=>localStorage.setItem("tt4-theme",value),theme);
       await page.goto("/loyalty?lang=en",{waitUntil:"domcontentloaded"});
+      // Cookie consent is a deliberately blocking overlay on a new browser
+      // profile. Exercise the privacy-preserving "Essential only" action
+      // before attempting to hover links underneath it on mobile.
+      const consent=page.getByTestId("tt-cookie-banner");
+      await expect(consent).toBeVisible();
+      await consent.getByRole("button",{name:"Essential only"}).click();
+      await expect(consent).toBeHidden();
       const footer=page.locator("footer.tt-legal-footer");
       const telegram=footer.getByRole("link",{name:"Official TicketTreat Telegram bot"});
       await expect(telegram).toBeVisible();
