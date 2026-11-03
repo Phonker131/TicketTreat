@@ -1,6 +1,5 @@
 "use client";
 import {useEffect,useState} from "react";
-import {flushSync} from "react-dom";
 import {useLanguage} from "@/components/LanguageProvider";
 type Mode="dark"|"light";
 const KEY="tt4-theme";
@@ -35,9 +34,23 @@ export function ThemeToggle(){
   /* the new theme grows out of the button as a circle */
   const r=e.currentTarget.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
   const radius=Math.hypot(Math.max(cx,innerWidth-cx),Math.max(cy,innerHeight-cy));
-  doc.startViewTransition(()=>flushSync(commit)).ready.then(()=>document.documentElement.animate(
-   {clipPath:["circle(0px at "+cx+"px "+cy+"px)","circle("+radius+"px at "+cx+"px "+cy+"px)"]},
-   {duration:640,easing:"cubic-bezier(.22,1,.36,1)",pseudoElement:"::view-transition-new(root)"})).catch(()=>{});
+  // Keep theme selection functional if a browser delays/rejects the optional
+  // View Transition. A React flushSync inside the snapshot callback can throw.
+  let applied=false;
+  const applyOnce=()=>{if(applied)return;applied=true;commit();};
+  const fallback=window.setTimeout(applyOnce,250);
+  try{
+   void doc.startViewTransition(()=>{
+    window.clearTimeout(fallback);
+    applyOnce();
+   }).ready.then(()=>document.documentElement.animate(
+    {clipPath:["circle(0px at "+cx+"px "+cy+"px)","circle("+radius+"px at "+cx+"px "+cy+"px)"]},
+    {duration:640,easing:"cubic-bezier(.22,1,.36,1)",pseudoElement:"::view-transition-new(root)"})).catch(()=>{
+     window.clearTimeout(fallback);applyOnce();
+   });
+  }catch{
+   window.clearTimeout(fallback);applyOnce();
+  }
  }}>
  <svg width="23" height="23" viewBox="0 0 52 52" aria-hidden="true" fill="none"><use href={mode==="dark"?"/brand/icons.svg#sun":"/brand/icons.svg#moon"}/></svg>
  </button>;
