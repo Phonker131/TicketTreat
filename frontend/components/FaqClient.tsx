@@ -24,10 +24,8 @@ export function FaqClient({forcedLanguage}:{forcedLanguage?:LanguageCode}={}){
       <h1>{t.title}</h1>
       <p className="tt-faq-intro">{t.intro}</p>
       <nav className="tt-faq-languages" aria-label="FAQ languages">
-        <Link href="/faq" hrefLang="ru" lang="ru">Русский</Link>
-        <Link href="/cs/faq" hrefLang="cs" lang="cs">Čeština</Link>
-        <Link href="/en/faq" hrefLang="en" lang="en">English</Link>
-        <Link href="/uk/faq" hrefLang="uk" lang="uk">Українська</Link>
+        <Link href="/cs/faq" hrefLang="cs" lang="cs" aria-current={language==="cs"?"page":undefined}>Čeština</Link>
+        <Link href="/en/faq" hrefLang="en" lang="en" aria-current={language==="en"?"page":undefined}>English</Link>
       </nav>
       <div className="tt-faq-search">
         <label htmlFor="tt-faq-search">{t.search}</label>
