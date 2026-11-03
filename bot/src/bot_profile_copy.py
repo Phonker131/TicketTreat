@@ -15,7 +15,7 @@ DEFAULT_LANGUAGE = "en"
 
 BOT_CONTENT = {
     "en": {
-        "description": """You're on the list. TicketTreat books you a spot at events in Prague, issues your ticket and reminds you when it's time to go.
+        "description": """You're on the list. TicketTreat books you a spot at events across Czechia, issues your ticket and reminds you when it's time to go.
 
 What I do:
 • show upcoming events and book your spot
@@ -25,10 +25,10 @@ What I do:
 • keep your guest passport: your level grows with real visits
 
 Press "Start".""",
-        "about": "Events in Prague: booking, QR ticket and reminders in one place.",
+        "about": "Events in Czechia: booking, QR tickets and reminders in one place.",
         "start": """Hi, {name}! This is TicketTreat.
 
-Book a spot at events in Prague, get your ticket and don't forget to show up.
+Book a spot at events across Czechia, get your ticket and don't forget to show up.
 
 /events  upcoming events
 /tickets  my tickets
@@ -95,7 +95,7 @@ Pick an event, tap "Book a spot" and your ticket arrives here.""",
         "unavailable": "TicketTreat Mini App временно недоступен.",
     },
     "cs": {
-        "description": """Jsi na seznamu. TicketTreat ti rezervuje místo na akcích v Praze, vystaví vstupenku a připomene, kdy vyrazit.
+        "description": """Jsi na seznamu. TicketTreat ti rezervuje místo na akcích v Česku, vystaví vstupenku a připomene, kdy vyrazit.
 
 Co umím:
 • ukázat nadcházející akce a rezervovat místo
@@ -105,10 +105,10 @@ Co umím:
 • vést tvůj návštěvnický pas: úroveň roste se skutečnými návštěvami
 
 Stiskni „Start“.""",
-        "about": "Akce v Praze: rezervace, QR vstupenky a připomínky na jednom místě.",
+        "about": "Akce v Česku: rezervace, QR vstupenky a připomínky na jednom místě.",
         "start": """Ahoj, {name}! Tady TicketTreat.
 
-Rezervuj si místo na akcích v Praze, získej vstupenku a nenech si ujít začátek.
+Rezervuj si místo na akcích v Česku, získej vstupenku a nenech si ujít začátek.
 
 /events  nadcházející akce
 /tickets  moje vstupenky
