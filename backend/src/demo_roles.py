@@ -460,7 +460,7 @@ def install_demo_roles(app, get_db, main):
         from demo_paid_reservations import PaidReservation
         from demo_waitlist_offers import WaitlistOffer
         from demo_legacy import LegacyTicketClaim
-        from demo_email import EventNotice
+        from demo_email import EventNotice, EmailOutbox
         from demo_telegram_notifications import TelegramNotificationOutbox, TelegramReminderBatch
         from demo_broadcast import BroadcastCampaign
         # No existing or historical registrations, QR passes, waiting/expired
@@ -469,13 +469,24 @@ def install_demo_roles(app, get_db, main):
         protected=(
             main.Registration, main.DemoTicket, main.DemoWaitlist,
             main.RegistrationPayment, LegacyTicketClaim, PaidReservation,
-            WaitlistOffer, EventNotice, TelegramNotificationOutbox,
+            WaitlistOffer, TelegramNotificationOutbox,
             TelegramReminderBatch, BroadcastCampaign,
         )
         for model in protected:
             event_column=model.__table__.c.event_id
             if db.query(event_column).filter(event_column==event_id).first() is not None:
                 raise HTTPException(status_code=409,detail="draft_has_activity_cannot_delete")
+
+        # A draft edit may leave an operational EventNotice even with zero
+        # recipients. Only recipient-free notices are metadata; never erase
+        # email delivery history (sent, failed or pending).
+        notice_ids=[
+            notice_id for (notice_id,) in db.query(EventNotice.id).filter(
+                EventNotice.event_id==event_id).all()
+        ]
+        if notice_ids and db.query(EmailOutbox.id).filter(
+            EmailOutbox.notice_id.in_(notice_ids)).first() is not None:
+            raise HTTPException(status_code=409,detail="draft_has_activity_cannot_delete")
 
         from demo_pilot_ops import EventPilotSettings, EventCheckinStaff
         from demo_event_access import EventAccess
@@ -491,7 +502,7 @@ def install_demo_roles(app, get_db, main):
             EventGalleryImage, EventMedia, main.DemoEventPoster,
             main.EventLanguageSetting, main.EventPaymentSettings,
             DemoEventPlace, EventCheckinStaff, EventPilotSettings,
-            EventAccess, EventPublication, EventOwnership,
+            EventNotice, EventAccess, EventPublication, EventOwnership,
         ):
             db.query(model).filter(model.__table__.c.event_id==event_id).delete(
                 synchronize_session=False
