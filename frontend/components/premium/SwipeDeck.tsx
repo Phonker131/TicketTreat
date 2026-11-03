@@ -60,7 +60,7 @@ export function SwipeDeck({events,index,labels,dateOf,priceOf,onAction,onReset}:
   return <div className="tp-deck-empty" role="status">
    <PosterArt seed={7} className="tp-deck-empty-art"/>
    <h3>{labels.done}</h3><p>{labels.doneText}</p>
-   <button type="button" className="button button-primary" onClick={onReset}>{labels.reset} ↻</button>
+   <button type="button" className="button button-primary" onClick={onReset}>{labels.reset}</button>
   </div>;
  }
  return <div className="tp-deck">

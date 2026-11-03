@@ -22,7 +22,7 @@ export function EventsEmpty({language}:{language:LanguageCode}){
   <div className="tp-ee-copy">
    <h3>{c.title}</h3><p>{c.text}</p>
    <div className="tp-ee-actions">
-    <button type="button" className="button button-primary" onClick={()=>window.dispatchEvent(new Event("tickettreat-open-story"))}>{c.cta} ↗</button>
+    <button type="button" className="button button-primary" onClick={()=>window.dispatchEvent(new Event("tickettreat-open-story"))}>{c.cta}</button>
     <Link href="/organizers" className="button button-secondary">{c.organizers}</Link>
    </div>
   </div>
