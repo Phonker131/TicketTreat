@@ -22,12 +22,14 @@ def main():
         with Image.open(BytesIO(welcome)) as image:
             assert image.format == "PNG"
             assert image.size == (256, 256)
-            # The live site uses the blue TT icon, not the former red one.
-            rgb = image.convert("RGB").getpixel((128, 70))
-            assert rgb[0] < 60 and 90 < rgb[1] < 210 and rgb[2] > 170, (
-                f"{language}: unexpected website icon color: {rgb}"
-            )
             image.verify()
+        # Inspect the pixel only after PNG integrity verification: Pillow's
+        # verify() requires the original unopened pixel decoder state.
+        with Image.open(BytesIO(welcome)) as image:
+            rgb = image.convert("RGB").getpixel((128, 70))
+        assert rgb[0] < 60 and 90 < rgb[1] < 210 and rgb[2] > 170, (
+            f"{language}: unexpected website icon color: {rgb}"
+        )
 
     avatar = brand_avatar.brand_avatar_jpeg()
     assert avatar.startswith(bytes.fromhex("ffd8"))
