@@ -36,7 +36,8 @@ def aggregate_organizer(db: Session, main, account) -> dict:
     events=rows[:200]
     ids=[e.id for e in events]
     if not ids:
-        return {"events":[],"summary":{"events":0,"upcoming":0,"completed":0,
+        return {"audience":{"visitors":0,"first_time":0,"returning":0,"loyal":0,"active_30d":0,"inactive_90d":0,"repeat_percent":None},
+                "events":[],"summary":{"events":0,"upcoming":0,"completed":0,
                 "capacity":0,"reserved_places":0,"active_qr":0,"checked_in_qr":0,
                 "waitlist":0,"pending_payment":0,"pending_payment_24h":0,
                 "cancelled_tickets":0,"occupancy_percent":None,
@@ -79,11 +80,57 @@ def aggregate_organizer(db: Session, main, account) -> dict:
              PaidReservation.expires_at>now).group_by(PaidReservation.event_id).all()
     pending_by={eid:(int(count),int(expiring)) for eid,count,expiring in pending}
 
-    source_rows=db.query(main.DemoTicket.acquisition_source,func.count(main.DemoTicket.id)).filter(
+    # One aggregation for both the channel overview and event-level campaigns.
+    # Sources are self-declared tags (utm_source), not clicks or verified ad traffic.
+    source_rows=db.query(
+        main.DemoTicket.event_id,
+        main.DemoTicket.acquisition_source,
+        func.count(main.DemoTicket.id),
+        func.count(main.DemoTicket.id).filter(main.DemoTicket.checked_in_at.is_not(None)),
+    ).filter(
         main.DemoTicket.event_id.in_(ids),
-        main.DemoTicket.ticket_status=="active").group_by(main.DemoTicket.acquisition_source).all()
-    sources=sorted(({"source":source or "direct","registrations":int(count)}
-                   for source,count in source_rows),key=lambda x:-x["registrations"])
+        main.DemoTicket.ticket_status=="active",
+    ).group_by(main.DemoTicket.event_id,main.DemoTicket.acquisition_source).all()
+    per_event_sources=defaultdict(list)
+    source_totals=defaultdict(lambda:[0,0])
+    for eid,source,bookings,arrivals in source_rows:
+        key=source or "direct"
+        per_event_sources[eid].append({"source":key,"registrations":int(bookings),"checked_in":int(arrivals)})
+        source_totals[key][0]+=int(bookings)
+        source_totals[key][1]+=int(arrivals)
+    sources=sorted((
+        {"source":source,"registrations":counts[0],"checked_in":counts[1]}
+        for source,counts in source_totals.items()
+    ),key=lambda x:(-x["registrations"],x["source"]))
+
+    # CRM cohort counts are calculated in SQL, never expose guest IDs, emails
+    # or audience lists. A visit means a completed QR check-in, not a signup.
+    # Scope strictly matches the same owned/selected events as the dashboard.
+    checkins=db.query(
+        main.DemoTicket.guest_id.label("guest_id"),
+        func.count(main.DemoTicket.id).label("visits"),
+        func.max(main.DemoTicket.checked_in_at).label("last_visit"),
+    ).filter(
+        main.DemoTicket.event_id.in_(ids),
+        main.DemoTicket.ticket_status=="active",
+        main.DemoTicket.checked_in_at.is_not(None),
+    ).group_by(main.DemoTicket.guest_id).subquery()
+    active_cutoff=now-timedelta(days=30)
+    inactive_cutoff=now-timedelta(days=90)
+    cohort=db.query(
+        func.count(),
+        func.count().filter(checkins.c.visits==1),
+        func.count().filter(checkins.c.visits>=2),
+        func.count().filter(checkins.c.visits>=3),
+        func.count().filter(checkins.c.last_visit>=active_cutoff),
+        func.count().filter(checkins.c.last_visit<inactive_cutoff),
+    ).select_from(checkins).one()
+    visitors,first_time,returning,loyal,active_30d,inactive_90d=(int(x) for x in cohort)
+    audience={
+        "visitors":visitors,"first_time":first_time,"returning":returning,
+        "loyal":loyal,"active_30d":active_30d,"inactive_90d":inactive_90d,
+        "repeat_percent":percentage(returning,visitors),
+    }
 
     recent_day=func.date(main.DemoTicket.created_at)
     cutoff=now-timedelta(days=29)
@@ -115,6 +162,7 @@ def aggregate_organizer(db: Session, main, account) -> dict:
             "occupancy_percent":percentage(reserved,event.max_participants),
             "available_places":max(0,event.max_participants-reserved) if event.max_participants is not None else None,
             "active_qr":active,"checked_in_qr":checked,
+            "channels":sorted(per_event_sources.get(event.id,[]),key=lambda x:(-x["registrations"],x["source"])),
             "qr_checkin_percent":percentage(checked,active) if finished else None,
             "legacy_registrations":legacy_count,"waitlist":waiting,
             "pending_payment":holds,"pending_payment_24h":expiring,
@@ -147,11 +195,15 @@ def aggregate_organizer(db: Session, main, account) -> dict:
     summary["qr_checkin_percent"]=percentage(counters["checked_in_qr"],counters["active_qr"])
     return {
         "summary":summary,"events":result,"truncated":truncated,
+        "audience":audience,
         "channels":sources,
         "daily_bookings":[{"date":str(day),"count":int(count)} for day,count in days],
         "limitations":[
             "Reserved places include active TicketTreat tickets, unclaimed legacy Telegram registrations and unexpired manual-payment holds.",
             "QR check-ins, channels and daily trends cover active TicketTreat tickets only.",
+            "CRM visitor cohorts count distinct people with completed QR check-ins in the selected events; legacy bot attendance is excluded.",
+            "Source tags are self-reported attribution on active tickets, not click counts or verified campaign conversions.",
+            "Active visitors were checked in within the last 30 days; inactive visitors were last checked in over 90 days ago.",
             "An organizer-admin view can be limited to the most recent 200 events; no raw attendee details are included.",
             "Amounts are not revenue: TicketTreat does not process organizer-direct payments."
         ]
