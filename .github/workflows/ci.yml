@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, release/tickettreat-production, dev/frontend-design]
   pull_request:
-    branches: [main, release/tickettreat-production]
+    branches: [main, release/tickettreat-production, dev/frontend-design]
     types: [opened, reopened, synchronize, edited]
 
 permissions:
