@@ -10,6 +10,8 @@ import {BrandIcon} from "@/components/BrandIcon";
 import {premium} from "@/components/premium/copy";
 import {EventsSkeleton,EventsEmpty} from "@/components/premium/EventsPlaceholders";
 import {PhoneScreen} from "@/components/premium/Screens";
+import {BrandPhoto} from "@/components/premium/BrandPhoto";
+import {PosterStrip} from "@/components/premium/PosterStrip";
 import dynamic from "next/dynamic";
 import {useLanguage} from "@/components/LanguageProvider";
 import {getEvents,getSiteLanding,type SiteLanding} from "@/lib/api";
@@ -68,9 +70,8 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
           </div>
         </div>
         <div className="tp-hero-art" role="img" aria-label="TicketTreat live-event interface preview">
-          <PhoneFrame glow="tom" className="tp-hero-phone"><PhoneScreen kind="discover" language={language} priority/></PhoneFrame>
-          <img className="tp-hero-glyph tp-hero-glyph-a" src="/brand/glyph-plus.svg" alt="" aria-hidden="true"/>
-          <img className="tp-hero-glyph tp-hero-glyph-b" src="/brand/glyph-wave.svg" alt="" aria-hidden="true"/>
+          <BrandPhoto name="hero" className="tp-hero-photo" sizes="(max-width: 900px) 92vw, 460px" priority/>
+          <PhoneFrame glow="tom" className="tp-hero-phone"><PhoneScreen kind="discover" language={language}/></PhoneFrame>
         </div>
       </section>
       <section className="section tt-v12-screen tt-night-events" id="events" aria-labelledby="tt-events-heading">
@@ -86,6 +87,7 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
         {!loading&&!error&&events.length>0&&
           <EventDiscovery events={events} language={language}/>}
       </section>
+      <PosterStrip language={language}/>
       <GuidedSections language={language}/>
       <section className="tt-home-faq" aria-label="TicketTreat FAQ">
         <div><h2>{copy.help}</h2><p>{language==="en"?"Registration, QR tickets and cancellations.":language==="cs"?"Registrace, QR vstupenky a zrušení.":language==="uk"?"Реєстрація, QR-квитки та скасування.":"Регистрация, QR-билеты и отмены."}</p></div>

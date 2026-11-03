@@ -1291,3 +1291,73 @@ html[data-theme="dark"] body .tt-business-main .tt-business-tabs button:not([ari
 
 /* no coloured glow under the heart button */
 html body .tp-round.is-want{box-shadow:none!important}
+
+/* =====================================================================================
+   v7: photography and texture. The page is built from the brand's riso night-out photos instead of flat colour.
+   ===================================================================================== */
+
+/* An old rule removed every transform on the home page for people with Reduce Motion switched on (common on iPhones).
+   It also removed the scale that fits the drawn phone into its frame, so the screen showed at full size and got cut. */
+@media (prefers-reduced-motion:reduce){
+ html body .tt-night-home :is(.tp-phone,.tp-laptop){transform:scale(var(--k))!important}
+}
+
+/* fine paper grain over the whole page, so dark and light backgrounds are not dead flat */
+body::after{content:"";position:fixed;inset:0;z-index:94;pointer-events:none;opacity:.08;background-size:180px 180px;
+ background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+html[data-theme="light"] body::after{opacity:.1;mix-blend-mode:multiply}
+
+/* ---- hero: a real photo, with the app in front of it on desktop ---- */
+.tp-hero-photo{position:relative;display:block;overflow:hidden;border-radius:28px;background:var(--tp-surf);box-shadow:12px 14px 0 var(--yel)}
+.tp-hero-photo img{display:block;width:100%;height:100%;object-fit:cover}
+@media (min-width:901px){
+ html body .tp-hero-art{display:grid!important;grid-template-areas:"s";align-items:center;justify-items:end;padding:24px 14px 24px 0!important}
+ html body .tp-hero-art>*{grid-area:s}
+ .tp-hero-photo{width:min(82%,420px);aspect-ratio:4/5}
+ html body .tp-hero-art .tp-hero-phone{--k:.5;justify-self:start;align-self:end;z-index:2;margin:0 0 -18px -24px}
+}
+@media (min-width:901px) and (max-height:819px){html body .tp-hero-art .tp-hero-phone{--k:.44}.tp-hero-photo{width:min(78%,360px)}}
+@media (min-width:901px) and (max-height:699px){html body .tp-hero-art .tp-hero-phone{--k:.4}.tp-hero-photo{width:min(72%,300px)}}
+@media (max-width:900px){
+ html body .tp-hero-art{display:block!important;padding:0!important;margin-top:8px}
+ html body .tp-hero-art .tp-phone-wrap{display:none!important}
+ .tp-hero-photo{width:calc(100% - 10px);aspect-ratio:4/3;border-radius:24px;box-shadow:8px 10px 0 var(--yel)}
+}
+
+/* ---- the strip of nights ---- */
+.tp-strip{overflow:hidden;padding:clamp(8px,2vw,24px) 0 clamp(36px,5vw,72px)}
+.tp-strip-track{display:flex;width:max-content;margin:0;padding:0;list-style:none;animation:tp-marquee 80s linear infinite}
+.tp-strip:hover .tp-strip-track{animation-play-state:paused}
+.tp-strip li{flex:none;display:grid;gap:12px;width:clamp(170px,20vw,250px);margin-right:clamp(12px,1.6vw,20px)}
+.tp-strip-photo{display:block;aspect-ratio:4/5;overflow:hidden;border-radius:20px;background:var(--tp-surf)}
+.tp-strip-photo img{display:block;width:100%;height:100%;object-fit:cover}
+.tp-strip li span{font:900 clamp(20px,1.9vw,26px)/1 var(--d);text-transform:uppercase;color:var(--tp-fg)}
+@keyframes tp-marquee{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.tp-strip{overflow-x:auto}.tp-strip-track{animation:none}}
+
+/* ---- ticket section: the club behind the phones ---- */
+html body .tp-ticket-sec{background:
+ linear-gradient(180deg,var(--tp-bg) 0%,color-mix(in srgb,var(--tp-bg) 72%,transparent) 26%,color-mix(in srgb,var(--tp-bg) 72%,transparent) 74%,var(--tp-bg) 100%),
+ url("/brand/posters/night-720.webp") center/cover no-repeat!important}
+html[data-theme="light"] body .tp-ticket-sec{background:
+ linear-gradient(180deg,var(--tp-bg) 0%,color-mix(in srgb,var(--tp-bg) 86%,transparent) 26%,color-mix(in srgb,var(--tp-bg) 86%,transparent) 74%,var(--tp-bg) 100%),
+ url("/brand/posters/night-720.webp") center/cover no-repeat!important}
+
+/* ---- FAQ card on a photo ---- */
+html body .tt-night-home .tt-home-faq{position:relative;overflow:hidden;color:var(--paper)!important;border:0!important;
+ background:linear-gradient(90deg,rgba(2,7,10,.94) 0%,rgba(2,7,10,.8) 55%,rgba(2,7,10,.35) 100%),url("/brand/posters/cta-720.webp") right center/cover no-repeat!important}
+html body .tt-night-home .tt-home-faq :is(h2,p){color:var(--paper)!important}
+@media (max-width:760px){html body .tt-night-home .tt-home-faq{background:linear-gradient(180deg,rgba(2,7,10,.55) 0%,rgba(2,7,10,.94) 60%),url("/brand/posters/cta-720.webp") center top/cover no-repeat!important;padding-top:120px!important}}
+
+/* ---- empty events: three real photos, straight ---- */
+html body .tp-ee-p{overflow:hidden;transform:none!important}
+.tp-ee-p img{display:block;width:100%;height:100%;object-fit:cover}
+html body .tp-ee-p1{left:0;top:16%}
+html body .tp-ee-p3{right:0;left:auto;top:16%}
+
+/* ---- level cards carry the riso dot ---- */
+html body .tp-level{background-image:radial-gradient(rgba(2,7,10,.14) 1px,transparent 1.5px);background-size:7px 7px}
+html body .tp-level-3{background-image:radial-gradient(rgba(240,235,225,.12) 1px,transparent 1.5px)}
+
+/* the welcome tour sits above the cookie banner while it is open; the banner is there when the tour closes */
+html body .tp-tour{z-index:1300}

@@ -69,8 +69,8 @@ export function SwipeDeck({events,index,labels,dateOf,priceOf,onAction,onReset}:
    {behind.map((e,i)=><div key={e.id} className="tp-deck-card tp-deck-ghost" style={{transform:`translateY(${(i+1)*16}px) scale(${1-(i+1)*.05})`,zIndex:-i-1,opacity:1-(i+1)*.25}} aria-hidden="true">
      <Face event={e} date={dateOf(e)} price={priceOf(e)}/></div>)}
    <M.div key={current.id} className="tp-deck-card" tabIndex={0} role="group" aria-label={current.title+". "+labels.hint}
-     style={{x,y,rotate}} drag={reduce?false:true} dragSnapToOrigin dragElastic={.9} dragMomentum={false}
-     whileDrag={{scale:1.025,cursor:"grabbing"}} initial={reduce?false:{opacity:0,scale:.94,y:28}} animate={{opacity:1,scale:1}} transition={{type:"spring",stiffness:230,damping:24}}
+     style={{x,y,rotate}} drag dragSnapToOrigin dragElastic={.9} dragMomentum={false}
+     whileDrag={{scale:1.025,cursor:"grabbing"}} initial={{opacity:0,scale:.94,y:28}} animate={{opacity:1,scale:1}} transition={{type:"spring",stiffness:230,damping:24}}
      onKeyDown={keys}
      onDragEnd={(_,info)=>{
       if(info.offset.y<-90||info.velocity.y<-650){x.set(0);y.set(0);void fly("view")}

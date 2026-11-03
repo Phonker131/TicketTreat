@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import {PosterArt} from "@/components/premium/PosterArt";
+import {BrandPhoto} from "@/components/premium/BrandPhoto";
 import {premium} from "@/components/premium/copy";
 import type {LanguageCode} from "@/lib/types";
 
@@ -12,12 +13,12 @@ export function EventsSkeleton({count=3}:{count?:number}){
  </div>;
 }
 
-/** Shown when no event is published yet: a fan of blank posters, a calm message and two ways forward. */
+/** Shown when no event is published yet: three photos of the kind of nights that appear here, a calm message and two ways forward. */
 export function EventsEmpty({language}:{language:LanguageCode}){
  const c=premium[language].empty;
  return <div className="tp-events-empty" role="status">
   <div className="tp-ee-fan" aria-hidden="true">
-   <PosterArt seed={0} className="tp-ee-p tp-ee-p1"/><PosterArt seed={1} className="tp-ee-p tp-ee-p2"/><PosterArt seed={2} className="tp-ee-p tp-ee-p3"/>
+   <BrandPhoto name="quiz" sizes="180px" className="tp-ee-p tp-ee-p1"/><BrandPhoto name="sd" sizes="200px" className="tp-ee-p tp-ee-p2"/><BrandPhoto name="night" sizes="180px" className="tp-ee-p tp-ee-p3"/>
   </div>
   <div className="tp-ee-copy">
    <h3>{c.title}</h3><p>{c.text}</p>
