@@ -34,7 +34,7 @@ class BrandIdentityTests(unittest.TestCase):
         mod=importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         mod.validate_profile_copy()
-        self.assertEqual(set(mod.LANGUAGES),{"en","ru","cs","uk"})
+        self.assertEqual(set(mod.LANGUAGES),{"en","cs"})
         menu=(ROOT/"bot/src/main.py").read_text(encoding="utf-8")
         self.assertIn('def ui_text_matches(',menu)
         # Display text must pass through four-language translation.

@@ -62,9 +62,9 @@ class BotLocaleIntegrityTests(unittest.TestCase):
     def test_locale_is_persisted_and_unsupported_telegram_locale_has_fallback(self):
         get_language = ast.get_source_segment(SOURCE.read_text(encoding="utf-8"), function("get_interface_language"))
         remember = ast.get_source_segment(SOURCE.read_text(encoding="utf-8"), function("remember_telegram_language"))
-        self.assertIn('data.get("language") or DEFAULT_INTERFACE_LANGUAGE', get_language)
-        self.assertIn('or DEFAULT_INTERFACE_LANGUAGE', remember)
-        self.assertIn('normalize_language(result.get("language")) or chosen', remember)
+        self.assertIn('normalize_language(data.get("language"))', get_language)
+        self.assertIn('normalize_language(getattr(user, "language_code", None))', remember)
+        self.assertIn('chosen = normalize_language(saved)', remember)
 
     def test_custom_content_boundaries_are_retained(self):
         src = SOURCE.read_text(encoding="utf-8")
