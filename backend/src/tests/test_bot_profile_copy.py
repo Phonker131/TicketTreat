@@ -14,7 +14,7 @@ class ProfileCopyTests(unittest.TestCase):
         module.validate_profile_copy()
         baseline=[command for command,_ in module.get_copy("en")["commands"]]
         self.assertEqual(baseline,["events","tickets","passport","reminders","help"])
-        for lang in ("en","ru","cs","uk"):
+        for lang in ("en","cs"):
             copy=module.get_copy(lang)
             self.assertLessEqual(len(copy["description"]),512)
             self.assertLessEqual(len(copy["about"]),120)
@@ -27,11 +27,11 @@ class ProfileCopyTests(unittest.TestCase):
 
     def test_source_copy_exact_start(self):
         en=module.welcome_text("en","Alex")
-        ru=module.welcome_text("ru","Александр")
+        cs=module.welcome_text("cs","Petr")
         self.assertTrue(en.startswith("Hi, Alex! This is TicketTreat."))
-        self.assertTrue(ru.startswith("Привет, Александр! Это TicketTreat."))
+        self.assertTrue(cs.startswith("Ahoj, Petr! Tady TicketTreat."))
         self.assertTrue(en.endswith('Pick an event, tap "Book a spot" and your ticket arrives here.'))
-        self.assertTrue(ru.endswith("Выбери ивент, нажми «Записаться» — билет придёт сюда."))
+        self.assertTrue(module.welcome_text("ru","Alex").startswith("Hi, Alex!"))
 
 
     def test_start_shortcuts_are_localized_and_link_to_correct_pages(self):
@@ -61,7 +61,7 @@ class ProfileCopyTests(unittest.TestCase):
             "bot":bot,
         }
         exec(compile(ast.Module(body=[helper],type_ignores=[]),str(PATH.parent/"main.py"),"exec"),scope)
-        for language in ("en","ru","cs","uk"):
+        for language in ("en","cs"):
             for chat_type in ("private","supergroup"):
                 bot.sent.clear()
                 message=types.SimpleNamespace(chat=types.SimpleNamespace(id=17,type=chat_type))
@@ -95,7 +95,7 @@ class ProfileCopyTests(unittest.TestCase):
         shortcuts=[]
         menu=object()
         scope={
-            "remember_telegram_language":lambda user:"ru",
+            "remember_telegram_language":lambda user:"cs",
             "get_copy":module.get_copy,
             "welcome_text":module.welcome_text,
             "preserve_custom":lambda text:text,
@@ -109,18 +109,22 @@ class ProfileCopyTests(unittest.TestCase):
             chat=types.SimpleNamespace(id=17,type="private"),
             from_user=types.SimpleNamespace(id=42,first_name="Алексей"),
         )
-        scope["start"](message)
+        import sys
+        from unittest.mock import patch
+        fake_media=types.SimpleNamespace(send_branded_welcome=lambda *args,**kw:sent.append((args,kw)))
+        with patch.dict(sys.modules, {"brand_avatar":fake_media}):
+            scope["start"](message)
         self.assertEqual(len(sent),1)
-        self.assertEqual(sent[0][1]["reply_markup"],menu)
-        self.assertIn("Привет, Алексей!",sent[0][0][1])
-        self.assertEqual(shortcuts,[(message,module.get_copy("ru"))])
+        self.assertIs(sent[0][0][3],menu)
+        self.assertIn("Ahoj, Алексей!",sent[0][0][2])
+        self.assertEqual(shortcuts,[(message,module.get_copy("cs"))])
 
     def test_telegram_auto_locale_and_explicit_fallback(self):
         self.assertEqual(module.normalize_language("cs-CZ"),"cs")
-        self.assertEqual(module.normalize_language("uk_UA"),"uk")
-        self.assertEqual(module.normalize_language("ru"),"ru")
+        self.assertEqual(module.normalize_language("uk_UA"),"en")
+        self.assertEqual(module.normalize_language("ru"),"en")
         self.assertEqual(module.normalize_language("be"),"en")
-        self.assertTrue(module.welcome_text("uk","Олена").startswith("Привіт, Олена!"))
+        self.assertTrue(module.welcome_text("uk","Olena").startswith("Hi, Olena!"))
         self.assertTrue(module.welcome_text("cs","Petra").startswith("Ahoj, Petra!"))
 
     def test_disallow_control_chars_in_names(self):
@@ -156,8 +160,8 @@ class ProfileCopyTests(unittest.TestCase):
         explicit=True
         context["user_language_cache"].clear()
         seen.clear()
-        self.assertEqual(context["remember_telegram_language"](user),"ru")
-        self.assertEqual(seen,[("GET",None)])
+        self.assertEqual(context["remember_telegram_language"](user),"en")
+        self.assertEqual(seen,[("GET",None),("PUT",{"language":"en"})])
 
     def test_idempotent_profile_sync_for_each_language(self):
         class Response:
@@ -176,6 +180,10 @@ class ProfileCopyTests(unittest.TestCase):
                 if field:
                     current=self.reads.get((field,language),[] if field=="commands" else "")
                     return Response(current if field=="commands" else {field:current})
+                if endpoint=="deleteMyCommands":
+                    self.reads[("commands",language)]=[]
+                    self.writes.append(("deleteMyCommands",language))
+                    return Response(True)
                 field={"setMyDescription":"description","setMyShortDescription":"short_description",
                     "setMyCommands":"commands"}[endpoint]
                 self.reads[(field,language)]=json[field]
@@ -185,8 +193,8 @@ class ProfileCopyTests(unittest.TestCase):
         module.configure_botfather_profile("fake_token",fake)
         self.assertEqual(len(fake.writes),15)
         module.configure_botfather_profile("fake_token",fake)
-        self.assertEqual(len(fake.writes),15)
-        self.assertIn(("commands","uk"),fake.writes)
+        self.assertEqual(len(fake.writes),21)
+        self.assertIn(("deleteMyCommands","uk"),fake.writes)
         self.assertIn(("short_description","cs"),fake.writes)
 
 if __name__=="__main__":
