@@ -91,7 +91,7 @@ def _recipient_languages(db: Session, ids: list[int], main) -> dict[int, str]:
             main.UserLanguageSetting.telegram_id.in_(ids[offset:offset + 500])
         ).all()
         for tg_id, lang in rows:
-            languages[int(tg_id)] = lang if lang in {"ru", "uk", "cs", "en"} else "en"
+            languages[int(tg_id)] = lang if lang in {"cs", "en"} else "en"
     return languages
 
 
@@ -246,7 +246,7 @@ COPY = {
 
 def render_message(row: TelegramNotificationOutbox, event, notice) -> tuple[str, dict]:
     """HTML escape event/organizer input before passing to Telegram."""
-    lang = row.language if row.language in COPY else "en"
+    lang = row.language if row.language in {"cs", "en"} else "en"
     cancel, change, announcement, reminder, reason, message, date, location, button = COPY[lang]
     title = html.escape(str(event.title or "Event")[:180])
     if row.kind == "event_notice":
