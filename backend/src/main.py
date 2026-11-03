@@ -2910,7 +2910,12 @@ def demo_checkout(
     require_invite(db,event_id,x_event_invite)
 
     free_event = price_decimal(event.price) <= 0
-    acquisition_source = "telegram" if x_telegram_init_data else payload.source
+    # Preserve explicit campaign attribution inside a signed Telegram Mini App.
+    # With no tracked link, record Telegram itself as the signup channel.
+    # Source tags are user-supplied labels, not authenticated ad-click evidence.
+    acquisition_source = payload.source if payload.source != "direct" else (
+        "telegram" if x_telegram_init_data else "direct"
+    )
     if not free_event and not DEMO_PAYMENT_MODE:
         raise HTTPException(status_code=503, detail="demo_payment_disabled")
 

@@ -48,20 +48,33 @@ class OrganizerAnalyticsIntegration(unittest.TestCase):
             other=main.Event(title="Private other organizer "+secrets.token_hex(5),
                              starts_at=date,price=Decimal("0"),max_participants=5,
                              currency="CZK",is_cancelled=False)
-            db.add_all([event,other]);db.flush()
+            repeat_event=main.Event(title="Analytics repeat event "+secrets.token_hex(5),
+                                    starts_at=date,price=Decimal("0"),max_participants=10,
+                                    currency="CZK",is_cancelled=False)
+            db.add_all([event,other,repeat_event]);db.flush()
             db.add(EventOwnership(event_id=event.id,owner_account_id=owner.id))
+            db.add(EventOwnership(event_id=repeat_event.id,owner_account_id=owner.id))
             db.add(EventOwnership(event_id=other.id,owner_account_id=stranger.id))
             db.add(main.DemoTicket(event_id=event.id,guest_id=guest.id,
                 qr_token=secrets.token_urlsafe(32),ticket_status="active",
                 payment_status="not_required",payment_provider="free",
-                payment_amount="0",currency="CZK",acquisition_source="telegram"))
+                payment_amount="0",currency="CZK",acquisition_source="telegram",
+                checked_in_at=datetime.now(timezone.utc)-timedelta(days=2)))
+            for visitor,source in ((guest,"newsletter"),(other_guest,"newsletter")):
+                db.add(main.DemoTicket(event_id=repeat_event.id,guest_id=visitor.id,
+                    qr_token=secrets.token_urlsafe(32),ticket_status="active",
+                    payment_status="not_required",payment_provider="free",
+                    payment_amount="0",currency="CZK",acquisition_source=source,
+                    checked_in_at=datetime.now(timezone.utc)-timedelta(days=1)))
             db.add(main.DemoWaitlist(event_id=event.id,guest_id=other_guest.id,
                                       status="waiting"))
             db.add(main.DemoTicket(event_id=other.id,guest_id=other_guest.id,
                 qr_token=secrets.token_urlsafe(32),ticket_status="active",
                 payment_status="not_required",payment_provider="free",
-                payment_amount="0",currency="CZK",acquisition_source="direct"))
+                payment_amount="0",currency="CZK",acquisition_source="direct",
+                checked_in_at=datetime.now(timezone.utc)-timedelta(days=1)))
             event_id=event.id
+            repeat_id=repeat_event.id
             other_title=other.title
             guest_email=guest.email
             other_guest_email=other_guest.email
@@ -84,12 +97,25 @@ class OrganizerAnalyticsIntegration(unittest.TestCase):
             own=next(x for x in result["events"] if x["event_id"]==event_id)
             self.assertEqual(own["reserved_places"],1)
             self.assertEqual(own["active_qr"],1)
+            self.assertEqual(own["checked_in_qr"],1)
+            self.assertEqual(own["channels"],[{"source":"telegram","registrations":1,"checked_in":1}])
+            cohort=result["audience"]
+            self.assertEqual(cohort["visitors"],2)
+            self.assertEqual(cohort["first_time"],1)
+            self.assertEqual(cohort["returning"],1)
+            self.assertEqual(cohort["loyal"],0)
+            self.assertEqual(cohort["active_30d"],2)
+            self.assertEqual(cohort["inactive_90d"],0)
+            self.assertEqual(cohort["repeat_percent"],50.0)
+            repeated=next(x for x in result["events"] if x["event_id"]==repeat_id)
+            self.assertEqual(repeated["channels"],[{"source":"newsletter","registrations":2,"checked_in":2}])
             self.assertEqual(own["waitlist"],1)
             self.assertEqual(own["occupancy_percent"],10.0)
             self.assertNotIn(other_title,report.text)
             for name in ("qr_token","access_token",guest_email,other_guest_email):
                 self.assertNotIn(name,report.text)
-            self.assertTrue(any(x["source"]=="telegram" for x in result["channels"]))
+            self.assertTrue(any(x["source"]=="telegram" and x["checked_in"]==1 for x in result["channels"]))
+            self.assertFalse(any(x["source"]=="direct" for x in result["channels"]))
             canonical=client.get("/api/v1/manage/analytics/overview",headers=headers)
             self.assertEqual(canonical.status_code,200,canonical.text)
 
