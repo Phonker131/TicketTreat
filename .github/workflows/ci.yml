@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, release/tickettreat-production, dev/frontend-design]
+    branches: [main, release/tickettreat-production, dev/frontend-design, "fix/**"]
   pull_request:
     branches: [main, release/tickettreat-production, dev/frontend-design]
     types: [opened, reopened, synchronize, edited]
