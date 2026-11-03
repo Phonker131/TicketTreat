@@ -399,7 +399,13 @@ export function AdminEventClient(){
   async function checkIn(qr:string){
     const token=getWebToken();if(!token)return;
     setBusy(true);setError("");
-    try{await checkInManagedTicket(token,qr);await reload();setNotice(tr("Check-in выполнен."));}
+    try{
+      const result=await checkInManagedTicket(token,qr,eventId);
+      await reload();
+      setNotice(result.status==="already_checked_in"
+        ?tr("Этот билет уже отмечен.")
+        :tr("Check-in выполнен."));
+    }
     catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
