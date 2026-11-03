@@ -98,9 +98,9 @@ for(const theme of ["dark","light"] as const){
         const s=getComputedStyle(el);
         const footerStyle=getComputedStyle(el.closest("footer")!);
         const rgb=(color:string)=>{
-          const values=color.match(/rgba?\\(\\s*(\\d+)\\D+(\\d+)\\D+(\\d+)/);
-          if(!values)throw Error("Expected RGB color: "+color);
-          return values.slice(1,4).map(Number);
+          const values=color.match(/[0-9]+/g);
+          if(!values||values.length<3)throw Error("Expected RGB color: "+color);
+          return values.slice(0,3).map(Number);
         };
         const luminance=(v:number[])=>v.map(x=>{const n=x/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;})
           .reduce((sum,n,i)=>sum+n*[.2126,.7152,.0722][i],0);
