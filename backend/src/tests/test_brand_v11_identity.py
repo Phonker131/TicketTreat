@@ -27,17 +27,17 @@ class BrandIdentityTests(unittest.TestCase):
           "plum":"#3b1930","fire":"#f53d00"}.items():
             self.assertRegex(css,rf"--{name}:\s*{color}")
 
-    def test_four_botfather_locales_and_no_emoji_in_main_menu_labels(self):
+    def test_czech_english_botfather_locales_and_valid_main_menu_labels(self):
         import importlib.util
         source=ROOT/"bot/src/bot_profile_copy.py"
         spec=importlib.util.spec_from_file_location("brand_copy",source)
         mod=importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         mod.validate_profile_copy()
-        self.assertEqual(set(mod.LANGUAGES),{"en","ru","cs","uk"})
+        self.assertEqual(set(mod.LANGUAGES),{"en","cs"})
         menu=(ROOT/"bot/src/main.py").read_text(encoding="utf-8")
         self.assertIn('def ui_text_matches(',menu)
-        # Display text must pass through four-language translation.
+        # Legacy translation dictionary remains complete; visible bot UI uses EN/CS.
         self.assertIn('localize_system_text(',menu)
 
 if __name__=="__main__":
