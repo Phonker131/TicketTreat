@@ -2044,9 +2044,11 @@ def start(message):
     if poster:
         try:
             import io
+            photo_file = io.BytesIO(poster)
+            photo_file.name = "tickettreat-welcome.jpg"
             bot.send_photo(
                 message.chat.id,
-                io.BytesIO(poster),
+                photo_file,
                 caption=greeting[:1024],
                 reply_markup=reply_menu,
             )
