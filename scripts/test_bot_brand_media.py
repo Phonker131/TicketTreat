@@ -1,31 +1,37 @@
-"""CI smoke test of actual TicketTreat Telegram artwork (no Bot API traffic)."""
+"""CI smoke-test: Telegram uses the same PNG as the live website's PWA icon."""
 from io import BytesIO
 from pathlib import Path
 import sys
 
 from PIL import Image
 
-ROOT=Path(__file__).resolve().parents[1]
-sys.path.insert(0,str(ROOT/"bot"/"src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "bot" / "src"))
 import brand_avatar
 
 
-def verify_image(content:bytes, size:tuple[int,int], label:str)->None:
-    assert content.startswith(bytes.fromhex("ffd8")),f"{label}: not a JPEG"
-    with Image.open(BytesIO(content)) as image:
-        assert image.size==size,(label,image.size)
-        assert image.format=="JPEG",(label,image.format)
-        image.verify()
-
-
 def main():
-    assert brand_avatar.MARK.is_file()
-    assert brand_avatar.WORDMARK.is_file()
-    verify_image(brand_avatar.brand_avatar_jpeg(),(512,512),"avatar")
-    for language in ("en","cs"):
-        verify_image(brand_avatar.welcome_photo(language),(1200,630),language)
-    print("CS/EN TicketTreat SVG welcome and avatar media validated.")
+    source = ROOT / "frontend" / "public" / "app-icon-256.png"
+    assert brand_avatar.SITE_ICON == source
+    assert source.is_file()
+    exact = source.read_bytes()
+    assert exact.startswith(bytes.fromhex("89504e470d0a1a0a"))
+    for language in ("en", "cs"):
+        welcome = brand_avatar.welcome_photo(language)
+        assert welcome == exact, f"{language}: welcome differs from website icon"
+        with Image.open(BytesIO(welcome)) as image:
+            assert image.format == "PNG"
+            assert image.size == (256, 256)
+            image.verify()
+
+    avatar = brand_avatar.brand_avatar_jpeg()
+    assert avatar.startswith(bytes.fromhex("ffd8"))
+    with Image.open(BytesIO(avatar)) as image:
+        assert image.format == "JPEG"
+        assert image.size == (512, 512)
+        image.verify()
+    print("Telegram avatar and CS/EN welcome use the exact website icon.")
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
