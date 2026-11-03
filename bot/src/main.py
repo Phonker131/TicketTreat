@@ -22,6 +22,7 @@ import requests
 import telebot
 from dotenv import load_dotenv
 from bot_profile_copy import get_copy, normalize_language, welcome_text, configure_botfather_profile
+from welcome_visual import welcome_photo_bytes
 from telebot.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -156,14 +157,14 @@ def backend_request(
 # =========================================================
 # Interface languages / i18n
 # =========================================================
-SUPPORTED_INTERFACE_LANGUAGES = ("en", "cs", "ru", "uk")
+SUPPORTED_INTERFACE_LANGUAGES = ("en", "cs")
+# An event can retain archived languages; only the bot UI is EN/CS.
+SUPPORTED_EVENT_LANGUAGES = ("en", "cs", "ru", "uk")
 DEFAULT_INTERFACE_LANGUAGE = "en"
 
 LANGUAGE_SELECTOR_LABELS = {
     "en": "🇬🇧 English",
     "cs": "🇨🇿 Čeština",
-    "ru": "🇷🇺 Русский",
-    "uk": "🇺🇦 Українська",
 }
 
 LANGUAGE_NAMES = {
@@ -657,7 +658,7 @@ def localized_language_name(
 
     return LANGUAGE_NAMES.get(
         interface_language,
-        LANGUAGE_NAMES["ru"],
+        LANGUAGE_NAMES["en"],
     ).get(
         str(language_code).lower(),
         str(language_code).upper(),
@@ -772,7 +773,7 @@ def format_event_languages(
         language = str(language).lower()
 
         if (
-            language in SUPPORTED_INTERFACE_LANGUAGES
+            language in SUPPORTED_EVENT_LANGUAGES
             and language not in normalized
         ):
             normalized.append(language)
@@ -2035,11 +2036,25 @@ def start(message):
 
     # First refresh the persistent reply menu; Telegram cannot attach both a
     # reply keyboard and inline shortcuts to the same message.
-    bot.send_message(
-        message.chat.id,
-        preserve_custom(welcome_text(lang, getattr(message.from_user, "first_name", None))),
-        reply_markup=get_main_menu(message.from_user.id),
-    )
+    greeting = preserve_custom(welcome_text(lang, getattr(message.from_user, "first_name", None)))
+    reply_menu = get_main_menu(message.from_user.id)
+    # The welcome poster is the same artwork served on the TicketTreat site.
+    # If the public asset is temporarily unavailable, preserve /start behavior.
+    poster = welcome_photo_bytes()
+    if poster:
+        try:
+            import io
+            bot.send_photo(
+                message.chat.id,
+                io.BytesIO(poster),
+                caption=greeting[:1024],
+                reply_markup=reply_menu,
+            )
+        except Exception as exc:
+            print("TicketTreat welcome image failed:", type(exc).__name__, flush=True)
+            bot.send_message(message.chat.id, greeting, reply_markup=reply_menu)
+    else:
+        bot.send_message(message.chat.id, greeting, reply_markup=reply_menu)
     send_start_shortcuts(message, copy)
 
 @bot.message_handler(commands=["app", "tickets"])
