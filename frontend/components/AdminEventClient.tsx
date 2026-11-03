@@ -68,7 +68,9 @@ export function AdminEventClient(){
   const cancelDialogRef=useRef<HTMLDialogElement>(null);
   const [cancelError,setCancelError]=useState("");
   const [reason,setReason]=useState(""),[owner,setOwner]=useState("");
-  const [scheduleAt,setScheduleAt]=useState("");
+  const [scheduleDate,setScheduleDate]=useState("");
+  const [scheduleTime,setScheduleTime]=useState("");
+  const scheduleAt=scheduleDate&&scheduleTime?`${scheduleDate}T${scheduleTime}`:"";
   const [poster,setPoster]=useState<File|null>(null);
   const [title,setTitle]=useState(""),[location,setLocation]=useState("");
   const [organizer,setOrganizer]=useState(""),[description,setDescription]=useState("");
@@ -450,7 +452,14 @@ export function AdminEventClient(){
           {event.publication?.visible&&<button type="button" className="button button-outline" disabled={busy} onClick={()=>publication("draft")}>{tr("Снять с публикации")}</button>}
         </div>
         {!event.publication?.visible&&<div className="tt-publication-schedule">
-          <label>{tr("Опубликовать автоматически")}<input type="datetime-local" value={scheduleAt} onChange={e=>setScheduleAt(e.target.value)}/></label>
+          <div className="tt-publication-schedule-fields" role="group" aria-label={tr("Опубликовать автоматически")}>
+            <label>{language==="ru"?"Дата публикации":language==="cs"?"Datum zveřejnění":language==="uk"?"Дата публікації":"Publish date"}
+              <input type="date" value={scheduleDate} onChange={e=>setScheduleDate(e.target.value)}/>
+            </label>
+            <label>{language==="ru"?"Время публикации":language==="cs"?"Čas zveřejnění":language==="uk"?"Час публікації":"Publish time"}
+              <input type="time" value={scheduleTime} onChange={e=>setScheduleTime(e.target.value)}/>
+            </label>
+          </div>
           <button type="button" className="button button-outline" disabled={busy||!scheduleAt} onClick={()=>publication("scheduled")}>{tr("Запланировать")}</button>
         </div>}
         {event.publication?.visible&&<div className="admin-event-actions">
