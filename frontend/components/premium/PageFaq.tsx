@@ -62,6 +62,6 @@ export function PageFaq({topic,language:forced}:{topic:FaqTopic;language?:Langua
   <div className="tp-faq-list">
    {items.map(it=><details key={it.q}><summary>{it.q}</summary><p>{it.a}</p></details>)}
   </div>
-  <Link href={language==="ru"?"/faq":"/"+language+"/faq"} className="button button-secondary">{more[language]}</Link>
+  <Link href={language==="cs"?"/cs/faq":"/en/faq"} className="button button-secondary">{more[language]}</Link>
  </section>;
 }
