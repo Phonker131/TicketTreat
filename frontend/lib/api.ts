@@ -654,6 +654,7 @@ export type OrganizerAnalyticsEvent = {
   legacy_registrations:number;waitlist:number;pending_payment:number;
   pending_payment_24h:number;cancelled_tickets:number;event_finished:boolean;
   upcoming:boolean;is_cancelled:boolean;publication:string;
+  channels:{source:string;registrations:number;checked_in:number}[];
 };
 export type OrganizerAnalytics = {
   summary:{
@@ -664,7 +665,9 @@ export type OrganizerAnalytics = {
     occupancy_percent:number|null;qr_checkin_percent:number|null;
   };
   events:OrganizerAnalyticsEvent[];
-  channels:{source:string;registrations:number}[];
+  audience:{visitors:number;first_time:number;returning:number;loyal:number;
+    active_30d:number;inactive_90d:number;repeat_percent:number|null};
+  channels:{source:string;registrations:number;checked_in:number}[];
   daily_bookings:{date:string;count:number}[];
   truncated:boolean;limitations:string[];
 };
