@@ -53,3 +53,28 @@ for(const theme of ["dark","light"] as const){
     });
   }
 }
+
+
+for(const width of [320,390,430]){
+  test(`mobile tabbar stays pinned to viewport after footer scroll: ${width}px`,async({page})=>{
+    await page.setViewportSize({width,height:720});
+    await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
+    const tab=page.locator(".tp-tabbar");
+    await expect(tab).toBeVisible();
+    await page.locator("footer.tt-legal-footer").scrollIntoViewIfNeeded();
+    const position=await tab.evaluate(el=>{
+      const r=el.getBoundingClientRect();
+      const s=getComputedStyle(el);
+      return {bodyParent:el.parentElement===document.body,position:s.position,
+        bottomGap:window.innerHeight-r.bottom,
+        inside:r.left>=0&&r.right<=innerWidth+1,
+        scrollOverflow:document.documentElement.scrollWidth>innerWidth+1};
+    });
+    expect(position.bodyParent).toBe(true);
+    expect(position.position).toBe("fixed");
+    expect(position.bottomGap).toBeGreaterThanOrEqual(0);
+    expect(position.bottomGap).toBeLessThan(38);
+    expect(position.inside).toBe(true);
+    expect(position.scrollOverflow).toBe(false);
+  });
+}
