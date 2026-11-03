@@ -5,12 +5,19 @@ import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
 import {EventDiscovery} from "@/components/EventDiscovery";
 import {WelcomeStory} from "@/components/WelcomeStory";
-import {BrandPhone} from "@/components/BrandScreens";
-import {GuidedSections} from "@/components/GuidedSections";
+import {PhoneFrame} from "@/components/premium/Device";
+import {BrandIcon} from "@/components/BrandIcon";
+import {premium} from "@/components/premium/copy";
+import {EventsSkeleton,EventsEmpty} from "@/components/premium/EventsPlaceholders";
+import {PhoneScreen} from "@/components/premium/Screens";
+import dynamic from "next/dynamic";
 import {useLanguage} from "@/components/LanguageProvider";
 import {getEvents,getSiteLanding,type SiteLanding} from "@/lib/api";
 import {t} from "@/lib/i18n";
 import type {TicketTreatEvent} from "@/lib/types";
+
+/* Below the fold: server-rendered, but its code (carousel, animations) loads in a separate chunk after the first screen. */
+const GuidedSections=dynamic(()=>import("@/components/GuidedSections").then(mod=>mod.GuidedSections));
 
 /** Czech pilot: all published events in one catalogue. No location profiling. */
 export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:TicketTreatEvent[]|null;forcedLanguage?: "ru"|"cs"|"en"|"uk"}){
@@ -53,7 +60,7 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
           <p className="tt-night-intro">{copy.intro}</p>
           <div className="tt-night-actions">
             <a className="button button-primary tt-night-action" href="#events">{copy.browse}<span className="tt-night-action-arrow" aria-hidden="true">↗</span></a>
-            <Link className="button button-secondary tt-night-action-secondary" href="/tickets">{copy.tickets}</Link>
+            <Link className="button button-secondary tt-night-action-secondary tp-hide-m" href="/tickets">{copy.tickets}</Link>
             <button type="button" className="button button-secondary tt-night-action-secondary" disabled={!storyReady}
               onClick={()=>window.dispatchEvent(new Event("tickettreat-open-story"))}>
               {language==="ru"?"Как это работает":language==="cs"?"Jak to funguje":language==="uk"?"Як це працює":"How it works"} ↗
@@ -63,10 +70,10 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
             {copy.steps.map((step,index)=><li key={step}><span>{String(index+1).padStart(2,"0")}</span>{step}</li>)}
           </ol>
         </div>
-        <div className="tt-night-hero-art" role="img" aria-label="TicketTreat live-event interface preview">
-          <BrandPhone kind="discover" language={language} event={events[0]}/>
-          <img className="tt-night-glyph tt-night-glyph-plus" src="/brand/glyph-plus.svg" alt="" aria-hidden="true"/>
-          <img className="tt-night-glyph tt-night-glyph-wave" src="/brand/glyph-wave.svg" alt="" aria-hidden="true"/>
+        <div className="tp-hero-art" role="img" aria-label="TicketTreat live-event interface preview">
+          <PhoneFrame glow="tom" className="tp-hero-phone"><PhoneScreen kind="discover" language={language} priority/></PhoneFrame>
+          <img className="tp-hero-glyph tp-hero-glyph-a" src="/brand/glyph-plus.svg" alt="" aria-hidden="true"/>
+          <img className="tp-hero-glyph tp-hero-glyph-b" src="/brand/glyph-wave.svg" alt="" aria-hidden="true"/>
         </div>
       </section>
       <section className="section tt-v12-screen tt-night-events" id="events" aria-labelledby="tt-events-heading">
@@ -74,10 +81,11 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
           <p className="tt-night-kicker">TICKETTREAT / EVENTS</p>
           <h2 id="tt-events-heading">{copy.city}</h2>
           <p>{copy.subtitle}</p>
+          <ul className="tp-legend" aria-hidden="true">{premium[language].discover.legend.map((x,i)=><li key={x}><i><BrandIcon name={i===0?"cross":i===1?"heart":"arr-up"} size={20}/></i>{x}</li>)}</ul>
         </div></div>
-        {loading&&<div className="state-card" role="status">{t(language,"loading")}</div>}
+        {loading&&<EventsSkeleton/>}
         {!loading&&error&&<div className="state-card state-error" role="alert">{t(language,"loadError")}<small>{error}</small></div>}
-        {!loading&&!error&&events.length===0&&<div className="state-card" role="status">{t(language,"noEvents")}</div>}
+        {!loading&&!error&&events.length===0&&<EventsEmpty language={language}/>}
         {!loading&&!error&&events.length>0&&
           <EventDiscovery events={events} language={language}/>}
       </section>

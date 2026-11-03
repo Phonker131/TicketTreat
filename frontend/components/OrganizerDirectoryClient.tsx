@@ -3,6 +3,9 @@ import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import type {OrganizerPublicSummary,LanguageCode} from "@/lib/types";
+import {LaptopFrame} from "@/components/premium/Device";
+import {LaptopScreenView} from "@/components/premium/Screens";
+import {premium} from "@/components/premium/copy";
 
 const W:Record<LanguageCode,{title:string;intro:string;empty:string;view:string;future:string;futureHint:string;example:string}>={
  ru:{title:"Организаторы",intro:"Познакомься с организаторами мероприятий TicketTreat и найди их будущие и прошедшие события.",empty:"Публичные профили появятся здесь, когда организаторы опубликуют их.",view:"Открыть профиль",future:"Здесь будет профиль",futureHint:"Он появится, когда организатор его опубликует.",example:"Пример"},
@@ -31,6 +34,10 @@ export function OrganizerDirectoryClient({profiles}:{profiles:OrganizerPublicSum
      </div>
    </div>
    {!profiles.length&&<p className="form-note">{t.empty}</p>}
+   <section className="tp-pitch" aria-label={premium[language].pitch.title}>
+    <div className="tp-pitch-copy"><h2>{premium[language].pitch.title}</h2><p>{premium[language].pitch.text}</p><Link href="/business" className="button button-primary">{premium[language].pitch.cta} ↗</Link></div>
+    <LaptopFrame glow="blu" className="tp-pitch-laptop"><LaptopScreenView kind="overview" language={language}/></LaptopFrame>
+   </section>
 
  </main></div>;
 }

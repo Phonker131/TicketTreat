@@ -1,5 +1,6 @@
 "use client";
 
+import {PosterArt} from "@/components/premium/PosterArt";
 import Link from "next/link";
 import { useParams,useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -114,7 +115,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
             // eslint-disable-next-line @next/next/no-img-element
             <img className="event-image" src={posterUrl} alt="" onError={()=>setPosterUnavailable(true)} />
           ) : (
-            <div className="event-image event-image-placeholder"><div className="mini-crowd"><span/><span/><span className="mini-you"/><span/><span/></div></div>
+            <PosterArt seed={event.id} className="event-image tp-event-art" label={event.title}/>
           )}
 
           <div className="event-hero-copy">

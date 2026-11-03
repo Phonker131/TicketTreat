@@ -1,18 +1,21 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
-import Link from "next/link";
+import * as M from "motion/react-m";
 import {EventCard} from "@/components/EventCard";
-import {BrandIcon} from "@/components/BrandIcon";
+import {SwipeDeck} from "@/components/premium/SwipeDeck";
+import {MoodEmpty} from "@/components/premium/EventsPlaceholders";
+import {premium} from "@/components/premium/copy";
+import {t} from "@/lib/i18n";
 import {eventDisplayDate} from "@/lib/format";
 import type {LanguageCode,TicketTreatEvent} from "@/lib/types";
 
-type Mode="swipe"|"map"|"list";
+type Mode="swipe"|"list";
 type Mood="all"|"meet"|"friends"|"listen"|"dance";
 const copy={
- ru:{label:"Найди свой ивент",mood:"Настроение",mode:"Режим поиска",all:"Любое",meet:"Познакомиться",friends:"С друзьями",listen:"Послушать",dance:"Потанцевать",swipe:"Свайп",map:"Карта",list:"Лента",want:"Хочу",pass:"Мимо",view:"Смотреть",saved:"В избранном этого браузера",done:"Афиши закончились",reset:"Посмотреть снова",hint:"Свайп влево / вправо / вверх или стрелки клавиатуры. «Хочу» сохраняет интерес, но не бронирует билет.",schematic:"Схема Праги. Не навигационная карта.",noMatch:"Нет событий с выбранным настроением.",details:"Открыть ивент",mapNote:"Точное расположение смотри в описании ивента."},
- cs:{label:"Najdi svou akci",mood:"Nálada",mode:"Režim hledání",all:"Cokoliv",meet:"Seznámit se",friends:"S přáteli",listen:"Poslechnout",dance:"Zatančit",swipe:"Karty",map:"Mapa",list:"Seznam",want:"Chci",pass:"Přeskočit",view:"Zobrazit",saved:"Uloženo v tomto prohlížeči",done:"Žádné další plakáty",reset:"Začít znovu",hint:"Přejeď doleva / doprava / nahoru, nebo použij šipky na klávesnici. «Chci» neprovádí rezervaci.",schematic:"Schéma Prahy, ne navigační mapa.",noMatch:"Pro tuto náladu nemáme akce.",details:"Otevřít akci",mapNote:"Přesné místo najdeš v detailu akce."},
- uk:{label:"Знайди свою подію",mood:"Настрій",mode:"Режим пошуку",all:"Будь-який",meet:"Познайомитися",friends:"З друзями",listen:"Послухати",dance:"Потанцювати",swipe:"Свайп",map:"Мапа",list:"Стрічка",want:"Хочу",pass:"Пропустити",view:"Переглянути",saved:"Збережено в цьому браузері",done:"Афіші закінчилися",reset:"Переглянути знову",hint:"Свайп ліворуч / праворуч / угору або клавіші зі стрілками. «Хочу» не бронює квиток.",schematic:"Схема Праги, не навігаційна мапа.",noMatch:"Немає подій з таким настроєм.",details:"Відкрити подію",mapNote:"Точне місце вказано в описі події."},
- en:{label:"Find your event",mood:"Mood",mode:"Browse mode",all:"Anything",meet:"Meet people",friends:"With friends",listen:"Listen",dance:"Dance",swipe:"Swipe",map:"Map",list:"Feed",want:"Want",pass:"Pass",view:"View",saved:"Saved in this browser",done:"No more posters",reset:"See again",hint:"Swipe left / right / up or use arrow keys. Want saves an event, it does not book a ticket.",schematic:"Prague schematic, not a navigation map.",noMatch:"No events match this mood.",details:"View event",mapNote:"Find the precise venue on the event details page."}
+ ru:{label:"Найди свой ивент",mood:"Настроение",mode:"Режим поиска",all:"Любое",meet:"Познакомиться",friends:"С друзьями",listen:"Послушать",dance:"Потанцевать",swipe:"Свайп",list:"Лента",want:"Хочу",pass:"Мимо",view:"Смотреть",saved:"В избранном этого браузера",done:"Афиши закончились",reset:"Посмотреть снова",hint:"Свайп влево / вправо / вверх или стрелки клавиатуры. «Хочу» сохраняет интерес, но не бронирует билет.",noMatch:"Нет событий с выбранным настроением.",details:"Открыть ивент"},
+ cs:{label:"Najdi svou akci",mood:"Nálada",mode:"Režim hledání",all:"Cokoliv",meet:"Seznámit se",friends:"S přáteli",listen:"Poslechnout",dance:"Zatančit",swipe:"Karty",list:"Seznam",want:"Chci",pass:"Přeskočit",view:"Zobrazit",saved:"Uloženo v tomto prohlížeči",done:"Žádné další plakáty",reset:"Začít znovu",hint:"Přejeď doleva / doprava / nahoru, nebo použij šipky na klávesnici. «Chci» neprovádí rezervaci.",noMatch:"Pro tuto náladu nemáme akce.",details:"Otevřít akci"},
+ uk:{label:"Знайди свою подію",mood:"Настрій",mode:"Режим пошуку",all:"Будь-який",meet:"Познайомитися",friends:"З друзями",listen:"Послухати",dance:"Потанцювати",swipe:"Свайп",list:"Стрічка",want:"Хочу",pass:"Пропустити",view:"Переглянути",saved:"Збережено в цьому браузері",done:"Афіші закінчилися",reset:"Переглянути знову",hint:"Свайп ліворуч / праворуч / угору або клавіші зі стрілками. «Хочу» не бронює квиток.",noMatch:"Немає подій з таким настроєм.",details:"Відкрити подію"},
+ en:{label:"Find your event",mood:"Mood",mode:"Browse mode",all:"Anything",meet:"Meet people",friends:"With friends",listen:"Listen",dance:"Dance",swipe:"Swipe",list:"Feed",want:"Want",pass:"Pass",view:"View",saved:"Saved in this browser",done:"No more posters",reset:"See again",hint:"Swipe left / right / up or use arrow keys. Want saves an event, it does not book a ticket.",noMatch:"No events match this mood.",details:"View event"}
 } as const;
 const terms:Record<Exclude<Mood,"all">,RegExp>={
  meet:/dating|знаком|знайом|seznam|singles|rande|speed.date/i,
@@ -28,6 +31,19 @@ function dateLabel(value:string|null,lang:LanguageCode){
  const {date,timeZone}=eventDisplayDate(value);
  return Number.isNaN(date.getTime())?"—":new Intl.DateTimeFormat(lang==="cs"?"cs-CZ":lang==="uk"?"uk-UA":lang==="en"?"en-GB":"ru-RU",{day:"2-digit",month:"short",timeZone}).format(date);
 }
+function priceText(e:TicketTreatEvent,lang:LanguageCode){
+ const n=Number(e.price||0);
+ if(!Number.isFinite(n)||n<=0)return t(lang,"free");
+ const cur=/^[A-Za-z]{3}$/.test(e.currency||"")?(e.currency as string).toUpperCase():"CZK";
+ return new Intl.NumberFormat(lang==="cs"?"cs-CZ":lang==="uk"?"uk-UA":lang==="en"?"en-GB":"ru-RU",{maximumFractionDigits:Number.isInteger(n)?0:2}).format(n)+" "+cur;
+}
+const MOOD_ICON:Record<Mood,React.ReactNode>={
+ all:<><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 3v4M17 5h4"/></>,
+ meet:<path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.4-7 10-7 10z"/>,
+ friends:<><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9.5" r="2.4"/><path d="M3.5 19c.5-3.2 2.6-5 5.5-5s5 1.8 5.5 5M15 14.2c2.8-.4 4.9 1 5.5 4.3"/></>,
+ listen:<path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H5a1 1 0 0 1-1-1zm16 0h-3v5h2a1 1 0 0 0 1-1z"/>,
+ dance:<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>
+};
 export function EventDiscovery({events,language}:{events:TicketTreatEvent[];language:LanguageCode}){
  const tr=copy[language];
  const [mode,setMode]=useState<Mode>("swipe");
@@ -46,55 +62,29 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
  };
  useEffect(()=>{setIndex(0);setFeedback("");},[mood,mode]);
  const moodButtons: Mood[]=["all","meet","friends","listen","dance"];
- const modeButtons:Mode[]=["swipe","map","list"];
+ const modeButtons:Mode[]=["swipe","list"];
  return <div className="tt-discovery">
-   <div className="tt-discovery-controls">
-     <div><span className="tt-discovery-label">{tr.mood}</span><div className="tt-discovery-pills" role="group" aria-label={tr.mood}>
-       {moodButtons.map(m=><button type="button" key={m} className={"tt-discovery-chip"+(mood===m?" is-selected":"")} aria-pressed={mood===m} onClick={()=>setMood(m)}>{tr[m]}</button>)}
-     </div></div>
-     <div><span className="tt-discovery-label">{tr.mode}</span><div className="tt-discovery-pills" role="group" aria-label={tr.mode}>
-       {modeButtons.map(m=><button type="button" key={m} className={"tt-discovery-chip"+(mode===m?" is-selected":"")} aria-pressed={mode===m} onClick={()=>setMode(m)}>{tr[m]}</button>)}
-     </div></div>
-   </div>
-   {filtered.length===0?<div className="state-card" role="status">{tr.noMatch}</div>:
-   mode==="list"?<div className="event-grid">{filtered.map(event=><EventCard key={event.id} event={event}/>)}</div>:
-   mode==="map"?<div className="tt-discovery-map-grid">
-     <div className="tt-prague-sketch" role="img" aria-label={tr.schematic}>
-       <svg viewBox="0 0 560 420" aria-hidden="true"><rect width="560" height="420" fill="#1E1D2B"/>
-         <path d="M0 122 Q135 60 228 168 T560 234 M0 155 Q135 92 219 199 T560 261" fill="none" stroke="#3B4CF0" strokeWidth="19" strokeLinecap="round"/>
-         <path d="M13 300 L130 320 L148 415 L0 417 Z M390 14 L559 2 L552 101 L455 133 Z M351 309 L550 312 L559 420 L378 420 Z" fill="#F4B400" opacity=".8"/>
-         <g stroke="#A9A6B3" strokeWidth="2" fill="none" opacity=".65"><path d="M44 0L220 420M165 0L351 420M335 0L544 420M0 67L560 93M0 265L560 310M0 358L560 359"/><path d="M75 0L18 420M468 0L290 420"/></g>
-         <g fill="#F0EBE1" fontSize="14" fontFamily="monospace" fontWeight="700"><text x="165" y="116">PRAHA 1</text><text x="290" y="242">VLTAVA</text><text x="75" y="377">PETŘÍN</text><text x="415" y="70">LETNÁ</text></g>
-         <path d="M287 153 Q267 153 267 174 Q267 190 287 212 Q307 190 307 174 Q307 153 287 153Z" fill="#FF5533" stroke="#15141F" strokeWidth="3"/>
-         <circle cx="287" cy="173" r="7" fill="#15141F"/>
-       </svg>
-       <small>{tr.schematic}</small>
+   <div className="tt-discovery-controls tp-filterbar">
+     <div className="tp-seg" role="group" aria-label={tr.mode}>
+       {modeButtons.map(m=><button type="button" key={m} aria-pressed={mode===m} onClick={()=>setMode(m)}>
+         {mode===m&&<M.span layoutId="tp-seg-pill" className="tp-seg-pill" transition={{type:"spring",stiffness:420,damping:34}}/>}
+         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{m==="swipe"?<><rect x="6" y="5" width="12" height="15" rx="2.5"/><path d="M9 3h6"/></>:<><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></>}</svg>
+         <span>{tr[m]}</span></button>)}
      </div>
-     <div className="tt-map-events"><p>{tr.mapNote}</p>{filtered.map(e=><Link href={"/events/"+e.id+"?lang="+language} key={e.id} className="tt-map-event"><strong>{e.title}</strong><span>{dateLabel(e.starts_at,language)} · {e.location||"Praha"}</span><span className="tt-map-link">{tr.details} ↗</span></Link>)}</div>
-   </div>:
+     <div className="tp-moods" role="group" aria-label={tr.mood}>
+       {moodButtons.map(m=><button type="button" key={m} className="tp-mood" aria-pressed={mood===m} onClick={()=>setMood(m)}>
+         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{MOOD_ICON[m]}</svg>
+         <span>{tr[m]}</span></button>)}
+     </div>
+   </div>
+   {filtered.length===0?<MoodEmpty language={language} title={tr.noMatch} onReset={()=>setMood("all")}/>:
+   mode==="list"?<div className="event-grid tp-feed">{filtered.map(event=><EventCard key={event.id} event={event}/>)}</div>:
    <div className="tt-swipe-area">
-     <p className="tt-swipe-hint">{tr.hint}</p>
-     {current?<div className="tt-swipe-stack">
-       <div className="tt-swipe-card" tabIndex={0} role="group" aria-label={current.title}
-         style={{transform:`translate3d(${drag.x}px,${drag.y}px,0) rotate(${drag.x/25}deg)`}}
-         onKeyDown={e=>{if(e.key==="ArrowLeft"){e.preventDefault();advance("pass");}if(e.key==="ArrowRight"){e.preventDefault();advance("want");}if(e.key==="ArrowUp"){e.preventDefault();advance("view");}}}
-         onPointerDown={e=>{if(e.pointerType==="mouse"&&e.button!==0)return;start.current={x:e.clientX,y:e.clientY};e.currentTarget.setPointerCapture(e.pointerId);}}
-         onPointerMove={e=>{if(start.current)setDrag({x:e.clientX-start.current.x,y:e.clientY-start.current.y});}}
-         onPointerUp={e=>{if(!start.current)return;const dx=e.clientX-start.current.x,dy=e.clientY-start.current.y;start.current=null;if(dy< -85)advance("view");else if(dx>85)advance("want");else if(dx< -85)advance("pass");else setDrag({x:0,y:0});}}
-         onPointerCancel={()=>{start.current=null;setDrag({x:0,y:0});}}>
-         <div className="tt-swipe-print">{current.image_url?<img src={current.image_url} alt="" draggable={false}/>:<img className="tt-swipe-placeholder" src="/brand/glyph-burst.svg" alt="" draggable={false}/>}
-           <span className="tt-swipe-date">{dateLabel(current.starts_at,language)}</span>
-           <span className="tt-swipe-mark" style={{opacity:Math.min(1,Math.abs(drag.x)/120)}}>{drag.x>=0?tr.want:tr.pass}</span>
-         </div>
-         <h3>{current.title}</h3><p>{current.location||"Praha"}</p>
-       </div>
-       <div className="tt-swipe-actions">
-         <button type="button" className="tt-discovery-chip" onClick={()=>advance("pass")}><BrandIcon name="cross" size={16}/> {tr.pass}</button>
-         <button type="button" className="tt-discovery-chip is-selected" onClick={()=>advance("want")}><BrandIcon name="heart" size={16}/> {tr.want}</button>
-         <button type="button" className="tt-discovery-chip" onClick={()=>advance("view")}><BrandIcon name="arr-up" size={16}/> {tr.view}</button>
-       </div>
-       {feedback&&<p role="status">{feedback}</p>}
-     </div>:<div className="state-card" role="status">{tr.done} <button type="button" className="button button-secondary" onClick={()=>setIndex(0)}>{tr.reset}</button></div>}
+     <SwipeDeck events={filtered} index={index}
+       labels={{want:tr.want,pass:tr.pass,view:tr.view,hint:tr.hint,done:tr.done,doneText:premium[language].empty.doneText,reset:premium[language].empty.reset}}
+       dateOf={e=>dateLabel(e.starts_at,language)} priceOf={e=>priceText(e,language)}
+       onAction={a=>advance(a)} onReset={()=>setIndex(0)}/>
+     {feedback&&<p role="status" className="tp-deck-feedback">{feedback}</p>}
    </div>}
  </div>;
 }

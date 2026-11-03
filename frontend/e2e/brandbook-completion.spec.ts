@@ -14,7 +14,7 @@ for(const theme of ["dark","light"] as const){
       const r=el.getBoundingClientRect();
       // only visible headings; wrapping must not leak outside the page.
       // Neighboring slides in a horizontally scrollable tutorial are not page overflow.
-      if(el.closest(".tt-v12-phones,.tt-example-ticket-tray"))return false;
+      if(el.closest(".tt-v12-phones,.tt-example-ticket-tray,.tp-embla"))return false;
       return r.width>0 && (r.left< -2 || r.right>window.innerWidth+2);
     }).map(el=>({text:el.textContent?.slice(0,65),rect:el.getBoundingClientRect().toJSON()})));
     expect(oversized,path+" heading bounds").toEqual([]);
@@ -35,13 +35,13 @@ test("business header stays one row at desktop widths",async({page})=>{
 });
 test("home and organizer presentations show interface components rather than glyph placeholders",async({page})=>{
  await page.goto("/?nostory&lang=en");
- await expect(page.locator(".tt-night-hero .tt-device-phone")).toBeVisible();
- await expect(page.locator(".tt-v12-how .tt-device-phone")).toHaveCount(3);
- await expect(page.locator(".tt-v12-ticket .tt-device-phone")).toHaveCount(2);
+ await expect(page.locator(".tt-night-hero .tp-phone")).toBeVisible();
+ await expect(page.locator(".tt-v12-how .tp-how-phone .tp-phone")).toHaveCount(1);
+ await expect(page.locator(".tt-v12-ticket .tp-ticket-pair .tp-phone")).toHaveCount(2);
  await page.goto("/business?lang=en");
- await expect(page.locator(".tt-business-hero .tt-device-laptop")).toHaveCount(1);
- await expect(page.locator(".tt-business-sides .tt-device-phone")).toHaveCount(2);
- await expect(page.locator(".tt-business-sides .tt-device-laptop")).toHaveCount(1);
+ await expect(page.locator(".tt-business-hero .tp-laptop")).toHaveCount(1);
+ await expect(page.locator(".tt-business-sides .tp-sides-row .tp-phone")).toHaveCount(2);
+ await expect(page.locator(".tt-business-sides .tp-sides-row .tp-laptop")).toHaveCount(1);
  await expect(page.locator(".tt-business-apply-form input")).toHaveCount(3);
  await expect(page.locator(".tt-business-apply-form textarea")).toHaveCount(1);
 });

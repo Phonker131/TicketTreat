@@ -5,6 +5,7 @@ import {getWebToken} from "@/lib/session";
 import Link from "next/link";
 import {BrandPhone,BrandLaptop} from "@/components/BrandScreens";
 import {BusinessHeader} from "@/components/BusinessHeader";
+import useEmblaCarousel from "embla-carousel-react";
 import {useLanguage} from "@/components/LanguageProvider";
 
 const words={
@@ -13,6 +14,23 @@ const words={
  en:{eyebrow:"TICKETTREAT / BUSINESS",hero:"Your guest list without spreadsheets",intro:"Create events, handle registrations, verify QR tickets and contact guests from one dashboard.",open:"Open dashboard",apply:"Apply as organizer",how:"Three steps for organizers",steps:["Create an event","Guests register themselves","Check in at the door"],stepText:["Add the name, time, description, poster and capacity.","Track registrations, the waitlist and confirm direct payments.","Scan a QR or check in a guest using their ticket code."],two:"One registration, two views",side:["Guests choose an event and receive a ticket.","You manage guests, confirmations and admission.","Only a real check-in counts as a visit."],features:"Six things you no longer handle manually",feature:["Registration list and capacity","Waitlist","Paid reservations with manual confirmation","Guest reminders","QR and printed code verification","Organizer-specific visit levels"],timing:"Before, during and after",period:["Before the event","At the door","After the event"],details:["Publish a poster and track applications.","Verify tickets and mark arrivals.","Review attendance and notification history."],questions:"Frequently asked questions",qs:["How do I start?","Do I need a registered business?","Who receives paid-event payments?","What does TicketTreat cost?","Can I manage the guest list?","Does Telegram work?"],as:["Sign in with a verified email and apply. After approval you must enable two-factor authentication.","Your obligations depend on your activity. Check your own legal requirements.","Payments currently go directly to the organizer. The organizer confirms receipt; TicketTreat does not collect funds.","We will explain terms during onboarding. There is no confirmed public price list.","Yes. The dashboard includes registrations, cancellations, waitlists and check-in logs.","Guests who started the bot may receive supported service notifications."],connect:"Join as an organizer",connectText:"Apply from your existing account. Once approved and MFA is enabled, organizer tools become available.",note:"Device illustrations are examples, not live guest data."},
  uk:{eyebrow:"TICKETTREAT / ОРГАНІЗАТОРИ",hero:"Список гостей без таблиць",intro:"Створюйте події, керуйте реєстраціями, перевіряйте QR і спілкуйтеся з гостями в одному кабінеті.",open:"Відкрити кабінет",apply:"Подати заявку",how:"Три кроки для організатора",steps:["Створіть подію","Гості реєструються самі","Приймайте на вході"],stepText:["Додайте назву, час, опис, афішу та місткість.","Переглядайте заявки, чергу й підтверджуйте прямі оплати.","Скануйте QR або відмічайте гостя за кодом квитка."],two:"Одна реєстрація, два погляди",side:["Гість обирає подію й отримує квиток.","Ви керуєте списком, підтвердженнями та входом.","Візит зараховується тільки після check-in."],features:"Шість речей без ручної роботи",feature:["Список реєстрацій і місць","Черга очікування","Платні заявки з ручним підтвердженням","Нагадування гостям","Перевірка за QR або кодом","Рівні відвідувань за організаторами"],timing:"До, під час і після",period:["До події","На вході","Після події"],details:["Опублікуйте афішу та стежте за заявками.","Перевіряйте квитки й відмічайте гостей.","Аналізуйте відвідуваність та повідомлення."],questions:"Поширені запитання",qs:["Як почати?","Чи потрібна компанія?","Хто отримує оплату?","Скільки коштує сервіс?","Чи можна змінювати список?","Чи працює Telegram?"],as:["Увійдіть із підтвердженою поштою й подайте заявку. Після схвалення увімкніть двофакторну автентифікацію.","Обов'язки залежать від вашої діяльності. Уточнюйте свої правові вимоги.","Наразі оплата йде безпосередньо організатору. Він підтверджує її, а TicketTreat не приймає коштів.","Умови повідомимо під час підключення. Публічного затвердженого тарифу немає.","Так, у кабінеті є реєстрації, скасування, черга і журнал входів.","Гості, що відкрили бота, можуть отримувати службові сповіщення."],connect:"Підключити організацію",connectText:"Подайте заявку зі свого акаунта. Після схвалення та увімкнення MFA отримаєте доступ до інструментів.",note:"Зразки екранів ілюстративні, не справжні дані."}
 };
+function SideCards({texts,language}:{texts:readonly string[];language:"ru"|"cs"|"en"|"uk"}){
+ const [ref,embla]=useEmblaCarousel({align:"center",containScroll:false});
+ const [snap,setSnap]=useState(0);
+ useEffect(()=>{
+  if(!embla)return;
+  const s=()=>setSnap(embla.selectedScrollSnap());s();embla.on("select",s).on("reInit",s);
+  return()=>{embla.off("select",s).off("reInit",s)};
+ },[embla]);
+ const card=(txt:string,i:number)=><article key={i}><span>0{i+1}</span><div>{i===1?<BrandLaptop language={language} kind="guests"/>:<BrandPhone kind={i===0?"reserve":"passport"} language={language} compact/>}</div><p>{txt}</p></article>;
+ return <>
+  <div className="tt-business-triptych tt-business-side-devices tp-sides-row">{texts.map(card)}</div>
+  <div className="tp-sides-mobile tt-business-side-devices">
+   <div className="tp-embla" ref={ref}><div className="tp-embla-track">{texts.map((txt,i)=><div className="tp-embla-slide tp-embla-step" key={i}>{card(txt,i)}</div>)}</div></div>
+   <div className="tp-dots" role="tablist">{texts.map((_,i)=><button key={i} type="button" role="tab" aria-selected={snap===i} aria-label={String(i+1)} className={snap===i?"is-on":""} onClick={()=>embla?.scrollTo(i)}/>)}</div>
+  </div>
+ </>;
+}
 export function BusinessLandingClient(){
  const {language}=useLanguage(),t=words[language];
  const [step,setStep]=useState(0);
@@ -59,7 +77,7 @@ export function BusinessLandingClient(){
   </div></section>
   <section id="business-sides" className="tt-v12-screen tt-business-sides"><div className="tt-v12-screen-content">
    <div className="tt-v12-intro"><span>03 / GUEST + ORGANIZER</span><h2>{t.two}</h2></div>
-   <div className="tt-business-triptych tt-business-side-devices">{t.side.map((txt,i)=><article key={i}><span>0{i+1}</span><div>{i===1?<BrandLaptop language={language} kind="guests"/>:<BrandPhone kind={i===0?"reserve":"passport"} language={language} compact/>}</div><p>{txt}</p></article>)}</div>
+   <SideCards texts={t.side} language={language}/>
   </div></section>
   <section id="business-features" className="tt-v12-screen tt-business-features"><div className="tt-v12-screen-content">
    <div className="tt-v12-intro"><span>04 / FEATURES</span><h2>{t.features}</h2></div>

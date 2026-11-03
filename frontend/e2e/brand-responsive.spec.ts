@@ -339,7 +339,7 @@ test("v1.2 dark guest pages preserve contrast and dark organizer controls",async
       return {background:computed.backgroundColor,color:computed.color};
     });
     expect(scheme,path).not.toBeNull();
-    expect(scheme?.background,path).toBe("rgb(21, 20, 31)");
+    expect(scheme?.background,path).toBe("rgb(2, 7, 10)");
     expect(scheme?.color,path).toBe("rgb(240, 235, 225)");
   }
   await page.goto("/admin",{waitUntil:"domcontentloaded"});
@@ -349,7 +349,7 @@ test("v1.2 dark guest pages preserve contrast and dark organizer controls",async
   });
   // Organizer workspace follows the active root theme in brandbook v1.2.
   if(await page.locator(".admin-heading").count())
-    expect(light).toBe("rgb(21, 20, 31)");
+    expect(light).toBe("rgb(2, 7, 10)");
 });
 
 test("brand v1.1: mobile menu text stays readable in normal, selected and hover states",async({page})=>{
@@ -391,7 +391,7 @@ test("brand v1.1: mobile menu text stays readable in normal, selected and hover 
   expect(focused[0].ratio,JSON.stringify(focused[0])).toBeGreaterThanOrEqual(4.5);
 });
 
-test("brandbook discovery: accessible feed, swipe and schematic map with mood filter",async({page})=>{
+test("brandbook discovery: accessible swipe and feed with mood filter, no map",async({page})=>{
   await page.route("**/api/gateway/events",route=>route.fulfill({
     status:200,contentType:"application/json",
     body:JSON.stringify([{id:991021,title:"Prague Quiz Night",organizer:"TicketTreat",organizer_profile:null,location:"Praha 1",
@@ -401,7 +401,7 @@ test("brandbook discovery: accessible feed, swipe and schematic map with mood fi
   }));
   await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("button",{name:"Swipe",exact:true})).toBeVisible();
-  await expect(page.getByRole("button",{name:"Map",exact:true})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Map",exact:true})).toHaveCount(0);
   await expect(page.getByRole("button",{name:"Feed",exact:true})).toBeVisible();
   await expect(page.locator(".tt-discovery").getByText("Prague Quiz Night").first()).toBeVisible();
   await page.getByRole("button",{name:"Swipe",exact:true}).click();
@@ -410,8 +410,7 @@ test("brandbook discovery: accessible feed, swipe and schematic map with mood fi
   await swipe.focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByText("No more posters")).toBeVisible();
-  await page.getByRole("button",{name:"Map",exact:true}).click();
-  await expect(page.getByRole("img",{name:"Prague schematic, not a navigation map."})).toBeVisible();
+  await page.getByRole("button",{name:"Feed",exact:true}).click();
   await expect(page.locator(".tt-discovery").getByText("Prague Quiz Night").first()).toBeVisible();
   await page.getByRole("button",{name:"Meet people",exact:true}).click();
   await expect(page.getByText("No events match this mood.")).toBeVisible();
@@ -459,9 +458,9 @@ test("welcome tutorial opens explicitly, supports keyboard and returns focus",as
  await trigger.click();
  const dialog=page.getByRole("dialog",{name:/TicketTreat/});
  await expect(dialog).toBeVisible();
- await expect(dialog.locator(".tt-story-progress span")).toHaveCount(9);
+ await expect(dialog.locator(".tp-tour-bars i")).toHaveCount(3);
  await page.keyboard.press("ArrowRight");
- await expect(dialog.locator(".tt-story-copy")).toContainText("2/5");
+ await expect(dialog.locator(".tp-tour-kicker")).toContainText("02 / 03");
  await page.keyboard.press("Escape");
  await expect(dialog).toBeHidden();
  await expect(trigger).toBeFocused();
@@ -485,7 +484,7 @@ test("first-visit onboarding is shown once and can be reopened with story parame
  await page.goto("/",{waitUntil:"domcontentloaded"});
  const dialog=page.getByRole("dialog",{name:/TicketTreat/});
  await expect(dialog).toBeVisible();
- await expect(dialog.locator(".tt-story-progress span")).toHaveCount(9);
+ await expect(dialog.locator(".tp-tour-bars i")).toHaveCount(3);
  await page.keyboard.press("Escape");
  await expect(dialog).toBeHidden();
  expect(await page.evaluate(()=>localStorage.getItem("tt4-story"))).toBe("1");
@@ -501,7 +500,7 @@ test("organizer tutorial uses seven chapters and accessible keyboard tabs",async
  await page.setViewportSize({width:390,height:844});
  await page.goto("/business?nostory",{waitUntil:"domcontentloaded"});
  await expect(page.locator(".tt-business-main .tt-v12-screen")).toHaveCount(7);
- const tabs=page.getByRole("tablist").getByRole("tab");
+ const tabs=page.locator(".tt-business-tabs").getByRole("tab");
  await expect(tabs).toHaveCount(3);
  // Wait for hydration before sending keys to React event handlers.
  await expect(tabs.first()).toBeEnabled();
@@ -561,7 +560,7 @@ for(const theme of ["dark","light"] as const){
       await button.click();
       await expect(button).toHaveAttribute("aria-expanded","true");
       await expect(page.locator("#tt-primary-nav")).toBeVisible();
-      await expect(button).toHaveCSS("background-color","rgb(255, 85, 51)");
+      await expect(button).toHaveCSS("background-color","rgb(2, 151, 222)");
       await page.keyboard.press("Escape");
       await expect(button).toHaveAttribute("aria-expanded","false");
     });

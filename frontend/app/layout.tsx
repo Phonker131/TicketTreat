@@ -10,8 +10,12 @@ import "./brand-v11.css";
 import "./brand-v11-coverage.css";
 import "./revision2.css";
 import "./brandbook-fidelity.css";
+import "./premium.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
+import { MotionProvider } from "@/components/MotionProvider";
+import { DuoFilters } from "@/components/premium/DuoFilters";
+import { Delights } from "@/components/premium/Delights";
 import { PwaBootstrap } from "@/components/PwaBootstrap";
 
 // Download at build time, self-host at tickettreat.eu for all visitors.
@@ -61,7 +65,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#15141F",
+  themeColor: "#02070A",
 };
 
 export default function RootLayout({
@@ -78,10 +82,14 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
         <LanguageProvider>
-          <PwaBootstrap />
-          {children}
-          <LegalFooter />
-          <CookieConsentBanner />
+          <MotionProvider>
+            <PwaBootstrap />
+            <DuoFilters />
+            <Delights />
+            {children}
+            <LegalFooter />
+            <CookieConsentBanner />
+          </MotionProvider>
         </LanguageProvider>
       </body>
     </html>

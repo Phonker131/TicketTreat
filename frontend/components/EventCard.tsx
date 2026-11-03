@@ -11,6 +11,7 @@ import {
 } from "@/lib/i18n";
 import type { TicketTreatEvent } from "@/lib/types";
 import { eventDisplayDate } from "@/lib/format";
+import {PosterArt} from "@/components/premium/PosterArt";
 
 function formatDate(
   value: string | null,
@@ -88,11 +89,9 @@ export function EventCard({
       <div className="tt-event-poster-wrap">
         {event.image_url && !posterUnavailable ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img className="event-card-poster" src={event.image_url} alt={event.title} loading="lazy" onError={()=>setPosterUnavailable(true)}/>
+          <img className="event-card-poster tp-duo" data-duo={event.id%2?"orange":"blue"} src={event.image_url} alt={event.title} loading="lazy" onError={()=>setPosterUnavailable(true)}/>
         ) : (
-          <div className="event-card-accent" aria-hidden="true">
-            <span/><span/><span className="accent-you"/><span/><span/>
-          </div>
+          <PosterArt seed={event.id} className="tp-card-art" label={event.title}/>
         )}
         {sticker&&<div className="tt-event-date-sticker" aria-label={formatDate(event.starts_at,language)}>
           <strong>{sticker.day}</strong><span>{sticker.month}</span>

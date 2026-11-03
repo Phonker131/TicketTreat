@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MobileTabBar } from "@/components/premium/MobileTabBar";
 import { useLanguage } from "@/components/LanguageProvider";
 import { isTelegramWebApp, getTelegramWebApp } from "@/lib/telegram";
 import { t } from "@/lib/i18n";
@@ -104,6 +105,7 @@ export function AppHeader() {
           <LanguageSwitcher />
         </div>
       </div>
+      {menuReady&&!insideTelegram&&<MobileTabBar homepage={homepage}/>}
       {insideTelegram&&<nav className="tt-telegram-bottom" aria-label={language==="ru"?"Навигация TicketTreat":language==="cs"?"Navigace TicketTreat":language==="uk"?"Навігація TicketTreat":"TicketTreat navigation"}>
         {[
           {href:homepage,label:language==="ru"?"Ивенты":language==="cs"?"Akce":language==="uk"?"Події":"Events",icon:"/brand/glyph-burst.svg"},

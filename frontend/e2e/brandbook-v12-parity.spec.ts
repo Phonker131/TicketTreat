@@ -11,16 +11,18 @@ test("brandbook: dark and light wordmarks follow the root theme", async ({page})
   await expect(page.locator(".wordmark-logo-dark")).toBeHidden();
 });
 
-test("brandbook: onboarding nine steps each show distinct illustrative content",async({page})=>{
+test("welcome tour: three guest-facing slides each show distinct content",async({page})=>{
   await page.emulateMedia({reducedMotion:"reduce"});
   await page.goto("/?story&lang=en",{waitUntil:"domcontentloaded"});
   const story=page.getByRole("dialog",{name:/TicketTreat/});
   await expect(story).toBeVisible();
-  for(let step=0;step<9;step++){
-    await expect(story.locator(".tt-story-scene-"+step)).toBeVisible();
-    if(step<8)await story.getByRole("button",{name:/Next/}).click();
+  const kickers=[/Find/,/Reserve/,/Arrive/];
+  for(let step=0;step<3;step++){
+    await expect(story.locator(".tp-tour-kicker")).toContainText(kickers[step]);
+    await expect(story.locator(".tp-tour-phone")).toBeVisible();
+    if(step<2)await story.getByRole("button",{name:/Next/}).click();
   }
-  await expect(story.getByText(/Enjoy your night/i)).toBeVisible();
+  await expect(story.getByText(/Scan at the door, earn rewards/i)).toBeVisible();
   await story.getByRole("button",{name:/Explore events/}).click();
   await expect(story).toHaveCount(0);
 });
@@ -42,14 +44,14 @@ test("brandbook: all publicly referenced brand stamps exist",async({request})=>{
 
 
 test("official vector wordmarks match the brandbook with no font or blend dependencies",async({request,page})=>{
-  for(const [path,letterColor] of [["/tickettreat-wordmark.svg","#15141F"],["/tickettreat-wordmark-dark.svg","#F0EBE1"]]){
+  for(const [path,letterColor] of [["/tickettreat-wordmark.svg","#02070A"],["/tickettreat-wordmark-dark.svg","#F0EBE1"]]){
     const res=await request.get(path);
     expect(res.ok(),path).toBeTruthy();
     const content=await res.text();
     expect(content).toContain("viewBox");
     expect(content).toContain(letterColor);
-    expect(content).toContain("#F4B400");
-    expect(content).toContain("#FF5533");
+    expect(content).toContain("#FC734D");
+    expect(content).toContain("#0297DE");
     expect(content).toContain("<path");
     expect(content).not.toMatch(/<text\b|mix-blend-mode|font-family/i);
   }

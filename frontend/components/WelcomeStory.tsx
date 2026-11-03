@@ -1,70 +1,28 @@
 "use client";
-import {useEffect,useRef,useState} from "react";
+import {useCallback,useEffect,useRef,useState} from "react";
+import {AnimatePresence,useReducedMotion} from "motion/react";
+import * as M from "motion/react-m";
+import {PhoneFrame} from "@/components/premium/Device";
+import {PhoneScreen} from "@/components/premium/Screens";
+import {BrandIcon} from "@/components/BrandIcon";
+import {premium} from "@/components/premium/copy";
 import type {LanguageCode} from "@/lib/types";
 
 const KEY="tt4-story";
-const visualCopy:Record<LanguageCode,{friends:string;chatA:string;chatB:string;chatC:string;name:string;status:string;waiting:string;approved:string;ticket:string;example:string;event:string;reserve:string;entry:string;ready:string}>={"ru":{"friends":"Вечер с друзьями","chatA":"Здравствуйте! Есть места?","chatB":"Ждём ответ организатора","chatC":"Нужно уточнить оплату","name":"Гость","status":"Статус","waiting":"Ждём ответа","approved":"Подтверждён","ticket":"КВИЗ-НОЧЬ","example":"ПРИМЕР","event":"Ивенты","reserve":"Заявка","entry":"Билет","ready":"Только пример"},"uk":{"friends":"Вечір з друзями","chatA":"Вітаю! Є місця?","chatB":"Чекаємо відповіді","chatC":"Треба уточнити оплату","name":"Гість","status":"Статус","waiting":"Очікує","approved":"Підтверджено","ticket":"КВІЗ-НІЧ","example":"ПРИКЛАД","event":"Події","reserve":"Заявка","entry":"Квиток","ready":"Лише приклад"},"cs":{"friends":"Večer s přáteli","chatA":"Dobrý den, jsou místa?","chatB":"Čekáme na odpověď","chatC":"Je třeba ověřit platbu","name":"Host","status":"Stav","waiting":"Čeká","approved":"Potvrzeno","ticket":"KVÍZOVÝ VEČER","example":"PŘÍKLAD","event":"Akce","reserve":"Rezervace","entry":"Vstupenka","ready":"Pouze ukázka"},"en":{"friends":"A night with friends","chatA":"Hello! Any places left?","chatB":"Waiting for a reply","chatC":"Payment needs checking","name":"Guest","status":"Status","waiting":"Waiting","approved":"Confirmed","ticket":"QUIZ NIGHT","example":"EXAMPLE","event":"Events","reserve":"Reservation","entry":"Ticket","ready":"Illustration only"}};
+const GLOW=["blu","yel","tom"] as const;
 
-type Slide={ink:"ink"|"tom"|"paper"|"blu"|"yel";title:string;text:string;step:string};
-const scripts:Record<LanguageCode,Slide[]>={
- ru:[
-  {ink:"ink",step:"Пример ситуации · 1/5",title:"Пятница. Вы хотите на квиз",text:"Вы нашли вечер для друзей. Осталось узнать, есть ли места."},
-  {ink:"tom",step:"Пример ситуации · 2/5",title:"Вы пишете организатору",text:"Сообщения, ожидание ответа и уточнения легко теряются."},
-  {ink:"paper",step:"Пример ситуации · 3/5",title:"У организатора таблица",text:"Имена, ответы и подтверждения приходится сверять вручную."},
-  {ink:"blu",step:"Пример ситуации · 4/5",title:"На входе очередь",text:"Гости ищут переписку. Организатор проверяет каждого."},
-  {ink:"yel",step:"Пример ситуации · 5/5",title:"Всё в одном месте",text:"В TicketTreat регистрация и QR-билет связаны с мероприятием."},
-  {ink:"ink",step:"Как это работает · 1/3",title:"Выберите вечер",text:"Свайп, лента или карта: найдите событие и откройте его страницу."},
-  {ink:"blu",step:"Как это работает · 2/3",title:"Запишитесь",text:"На бесплатный ивент получите билет сразу. Для платного следуйте инструкции организатора и дождитесь подтверждения."},
-  {ink:"tom",step:"Как это работает · 3/3",title:"Покажите QR",text:"Откройте «Мои билеты», выберите билет и нажмите «Показать QR» у входа."},
-  {ink:"ink",step:"Готово",title:"Просто приходите",text:"После настоящей отметки на входе посещение появится в паспорте гостя."}
- ],
- en:[
-  {ink:"ink",step:"Example situation · 1/5",title:"Friday. Quiz night",text:"You found an evening with friends. Are there spots left?"},
-  {ink:"tom",step:"Example situation · 2/5",title:"Message the organizer",text:"Messages and confirmations can get lost in a busy inbox."},
-  {ink:"paper",step:"Example situation · 3/5",title:"A guest spreadsheet",text:"The organizer has to reconcile every name and confirmation."},
-  {ink:"blu",step:"Example situation · 4/5",title:"A queue at the door",text:"Guests look for messages while staff check the list."},
-  {ink:"yel",step:"Example situation · 5/5",title:"One place for tickets",text:"TicketTreat links your registration and QR ticket to the event."},
-  {ink:"ink",step:"How it works · 1/3",title:"Pick your night",text:"Find an event by swiping, browsing the feed or looking at the map."},
-  {ink:"blu",step:"How it works · 2/3",title:"Reserve your place",text:"Free events issue a ticket immediately. For paid events, follow the organizer's instructions and await confirmation."},
-  {ink:"tom",step:"How it works · 3/3",title:"Show your QR",text:"Open My tickets, choose the ticket and tap Show QR at the entrance."},
-  {ink:"ink",step:"You're all set",title:"Enjoy your night",text:"An actual check-in counts toward your guest passport."}
- ],
- cs:[
-  {ink:"ink",step:"Příklad situace · 1/5",title:"Pátek. Kvízový večer",text:"Našli jste akci s přáteli. Jsou ještě volná místa?"},
-  {ink:"tom",step:"Příklad situace · 2/5",title:"Píšete pořadateli",text:"Zprávy a potvrzení se mohou v konverzacích ztratit."},
-  {ink:"paper",step:"Příklad situace · 3/5",title:"Tabulka se jmény",text:"Pořadatel ručně kontroluje jména a potvrzení."},
-  {ink:"blu",step:"Příklad situace · 4/5",title:"Fronta u vstupu",text:"Hosté hledají zprávy a personál ověřuje seznam."},
-  {ink:"yel",step:"Příklad situace · 5/5",title:"Vše na jednom místě",text:"TicketTreat propojuje registraci a QR vstupenku s akcí."},
-  {ink:"ink",step:"Jak to funguje · 1/3",title:"Vyberte si akci",text:"Najděte večer pomocí karet, seznamu nebo mapy."},
-  {ink:"blu",step:"Jak to funguje · 2/3",title:"Rezervujte si místo",text:"U akce zdarma dostanete vstupenku ihned. U placené akce postupujte podle pokynů pořadatele a počkejte na potvrzení."},
-  {ink:"tom",step:"Jak to funguje · 3/3",title:"Ukažte QR kód",text:"Otevřete Moje vstupenky, vyberte vstupenku a u vstupu klepněte na Zobrazit QR."},
-  {ink:"ink",step:"Hotovo",title:"Užijte si večer",text:"Skutečné odbavení se započítá do vašeho pasu hosta."}
- ],
- uk:[
-  {ink:"ink",step:"Приклад ситуації · 1/5",title:"П'ятниця. Квіз",text:"Ви знайшли вечір для друзів. Чи залишилися місця?"},
-  {ink:"tom",step:"Приклад ситуації · 2/5",title:"Пишете організатору",text:"Повідомлення та підтвердження легко губляться в чатах."},
-  {ink:"paper",step:"Приклад ситуації · 3/5",title:"Таблиця гостей",text:"Організатор вручну звіряє імена та підтвердження."},
-  {ink:"blu",step:"Приклад ситуації · 4/5",title:"Черга на вході",text:"Гості шукають листування, а персонал перевіряє список."},
-  {ink:"yel",step:"Приклад ситуації · 5/5",title:"Усе в одному місці",text:"TicketTreat пов'язує реєстрацію та QR-квиток із подією."},
-  {ink:"ink",step:"Як це працює · 1/3",title:"Оберіть вечір",text:"Знайдіть подію картками, у стрічці або на мапі."},
-  {ink:"blu",step:"Як це працює · 2/3",title:"Забронюйте місце",text:"На безкоштовну подію квиток надійде одразу. Для платної виконайте інструкції організатора й дочекайтеся підтвердження."},
-  {ink:"tom",step:"Як це працює · 3/3",title:"Покажіть QR",text:"Відкрийте «Мої квитки», оберіть квиток і натисніть «Показати QR» на вході."},
-  {ink:"ink",step:"Готово",title:"Насолоджуйтесь вечором",text:"Справжня відмітка на вході зараховується до паспорта гостя."}
- ]
-};
-const labels={
- ru:{name:"Знакомство с TicketTreat",skip:"Пропустить",back:"Назад",next:"Дальше",again:"Ещё раз",finish:"Выбрать вечер",hint:"Свайп или стрелки для навигации"},
- en:{name:"TicketTreat welcome",skip:"Skip",back:"Back",next:"Next",again:"Replay",finish:"Explore events",hint:"Swipe or use arrow keys"},
- cs:{name:"Vítejte v TicketTreat",skip:"Přeskočit",back:"Zpět",next:"Dále",again:"Znovu",finish:"Vybrat akci",hint:"Přejeďte nebo použijte šipky"},
- uk:{name:"Знайомство з TicketTreat",skip:"Пропустити",back:"Назад",next:"Далі",again:"Ще раз",finish:"Обрати подію",hint:"Свайп або клавіші зі стрілками"}
-};
+/** Three-slide welcome tour for guests: find, reserve, arrive. It explains what TicketTreat gives a guest, not an organizer. */
 export function WelcomeStory({language}:{language:LanguageCode}){
- const [open,setOpen]=useState(false),[page,setPage]=useState(0),[paused,setPaused]=useState(false);
- const root=useRef<HTMLDivElement>(null),previous=useRef<HTMLElement|null>(null),startX=useRef<number|null>(null);
- const slides=scripts[language],t=labels[language],v=visualCopy[language],last=page===slides.length-1;
+ const c=premium[language].tour,slides=c.slides;
+ const reduce=useReducedMotion();
+ const [open,setOpen]=useState(false),[[page,dir],setState]=useState<[number,number]>([0,1]);
+ const root=useRef<HTMLDivElement>(null),previous=useRef<HTMLElement|null>(null);
+ const last=page===slides.length-1;
+ const go=useCallback((d:number)=>setState(([p])=>{const n=Math.min(slides.length-1,Math.max(0,p+d));return [n,d===0?1:d]}),[slides.length]);
+
  useEffect(()=>{
   const params=new URLSearchParams(location.search);
-  const show=()=>{setPage(0);setOpen(true)};
+  const show=()=>{setState([0,1]);setOpen(true)};
   window.addEventListener("tickettreat-open-story",show);
   if(!params.has("nostory")){
    let seen=false;try{seen=localStorage.getItem(KEY)==="1"}catch{}
@@ -72,11 +30,13 @@ export function WelcomeStory({language}:{language:LanguageCode}){
   }
   return()=>window.removeEventListener("tickettreat-open-story",show);
  },[]);
- function close(){
+
+ const close=useCallback(()=>{
   try{localStorage.setItem(KEY,"1")}catch{}
   setOpen(false);
   previous.current?.focus();
- }
+ },[]);
+
  useEffect(()=>{
   if(!open)return;
   previous.current=document.activeElement as HTMLElement;
@@ -84,75 +44,57 @@ export function WelcomeStory({language}:{language:LanguageCode}){
   root.current?.focus();
   const onKey=(e:KeyboardEvent)=>{
    if(e.key==="Escape"){e.preventDefault();close()}
-   if(e.key==="ArrowRight"){e.preventDefault();setPage(p=>Math.min(8,p+1))}
-   if(e.key==="ArrowLeft"){e.preventDefault();setPage(p=>Math.max(0,p-1))}
+   if(e.key==="ArrowRight"){e.preventDefault();go(1)}
+   if(e.key==="ArrowLeft"){e.preventDefault();go(-1)}
    if(e.key==="Tab"){
     const focusable=Array.from(root.current?.querySelectorAll<HTMLElement>('button:not([disabled]),a[href]')||[]);
     if(!focusable.length)return;
     const first=focusable[0],end=focusable[focusable.length-1];
-    if(e.shiftKey&&document.activeElement===first){e.preventDefault();end.focus()}
+    if(e.shiftKey&&(document.activeElement===first||document.activeElement===root.current)){e.preventDefault();end.focus()}
     else if(!e.shiftKey&&document.activeElement===end){e.preventDefault();first.focus()}
    }
   };
   document.addEventListener("keydown",onKey);
   return()=>{document.removeEventListener("keydown",onKey);document.body.style.overflow=old};
- },[open]);
- useEffect(()=>{
-  if(!open||paused||last||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
-  const timeout=window.setTimeout(()=>setPage(p=>Math.min(8,p+1)),6000);
-  return()=>window.clearTimeout(timeout);
- },[page,paused,open,last]);
+ },[open,close,go]);
+
  if(!open)return null;
  const slide=slides[page];
- return <div ref={root} className="tt-story" role="dialog" aria-modal="true" aria-label={t.name}
-  tabIndex={-1} data-ink={slide.ink} onPointerDown={e=>{startX.current=e.clientX;setPaused(true)}}
-  onPointerUp={e=>{const x=startX.current;startX.current=null;setPaused(false);if(x===null||(e.target as HTMLElement).closest("button,a"))return;
-   const delta=e.clientX-x;
-   const direction=Math.abs(delta)>55?(delta<0?1:-1):(e.clientX<e.currentTarget.getBoundingClientRect().left+e.currentTarget.getBoundingClientRect().width/2?-1:1);
-   setPage(p=>Math.min(8,Math.max(0,p+direction)));}}>
-   <div className="tt-story-content">
-    <div className="tt-story-progress" aria-label={String(page+1)+"/9"}>{slides.map((_,i)=><span key={i} className={i<=page?"done":""}/>)}</div>
-    <button type="button" className="tt-story-close" onClick={close} aria-label={t.skip}>× <span>{t.skip}</span></button>
-    <div className="tt-story-illustration" aria-hidden="true">
-      <div className={"tt-story-scene tt-story-scene-"+page}>
-        {(page===0||page===8)&&<div className="tt-scene-poster">
-          <span className="tt-scene-people"><i/><i/><i/></span>
-          <strong>{v.friends}</strong><small>TICKETTREAT / {v.example}</small>
-        </div>}
-        {page===1&&<div className="tt-scene-chat">
-          <span className="tt-scene-bubble is-guest">{v.chatA}</span>
-          <span className="tt-scene-bubble is-waiting">{v.chatB}</span>
-          <span className="tt-scene-bubble is-organizer">{v.chatC}</span>
-        </div>}
-        {page===2&&<div className="tt-scene-table">
-          <div><strong>{v.name}</strong><strong>{v.status}</strong></div>
-          <div><span>01</span><span>{v.waiting}</span></div>
-          <div><span>02</span><span>{v.approved}</span></div>
-          <div><span>03</span><span>{v.waiting}</span></div>
-        </div>}
-        {page===3&&<div className="tt-scene-queue">{[0,1,2,3,4,5].map(n=><i key={n}/>)}</div>}
-        {page===4&&<div className="tt-scene-ticket">
-          <small>TICKETTREAT / {v.example}</small><strong>{v.ticket}</strong>
-          <div className="tt-scene-qr"><span>QR</span></div><small>{v.ready}</small>
-        </div>}
-        {(page===5||page===6||page===7)&&<div className="tt-scene-phone">
-          <span className="tt-scene-phone-camera"/><small>TICKETTREAT</small>
-          <div className="tt-scene-phone-card">
-            <span>{page===5?v.event:page===6?v.reserve:v.entry}</span>
-            <strong>{page===5?v.ticket:page===6?v.approved:v.ticket}</strong>
-            <i className="tt-scene-phone-mark"/>
-          </div>
-          <small>{v.example} / {v.ready}</small>
-        </div>}
-      </div>
-      <span className="tt-story-stamp">TICKETTREAT</span>
-    </div>
-    <div className="tt-story-copy"><p>{slide.step}</p><h2>{slide.title}</h2><p>{slide.text}</p></div>
-    <nav className="tt-story-nav" aria-label={t.name}>
-      <button type="button" disabled={page===0} onClick={()=>setPage(p=>Math.max(0,p-1))}>{t.back}</button>
-      {last?<><button type="button" onClick={()=>setPage(0)}>{t.again}</button><button type="button" className="tt-story-primary" onClick={()=>{close();document.getElementById("events")?.scrollIntoView({behavior:"smooth"})}}>{t.finish}</button></>:
-       <button type="button" className="tt-story-primary" onClick={()=>setPage(p=>Math.min(8,p+1))}>{t.next} →</button>}
-    </nav>
-   </div>
+ const move=reduce?0:1;
+ const spring={type:"spring" as const,stiffness:210,damping:26,mass:.9};
+ return <div ref={root} className="tp-tour" role="dialog" aria-modal="true" aria-label={c.name} tabIndex={-1} data-i={page}>
+  <div className="tp-tour-top">
+   <div className="tp-tour-bars" aria-hidden="true">{slides.map((_,i)=><i key={i}><b style={{width:i<=page?"100%":"0%"}}/></i>)}</div>
+   <button type="button" className="tp-tour-skip" onClick={close}><span>{c.skip}</span><BrandIcon name="cross" size={16}/></button>
+  </div>
+  <M.div className="tp-tour-main" drag={reduce?false:"x"} dragConstraints={{left:0,right:0}} dragElastic={.22} dragDirectionLock
+    onDragEnd={(_,info)=>{if(info.offset.x<-70||info.velocity.x<-420)go(1);else if(info.offset.x>70||info.velocity.x>420)go(-1)}}>
+   <AnimatePresence mode="wait" initial={false} custom={dir}>
+    <M.div key={"v"+page} className="tp-tour-visual" custom={dir}
+      initial={{opacity:0,y:34*move,rotate:dir*2.5*move,scale:.96}} animate={{opacity:1,y:0,rotate:0,scale:1}}
+      exit={{opacity:0,y:-18*move,scale:.97,transition:{duration:.18}}} transition={spring}>
+     <div className={"tp-tour-duo"+(page===2?" is-duo":"")}>
+      {page===2&&<PhoneFrame glow="yel" className="tp-tour-back" tilt={false}><PhoneScreen kind="passport" language={language}/></PhoneFrame>}
+      <PhoneFrame glow={GLOW[page]} className="tp-tour-phone"><PhoneScreen kind={page===0?"discover":page===1?"reserve":"qr"} language={language}/></PhoneFrame>
+     </div>
+    </M.div>
+   </AnimatePresence>
+   <AnimatePresence mode="wait" initial={false} custom={dir}>
+    <M.div key={"t"+page} className="tp-tour-copy" aria-live="polite"
+      initial={{opacity:0,x:40*dir*move}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-30*dir*move,transition:{duration:.16}}} transition={{...spring,delay:.04}}>
+     <p className="tp-tour-kicker"><b>{String(page+1).padStart(2,"0")}</b> / 03 · {slide.kicker}</p>
+     <h2>{slide.title}</h2>
+     <p className="tp-tour-text">{slide.text}</p>
+     <ul className="tp-tour-chips">{slide.chips.map(x=><li key={x}>{x}</li>)}</ul>
+    </M.div>
+   </AnimatePresence>
+  </M.div>
+  <nav className="tp-tour-nav" aria-label={c.name}>
+   <button type="button" className="tp-tour-back-btn" disabled={page===0} onClick={()=>go(-1)}><BrandIcon name="back" size={20}/><span>{c.back}</span></button>
+   <span className="tp-tour-step">{c.steps} {page+1}/{slides.length}</span>
+   {last
+    ?<button type="button" className="tp-tour-next is-final" onClick={()=>{close();document.getElementById("events")?.scrollIntoView({behavior:reduce?"auto":"smooth"})}}>{c.start}<BrandIcon name="arr" size={20}/></button>
+    :<button type="button" className="tp-tour-next" onClick={()=>go(1)}>{c.next}<BrandIcon name="arr" size={20}/></button>}
+  </nav>
  </div>;
 }

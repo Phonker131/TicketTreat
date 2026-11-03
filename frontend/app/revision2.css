@@ -1,12 +1,12 @@
 /* TicketTreat handoff revision 2: theme role variables and light-mode parity. */
-:root{--tt-ink-2:#1E1D2B;--tt-ink-3:#2B2A3A;--tt-line:#3A3949;--tt-mute:#A9A6B3;--tt-text-soft:#55525C;--tt-field:#FBF9F4}
+:root{--tt-ink-2:#0A1117;--tt-ink-3:#121C25;--tt-line:#1F2C37;--tt-mute:#9FACB6;--tt-text-soft:#4C555C;--tt-field:#FBF9F4}
 html[data-theme="dark"],html[data-theme="night"]{
- --bg:#15141F;--fg:#F0EBE1;--fg-mute:#A9A6B3;--surface:#1E1D2B;--surface-2:#2B2A3A;--theme-line:#3A3949;
- --edge:transparent;--section-alt:#F0EBE1;--ring:#F0EBE1;--btn-bg:#FF5533;--btn-fg:#15141F;--btn-plate:#F0EBE1;color-scheme:dark;
+ --bg:#02070A;--fg:#F0EBE1;--fg-mute:#9FACB6;--surface:#0A1117;--surface-2:#121C25;--theme-line:#1F2C37;
+ --edge:transparent;--section-alt:#F0EBE1;--ring:#F0EBE1;--btn-bg:#0297DE;--btn-fg:#02070A;--btn-plate:#F0EBE1;color-scheme:dark;
 }
 html[data-theme="light"],html[data-theme="paper"]{
- --bg:#F0EBE1;--fg:#15141F;--fg-mute:#55525C;--surface:#FBF9F4;--surface-2:#E6DFD1;--theme-line:rgba(21,20,31,.45);
- --edge:#15141F;--section-alt:#E6DFD1;--ring:#15141F;--btn-bg:#15141F;--btn-fg:#F0EBE1;--btn-plate:#FF5533;color-scheme:light;
+ --bg:#F0EBE1;--fg:#02070A;--fg-mute:#4C555C;--surface:#FBF9F4;--surface-2:#E6DFD1;--theme-line:rgba(2,7,10,.45);
+ --edge:#02070A;--section-alt:#E6DFD1;--ring:#02070A;--btn-bg:#02070A;--btn-fg:#F0EBE1;--btn-plate:#0297DE;color-scheme:light;
 }
 html,body,.app-shell,.tt-night-home{background:var(--bg,var(--ink));color:var(--fg,var(--paper))}
 .tt-theme-toggle{width:44px;height:44px;min-width:44px;border:2px solid var(--theme-line,var(--line));background:var(--surface,var(--ink2));color:var(--fg,var(--paper));border-radius:50%;cursor:pointer;display:grid;place-items:center;font:700 27px/1 var(--u)}
@@ -138,7 +138,7 @@ html[data-theme="light"] .tt-v12-levels{background:var(--ink);color:var(--paper)
 .tt-business-laptop-screen{aspect-ratio:16/10;background:var(--paper);color:var(--ink);border-radius:6px;padding:clamp(13px,2.2vw,28px);overflow:hidden}
 .tt-business-laptop-screen small{font:700 12px var(--m)}
 .tt-business-laptop-screen h3{font:900 clamp(24px,4vw,45px)/.92 var(--d);text-transform:uppercase}
-.tt-business-laptop-base{position:absolute;height:14px;left:-3.5%;right:-3.5%;bottom:-2px;background:#3A3949;border-radius:0 0 20px 20px}
+.tt-business-laptop-base{position:absolute;height:14px;left:-3.5%;right:-3.5%;bottom:-2px;background:#1F2C37;border-radius:0 0 20px 20px}
 .tt-business-metric{display:flex;align-items:center;gap:12px;padding:12px 3px;border-bottom:2px solid var(--ink);font:700 clamp(12px,1.7vw,17px)/1.3 var(--u)}
 .tt-business-metric span{background:var(--tom);padding:5px;font:800 12px var(--m)}
 .tt-business-tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
@@ -285,7 +285,7 @@ html[data-theme="dark"] .app-shell:has(.admin-event-actions) .panel .stat-card{
 html[data-theme="dark"] .app-shell:has(.admin-event-actions) .panel .stat-card :is(span,strong){
  color:var(--paper)!important
 }
-/* Light-mode secondary text must never inherit old #A9A6B3 on paper. */
+/* Light-mode secondary text must never inherit old #9FACB6 on paper. */
 html[data-theme="light"] .app-shell :is(.form-note,.tt-faq-intro,.tt-support-lead,.ticket-row p,.event-card-location){
  color:var(--fg-mute)!important
 }
