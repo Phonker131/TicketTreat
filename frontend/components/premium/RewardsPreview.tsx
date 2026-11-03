@@ -36,7 +36,7 @@ export function RewardsPreview({language,mode}:{language:LanguageCode;mode:"gues
   <div className="tp-rw-left">
    <h2 id="tp-rewards-title">{c.headline}</h2>
    <p className="tp-te-intro">{c.intro}</p>
-   <article className="tp-passcard" aria-label={c.title+" · "+ex}>
+   <article className="tp-passcard" aria-label={c.title+", "+ex}>
     <span className="tp-stamp">{ex}</span>
     <div className="tp-passcard-main">
      <Ring value={0} max={3}/>

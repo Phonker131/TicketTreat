@@ -16,7 +16,7 @@ function Poster({event}:{event:TicketTreatEvent}){
  useEffect(()=>{const el=img.current;setFailed(!!el&&el.complete&&el.naturalWidth===0)},[event.image_url]);
  if(!event.image_url||failed)return <PosterArt seed={event.id} className="tp-deck-art"/>;
  // eslint-disable-next-line @next/next/no-img-element
- return <img ref={img} className="tp-duo" data-duo={event.id%2?"orange":"blue"} src={event.image_url} alt="" draggable={false} loading="lazy" decoding="async" onError={()=>setFailed(true)}/>;
+ return <img ref={img} src={event.image_url} alt="" draggable={false} loading="lazy" decoding="async" onError={()=>setFailed(true)}/>;
 }
 
 function Face({event,date,price}:{event:TicketTreatEvent;date:string;price:string}){

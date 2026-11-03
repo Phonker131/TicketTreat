@@ -10,9 +10,9 @@ import {premium} from "@/components/premium/copy";
 import type {LanguageCode} from "@/lib/types";
 
 const samples=[
- {color:"tom",days:5,h:19,date:{ru:"14 ноя",en:"14 Nov",cs:"14. 11.",uk:"14 лис"},place:"Cafe Louvre · Praha 1",name:{ru:"Speed Dating",en:"Speed Dating",cs:"Speed Dating",uk:"Speed Dating"}},
- {color:"blu",days:12,h:19,date:{ru:"21 ноя",en:"21 Nov",cs:"21. 11.",uk:"21 лис"},place:"Bar Hemingway · Praha 2",name:{ru:"Квиз-ночь",en:"Quiz Night",cs:"Kvízový večer",uk:"Квіз-ніч"}},
- {color:"plum",days:33,h:22,date:{ru:"5 дек",en:"5 Dec",cs:"5. 12.",uk:"5 гру"},place:"Club 7 · Praha 1",name:{ru:"Night Pass",en:"Night Pass",cs:"Night Pass",uk:"Night Pass"}}
+ {color:"tom",days:5,h:19,date:{ru:"14 ноя",en:"14 Nov",cs:"14. 11.",uk:"14 лис"},place:"Cafe Louvre, Praha 1",name:{ru:"Speed Dating",en:"Speed Dating",cs:"Speed Dating",uk:"Speed Dating"}},
+ {color:"blu",days:12,h:19,date:{ru:"21 ноя",en:"21 Nov",cs:"21. 11.",uk:"21 лис"},place:"Bar Hemingway, Praha 2",name:{ru:"Квиз-ночь",en:"Quiz Night",cs:"Kvízový večer",uk:"Квіз-ніч"}},
+ {color:"plum",days:33,h:22,date:{ru:"5 дек",en:"5 Dec",cs:"5. 12.",uk:"5 гру"},place:"Club 7, Praha 1",name:{ru:"Night Pass",en:"Night Pass",cs:"Night Pass",uk:"Night Pass"}}
 ] as const;
 
 function useCountdown(days:number,hours:number){
@@ -41,12 +41,12 @@ function SampleTicket({index,language,flipped,onToggle,interactive=true}:{index:
  return <M.div className={"tp-sample tp-ink-"+s.color+(flipped?" is-flipped":"")} style={reduce?undefined:{rotateX:rx,rotateY:ry}}
    onPointerMove={e=>{if(!interactive||reduce||e.pointerType==="touch")return;const r=e.currentTarget.getBoundingClientRect();px.set((e.clientX-r.left)/r.width-.5);py.set((e.clientY-r.top)/r.height-.5)}}
    onPointerLeave={()=>{px.set(0);py.set(0)}}>
-  <div className="tp-flip" role="button" tabIndex={0} aria-pressed={flipped} aria-label={name+" · "+c.tickets.count+" · "+(flipped?c.tickets.back:c.tickets.flip)} onClick={onToggle} onKeyDown={key}>
+  <div className="tp-flip" role="button" tabIndex={0} aria-pressed={flipped} aria-label={name+", "+c.tickets.count+", "+(flipped?c.tickets.back:c.tickets.flip)} onClick={onToggle} onKeyDown={key}>
    <article className="tp-face tp-face-front">
     <div className="tp-ticket tp-ticket-sample">
      <header><small>TICKETTREAT</small><small>TT-0000-XXXXXX</small></header>
      <h5>{name}</h5>
-     <p>{s.date[language]} · 19:00</p><p className="tp-ticket-venue">{s.place}</p>
+     <p>{s.date[language]}, 19:00</p><p className="tp-ticket-venue">{s.place}</p>
      <i className="tp-ticket-perf" aria-hidden="true"/>
      <div className="tp-count">{time.map((n,i)=><span key={i}><b>{n}</b><small>{c.ticket.countdown[i]}</small></span>)}</div>
      <M.i className="tp-foil" style={{backgroundPosition:foil}} aria-hidden="true"/>

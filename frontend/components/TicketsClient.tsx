@@ -12,6 +12,7 @@ import { t, localeForLanguage } from "@/lib/i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { getVerifiedTelegramSession, restoreGuest } from "@/lib/session";
 import type { TicketTreatEvent, DemoGuest, DemoTicket } from "@/lib/types";
+import {PageFaq} from "@/components/premium/PageFaq";
 
 export function TicketsClient() {
   const {language} = useLanguage();
@@ -52,7 +53,7 @@ export function TicketsClient() {
       <AppHeader />
       <main className="page">
         <section className="section-heading">
-          <div><h1>{t(language, "tickets")}</h1>{guest && <p>{guest.first_name} · {guest.visits} {language==="cs"?"návštěv":language==="ru"?"посещений":language==="uk"?"відвідувань":"check-ins"}</p>}</div>
+          <div><h1>{t(language, "tickets")}</h1>{guest && <p>{guest.first_name}, {guest.visits} {language==="cs"?"návštěv":language==="ru"?"посещений":language==="uk"?"відвідувань":"check-ins"}</p>}</div>
         </section>
 
         {loading ? <div className="state-card">{t(language, "loading")}</div> :
@@ -96,7 +97,7 @@ export function TicketsClient() {
               {botEvents.map(event => (
                 <Link href={`/events/${event.id}`} className="ticket-row" key={event.id}>
                   <div>
-                    <small>Telegram · #{event.id}</small>
+                    <small>Telegram, #{event.id}</small>
                     <h3>{event.title}</h3>
                     <p>{formatDate(event.starts_at,language)}</p>
                   </div>
@@ -111,6 +112,7 @@ export function TicketsClient() {
             </div>
           </section>}
           </>}
+<PageFaq topic="tickets"/>
       </main>
     </div>
   );

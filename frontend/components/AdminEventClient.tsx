@@ -459,13 +459,15 @@ export function AdminEventClient(){
             </label>)}
         </div></fieldset>
         <label>{tr("Новый постер (необязательно)")}<input type="file" accept="image/png,image/jpeg,image/webp"
-          onChange={e=>setPoster(e.target.files?.[0]||null)}/></label>
+          onChange={e=>setPoster(e.target.files?.[0]||null)}/>
+          <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
         {event.image_url&&<img src={event.image_url} alt="Event poster" className="event-poster-preview"/>}
         <button className="button button-primary" disabled={busy}>{busy?tr("Сохраняем…"):"Сохранить изменения"}</button>
       </form>}
       {!event.is_cancelled&&<section className="panel form-stack">
         <h2>{tr("Фотогалерея мероприятия")}</h2>
         <p className="form-note">{tr("Загружай фотографии с прошлых мероприятий (JPG, PNG, WebP; до 2 МБ каждая, максимум 8 включая HTTPS-ссылки). Файлы сохраняются на сервере TicketTreat.")}</p>
+        <p className="form-note">{tr("Фото галереи: от 1200 px по длинной стороне, горизонтальные 3:2 или 4:3 смотрятся лучше всего.")}</p>
         <label>{tr("Добавить фотографии")}
           <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy} onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/>
         </label>

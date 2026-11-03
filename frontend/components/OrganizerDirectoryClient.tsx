@@ -6,6 +6,7 @@ import type {OrganizerPublicSummary,LanguageCode} from "@/lib/types";
 import {LaptopFrame} from "@/components/premium/Device";
 import {LaptopScreenView} from "@/components/premium/Screens";
 import {premium} from "@/components/premium/copy";
+import {PageFaq} from "@/components/premium/PageFaq";
 
 const W:Record<LanguageCode,{title:string;intro:string;empty:string;view:string;future:string;futureHint:string;example:string}>={
  ru:{title:"Организаторы",intro:"Познакомься с организаторами мероприятий TicketTreat и найди их будущие и прошедшие события.",empty:"Публичные профили появятся здесь, когда организаторы опубликуют их.",view:"Открыть профиль",future:"Здесь будет профиль",futureHint:"Он появится, когда организатор его опубликует.",example:"Пример"},
@@ -39,5 +40,6 @@ export function OrganizerDirectoryClient({profiles}:{profiles:OrganizerPublicSum
     <LaptopFrame glow="blu" className="tp-pitch-laptop"><LaptopScreenView kind="overview" language={language}/></LaptopFrame>
    </section>
 
+<PageFaq topic="organizers"/>
  </main></div>;
 }

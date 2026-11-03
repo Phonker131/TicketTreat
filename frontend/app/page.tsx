@@ -5,10 +5,10 @@ import {homeAlternates} from "@/lib/faq-seo";
 export const dynamic="force-dynamic";
 
 export const metadata:Metadata = {
-  title:"Мероприятия и билеты в Чехии",
-  description:"TicketTreat — мероприятия в Чехии: находите события, бронируйте места и получайте электронные билеты с QR-кодом.",
+  title:"Events and tickets in Czechia",
+  description:"Discover events across Czechia, book your place and keep your QR tickets with TicketTreat.",
   alternates:{canonical:"/",languages:homeAlternates},
-  openGraph:{url:"/",type:"website",title:"TicketTreat — мероприятия и билеты в Чехии",description:"Откройте мероприятия в Чехии, зарегистрируйтесь и сохраняйте билеты в TicketTreat."},
+  openGraph:{url:"/",type:"website",title:"TicketTreat: events and tickets in Czechia",description:"Discover events across Czechia, book your place and keep your QR tickets with TicketTreat."},
 };
 
 export default async function HomePage() {

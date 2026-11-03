@@ -14,7 +14,7 @@ const icons=[
  <g key="p"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></g>
 ];
 
-/** Phone-only bottom navigation for the website (Telegram Mini App keeps its own). Four destinations, one sliding indicator. */
+/** Phone-only bottom navigation for the website and the Telegram Mini App. Four destinations, one sliding indicator. */
 export function MobileTabBar({homepage}:{homepage:string}){
  const {language}=useLanguage(),pathname=usePathname()||"/",reduce=useReducedMotion();
  const hidden=/^\/(admin|checkout|security|organizer)(\/|$)/.test(pathname)||/^\/business/.test(pathname);

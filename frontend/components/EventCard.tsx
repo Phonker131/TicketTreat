@@ -91,7 +91,7 @@ export function EventCard({
       <div className="tt-event-poster-wrap">
         {event.image_url && !posterUnavailable ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img ref={poster} className="event-card-poster tp-duo" data-duo={event.id%2?"orange":"blue"} src={event.image_url} alt={event.title} loading="lazy" onError={()=>setPosterUnavailable(true)}/>
+          <img ref={poster} className="event-card-poster" src={event.image_url} alt={event.title} loading="lazy" onError={()=>setPosterUnavailable(true)}/>
         ) : (
           <PosterArt seed={event.id} className="tp-card-art" label={event.title}/>
         )}
@@ -114,7 +114,7 @@ export function EventCard({
         </div>
 
         <h2>{event.title}</h2>
-        {event.organizer_profile&&<Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-event-organizer-link">{event.organizer_profile.display_name} ↗</Link>}
+        {event.organizer_profile&&<Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-event-organizer-link">{event.organizer_profile.display_name}</Link>}
 
         <p className="event-card-location">
           {event.location || "—"}

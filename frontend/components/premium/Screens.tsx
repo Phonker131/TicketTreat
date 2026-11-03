@@ -61,7 +61,7 @@ export function ScreenDiscover({language,photo="sd",color="blu",priority=false}:
   <div className="tp-chips">{c.moods.map((m,i)=><span key={m} className={i===0?"is-on":""}>{m}</span>)}</div>
   <div className="tp-print" style={vars({"--c":"var(--"+color+")"})}>
    <div className="tp-print-img"><PosterImg name={photo} w={280} h={373} priority={priority}/><span className="tp-datebadge">{c.dateLabel}</span></div>
-   <h5>Speed Dating</h5><p>Cafe Louvre · Praha 1</p>
+   <h5>Speed Dating</h5><p>Cafe Louvre, Praha 1</p>
    <div className="tp-meta"><b>{c.price}</b><span>{c.left}</span></div>
   </div>
   <div className="tp-actions"><i><BrandIcon name="cross" size={24}/></i><i className="is-want"><BrandIcon name="heart" size={28}/></i><i><BrandIcon name="arr-up" size={24}/></i></div>
@@ -85,7 +85,7 @@ export function ScreenEvent({language,photo="quiz",color="blu",priority=false}:{
     <li><BrandIcon name="user" size={20}/>{c.spots}</li>
    </ul>
    <div className="tp-bar"><i style={{width:"90%"}}/></div>
-   <div className="tp-org-row"><i>AE</i><span><b>{c.by}</b><small>{c.organizer} · Praha</small></span></div>
+   <div className="tp-org-row"><i>AE</i><span><b>{c.by}</b><small>{c.organizer}, Praha</small></span></div>
    <div className="tp-cta"><span><small>{premium[language].discover.price}</small><b>{c.about}</b></span><em>{c.reserve}<BrandIcon name="arr" size={20}/></em></div>
   </div>
  </Chrome>;
@@ -217,7 +217,7 @@ export function LaptopCheckin({language}:{language:LanguageCode}){
     <div className="tp-scan-side">
      <label><small>{c.enter}</small><span className="is-focus">TT-3882-X1V70</span></label>
      <em className="tp-btn-solid">{c.accept}<BrandIcon name="scan" size={20}/></em>
-     <p className="tp-accepted"><BrandIcon name="chk" size={20}/>{c.accepted}: Marie Kovaleva · 1</p>
+     <p className="tp-accepted"><BrandIcon name="chk" size={20}/>{c.accepted}: Marie Kovaleva</p>
      <GuestTable language={language} rows={3}/>
     </div>
    </div>

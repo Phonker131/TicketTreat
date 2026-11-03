@@ -41,6 +41,12 @@ export function PwaBootstrap() {
     }
 
     const webApp = getTelegramWebApp();
+    // Telegram's own header and background follow the site theme.
+    const paintTelegram=()=>{
+      const color=document.documentElement.dataset.theme==="light"?"#F0EBE1":"#02070A";
+      webApp?.setHeaderColor?.(color);
+      webApp?.setBackgroundColor?.(color);
+    };
 
     // Direct/Main Mini App links carry an optional startapp payload.
     // Use signed initData when available; the Telegram query parameter is a
@@ -57,8 +63,8 @@ export function PwaBootstrap() {
     if (webApp) {
       webApp.ready();
       webApp.expand();
-      webApp.setHeaderColor?.("#F6EEFA");
-      webApp.setBackgroundColor?.("#F6EEFA");
+      paintTelegram();
+      window.addEventListener("tickettreat-theme-change",paintTelegram);
       if (webApp.initData) {
         void getVerifiedTelegramSession().catch(() => {
           // Do not expose Telegram initData or server details in browser logs.
@@ -66,6 +72,7 @@ export function PwaBootstrap() {
         });
       }
     }
+    return () => window.removeEventListener("tickettreat-theme-change",paintTelegram);
   }, [router]);
 
   return null;

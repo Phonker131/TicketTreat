@@ -19,6 +19,18 @@ const messages: Array<[string,string,string,string]> = [
     "Афіша перевищує 4 МБ."
   ],
   [
+    "Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.",
+    "Poster size: 1080×1350 px (portrait 4:5), at least 800×1000 px. Keep key text in the centre, the feed may crop the edges. Colours stay exactly as in your file.",
+    "Velikost plakátu: 1080×1350 px (na výšku 4:5), minimálně 800×1000 px. Důležitý text držte uprostřed, v přehledu se okraje mohou oříznout. Barvy zůstanou jako v souboru.",
+    "Розмір афіші: 1080×1350 px (вертикальна 4:5), мінімум 800×1000 px. Важливе тримайте в центрі, у стрічці краї можуть обрізатися. Кольори залишаються як у файлі."
+  ],
+  [
+    "Фото галереи: от 1200 px по длинной стороне, горизонтальные 3:2 или 4:3 смотрятся лучше всего.",
+    "Gallery photos: at least 1200 px on the long side; landscape 3:2 or 4:3 looks best.",
+    "Fotky galerie: alespoň 1200 px na delší straně; nejlépe vypadají na šířku 3:2 nebo 4:3.",
+    "Фото галереї: від 1200 px по довшій стороні, горизонтальні 3:2 або 4:3 виглядають найкраще."
+  ],
+  [
     "Формат постера — JPG, PNG или WebP.",
     "Poster format must be JPG, PNG or WebP.",
     "Plakát musí být ve formátu JPG, PNG nebo WebP.",

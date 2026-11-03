@@ -11,7 +11,6 @@ import {premium} from "@/components/premium/copy";
 import {EventsSkeleton,EventsEmpty} from "@/components/premium/EventsPlaceholders";
 import {PhoneScreen} from "@/components/premium/Screens";
 import {BrandPhoto} from "@/components/premium/BrandPhoto";
-import {PosterStrip} from "@/components/premium/PosterStrip";
 import dynamic from "next/dynamic";
 import {useLanguage} from "@/components/LanguageProvider";
 import {getEvents,getSiteLanding,type SiteLanding} from "@/lib/api";
@@ -20,6 +19,7 @@ import type {TicketTreatEvent} from "@/lib/types";
 
 /* Below the fold: server-rendered, but its code (carousel, animations) loads in a separate chunk after the first screen. */
 const GuidedSections=dynamic(()=>import("@/components/GuidedSections").then(mod=>mod.GuidedSections));
+const PageFaq=dynamic(()=>import("@/components/premium/PageFaq").then(mod=>mod.PageFaq));
 
 /** Czech pilot: all published events in one catalogue. No location profiling. */
 export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:TicketTreatEvent[]|null;forcedLanguage?: "ru"|"cs"|"en"|"uk"}){
@@ -46,10 +46,10 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
   },[]);
 
   const copy={
-    ru:{eyebrow:"PRAHA / TICKETTREAT",headline:["БИЛЕТ ЗА","ТРИ КАСАНИЯ"],intro:"Выбери ивент, запишись и покажи QR на входе. Все билеты в одном месте.",browse:"Смотреть ивенты",tickets:"Мои билеты",city:"БЛИЖАЙШИЕ В ЧЕХИИ",subtitle:"Живые встречи, настоящие места. Выбирай свой вечер.",empty:"Афиши скоро появятся",poster:"АФИША / СКОРО",details:"Подробнее",help:"Вопросы о билетах?",faq:"Частые вопросы"},
-    cs:{eyebrow:"PRAHA / TICKETTREAT",headline:["VSTUPENKA NA","TŘI KROKY"],intro:"Vyber si akci, zarezervuj místo a u vstupu ukaž QR. Vstupenky máš na jednom místě.",browse:"Zobrazit akce",tickets:"Moje vstupenky",city:"NEJBLIŽŠÍ AKCE V ČESKU",subtitle:"Skuteční lidé a večery, na které se těšíš.",empty:"Plakáty se tu brzy objeví",poster:"PLAKÁT / BRZY",details:"Podrobnosti",help:"Otázky ke vstupenkám?",faq:"Časté otázky"},
-    uk:{eyebrow:"PRAHA / TICKETTREAT",headline:["КВИТОК ЗА","ТРИ КРОКИ"],intro:"Обери подію, забронюй місце та покажи QR на вході. Усі квитки в одному місці.",browse:"Переглянути події",tickets:"Мої квитки",city:"НАЙБЛИЖЧІ ПОДІЇ В ЧЕХІЇ",subtitle:"Живі зустрічі та справжні події.",empty:"Афіші незабаром з’являться",poster:"АФІША / СКОРО",details:"Докладніше",help:"Питання про квитки?",faq:"Поширені запитання"},
-    en:{eyebrow:"PRAHA / TICKETTREAT",headline:["YOUR TICKET","IN THREE STEPS"],intro:"Find an event, book a spot and show your QR at the door. Keep all tickets in one place.",browse:"Explore events",tickets:"My tickets",city:"UPCOMING IN CZECHIA",subtitle:"Real people, real nights out. Find your next event.",empty:"New posters are coming soon",poster:"POSTER / SOON",details:"View event",help:"Questions about tickets?",faq:"Read FAQ"}
+    ru:{eyebrow:"PRAHA / TICKETTREAT",headline:["БИЛЕТ ЗА","ТРИ КАСАНИЯ"],intro:"Выбери ивент, запишись и покажи QR на входе. Все билеты в одном месте.",browse:"Смотреть ивенты",tickets:"Мои билеты",city:"БЛИЖАЙШИЕ В ЧЕХИИ",subtitle:"Живые встречи, настоящие места. Выбирай свой вечер.",empty:"Афиши скоро появятся",poster:"АФИША / СКОРО",details:"Подробнее"},
+    cs:{eyebrow:"PRAHA / TICKETTREAT",headline:["VSTUPENKA NA","TŘI KROKY"],intro:"Vyber si akci, zarezervuj místo a u vstupu ukaž QR. Vstupenky máš na jednom místě.",browse:"Zobrazit akce",tickets:"Moje vstupenky",city:"NEJBLIŽŠÍ AKCE V ČESKU",subtitle:"Skuteční lidé a večery, na které se těšíš.",empty:"Plakáty se tu brzy objeví",poster:"PLAKÁT / BRZY",details:"Podrobnosti"},
+    uk:{eyebrow:"PRAHA / TICKETTREAT",headline:["КВИТОК ЗА","ТРИ КРОКИ"],intro:"Обери подію, забронюй місце та покажи QR на вході. Усі квитки в одному місці.",browse:"Переглянути події",tickets:"Мої квитки",city:"НАЙБЛИЖЧІ ПОДІЇ В ЧЕХІЇ",subtitle:"Живі зустрічі та справжні події.",empty:"Афіші незабаром з’являться",poster:"АФІША / СКОРО",details:"Докладніше"},
+    en:{eyebrow:"PRAHA / TICKETTREAT",headline:["YOUR TICKET","IN THREE STEPS"],intro:"Find an event, book a spot and show your QR at the door. Keep all tickets in one place.",browse:"Explore events",tickets:"My tickets",city:"UPCOMING IN CZECHIA",subtitle:"Real people, real nights out. Find your next event.",empty:"New posters are coming soon",poster:"POSTER / SOON",details:"View event"}
   }[language];
   return <div className="app-shell tt-night-home">
     <AppHeader/>
@@ -87,12 +87,8 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
         {!loading&&!error&&events.length>0&&
           <EventDiscovery events={events} language={language}/>}
       </section>
-      <PosterStrip language={language}/>
       <GuidedSections language={language}/>
-      <section className="tt-home-faq" aria-label="TicketTreat FAQ">
-        <div><h2>{copy.help}</h2><p>{language==="en"?"Registration, QR tickets and cancellations.":language==="cs"?"Registrace, QR vstupenky a zrušení.":language==="uk"?"Реєстрація, QR-квитки та скасування.":"Регистрация, QR-билеты и отмены."}</p></div>
-        <Link href={language==="ru"?"/faq":"/"+language+"/faq"} className="button button-secondary">{copy.faq}</Link>
-      </section>
+      <PageFaq topic="home" language={language}/>
     </main>
   </div>;
 }

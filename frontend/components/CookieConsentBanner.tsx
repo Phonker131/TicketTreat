@@ -12,7 +12,7 @@ const copy = {
   ru: {
     title:"Cookies и конфиденциальность",
     intro:"Необходимые cookies помогают войти в аккаунт и пользоваться TicketTreat. Если разрешишь дополнительные cookies, на страницах событий смогут загружаться карты Google. Рекламных и аналитических cookies у нас нет.",
-    accept:"Разрешить cookies", reject:"Отклонить необязательные", settings:"Настроить",
+    accept:"Принять все", reject:"Только необходимые", settings:"Настроить",
     optionsTitle:"Настройки cookies",
     necessary:"Необходимые cookies и локальные настройки", necessaryInfo:"Всегда включены. Сессия, защита входа, язык, работа Mini App и сохранение выбора cookies. Без них некоторые функции не работают.",
     media:"Встроенные карты Google", mediaInfo:"Необязательные. При разрешении на странице события может загружаться Google Maps. Google может обрабатывать данные устройства и устанавливать собственные cookies.",
@@ -23,7 +23,7 @@ const copy = {
   en: {
     title:"Cookies and privacy",
     intro:"Essential cookies help you sign in and use TicketTreat. If you allow optional cookies, event pages can load Google Maps. We don't use advertising or analytics cookies.",
-    accept:"Allow cookies", reject:"Reject optional", settings:"Customize",
+    accept:"Accept all", reject:"Essential only", settings:"Customize",
     optionsTitle:"Cookie preferences",
     necessary:"Essential cookies and local preferences", necessaryInfo:"Always on. Sign-in, session security, language, Mini App features and remembering cookie choices. Some features require these technologies.",
     media:"Embedded Google Maps", mediaInfo:"Optional. When enabled, Google Maps can load on an event page. Google may receive device data and set its own cookies.",
@@ -34,7 +34,7 @@ const copy = {
   cs: {
     title:"Cookies a ochrana soukromí",
     intro:"Nezbytné cookies slouží k přihlášení a používání TicketTreat. Pokud povolíte volitelné cookies, na stránkách akcí se mohou zobrazit Mapy Google. Reklamní ani analytické cookies nepoužíváme.",
-    accept:"Povolit cookies",reject:"Odmítnout volitelné",settings:"Nastavit",
+    accept:"Přijmout vše",reject:"Jen nezbytné",settings:"Nastavit",
     optionsTitle:"Nastavení cookies",
     necessary:"Nezbytné cookies a místní nastavení",necessaryInfo:"Vždy zapnuté. Přihlášení, zabezpečení relace, jazyk, funkce Mini App a uchování volby cookies. Bez nich nemusí některé funkce fungovat.",
     media:"Vložené Mapy Google",mediaInfo:"Volitelné. Po souhlasu lze na stránce akce načíst Mapy Google. Google může zpracovávat údaje zařízení a používat vlastní cookies.",
@@ -45,7 +45,7 @@ const copy = {
   uk: {
     title:"Cookies і конфіденційність",
     intro:"Необхідні cookies допомагають входити в акаунт і користуватися TicketTreat. Якщо дозволиш додаткові cookies, на сторінках подій зможуть завантажуватися карти Google. Рекламних та аналітичних cookies у нас немає.",
-    accept:"Дозволити cookies",reject:"Відхилити необов’язкові",settings:"Налаштувати",
+    accept:"Прийняти всі",reject:"Лише необхідні",settings:"Налаштувати",
     optionsTitle:"Налаштування cookies",
     necessary:"Необхідні cookies та локальні налаштування",necessaryInfo:"Завжди ввімкнено. Вхід, захист сесії, мова, Mini App і збереження вибору cookies.",
     media:"Вбудовані Google Maps",mediaInfo:"Необов’язкові. Після дозволу карти можуть завантажуватися на сторінках подій. Google може обробляти дані пристрою й використовувати власні cookies.",
@@ -105,7 +105,6 @@ export function CookieConsentBanner() {
   return <aside className="tt-consent-banner" aria-label={tr.title} data-testid="tt-cookie-banner">
     <div className="tt-consent-inner">
       <div className="tt-consent-heading">
-        <span className="tt-consent-badge" aria-hidden="true">◈</span>
         <h2 id="tt-consent-title">{editing ? tr.optionsTitle : tr.title}</h2>
         {choice && editing && <button type="button" className="tt-consent-close" onClick={() => setEditing(false)} aria-label={tr.close}>×</button>}
       </div>
@@ -127,10 +126,10 @@ export function CookieConsentBanner() {
         </div>
         <p className="tt-consent-no-trackers">{tr.noTracking}</p>
       </div>}
-      <p className="tt-consent-hint">{tr.hint} <Link href="/cookie-policy">{tr.policy} →</Link></p>
+      <p className="tt-consent-hint">{tr.hint} <Link href="/cookie-policy">{tr.policy}</Link></p>
       <div className="tt-consent-actions">
-        <button type="button" className="tt-consent-decision" onClick={() => decide(true)}>{tr.accept}</button>
-        <button type="button" className="tt-consent-decision" onClick={() => decide(false)}>{tr.reject}</button>
+        <button type="button" className="tt-consent-decision is-accept" onClick={() => decide(true)}>{tr.accept}</button>
+        <button type="button" className="tt-consent-decision is-essential" onClick={() => decide(false)}>{tr.reject}</button>
         {editing
           ? <button type="button" className="tt-consent-secondary" onClick={() => decide(mediaChecked)}>{tr.save}</button>
           : <button type="button" className="tt-consent-secondary" onClick={() => setEditing(true)}>{tr.settings}</button>}

@@ -4,6 +4,7 @@ import {AppHeader} from "@/components/AppHeader";
 import {EventCard} from "@/components/EventCard";
 import {useLanguage} from "@/components/LanguageProvider";
 import type {OrganizerPublicDetail,LanguageCode} from "@/lib/types";
+import {PageFaq} from "@/components/premium/PageFaq";
 
 const W:Record<LanguageCode,Record<string,string>>={
   en:{back:"All organizers",about:"About organizer",upcoming:"Upcoming events",past:"Past events",held:"Held",planned:"Upcoming",none:"No events in this section yet.",instagram:"Instagram",website:"Website"},
@@ -25,15 +26,15 @@ export function OrganizerPublicClient({data}:{data:OrganizerPublicDetail}){
         </div>
         <div className="tt-organizer-name">
           <h1>{data.display_name}</h1>
-          {data.city&&<p>📍 {data.city}</p>}
+          {data.city&&<p>{data.city}</p>}
         </div>
       </div>
       <div className="tt-organizer-description">
         <h2>{w.about}</h2>
         <p>{data.bio}</p>
         <div className="tt-organizer-links">
-          {data.website_url&&<a href={data.website_url} target="_blank" rel="noopener noreferrer nofollow" className="button button-outline">{w.website} ↗</a>}
-          {data.instagram&&<a href={`https://www.instagram.com/${encodeURIComponent(data.instagram)}/`} target="_blank" rel="noopener noreferrer nofollow" className="button button-outline">{w.instagram} ↗</a>}
+          {data.website_url&&<a href={data.website_url} target="_blank" rel="noopener noreferrer nofollow" className="button button-outline">{w.website}</a>}
+          {data.instagram&&<a href={`https://www.instagram.com/${encodeURIComponent(data.instagram)}/`} target="_blank" rel="noopener noreferrer nofollow" className="button button-outline">{w.instagram}</a>}
         </div>
       </div>
       <div className="tt-organizer-stats">
@@ -49,5 +50,6 @@ export function OrganizerPublicClient({data}:{data:OrganizerPublicDetail}){
       <h2>{w.past}</h2>
       {data.past_events.length>0?<div className="event-grid">{data.past_events.map(event=><EventCard event={event} key={event.id}/>)}</div>:<div className="state-card">{w.none}</div>}
     </section>
+<PageFaq topic="organizers"/>
   </main></div>;
 }

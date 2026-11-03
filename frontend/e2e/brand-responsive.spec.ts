@@ -29,7 +29,7 @@ test("mobile navigation and accessible keyboard focus",async({page})=>{
   await page.goto("/?nostory",{waitUntil:"domcontentloaded"});
   const nav=page.locator(".topbar-nav");
   const menu=page.locator(".topbar-menu-toggle");
-  await expect(menu).toHaveAttribute("aria-label","Открыть меню");
+  await expect(menu).toHaveAttribute("aria-label","Open menu");
   await expect(menu).toBeEnabled();
   await expect(nav).toBeHidden();
   await expect(menu).toHaveAttribute("aria-expanded","false");
@@ -235,17 +235,17 @@ test("support center is linked publicly, does not permit anonymous complaints an
 
 test("support admin page does not expose inbox to signed-out visitors",async({page})=>{
   await page.goto("/admin/support",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("heading",{name:"Служба поддержки"})).toBeVisible();
-  await expect(page.getByRole("heading",{name:"Входящие тикеты"})).toHaveCount(0);
+  await expect(page.getByRole("heading",{name:"Support desk"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Incoming tickets"})).toHaveCount(0);
 });
 
 test("cookie consent is opt-in, rejecting persists and preferences can be changed",async({page})=>{
   await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
   const banner=page.getByTestId("tt-cookie-banner");
   await expect(banner).toBeVisible();
-  await expect(banner.getByRole("button",{name:"Allow cookies"})).toBeVisible();
-  await expect(banner.getByRole("button",{name:"Reject optional"})).toBeVisible();
-  await banner.getByRole("button",{name:"Reject optional"}).click();
+  await expect(banner.getByRole("button",{name:"Accept all"})).toBeVisible();
+  await expect(banner.getByRole("button",{name:"Essential only"})).toBeVisible();
+  await banner.getByRole("button",{name:"Essential only"}).click();
   await expect(banner).toHaveCount(0);
   const consent=await page.evaluate(()=>JSON.parse(localStorage.getItem("tt_cookie_choice_v1")||"null"));
   expect(consent.necessary).toBe(true);
@@ -264,7 +264,7 @@ test("cookie consent is opt-in, rejecting persists and preferences can be change
   await expect(page.getByRole("heading",{name:"Cookie Policy / Zásady cookies"})).toBeVisible();
   await page.getByRole("button",{name:"Cookie settings / Nastavení cookies"}).click();
   await expect(banner).toBeVisible();
-  await banner.getByRole("button",{name:"Reject optional"}).click();
+  await banner.getByRole("button",{name:"Essential only"}).click();
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem("tt_cookie_choice_v1")||"null").externalMedia)).toBe(false);
 });
 
@@ -278,29 +278,30 @@ test("Google Maps iframe never loads until opt-in and is removed on withdrawal",
     status:200,contentType:"application/json",body:JSON.stringify(event)}));
   await page.goto("/events/9373?lang=en",{waitUntil:"domcontentloaded"});
   await expect(page.getByTestId("tt-cookie-banner")).toBeVisible();
-  await page.getByRole("button",{name:"Reject optional"}).click();
+  await page.getByRole("button",{name:"Essential only"}).click();
   await page.getByRole("button",{name:"Show map"}).click();
   await expect(page.locator('iframe[src*="maps.google.com"]')).toHaveCount(0);
   await expect(page.getByText("The embedded Google Maps frame requires optional consent.")).toBeVisible();
   await page.getByRole("button",{name:"Manage cookie preferences"}).click();
-  await page.getByTestId("tt-cookie-banner").getByRole("button",{name:"Allow cookies"}).click();
+  await page.getByTestId("tt-cookie-banner").getByRole("button",{name:"Accept all"}).click();
   await expect(page.locator('iframe[src*="maps.google.com"]')).toHaveCount(1);
   await page.locator("footer").getByRole("button",{name:"Cookie settings"}).click();
-  await page.getByTestId("tt-cookie-banner").getByRole("button",{name:"Reject optional"}).click();
+  await page.getByTestId("tt-cookie-banner").getByRole("button",{name:"Essential only"}).click();
   await expect(page.locator('iframe[src*="maps.google.com"]')).toHaveCount(0);
 });
 
 test("Cookie banner remains usable on 320px narrow devices",async({page})=>{
   await page.setViewportSize({width:320,height:700});
   await page.goto("/?lang=cs&nostory",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("button",{name:"Odmítnout volitelné"})).toBeVisible();
-  await expect(page.getByRole("button",{name:"Povolit cookies"})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Jen nezbytné"})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Přijmout vše"})).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
 });
 
-test("FAQ opens without login and expands answers in four languages",async({page})=>{
-  for(const [lang,title] of [["en","Frequently asked questions"],["ru","Частые вопросы"],["cs","Často kladené otázky"],["uk","Поширені запитання"]] as const){
-    await page.goto(`/faq?lang=${lang}`,{waitUntil:"domcontentloaded"});
+test("FAQ opens without login and expands answers in the offered languages",async({page})=>{
+  // Russian is hidden from the interface for now; /faq keeps a Russian server render for search engines (seo-crawlability).
+  for(const [path,title] of [["/en/faq","Frequently asked questions"],["/cs/faq","Často kladené otázky"],["/uk/faq","Поширені запитання"]] as const){
+    await page.goto(path,{waitUntil:"domcontentloaded"});
     await expect(page.getByRole("heading",{level:1,name:title})).toBeVisible();
     await expect(page.locator(".tt-faq-item")).toHaveCount(12);
     const first=page.locator(".tt-faq-item").first();
@@ -582,7 +583,7 @@ for(const [width,height,theme] of [
     // test the footer after an explicit user rejection, as in the screenshot.
     const banner=page.getByTestId("tt-cookie-banner");
     await expect(banner).toBeVisible();
-    await banner.getByRole("button",{name:"Reject optional"}).click();
+    await banner.getByRole("button",{name:"Essential only"}).click();
     await expect(banner).toHaveCount(0);
     const footer=page.locator("body > footer.tt-legal-footer");
     await expect(footer).toBeVisible();

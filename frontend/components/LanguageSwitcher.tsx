@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {usePathname,useRouter} from "next/navigation";
-import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from "@/lib/i18n";
+import { LANGUAGE_LABELS } from "@/lib/i18n";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { LanguageCode } from "@/lib/types";
 
@@ -12,6 +12,9 @@ const FLAGS: Record<LanguageCode, string> = {
   cs: "🇨🇿",
   en: "🇬🇧",
 };
+
+/* Russian and Ukrainian are hidden for now; their pages still work when opened directly. */
+const OFFERED_LANGUAGES: LanguageCode[] = ["en", "cs"];
 
 export function LanguageSwitcher() {
   const { language, setLanguage } = useLanguage();
@@ -55,7 +58,7 @@ export function LanguageSwitcher() {
       </button>
       {open && (
         <div className="language-flag-menu" role="menu" aria-label={selectLabel}>
-          {SUPPORTED_LANGUAGES.map((code) => (
+          {OFFERED_LANGUAGES.map((code) => (
             <button
               key={code}
               type="button"

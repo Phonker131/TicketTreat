@@ -143,7 +143,7 @@ export function TicketClient() {
          <div className="ticket-main tt-pass-body">
            <p className="eyebrow">TICKETTREAT / #{ticket.code}</p>
            <h1>{ticket.event?.title||"TicketTreat"}</h1>
-           <p className="tt-pass-organizer">{tr.organizer} · {ticket.event?.organizer||"TicketTreat"}</p>
+           <p className="tt-pass-organizer">{tr.organizer}: {ticket.event?.organizer||"TicketTreat"}</p>
            <div className="ticket-facts tt-pass-facts">
              <div><span>{t(language,"startsAt")}</span><strong>{formatDate(ticket.event?.starts_at||null,language)}</strong></div>
              <div><span>{t(language,"location")}</span><strong>{ticket.event?.location||"Czechia"}</strong></div>

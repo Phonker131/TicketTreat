@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 
 import {
   normalizeLanguage,
@@ -25,9 +26,15 @@ const LanguageContext =
 const LANGUAGE_KEY = "tickettreat_interface_language";
 const LEGACY_LANGUAGE_KEY = "crowdly_interface_language";
 
+/* Only English and Czech are offered for now. Any other saved, linked, Telegram or browser language falls back to English;
+   the localized addresses (/uk, /uk/faq) still open their version for search engines. */
+function offered(language: LanguageCode | null): LanguageCode | null {
+  return language === "en" || language === "cs" ? language : null;
+}
+
 function getInitialLanguage(): LanguageCode {
   if (typeof window === "undefined") {
-    return "ru";
+    return "en";
   }
 
   // A shareable language URL takes precedence over old localStorage choices.
@@ -36,20 +43,20 @@ function getInitialLanguage(): LanguageCode {
     const fromPath=normalizeLanguage(localeMatch[1]);
     if(fromPath)return fromPath;
   }
-  const queryLanguage = normalizeLanguage(
+  const queryLanguage = offered(normalizeLanguage(
     new URLSearchParams(
       window.location.search,
     ).get("lang"),
-  );
+  ));
 
   if (queryLanguage) {
     return queryLanguage;
   }
 
-  const stored = normalizeLanguage(
+  const stored = offered(normalizeLanguage(
     window.localStorage.getItem(LANGUAGE_KEY) ||
     window.localStorage.getItem(LEGACY_LANGUAGE_KEY),
-  );
+  ));
 
   if (stored) {
     window.localStorage.setItem(LANGUAGE_KEY, stored);
@@ -57,20 +64,20 @@ function getInitialLanguage(): LanguageCode {
     return stored;
   }
 
-  const telegramLanguage = normalizeLanguage(
+  const telegramLanguage = offered(normalizeLanguage(
     getTelegramWebApp()
       ?.initDataUnsafe
       ?.user
       ?.language_code,
-  );
+  ));
 
   if (telegramLanguage) {
     return telegramLanguage;
   }
 
   return (
-    normalizeLanguage(window.navigator.language) ||
-    "ru"
+    offered(normalizeLanguage(window.navigator.language)) ||
+    "en"
   );
 }
 
@@ -79,8 +86,10 @@ export function LanguageProvider({
 }: {
   children: React.ReactNode;
 }) {
+  // /faq is the Russian FAQ page for search engines, so its server render stays Russian; everything else renders English.
+  const pathname = usePathname();
   const [language, setLanguageState] =
-    useState<LanguageCode>("ru");
+    useState<LanguageCode>(pathname==="/faq"?"ru":"en");
 
   useEffect(() => {
     setLanguageState(getInitialLanguage());

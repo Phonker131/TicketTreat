@@ -82,7 +82,7 @@ export function WelcomeStory({language}:{language:LanguageCode}){
    <AnimatePresence mode="wait" initial={false} custom={dir}>
     <M.div key={"t"+page} className="tp-tour-copy" aria-live="polite"
       initial={{opacity:0,x:40*dir*move}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-30*dir*move,transition:{duration:.16}}} transition={{...spring,delay:.04}}>
-     <p className="tp-tour-kicker"><b>{String(page+1).padStart(2,"0")}</b> / 03 · {slide.kicker}</p>
+     <p className="tp-tour-kicker"><b>{String(page+1).padStart(2,"0")}</b> / 03, {slide.kicker}</p>
      <h2>{slide.title}</h2>
      <p className="tp-tour-text">{slide.text}</p>
      <ul className="tp-tour-chips">{slide.chips.map(x=><li key={x}>{x}</li>)}</ul>

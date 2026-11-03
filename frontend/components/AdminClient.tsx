@@ -181,7 +181,8 @@ export function AdminClient() {
         <label>{ui.photo}<textarea name="gallery_urls" rows={4} placeholder="https://example.com/event-photo.jpg"/></label>
         <label>{ui.video}<input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=…"/></label>
         <label>{tr("Постер JPG/PNG/WebP до 4 МБ")}<input name="poster" type="file" accept="image/jpeg,image/png,image/webp"
-          onChange={e=>{const f=e.target.files?.[0];if(!f){setPreview("");return;}if(f.size>4*1024*1024){setError("msg:tooBig");return;}const url=URL.createObjectURL(f);setPreview(url);}}/></label>
+          onChange={e=>{const f=e.target.files?.[0];if(!f){setPreview("");return;}if(f.size>4*1024*1024){setError("msg:tooBig");return;}const url=URL.createObjectURL(f);setPreview(url);}}/>
+          <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
         {preview&&<><img className="event-poster-preview" src={preview} alt="Poster preview"/></>}
         <fieldset className="event-language-fieldset"><legend>{tr("Языки ивента")}</legend><div className="event-language-options">
           {([["en","🇬🇧","English"],["cs","🇨🇿","Čeština"],["ru","🇷🇺","Русский"],["uk","🇺🇦","Українська"]] as const).map(([id,flag,name])=>

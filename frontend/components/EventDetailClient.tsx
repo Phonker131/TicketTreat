@@ -14,6 +14,7 @@ import { CONSENT_EVENT,hasExternalMediaConsent,openCookieSettings } from "@/lib/
 import { formatDate, formatPrice } from "@/lib/format";
 import { LANGUAGE_NAMES, t } from "@/lib/i18n";
 import type { TicketTreatEvent } from "@/lib/types";
+import {PageFaq} from "@/components/premium/PageFaq";
 
 export function EventDetailClient({preview=false,initialEvent=null}:{preview?:boolean;initialEvent?:TicketTreatEvent|null}) {
   const params = useParams<{id: string}>();
@@ -141,7 +142,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         <section className="detail-grid">
           <div className="detail-item"><span>{t(language, "startsAt")}</span><strong>{formatDate(event.starts_at, language)}</strong></div>
           <div className="detail-item"><span>{t(language, "location")}</span><strong>{event.location || "—"}</strong></div>
-          <div className="detail-item"><span>{t(language, "organizer")}</span><strong>{event.organizer_profile ? <Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-organizer-link">{event.organizer_profile.display_name} ↗</Link> : (event.organizer === "Crowdly" ? "TicketTreat" : (event.organizer || "TicketTreat"))}</strong></div>
+          <div className="detail-item"><span>{t(language, "organizer")}</span><strong>{event.organizer_profile ? <Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-organizer-link">{event.organizer_profile.display_name}</Link> : (event.organizer === "Crowdly" ? "TicketTreat" : (event.organizer || "TicketTreat"))}</strong></div>
           <div className="detail-item"><span>{t(language, "price")}</span><strong>{formatPrice(event, language)}</strong></div>
           <div className="detail-item"><span>{t(language, "spots")}</span><strong>{event.spots_left ?? "∞"}</strong></div>
           <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
@@ -194,6 +195,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
             )}
           </section>
         )}
+<PageFaq topic="event"/>
       </main>
     </div>
   );

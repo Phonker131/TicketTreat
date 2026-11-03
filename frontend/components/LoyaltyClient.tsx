@@ -7,6 +7,7 @@ import {useLanguage} from "@/components/LanguageProvider";
 import {getMyLoyalty,type LoyaltyPassport,type LoyaltyStudio} from "@/lib/api";
 import {restoreGuest} from "@/lib/session";
 import type {LanguageCode} from "@/lib/types";
+import {PageFaq} from "@/components/premium/PageFaq";
 
 const copy = {
  ru:{title:"Паспорт гостя",subtitle:"Посещай ивенты, собирай штампы и открывай награды",total:"Всего посещений",season:"Сезон",until:"До нового уровня",top:"Высший уровень",perks:"Твои бонусы",ready:"Доступно",planned:"Скоро",priority:"Приоритет в листе ожидания",early:"Ранняя запись на 24 часа",companion:"VIP: +1 гость",empty:"Паспорт появится после записи к организатору",signin:"Войди на сайте или открой Telegram Mini App",detail:"Штампы начисляются после подтверждённого check-in, а не за запись. Пока уровни считаются отдельно для каждого организатора в пределах календарного квартала."},
@@ -78,5 +79,6 @@ export function LoyaltyClient(){
    <div className="loyalty-grid">{passport.studios.map(s=><PassportCard key={s.organizer_id} studio={s} language={language}/>)}</div>}
    <p className="form-note loyalty-explanation">{tr.detail}</p>
   </>}
+<PageFaq topic="rewards"/>
  </main></div>;
 }
