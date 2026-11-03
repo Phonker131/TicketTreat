@@ -355,6 +355,13 @@ export function duplicateManageEvent(token:string,eventId:number,startsAt?:strin
 export function editManageEvent(token: string, eventId: number, payload: Record<string,unknown>): Promise<import("@/lib/types").ManageEvent> {
   return request(`/demo/manage/events/${eventId}`, {method:"PATCH",headers:accountHeaders(token),body:JSON.stringify(payload)});
 }
+/** Permanently remove only an owned, unused draft. The backend enforces eligibility. */
+export function deleteManageEvent(token:string,eventId:number):
+  Promise<{status:"deleted";event_id:number}>{
+  return request(`/demo/manage/events/${eventId}`,{
+    method:"DELETE",headers:accountHeaders(token)
+  });
+}
 export function cancelManageEvent(token: string, eventId: number, reason: string): Promise<import("@/lib/types").ManageEvent> {
   return request(`/demo/manage/events/${eventId}/cancel`,{method:"POST",headers:accountHeaders(token),body:JSON.stringify({reason})});
 }
