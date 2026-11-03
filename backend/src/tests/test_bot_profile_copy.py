@@ -149,6 +149,7 @@ class ProfileCopyTests(unittest.TestCase):
         context={
             "user_language_cache":{},
             "normalize_language":module.normalize_language,
+            "SUPPORTED_INTERFACE_LANGUAGES":("en","cs"),
             "backend_request":backend,
         }
         exec(compile(ast.Module(body=[fn],type_ignores=[]),str(PATH.parent/"main.py"),"exec"),context)
