@@ -92,8 +92,9 @@ export function OrganizerAnalyticsClient(){
   }
   async function copyEvent(event:OrganizerAnalyticsEvent){
     if(event.publication!=="published"||event.is_cancelled)return;
-    if(!validTag){setNotice(cm.badSource);return;}
-    await copyText(trackedLink(event.event_id,tag));
+    // The event table always copies an untagged link. Only the explicit
+    // marketing builder creates attribution codes.
+    await copyText(trackedLink(event.event_id,"direct"));
   }
   return <div className="app-shell"><AppHeader/><main className="page tt-analytics-dashboard">
     <Link href="/admin" className="back-link">← {t.back}</Link>
