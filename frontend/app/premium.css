@@ -1419,3 +1419,130 @@ html body .tt-consent-actions .tt-consent-secondary{flex:0 0 auto;grid-column:au
 }
 /* the category switches already show their state; the extra tick glyph goes */
 html body :is(.tt-consent-status,.tt-consent-toggle)>span{display:none!important}
+
+
+/* 2026-11-03 mobile/admin regressions.
+   This is the LAST stylesheet imported by app/layout.tsx: keep overrides scoped
+   rather than changing global button/card styles across the site. */
+
+/* Organizers need their heading and navigation to have independent rows when
+   eight admin actions cannot fit next to the heading at laptop/tablet widths. */
+.app-shell:has(.admin-heading) .admin-heading{min-width:0;max-width:100%}
+.app-shell:has(.admin-heading) .admin-heading > div:first-child{
+  min-width:0;max-width:100%;
+}
+.app-shell:has(.admin-heading) .admin-heading h1{
+  overflow-wrap:normal;word-break:normal;hyphens:none;text-wrap:balance;
+}
+.app-shell:has(.admin-heading) .admin-heading > .admin-event-actions{
+  min-width:0;max-width:100%;justify-content:flex-end;align-content:flex-start;
+}
+.app-shell:has(.admin-heading) .admin-heading > .admin-event-actions .button{
+  min-width:0;max-width:100%;white-space:normal;text-align:center;
+}
+@media(max-width:1250px){
+  .app-shell:has(.admin-heading) .admin-heading{
+    display:flex;flex-direction:column;align-items:stretch;gap:18px;
+  }
+  .app-shell:has(.admin-heading) .admin-heading > div:first-child,
+  .app-shell:has(.admin-heading) .admin-heading > .admin-event-actions{width:100%;flex:none}
+  .app-shell:has(.admin-heading) .admin-heading > .admin-event-actions{justify-content:flex-start}
+}
+@media(max-width:560px){
+  .app-shell:has(.admin-heading) .admin-heading > .admin-event-actions{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+  }
+  .app-shell:has(.admin-heading) .admin-heading > .admin-event-actions .button{
+    width:100%;min-height:44px;justify-content:center;font-size:13px;
+    padding:10px 8px;overflow-wrap:anywhere;
+  }
+  .app-shell:has(.admin-heading) .pilot-event-filters{min-width:0;max-width:100%}
+  .app-shell:has(.admin-heading) .admin-event-grid{min-width:0}
+}
+
+/* Safari's native datetime-local widget exceeded the clipped publishing
+   field. Date and time are now separate, with a full native control per row. */
+.app-shell:has(.admin-event-actions) .tt-publication-schedule{
+  display:grid;grid-template-columns:minmax(0,1fr);width:100%;min-width:0;
+  max-width:100%;gap:12px;align-items:stretch;
+}
+.app-shell:has(.admin-event-actions) .tt-publication-schedule-fields{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+  min-width:0;max-width:100%;width:100%;
+}
+.app-shell:has(.admin-event-actions) .tt-publication-schedule-fields > label{
+  display:grid;gap:7px;min-width:0;max-width:100%;width:100%;
+}
+.app-shell:has(.admin-event-actions) .tt-publication-schedule-fields input{
+  appearance:auto;display:block;box-sizing:border-box;min-width:0;max-width:100%;
+  width:100%;min-height:48px;padding:10px 12px;font-size:16px;line-height:1.3;
+}
+.app-shell:has(.admin-event-actions) .tt-publication-schedule-fields input::-webkit-date-and-time-value{
+  min-width:0;text-align:left;
+}
+.app-shell:has(.admin-event-actions) .tt-publication-schedule > button{
+  width:100%;min-width:0;min-height:48px;max-width:100%;
+}
+@media(max-width:680px){
+  .app-shell:has(.admin-event-actions) .tt-publication-schedule-fields{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
+
+/* Reminder card always uses pale printed paper even inside a dark admin page.
+   Override dark-mode's generic .panel p/.form-note palette specifically here. */
+html[data-theme] body .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard) .panel .tt-reminder-editor{
+  background:#f0ebe1;color:#151321;
+}
+html[data-theme] body .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard) .panel .tt-reminder-editor .form-note,
+html[data-theme] body .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard) .panel .tt-reminder-editor .tt-reminder-label small{
+  color:#45404a!important;opacity:1!important;text-shadow:none!important;
+}
+html[data-theme] body .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard) .panel .tt-reminder-editor .tt-reminder-label{
+  color:#151321!important;
+}
+html[data-theme] body .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard) .panel .tt-reminder-editor textarea{
+  background:#fff!important;color:#151321!important;border-color:#151321!important;
+}
+
+/* The tour mock phone was enlarged again by the late mobile device rules.
+   Keep header and navigation fixed in their own grid rows and scroll ONLY
+   the slide body when the phone and translated copy exceed available height. */
+@media(max-width:900px){
+  html body .tp-tour{
+    height:100dvh;max-height:100dvh;grid-template-rows:auto minmax(0,1fr) auto;
+    overflow:hidden;
+  }
+  html body .tp-tour-top,
+  html body .tp-tour-nav{
+    z-index:3;min-width:0;background:var(--tp-bg);
+  }
+  html body .tp-tour-main{
+    min-height:0;max-height:100%;overflow-x:hidden;overflow-y:auto;
+    overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;
+    display:grid;grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto;align-content:start;gap:14px;
+    padding-top:12px;padding-bottom:20px;cursor:default;
+  }
+  html body .tp-tour-visual,
+  html body .tp-tour-copy{width:100%;max-width:100%;min-width:0}
+  html body .tp-tour-visual{order:-1;display:grid;justify-items:center}
+  html body .tp-tour-copy{order:0;gap:10px}
+  html body .tp-tour .tp-tour-phone{--k:.44;--crop:640px}
+  html body .tp-tour-duo.is-duo{padding-left:0}
+  html body .tp-tour .tp-tour-back{display:none}
+  html body .tp-tour-nav{
+    padding-top:12px;padding-bottom:max(14px,env(safe-area-inset-bottom));
+    border-top:1px solid var(--tp-line);
+  }
+  html body .tp-tour-nav button{min-height:48px}
+}
+@media(max-width:900px) and (max-height:760px){
+  html body .tp-tour .tp-tour-phone{--k:.36;--crop:640px}
+  html body .tp-tour-main{gap:10px;padding-top:6px;padding-bottom:12px}
+}
+@media(max-width:900px) and (max-height:650px){
+  html body .tp-tour .tp-tour-phone{--k:.30;--crop:640px}
+  html body .tp-tour h2{font-size:clamp(32px,9vw,43px)}
+  html body .tp-tour-chips{display:none}
+}
