@@ -264,7 +264,7 @@ def _telegram_link(db: Session, main, account, user: dict, background_tasks: Bac
             continue
         background_tasks.add_task(
             send_miniapp_ticket_notice, telegram_id, event.title, ticket.id,
-            ticket.payment_provider in free_sources, "ru",
+            ticket.payment_provider in free_sources, "en",
         )
         notified += 1
     return {
