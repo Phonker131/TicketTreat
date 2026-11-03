@@ -32,7 +32,7 @@ function escapeCSV(value:unknown):string{
 }
 function exportSummary(data:OrganizerAnalytics){
   const headers=["Event ID","Event title","Start","Publication","Cancelled","Reserved places","Capacity","Occupancy percent","Active QR tickets","QR check-ins","Waitlist","Pending payment","Expiring within 24h","Legacy bot registrations","Source performance (registrations / QR entries)"];
-  const rows=data.events.map(e=>[e.event_id,e.title,e.starts_at,e.publication,e.is_cancelled,e.reserved_places,e.capacity,e.occupancy_percent,e.active_qr,e.checked_in_qr,e.waitlist,e.pending_payment,e.pending_payment_24h,e.legacy_registrations,e.channels.map(x=>`${x.source}: ${x.registrations}/${x.checked_in}`).join("; ")]);
+  const rows=data.events.map(e=>[e.event_id,e.title,e.starts_at,e.publication,e.is_cancelled,e.reserved_places,e.capacity,e.occupancy_percent,e.active_qr,e.checked_in_qr,e.waitlist,e.pending_payment,e.pending_payment_24h,e.legacy_registrations,(e.channels??[]).map(x=>`${x.source}: ${x.registrations}/${x.checked_in??"—"}`).join("; ")]);
   const csv="\uFEFF"+[headers,...rows].map(values=>values.map(escapeCSV).join(",")).join("\r\n");
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const url=URL.createObjectURL(blob);
@@ -146,11 +146,11 @@ export function OrganizerAnalyticsClient(){
             <button className="button button-outline" type="button" disabled={!campaignLink} onClick={()=>void copyText(campaignLink)}>{cm.copyLink}</button>
             <button className="button button-primary" type="button" disabled={!campaignLink} onClick={()=>void copyText(`${cm.postIntro} ${campaignEvent.title}!\n${campaignLink}`)}>{cm.copyPost}</button>
           </div>
-          {campaignEvent.channels.length>0&&<div className="tt-analytics-scroll">
+          {(campaignEvent.channels??[]).length>0&&<div className="tt-analytics-scroll">
             <h3>{cm.sourceTitle} · {campaignEvent.title}</h3>
             <table className="tt-analytics-table">
               <thead><tr><th>{cm.sourceName}</th><th>{cm.bookings}</th><th>{cm.checked}</th><th>{cm.rate}</th></tr></thead>
-              <tbody>{campaignEvent.channels.map(x=><tr key={x.source}><td>{x.source}</td><td>{x.registrations}</td><td>{x.checked_in}</td><td>{x.registrations?`${(x.checked_in*100/x.registrations).toFixed(1)}%`:t.notAvailable}</td></tr>)}</tbody>
+              <tbody>{(campaignEvent.channels??[]).map(x=><tr key={x.source}><td>{x.source}</td><td>{x.registrations}</td><td>{typeof x.checked_in==="number"?x.checked_in:t.notAvailable}</td><td>{x.registrations&&typeof x.checked_in==="number"?`${(x.checked_in*100/x.registrations).toFixed(1)}%`:t.notAvailable}</td></tr>)}</tbody>
             </table>
           </div>}
         </div>}
@@ -159,7 +159,7 @@ export function OrganizerAnalyticsClient(){
         <h2>{cm.sourceTitle}</h2><p className="form-note">{cm.sourceNote}</p>
         {data.channels.length?<div className="tt-analytics-scroll"><table className="tt-analytics-table">
           <thead><tr><th>{cm.sourceName}</th><th>{cm.bookings}</th><th>{cm.checked}</th><th>{cm.rate}</th></tr></thead>
-          <tbody>{data.channels.map(x=><tr key={x.source}><td>{x.source}</td><td>{x.registrations}</td><td>{x.checked_in}</td><td>{x.registrations?`${(x.checked_in*100/x.registrations).toFixed(1)}%`:t.notAvailable}</td></tr>)}</tbody>
+          <tbody>{data.channels.map(x=><tr key={x.source}><td>{x.source}</td><td>{x.registrations}</td><td>{typeof x.checked_in==="number"?x.checked_in:t.notAvailable}</td><td>{x.registrations&&typeof x.checked_in==="number"?`${(x.checked_in*100/x.registrations).toFixed(1)}%`:t.notAvailable}</td></tr>)}</tbody>
         </table></div>:<p>{t.noData}</p>}
       </section>
       <div className="tt-analytics-two-col">
