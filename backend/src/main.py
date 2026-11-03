@@ -3337,6 +3337,12 @@ def demo_admin_check_in(
     if event is None or getattr(event,"is_cancelled",False):
         raise HTTPException(status_code=409, detail="event_cancelled")
 
+    if ticket.checked_in_at is not None:
+        return {
+            "status": "already_checked_in",
+            "ticket": demo_ticket_to_dict(ticket, db),
+        }
+
     if ticket.checked_in_at is None:
         ticket.checked_in_at = utc_now()
         guest = db.query(DemoGuest).filter(DemoGuest.id == ticket.guest_id).first()

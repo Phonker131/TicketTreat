@@ -918,15 +918,27 @@ def install_demo_roles(app, get_db, main):
         # Directly delegate ONLY after server-side ownership authorization.
         return route.endpoint(event_id=event_id,_admin_key="",db=db)
 
-    def _secure_checkin(qr_token: str, account: WebAccount, db: Session):
+    def _secure_checkin(qr_token: str, account: WebAccount, db: Session,
+                        expected_event_id: int | None = None):
         ticket=(db.query(main.DemoTicket).filter(main.DemoTicket.qr_token==qr_token)
                 .with_for_update().first())
         if ticket is None:
             raise HTTPException(status_code=404,detail="ticket_not_found")
         ensure_owner(db,ticket.event_id,account)
-        first_checkin=ticket.checked_in_at is None
+        if expected_event_id is not None and ticket.event_id != expected_event_id:
+            raise HTTPException(status_code=409,detail="wrong_event_ticket")
+        # A QR token is a single-use admission credential. Do not report
+        # success for a replay; preserve the existing read-only ticket state.
+        if ticket.ticket_status != "active":
+            raise HTTPException(status_code=409,detail="ticket_not_active")
+        event=db.get(main.Event,ticket.event_id)
+        if event is None or event.is_cancelled:
+            raise HTTPException(status_code=409,detail="event_cancelled")
+        if ticket.checked_in_at is not None:
+            return {"status":"already_checked_in",
+                    "ticket":redact_organizer_ticket(main.demo_ticket_to_dict(ticket,db))}
         result=main.demo_admin_check_in(qr_token,_admin_key="",db=db)
-        if first_checkin and result.get("status")=="checked_in":
+        if result.get("status")=="checked_in":
             audit(db,ticket.event_id,account.id,"checkin",f"ticket:{ticket.id}")
             db.commit()
         return {**result,"ticket":redact_organizer_ticket(result["ticket"])}
@@ -936,7 +948,7 @@ def install_demo_roles(app, get_db, main):
                         db:Session=Depends(get_db)):
         # QR proof is in the POST body so edge/router access logs do not
         # persist ticket bearer credentials as part of the URL.
-        return _secure_checkin(payload.qr_token,account,db)
+        return _secure_checkin(payload.qr_token,account,db,payload.event_id)
 
     @app.post("/demo/manage/check-in/{qr_token}")
     def check_in(qr_token:str,account:WebAccount=Depends(managing),
@@ -998,6 +1010,7 @@ class OrganizerDecision(BaseModel):
 
 class ScanTicketPayload(BaseModel):
     qr_token: str = Field(min_length=24,max_length=80)
+    event_id: int | None = Field(default=None,gt=0)
 
 
 class GlobalAdminGrantRequest(BaseModel):
