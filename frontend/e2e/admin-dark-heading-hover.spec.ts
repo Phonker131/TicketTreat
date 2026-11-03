@@ -11,6 +11,8 @@ for(const theme of ["dark","light"] as const){
       await expect(page.locator(".topbar-menu-toggle")).toBeEnabled();
       await page.evaluate(()=>{
         const root=document.querySelector(".app-shell")!;
+        // Use a neutral admin shell, not the home hero background image.
+        root.classList.remove("tt-night-home");
         root.insertAdjacentHTML("beforeend",`
           <main class="page"><div class="admin-heading" data-admin-header-test>
             <div><span class="status status-demo">Global administrator</span>
