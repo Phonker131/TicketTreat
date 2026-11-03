@@ -1546,3 +1546,63 @@ html[data-theme] body .app-shell:has(.admin-heading,.admin-event-actions,.admin-
   html body .tp-tour h2{font-size:clamp(32px,9vw,43px)}
   html body .tp-tour-chips{display:none}
 }
+
+
+/* 2026-11-03: live dark organizer header + hover contrast regressions.
+   Some legacy admin styles force var(--ink) on headings even in night mode. */
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading,
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading h1,
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading > div:first-child > p,
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading .status:not(.status-danger){
+  color:var(--paper)!important;
+}
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading .status.status-demo{
+  background:var(--ink3)!important;border:1px solid var(--line)!important;
+  color:var(--paper)!important;
+}
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading h1{
+  line-height:.97;max-width:100%;min-height:0;overflow-wrap:anywhere;
+  text-shadow:none;
+}
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading > div:first-child{
+  position:relative;min-width:0;max-width:100%;overflow:visible;
+}
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading > div:first-child > .status{
+  position:static!important;transform:none!important;display:inline-flex;
+  width:max-content;max-width:100%;white-space:normal;
+}
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading > .admin-event-actions{
+  position:relative;min-width:0;max-width:100%;
+}
+/* Hover/focus on dark outlined buttons must never make labels invisible or
+   leave a contrasting blank offset "ghost" plate. */
+@media (hover:hover) and (pointer:fine){
+  html[data-theme="dark"] body .app-shell:has(.admin-heading,.admin-event-actions)
+  .admin-event-actions .button-outline:hover:not(:disabled),
+  html[data-theme="dark"] body .app-shell:has(.admin-heading,.admin-event-actions)
+  .admin-event-actions .button-outline:focus-visible{
+    background:var(--ink3)!important;color:var(--paper)!important;
+    border-color:var(--paper)!important;box-shadow:none!important;
+    transform:none!important;
+  }
+}
+html[data-theme="dark"] body .app-shell:has(.admin-heading,.admin-event-actions)
+ .admin-event-actions :is(.button-outline,.button-secondary){
+  color:var(--paper)!important;box-shadow:none;
+}
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .section-heading :is(h1,h2,p),
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-event-grid :is(h3,p,small){
+  color:var(--paper)!important;
+}
+
+/* Give short pages (e.g. guest profile and legal pages) a real flexible
+   height instead of leaving an empty scrollable gap after the footer.
+   The footer remains outside .app-shell, so it must participate in body flex. */
+html body{min-height:100dvh;display:flex;flex-direction:column}
+html body > .app-shell{flex:1 0 auto;min-height:0}
+html body > .tt-legal-footer{flex-shrink:0}
+@media(max-width:900px){
+  html body > .app-shell{width:100%;min-width:0}
+  html body > .tt-legal-footer{width:100%;box-sizing:border-box}
+  html body{overflow-x:clip}
+}
