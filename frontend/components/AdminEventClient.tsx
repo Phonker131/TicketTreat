@@ -12,7 +12,7 @@ import {localeForLanguage} from "@/lib/i18n";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
-  editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,orderManageGallery,
+  editManageEvent,cancelManageEvent,deleteManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,orderManageGallery,
   setManagePublication,setManageVisibility,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
   getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
@@ -179,6 +179,27 @@ export function AdminEventClient(){
     }catch(e){
       setCancelError(formattedError(e,language));
     }finally{setBusy(false);}
+  }
+  async function removeUnusedDraft(){
+    if(busy||!event||event.publication?.status!=="draft"||event.is_cancelled)return;
+    const question=language==="ru"
+      ?`Безвозвратно удалить черновик «${event.title}» (#${event.id})? Восстановить мероприятие будет невозможно.`
+      :language==="cs"
+      ?`Opravdu trvale smazat koncept „${event.title}“ (#${event.id})? Akci již nebude možné obnovit.`
+      :language==="uk"
+      ?`Назавжди видалити чернетку «${event.title}» (#${event.id})? Відновити подію буде неможливо.`
+      :`Permanently delete draft “${event.title}” (#${event.id})? This cannot be undone.`;
+    if(!window.confirm(question))return;
+    const token=getWebToken();
+    if(!token){setError(tr("Сессия завершилась. Войди в профиль и повтори попытку."));return;}
+    setBusy(true);setError("");setNotice("");
+    try{
+      await deleteManageEvent(token,event.id);
+      router.replace("/admin");
+    }catch(e){
+      setError(formattedError(e,language));
+      setBusy(false);
+    }
   }
   async function assign(){
     const token=getWebToken();if(!token||!owner)return;
@@ -399,6 +420,11 @@ export function AdminEventClient(){
         {showEdit?tr("Закрыть"):tr("Редактировать ивент")}</button>}
         {!event.is_cancelled&&<button type="button" className="button button-outline" disabled={busy}
           onClick={openCancelDialog}>{tr("Отменить ивент")}</button>}
+        {!event.is_cancelled&&event.publication?.status==="draft"&&
+          <button type="button" className="button button-outline" disabled={busy}
+            onClick={()=>void removeUnusedDraft()}>
+            {language==="ru"?"🗑 Удалить черновик":language==="cs"?"🗑 Smazat koncept":language==="uk"?"🗑 Видалити чернетку":"🗑 Delete draft"}
+          </button>}
         <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
         {event.publication?.visible&&<Link className="button button-outline" href={event.invite_url||`/events/${event.id}`}>{language==="ru"?"Страница мероприятия ↗":"Event page ↗"}</Link>}
         <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>{tr("Копировать ивент")}</button>

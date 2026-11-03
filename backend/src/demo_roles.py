@@ -435,6 +435,91 @@ def install_demo_roles(app, get_db, main):
         db.refresh(event)
         return event_data(event,db,main)
 
+    @app.delete("/demo/manage/events/{event_id}")
+    def delete_empty_draft(
+        event_id: int, account: WebAccount=Depends(managing),
+        db: Session=Depends(get_db),
+    ):
+        """Permanently remove ONLY an owned, never-used draft.
+
+        TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED.
+        Do not weaken the guards or delete historical participant/payment rows.
+        Lock the Event row so checkout and other capacity-changing operations
+        cannot race with this deletion. All SQL changes commit atomically.
+        """
+        ensure_owner(db,event_id,account)
+        event=(db.query(main.Event).filter(main.Event.id==event_id)
+               .with_for_update().first())
+        if event is None:
+            raise HTTPException(status_code=404,detail="event_not_found")
+        publication=db.get(EventPublication,event_id)
+        # Historical unmarked events count as published, never deletable drafts.
+        if publication is None or publication.status!="draft" or event.is_cancelled:
+            raise HTTPException(status_code=409,detail="only_unpublished_drafts_can_be_deleted")
+
+        from demo_paid_reservations import PaidReservation
+        from demo_waitlist_offers import WaitlistOffer
+        from demo_legacy import LegacyTicketClaim
+        from demo_email import EventNotice, EmailOutbox
+        from demo_telegram_notifications import TelegramNotificationOutbox, TelegramReminderBatch
+        from demo_broadcast import BroadcastCampaign
+        # No existing or historical registrations, QR passes, waiting/expired
+        # applications, paid holds, notifications or campaigns can be erased.
+        # Checking *every* status prevents dropping cancelled/expired evidence.
+        protected=(
+            main.Registration, main.DemoTicket, main.DemoWaitlist,
+            main.RegistrationPayment, LegacyTicketClaim, PaidReservation,
+            WaitlistOffer, TelegramNotificationOutbox,
+            TelegramReminderBatch, BroadcastCampaign,
+        )
+        for model in protected:
+            event_column=model.__table__.c.event_id
+            if db.query(event_column).filter(event_column==event_id).first() is not None:
+                raise HTTPException(status_code=409,detail="draft_has_activity_cannot_delete")
+
+        # A draft edit may leave an operational EventNotice even with zero
+        # recipients. Only recipient-free notices are metadata; never erase
+        # email delivery history (sent, failed or pending).
+        notice_ids=[
+            notice_id for (notice_id,) in db.query(EventNotice.id).filter(
+                EventNotice.event_id==event_id).all()
+        ]
+        if notice_ids and db.query(EmailOutbox.id).filter(
+            EmailOutbox.notice_id.in_(notice_ids)).first() is not None:
+            raise HTTPException(status_code=409,detail="draft_has_activity_cannot_delete")
+
+        from demo_pilot_ops import EventPilotSettings, EventCheckinStaff
+        from demo_event_access import EventAccess
+        # Event metadata is safe to remove only once the activity checks pass.
+        # Remove FK-bound metadata before deleting events.id; never cascade
+        # from the event itself into participant data.
+        gallery_keys=[
+            key for (key,) in db.query(EventGalleryImage.object_key).filter(
+                EventGalleryImage.event_id==event_id,
+                EventGalleryImage.object_key.isnot(None)).all()
+        ]
+        for model in (
+            EventGalleryImage, EventMedia, main.DemoEventPoster,
+            main.EventLanguageSetting, main.EventPaymentSettings,
+            DemoEventPlace, EventCheckinStaff, EventPilotSettings,
+            EventNotice, EventAccess, EventPublication, EventOwnership,
+        ):
+            db.query(model).filter(model.__table__.c.event_id==event_id).delete(
+                synchronize_session=False
+            )
+        # Retain a minimal event-ID audit trail (this table has no event FK).
+        audit(db,event_id,account.id,"delete","unused_draft")
+        db.delete(event)
+        db.commit()
+
+        # Private object storage cleanup is best effort, after SQL commit.
+        # Existing remove() already logs storage failures without exposing keys.
+        if gallery_keys:
+            from demo_media_store import remove
+            for key in gallery_keys:
+                remove(key)
+        return {"status":"deleted","event_id":event_id}
+
     @app.put("/demo/manage/events/{event_id}/visibility")
     def change_visibility(event_id: int, payload: EventVisibilityUpdate,
                           account: WebAccount=Depends(managing),

@@ -111,6 +111,18 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
     "ru": "Все места заняты. Если доступен лист ожидания, запишись в него.",
     "uk": "Усі місця зайняті. Якщо доступний список очікування, запишися."
   },
+  "only_unpublished_drafts_can_be_deleted": {
+    "en":"Only an unpublished, uncancelled draft can be deleted. Published or scheduled events must be managed through cancellation.",
+    "cs":"Smazat lze pouze nezveřejněný a nezrušený koncept. Zveřejněné nebo plánované akce je nutné řešit zrušením.",
+    "ru":"Удалить можно только неопубликованный и неотменённый черновик. Для опубликованных и запланированных мероприятий используй отмену.",
+    "uk":"Видалити можна лише неопубліковану й нескасовану чернетку. Опубліковані та заплановані події потрібно скасовувати."
+  },
+  "draft_has_activity_cannot_delete": {
+    "en":"This draft has a registration, ticket, waitlist, payment request or notification history and cannot be permanently deleted.",
+    "cs":"Tento koncept má historii registrací, vstupenek, čekací listiny, plateb nebo oznámení, a proto ho nelze trvale smazat.",
+    "ru":"У черновика есть история регистраций, билетов, заявок, ожидания или уведомлений. Безвозвратное удаление запрещено.",
+    "uk":"Чернетка має історію реєстрацій, квитків, заявок, очікування або сповіщень. Остаточне видалення заборонено."
+  },
   "event_not_found": {
     "en": "This event is unavailable. Return to the event list and choose another.",
     "cs": "Tato akce není dostupná. Vraťte se na seznam akcí.",
