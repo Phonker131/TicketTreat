@@ -2,8 +2,10 @@
 
 Never run against user data: CI must provide the disposable /tickettreat_ci DB.
 """
+import base64
 import os
 import secrets
+import time
 import unittest
 from datetime import datetime, timedelta, timezone
 
@@ -16,6 +18,8 @@ import main
 from db.session import SessionLocal
 from demo_accounts import WebAccount, WebSession, token_hash
 from demo_account_recovery import VerifiedEmail, now
+from demo_auth_security import hash_password
+from demo_mfa import _code
 from demo_roles import (
     EventOwnership, EventMedia, EventGalleryImage, EventModerationLog, WebAccountRole,
 )
@@ -35,6 +39,7 @@ class DeleteUnusedDraftE2E(unittest.TestCase):
 
     def _create_organizer(self):
         token=secrets.token_urlsafe(36)
+        password="test-organizer-password-12345"
         email=f"draft-delete-{secrets.token_hex(12)}@example.invalid"
         with SessionLocal() as db:
             guest=main.DemoGuest(first_name="Organizer",email=email,
@@ -43,7 +48,7 @@ class DeleteUnusedDraftE2E(unittest.TestCase):
             db.flush()
             account=WebAccount(
                 email=email,first_name="Organizer",last_name="Test",
-                guest_id=guest.id,password_hash="integration-only-no-login",
+                guest_id=guest.id,password_hash=hash_password(password),
                 contact_preference="email",
             )
             db.add(account)
@@ -53,6 +58,15 @@ class DeleteUnusedDraftE2E(unittest.TestCase):
             db.add(WebSession(account_id=account.id,token_hash=token_hash(token),
                               expires_at=now()+timedelta(days=2)))
             db.commit()
+        headers={"Authorization":"Bearer "+token}
+        setup=self.client.post("/demo/auth/mfa/start",headers=headers,
+                               json={"current_password":password})
+        self.assertEqual(setup.status_code,200,setup.text)
+        raw=setup.json()["secret"]
+        secret=base64.b32decode(raw+"="*((8-len(raw)%8)%8))
+        ready=self.client.post("/demo/auth/mfa/confirm",headers=headers,
+                               json={"code":_code(secret,int(time.time())//30)})
+        self.assertEqual(ready.status_code,200,ready.text)
         return token
 
     def _create_draft(self, private=False):
