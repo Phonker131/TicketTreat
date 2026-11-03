@@ -7,7 +7,6 @@ import {
   useMemo,
   useState,
 } from "react";
-import { usePathname } from "next/navigation";
 
 import {
   normalizeLanguage,
@@ -26,8 +25,8 @@ const LanguageContext =
 const LANGUAGE_KEY = "tickettreat_interface_language";
 const LEGACY_LANGUAGE_KEY = "crowdly_interface_language";
 
-/* Only English and Czech are offered for now. Any other saved, linked, Telegram or browser language falls back to English;
-   the localized addresses (/uk, /uk/faq) still open their version for search engines. */
+/* Only Czech and English are offered. Unsupported saved/Telegram/browser
+   preferences fall back to English; legacy locale URLs redirect server-side. */
 function offered(language: LanguageCode | null): LanguageCode | null {
   return language === "en" || language === "cs" ? language : null;
 }
@@ -38,7 +37,7 @@ function getInitialLanguage(): LanguageCode {
   }
 
   // A shareable language URL takes precedence over old localStorage choices.
-  const localeMatch=window.location.pathname.match(/^\/(cs|en|uk)(?:\/faq)?\/?$/);
+  const localeMatch=window.location.pathname.match(/^\/(cs|en)(?:\/faq)?\/?$/);
   if(localeMatch){
     const fromPath=normalizeLanguage(localeMatch[1]);
     if(fromPath)return fromPath;
@@ -86,10 +85,7 @@ export function LanguageProvider({
 }: {
   children: React.ReactNode;
 }) {
-  // /faq is the Russian FAQ page for search engines, so its server render stays Russian; everything else renders English.
-  const pathname = usePathname();
-  const [language, setLanguageState] =
-    useState<LanguageCode>(pathname==="/faq"?"ru":"en");
+  const [language, setLanguageState] = useState<LanguageCode>("en");
 
   useEffect(() => {
     setLanguageState(getInitialLanguage());

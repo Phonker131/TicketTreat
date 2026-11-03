@@ -299,8 +299,8 @@ test("Cookie banner remains usable on 320px narrow devices",async({page})=>{
 });
 
 test("FAQ opens without login and expands answers in the offered languages",async({page})=>{
-  // Russian is hidden from the interface for now; /faq keeps a Russian server render for search engines (seo-crawlability).
-  for(const [path,title] of [["/en/faq","Frequently asked questions"],["/cs/faq","Často kladené otázky"],["/uk/faq","Поширені запитання"]] as const){
+  // Public FAQ locales are only English and Czech.
+  for(const [path,title] of [["/en/faq","Frequently asked questions"],["/cs/faq","Často kladené otázky"]] as const){
     await page.goto(path,{waitUntil:"domcontentloaded"});
     await expect(page.getByRole("heading",{level:1,name:title})).toBeVisible();
     await expect(page.locator(".tt-faq-item")).toHaveCount(12);
@@ -313,7 +313,7 @@ test("FAQ opens without login and expands answers in the offered languages",asyn
 
 test("FAQ search, support link and mobile width are functional",async({page})=>{
   await page.setViewportSize({width:320,height:700});
-  await page.goto("/faq?lang=en",{waitUntil:"domcontentloaded"});
+  await page.goto("/en/faq",{waitUntil:"domcontentloaded"});
   await page.getByRole("searchbox",{name:"Search questions"}).fill("waiting list");
   await expect(page.locator(".tt-faq-item")).toHaveCount(1);
   await page.getByRole("searchbox",{name:"Search questions"}).fill("no-match-faq-0023");
@@ -331,7 +331,7 @@ test("FAQ search, support link and mobile width are functional",async({page})=>{
 
 test("v1.2 dark guest pages preserve contrast and dark organizer controls",async({page})=>{
  await page.addInitScript(()=>localStorage.setItem("tt4-theme","dark"));
-  for(const path of ["/","/faq?lang=en","/support?lang=en","/tickets"]){
+  for(const path of ["/","/en/faq","/support?lang=en","/tickets"]){
     await page.goto(path,{waitUntil:"domcontentloaded"});
     const scheme=await page.evaluate(()=>{
       const shell=document.querySelector(".app-shell");
