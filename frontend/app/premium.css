@@ -1606,3 +1606,58 @@ html body > .tt-legal-footer{flex-shrink:0}
   html body > .tt-legal-footer{width:100%;box-sizing:border-box}
   html body{overflow-x:clip}
 }
+
+
+/* 2026-11-03: organizer dashboard heading / hover contrast regression.
+   brand-v11-coverage assigns ink to .admin-heading (originally paper themed).
+   Do not paint dark text over the dark dashboard; pair headings with theme. */
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading h1,
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading > div:first-child > p,
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading > div:first-child > a,
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-heading > div:first-child > span:not(.status){
+  color:var(--paper)!important;opacity:1!important;
+}
+html[data-theme="light"] body .app-shell:has(.admin-heading) .admin-heading h1,
+html[data-theme="light"] body .app-shell:has(.admin-heading) .admin-heading > div:first-child > p{
+  color:var(--ink)!important;opacity:1!important;
+}
+html body .app-shell:has(.admin-heading) .admin-heading{
+  display:grid;grid-template-columns:minmax(0,1fr);align-items:start;
+  row-gap:16px;margin-top:clamp(20px,3vw,34px);
+}
+html body .app-shell:has(.admin-heading) .admin-heading > div:first-child{
+  min-width:0;width:100%;display:grid;justify-items:start;
+  align-content:start;gap:10px;
+}
+html body .app-shell:has(.admin-heading) .admin-heading h1{
+  display:block;visibility:visible;position:static;
+  width:100%;max-width:100%;min-height:0;margin:4px 0;
+  font-size:clamp(40px,5.2vw,78px);line-height:1;letter-spacing:0;
+  text-wrap:balance;overflow-wrap:normal;hyphens:none;
+}
+html body .app-shell:has(.admin-heading) .admin-heading > .admin-event-actions{
+  width:100%;min-width:0;justify-content:flex-start;gap:10px;
+}
+html body .app-shell:has(.admin-heading) .admin-heading > .admin-event-actions .button{
+  min-width:0;max-width:100%;white-space:normal;
+  box-shadow:none!important;transition:background-color .16s,border-color .16s,color .16s;
+}
+html body .app-shell:has(.admin-heading) .admin-event-actions .button:is(:hover,:focus-visible):not(:disabled){
+  transform:none!important;
+  box-shadow:inset 0 0 0 1px var(--tom)!important;
+  border-color:var(--tom)!important;
+}
+/* Keep foreground and surface paired for every admin action, even after hover
+   and regardless of old .button:hover and .button-outline shadow styles. */
+html[data-theme="dark"] body .app-shell:has(.admin-heading) .admin-event-actions .button:is(.button-outline,.button-secondary,.button-sun):is(:hover,:focus-visible){
+  background:var(--ink3)!important;color:var(--paper)!important;
+}
+html[data-theme="light"] body .app-shell:has(.admin-heading) .admin-event-actions .button:is(.button-outline,.button-secondary,.button-sun):is(:hover,:focus-visible){
+  background:var(--paper)!important;color:var(--ink)!important;
+}
+html body .app-shell:has(.admin-heading) .admin-event-actions .button.button-primary:is(:hover,:focus-visible){
+  background:var(--tom)!important;color:var(--ink)!important;
+}
+@media(max-width:560px){
+  html body .app-shell:has(.admin-heading) .admin-heading h1{font-size:clamp(38px,10vw,55px)}
+}
