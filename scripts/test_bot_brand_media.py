@@ -1,6 +1,7 @@
-"""CI smoke-test: Telegram uses the same PNG as the live website's PWA icon."""
+"""No-token regression test for approved TicketTreat Telegram brand artwork."""
 from io import BytesIO
 from pathlib import Path
+import hashlib
 import sys
 
 from PIL import Image
@@ -10,34 +11,60 @@ sys.path.insert(0, str(ROOT / "bot" / "src"))
 import brand_avatar
 
 
-def main():
-    source = ROOT / "frontend" / "public" / "app-icon-256.png"
-    assert brand_avatar.SITE_ICON == source
-    assert source.is_file()
-    exact = source.read_bytes()
-    assert exact.startswith(bytes.fromhex("89504e470d0a1a0a"))
-    for language in ("en", "cs"):
-        welcome = brand_avatar.welcome_photo(language)
-        assert welcome == exact, f"{language}: welcome differs from website icon"
-        with Image.open(BytesIO(welcome)) as image:
-            assert image.format == "PNG"
-            assert image.size == (256, 256)
-            image.verify()
-        # Inspect the pixel only after PNG integrity verification: Pillow's
-        # verify() requires the original unopened pixel decoder state.
-        with Image.open(BytesIO(welcome)) as image:
-            rgb = image.convert("RGB").getpixel((128, 70))
-        assert rgb[0] < 60 and 90 < rgb[1] < 210 and rgb[2] > 170, (
-            f"{language}: unexpected website icon color: {rgb}"
-        )
+def inspect_jpeg(data: bytes, dimensions: tuple[int, int]) -> None:
+    assert data.startswith(bytes.fromhex("ffd8")), "Expected JPEG"
+    with Image.open(BytesIO(data)) as image:
+        assert image.format == "JPEG"
+        assert image.size == dimensions
+        image.verify()
+
+
+def main() -> None:
+    assert brand_avatar.MARK_SVG.parent == ROOT / "bot" / "assets"
+    assert brand_avatar.MARK_SVG.is_file()
+    assert brand_avatar.WORDMARK_SVG.is_file()
+    # These hashes identify exactly the two supplied archive originals.
+    assert hashlib.sha256(brand_avatar.MARK_SVG.read_bytes()).hexdigest() == (
+        "45c67d5e5090864d612af38db0a431dd3ed012527c02e8243d579f79f46877d3"
+    )
+    assert hashlib.sha256(brand_avatar.WORDMARK_SVG.read_bytes()).hexdigest() == (
+        "a08a1cb9dd083a3f2bfd6900ba6fb0a6239881e09d31133a08b799eb85fd5977"
+    )
+    welcome = brand_avatar.welcome_photo("en")
+    assert welcome == brand_avatar.welcome_photo("cs"), "Text stays in translated caption"
+    inspect_jpeg(welcome, (1200, 630))
+    with Image.open(BytesIO(welcome)) as banner:
+        r, g, b = banner.convert("RGB").getpixel((0, 0))
+        assert r < 10 and g < 15 and b < 20, "Expected clean night background"
 
     avatar = brand_avatar.brand_avatar_jpeg()
-    assert avatar.startswith(bytes.fromhex("ffd8"))
-    with Image.open(BytesIO(avatar)) as image:
-        assert image.format == "JPEG"
-        assert image.size == (512, 512)
-        image.verify()
-    print("Telegram avatar and CS/EN welcome use the exact website icon.")
+    inspect_jpeg(avatar, (512, 512))
+    with Image.open(BytesIO(avatar)) as face:
+        rgb = face.convert("RGB")
+        r, g, b = rgb.getpixel((0, 0))
+        assert r < 10 and g < 15 and b < 20, "Rounded corners preserve night background"
+        r, g, b = rgb.getpixel((90, 90))
+        assert b > r + 60, "Blue ticket logo should remain visible"
+
+    class FakeBot:
+        def __init__(self):
+            self.photo = None
+            self.caption = None
+            self.markup = None
+        def send_photo(self, chat_id, photo, caption=None, reply_markup=None):
+            assert chat_id == 1
+            self.photo = photo.read()
+            self.caption = caption
+            self.markup = reply_markup
+        def send_message(self, *a, **kw):
+            raise AssertionError("Unexpected fallback to text")
+
+    bot = FakeBot()
+    brand_avatar.send_branded_welcome(bot, 1, "Hi!", "keyboard", language="cs")
+    assert bot.photo == welcome
+    assert bot.caption == "Hi!"
+    assert bot.markup == "keyboard"
+    print("Telegram brand assets match archive; avatar/welcome rendering and caption verified.")
 
 
 if __name__ == "__main__":
