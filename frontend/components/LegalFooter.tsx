@@ -20,7 +20,7 @@ export function LegalFooter(){
     <footer className="tt-support-footer tt-legal-footer" aria-label="TicketTreat legal information and support">
       <div className="tt-legal-footer-brand">
         <Link className="tt-legal-footer-home" href="/" aria-label="TicketTreat homepage">
-          <img src="/app-icon-256.png" alt="" width={48} height={48}/>
+          <img src="/favicon.svg?v=20261104-logo" alt="" width={48} height={48}/>
           <span>TicketTreat</span>
         </Link>
         <small>{tr.tagline}</small>
