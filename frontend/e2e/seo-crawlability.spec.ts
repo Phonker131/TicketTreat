@@ -258,3 +258,18 @@ test("SEO preview images resolve absolute HTTPS URLs without unsafe schemes",()=
     expect(seoImageUrl(value),value).toBeUndefined();
   }
 });
+
+test("official uploaded ticket mark is used for favicon and footer",async({request})=>{
+  const icon=await request.get("/favicon.svg?v=20261104-logo");
+  expect(icon.status()).toBe(200);
+  expect(icon.headers()["content-type"]).toContain("image/svg+xml");
+  const svg=await icon.text();
+  expect(svg).toContain('viewBox="0 0 192 192"');
+  expect(svg).toContain('fill="#0297DE"');
+
+  const html=await request.get("/en/faq");
+  expect(html.status()).toBe(200);
+  const body=await html.text();
+  expect(body).toContain('/favicon.svg?v=20261104-logo');
+  expect(body).toContain('class="tt-legal-footer-home"');
+});
