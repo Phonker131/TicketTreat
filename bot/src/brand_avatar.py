@@ -1,8 +1,7 @@
-"""TicketTreat Telegram profile and welcome images, from approved brand assets.
+"""TicketTreat Telegram avatar from the official mark and welcome postcard.
 
-The two local SVGs in bot/assets match the uploaded TicketTreat logo archive.
-They are deliberately independent of frontend/public/app-icon-256.png so a
-website icon or build-branch change cannot silently replace the Telegram art.
+The avatar keeps the approved brand mark; /start uses its separate, branded
+cream, blue and coral 16:9 postcard (never the dark wordmark layout).
 """
 from __future__ import annotations
 
@@ -17,6 +16,7 @@ import requests
 ASSET_ROOT = Path(__file__).resolve().parents[1] / "assets"
 MARK_SVG = ASSET_ROOT / "tickettreat-mark.svg"
 WORDMARK_SVG = ASSET_ROOT / "tickettreat-wordmark-on-dark.svg"
+WELCOME_SVG = ASSET_ROOT / "tickettreat-welcome.svg"
 NIGHT = (2, 7, 10, 255)
 
 
@@ -33,15 +33,10 @@ def _render_svg(path: Path, width: int):
 
 @lru_cache(maxsize=1)
 def welcome_photo(language: str = "en") -> bytes:
-    """1200x630 dark banner with the approved wordmark and no baked-in locale."""
-    from PIL import Image
-
-    canvas = Image.new("RGBA", (1200, 630), NIGHT)
-    wordmark = _render_svg(WORDMARK_SVG, 1080)
-    canvas.alpha_composite(wordmark, ((1200-wordmark.width)//2,
-                                      (630-wordmark.height)//2))
+    """Render the branded 16:9 welcome postcard; language stays in the caption."""
+    banner = _render_svg(WELCOME_SVG, 1200)
     output = io.BytesIO()
-    canvas.convert("RGB").save(output, format="JPEG", quality=93, optimize=True)
+    banner.convert("RGB").save(output, format="JPEG", quality=93, optimize=True)
     return output.getvalue()
 
 

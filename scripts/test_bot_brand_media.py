@@ -23,7 +23,9 @@ def main() -> None:
     assert brand_avatar.MARK_SVG.parent == ROOT / "bot" / "assets"
     assert brand_avatar.MARK_SVG.is_file()
     assert brand_avatar.WORDMARK_SVG.is_file()
-    # These hashes identify exactly the two supplied archive originals.
+    assert brand_avatar.WELCOME_SVG.is_file()
+    assert 'viewBox="0 0 1200 675"' in brand_avatar.WELCOME_SVG.read_text()
+    # Avatar and wordmark remain the exact supplied archive originals.
     assert hashlib.sha256(brand_avatar.MARK_SVG.read_bytes()).hexdigest() == (
         "45c67d5e5090864d612af38db0a431dd3ed012527c02e8243d579f79f46877d3"
     )
@@ -32,10 +34,19 @@ def main() -> None:
     )
     welcome = brand_avatar.welcome_photo("en")
     assert welcome == brand_avatar.welcome_photo("cs"), "Text stays in translated caption"
-    inspect_jpeg(welcome, (1200, 630))
+    inspect_jpeg(welcome, (1200, 675))
     with Image.open(BytesIO(welcome)) as banner:
-        r, g, b = banner.convert("RGB").getpixel((0, 0))
-        assert r < 10 and g < 15 and b < 20, "Expected clean night background"
+        rgb = banner.convert("RGB")
+        # The /start image must be the branded postcard, not the former
+        # almost-black wordmark splash.
+        r, g, b = rgb.getpixel((0, 0))
+        assert min(r, g, b) > 220, "Expected light cream background"
+        r, g, b = rgb.getpixel((600, 180))
+        assert b > r + 55, "Expected centered blue TicketTreat mark"
+        r, g, b = rgb.getpixel((1190, 20))
+        assert r > b + 70, "Expected coral top-right accent"
+        r, g, b = rgb.getpixel((20, 610))
+        assert b > r + 60, "Expected blue lower-left accent"
 
     avatar = brand_avatar.brand_avatar_jpeg()
     inspect_jpeg(avatar, (512, 512))
@@ -64,7 +75,7 @@ def main() -> None:
     assert bot.photo == welcome
     assert bot.caption == "Hi!"
     assert bot.markup == "keyboard"
-    print("Telegram brand assets match archive; avatar/welcome rendering and caption verified.")
+    print("Telegram welcome postcard, official avatar and localized captions verified.")
 
 
 if __name__ == "__main__":

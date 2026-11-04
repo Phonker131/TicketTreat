@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title">
+  <title id="title">TicketTreat welcome banner</title>
+  <defs>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="160%"><feGaussianBlur stdDeviation="17"/></filter>
+    <linearGradient id="ivory" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffaf0"/><stop offset="1" stop-color="#f7f0e5"/></linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#ivory)"/>
+  <!-- Warm, low-contrast waves behind the TicketTreat emblem. -->
+  <path d="M0 0H290C257 89 210 177 135 209C75 236 37 241 0 231Z" fill="#f5e9db" opacity=".38"/>
+  <path d="M1200 463C1145 464 1112 505 1085 534C1037 588 1003 564 951 571C899 575 866 609 858 675H1200Z" fill="#f4e8d9" opacity=".5"/>
+  <!-- Coral upper-right corner, bright blue lower-left corner. -->
+  <path d="M962 0H1200V211C1152 206 1135 184 1122 146C1109 107 1075 96 1031 85C986 72 959 40 962 0Z" fill="#fc734d"/>
+  <path d="M0 439C61 433 96 461 115 512C142 568 184 584 247 592C307 599 326 625 335 675H0Z" fill="#0297de"/>
+  <!-- Motion paths echo the welcome illustration, colored TicketTreat blue. -->
+  <path d="M0 238C26 219 35 182 53 148C84 99 128 96 179 105C261 118 317 102 348 52C367 24 376 4 380 -12" fill="none" stroke="#0297de" stroke-width="5" stroke-linecap="round" stroke-dasharray="12 18"/>
+  <path d="M770 685C780 634 798 572 853 550C911 524 959 553 1013 541C1087 521 1082 422 1210 417" fill="none" stroke="#0297de" stroke-width="5" stroke-linecap="round" stroke-dasharray="12 18"/>
+  <!-- Coral emphasis strokes around the brand tile. -->
+  <g fill="none" stroke="#fc734d" stroke-width="17" stroke-linecap="round">
+    <path d="M285 239L319 269"/><path d="M245 325H301"/><path d="M283 408L319 380"/>
+    <path d="M912 239L879 269"/><path d="M950 325H894"/><path d="M913 408L881 380"/>
+  </g>
+  <!-- Sticker border, warm soft shadow, official TicketTreat vector mark. -->
+  <rect x="375" y="128" width="450" height="427" rx="96" fill="#fc734d" opacity=".4" filter="url(#shadow)"/>
+  <rect x="380" y="110" width="440" height="440" rx="100" fill="white"/>
+  <g transform="translate(396 126) scale(2.125)">
+    <rect width="192" height="192" rx="34" fill="#0297DE"/>
+    <path d="M46 61h100a12 12 0 0 1 12 12v10a13 13 0 0 0 0 26v10a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12v-10a13 13 0 0 0 0-26V73a12 12 0 0 1 12-12Z" fill="#F0EBE1" stroke="#02070A" stroke-width="6"/>
+    <path d="M54 81h38m-19 0v37m20-37h38m-19 0v37" stroke="#02070A" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="150" cy="41" r="18" fill="#FC734D" stroke="#02070A" stroke-width="5"/>
+  </g>
+</svg>
