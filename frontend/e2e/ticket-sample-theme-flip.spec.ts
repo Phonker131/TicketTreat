@@ -67,3 +67,26 @@ for(const viewport of [
     await expect(back).toBeHidden();
   });
 }
+
+test("mobile ticket guide is visible before the examples and details follow",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto("/tickets",{waitUntil:"domcontentloaded"});
+  const section=page.locator(".tp-tickets-empty");
+  await expect(section).toBeVisible();
+  const summary=section.locator(".tp-te-summary");
+  const stage=section.locator(".tp-te-stage");
+  const details=section.locator(".tp-te-details");
+  await expect(summary.getByRole("heading",{level:2})).toBeVisible();
+  await expect(summary.locator(".tp-te-intro")).toBeVisible();
+  await expect(stage.locator(".tp-wallet-mobile")).toBeVisible();
+  await expect(details.locator(".tp-te-points li")).toHaveCount(3);
+
+  // The formerly obscured explanation should precede the tall mobile carousel.
+  await expect.poll(async()=>{
+    const [a,b,c]=await Promise.all([summary.boundingBox(),stage.boundingBox(),details.boundingBox()]);
+    return Boolean(a&&b&&c&&a.bottom<=b.y+2&&b.y+b.height<=c.y+2);
+  }).toBe(true);
+
+  await details.locator(".tp-te-actions a").scrollIntoViewIfNeeded();
+  await expect(details.locator(".tp-te-actions a")).toBeInViewport();
+});
