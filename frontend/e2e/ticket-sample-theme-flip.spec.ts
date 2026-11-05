@@ -38,7 +38,9 @@ for(const viewport of [
     await expect(back).toBeVisible();
     await expect(back.getByText("Night Pass")).toBeVisible();
 
-    for(const expectedTheme of ["light","dark"]){
+    for(let n=0;n<2;n++){
+      const previousTheme=await page.evaluate(()=>document.documentElement.dataset.theme);
+      const expectedTheme=previousTheme==="light"?"dark":"light";
       await page.locator(".tt-theme-toggle").click();
       await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.theme)).toBe(expectedTheme);
       await expect(back).toBeVisible();
