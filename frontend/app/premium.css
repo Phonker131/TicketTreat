@@ -270,11 +270,16 @@ html[data-theme="light"] .tp-wm-d,html[data-theme="paper"] .tp-wm-d{display:none
 .tp-te-stage{position:relative;display:grid;justify-items:center;min-width:0}
 .tp-wallet{position:relative;width:min(100%,720px);height:580px}
 .tp-wallet-item{position:absolute;left:50%;top:26px;width:320px;height:500px;margin-left:-160px;transform-origin:50% 90%;perspective:1500px;filter:drop-shadow(0 30px 28px var(--tp-shadow))}
-.tp-sample{position:relative;width:320px;height:500px;transform-style:preserve-3d}
-.tp-flip{position:relative;width:100%;height:100%;border-radius:26px;transform-style:preserve-3d;transition:transform .85s var(--ease);cursor:pointer;outline-offset:6px}
-.tp-sample.is-flipped .tp-flip{transform:rotateY(180deg)}
-.tp-face{position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden}
-.tp-face-back{transform:rotateY(180deg)}
+/* Sample tickets must not rely on 3D backface culling. The masked ticket
+   and wallet drop-shadow flatten 3D layers in iOS Safari (also on theme
+   changes), making the QR side and labels appear horizontally mirrored.
+   Swap upright faces instead; the optional pointer tilt stays on the card. */
+.tp-sample{position:relative;width:320px;height:500px;transform-style:flat}
+.tp-flip{position:relative;width:100%;height:100%;border-radius:26px;cursor:pointer;outline-offset:6px}
+.tp-face{position:absolute;inset:0;display:none;transform:none;-webkit-backface-visibility:visible;backface-visibility:visible}
+.tp-face-front,.tp-sample.is-flipped .tp-face-back{display:block;animation:tp-sample-face-reveal .25s var(--ease) both}
+.tp-sample.is-flipped .tp-face-front{display:none}
+@keyframes tp-sample-face-reveal{from{opacity:.55}to{opacity:1}}
 .tp-ticket-sample{width:100%;height:100%;margin:0}
 .tp-ticket-sample.tp-ticket-back{margin:0}
 .tp-ink-tom{--c:var(--tom)}.tp-ink-blu{--c:var(--blu)}.tp-ink-plum{--c:var(--plum)}

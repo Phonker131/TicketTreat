@@ -28,7 +28,7 @@ function useCountdown(days:number,hours:number){
  return left??["--","--","--","--"];
 }
 
-/** One sample ticket with pointer tilt, a moving foil sheen and a 3D flip to the QR side. */
+/** One sample ticket with pointer tilt and a Safari-safe, upright front/QR side switch. */
 function SampleTicket({index,language,flipped,onToggle,interactive=true}:{index:number;language:LanguageCode;flipped:boolean;onToggle:()=>void;interactive?:boolean}){
  const s=samples[index],c=premium[language],reduce=useReducedMotion();
  const time=useCountdown(s.days,s.h);
