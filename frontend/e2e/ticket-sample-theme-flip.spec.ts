@@ -84,7 +84,7 @@ test("mobile ticket guide is visible before the examples and details follow",asy
   // The formerly obscured explanation should precede the tall mobile carousel.
   await expect.poll(async()=>{
     const [a,b,c]=await Promise.all([summary.boundingBox(),stage.boundingBox(),details.boundingBox()]);
-    return Boolean(a&&b&&c&&a.bottom<=b.y+2&&b.y+b.height<=c.y+2);
+    return Boolean(a&&b&&c&&a.y+a.height<=b.y+2&&b.y+b.height<=c.y+2);
   }).toBe(true);
 
   await details.locator(".tp-te-actions a").scrollIntoViewIfNeeded();
