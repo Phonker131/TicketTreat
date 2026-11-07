@@ -81,6 +81,6 @@ test("cancelled event controls stay aligned on iPhone and deletion requires ID",
 
   // Confirm then type the event ID: remove once and return to the admin list.
   await controls.getByRole("button",{name:"Delete event"}).click();
-  await expect(page).toHaveURL(/\\/admin\\/?$/);
+  await expect.poll(()=>page.evaluate(()=>location.pathname)).toBe("/admin");
   expect(deleteCalls).toBe(1);
 });
