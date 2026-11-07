@@ -182,21 +182,27 @@ export function AdminEventClient(){
       setCancelError(formattedError(e,language));
     }finally{setBusy(false);}
   }
-  async function removeUnusedDraft(){
-    if(busy||!event||event.publication?.status!=="draft"||event.is_cancelled)return;
+  async function removeUnusedEvent(){
+    if(busy||!event)return;
+    const title=event.title,id=event.id;
     const question=language==="ru"
-      ?`Безвозвратно удалить черновик «${event.title}» (#${event.id})? Восстановить мероприятие будет невозможно.`
+      ?`Безвозвратно удалить мероприятие «${title}» (#${id}) из базы и всех списков? Удаление возможно только без регистраций, билетов, платежей и истории уведомлений.`
       :language==="cs"
-      ?`Opravdu trvale smazat koncept „${event.title}“ (#${event.id})? Akci již nebude možné obnovit.`
+      ?`Trvale smazat akci „${title}“ (#${id}) z databáze a všech seznamů? Lze smazat pouze akci bez registrací, vstupenek, plateb a historie oznámení.`
       :language==="uk"
-      ?`Назавжди видалити чернетку «${event.title}» (#${event.id})? Відновити подію буде неможливо.`
-      :`Permanently delete draft “${event.title}” (#${event.id})? This cannot be undone.`;
+      ?`Назавжди видалити подію «${title}» (#${id}) з бази та всіх списків? Видалення можливе лише без реєстрацій, квитків, платежів і сповіщень.`
+      :`Permanently remove “${title}” (#${id}) from the database and all event lists? Only events without registration, ticket, payment or notification history can be deleted.`;
     if(!window.confirm(question))return;
+    const prompt=language==="ru"?`Для подтверждения введи ID мероприятия: ${id}`:
+      language==="cs"?`Pro potvrzení zadejte ID akce: ${id}`:
+      language==="uk"?`Для підтвердження введи ID події: ${id}`:
+      `Type the event ID to confirm permanent deletion: ${id}`;
+    if(window.prompt(prompt)!==String(id))return;
     const token=getWebToken();
     if(!token){setError(tr("Сессия завершилась. Войди в профиль и повтори попытку."));return;}
     setBusy(true);setError("");setNotice("");
     try{
-      await deleteManageEvent(token,event.id);
+      await deleteManageEvent(token,id);
       router.replace("/admin");
     }catch(e){
       setError(formattedError(e,language));
@@ -417,26 +423,32 @@ export function AdminEventClient(){
       <div className="admin-heading">
         <div><span className={event.is_cancelled?"status status-danger":"status status-demo"}>{event.is_cancelled?tr("Cancelled"):`${tr(event.publication?.status==="draft"?"Черновик":event.publication?.status==="scheduled"?"Запланировано":"Опубликовано")} · #${event.id}`}</span>
         <h1>{event.title}</h1><p>{event.location}</p></div>
-        <div className="admin-event-actions">
-          <button className="button button-outline" onClick={csv} disabled={busy}>{tr("↓ Export CSV")}</button>
-          <Link className="button button-sun" href="/admin/check-in">{tr("Scan QR")}</Link>
-        </div>
       </div>
       {event.is_cancelled&&<div className="state-card state-error"><strong>{tr("Причина отмены:")}</strong> {event.cancellation_reason||"—"}</div>}
-      <div className="admin-event-actions" style={{marginBottom:18}}>
-        {!event.is_cancelled&&<button className="button button-primary" onClick={()=>setShowEdit(v=>!v)}>
-        {showEdit?tr("Закрыть"):tr("Редактировать ивент")}</button>}
-        {!event.is_cancelled&&<button type="button" className="button button-outline" disabled={busy}
-          onClick={openCancelDialog}>{tr("Отменить ивент")}</button>}
-        {!event.is_cancelled&&event.publication?.status==="draft"&&
-          <button type="button" className="button button-outline" disabled={busy}
-            onClick={()=>void removeUnusedDraft()}>
-            {language==="ru"?"🗑 Удалить черновик":language==="cs"?"🗑 Smazat koncept":language==="uk"?"🗑 Видалити чернетку":"🗑 Delete draft"}
+      <section className="tt-admin-event-toolbar" aria-label={language==="cs"?"Správa akce":language==="ru"?"Управление мероприятием":language==="uk"?"Керування подією":"Event management actions"}>
+        <div className="tt-admin-event-toolbar-primary">
+          {!event.is_cancelled&&<button type="button" className="button button-primary" disabled={busy} onClick={()=>setShowEdit(v=>!v)}>
+            {showEdit?tr("Закрыть"):tr("Редактировать ивент")}
           </button>}
-        <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
-        {event.publication?.visible&&<Link className="button button-outline" href={event.invite_url||`/events/${event.id}`}>{language==="ru"?"Страница мероприятия ↗":"Event page ↗"}</Link>}
-        <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>{tr("Копировать ивент")}</button>
-      </div>
+          <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
+          {event.publication?.visible&&<Link className="button button-outline" href={event.invite_url||`/events/${event.id}`}>{language==="ru"?"Страница мероприятия ↗":language==="cs"?"Stránka akce ↗":language==="uk"?"Сторінка події ↗":"Event page ↗"}</Link>}
+          <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>{tr("Копировать ивент")}</button>
+        </div>
+        <div className="tt-admin-event-toolbar-secondary">
+          <button type="button" className="button button-outline" onClick={csv} disabled={busy}>{tr("↓ Export CSV")}</button>
+          <Link className="button button-sun" href="/admin/check-in">{tr("Scan QR")}</Link>
+          {!event.is_cancelled&&<button type="button" className="button button-outline" disabled={busy} onClick={openCancelDialog}>{tr("Отменить ивент")}</button>}
+          <button type="button" className="button button-outline tt-admin-event-delete" disabled={busy}
+            onClick={()=>void removeUnusedEvent()}>
+            {language==="ru"?"Удалить мероприятие":language==="cs"?"Smazat akci":language==="uk"?"Видалити подію":"Delete event"}
+          </button>
+        </div>
+        <p className="tt-admin-event-delete-hint">{language==="ru"
+          ?"Безвозвратное удаление доступно, только если у мероприятия нет регистраций, билетов, платежей и истории отправленных уведомлений."
+          :language==="cs"?"Trvalé odstranění je možné pouze bez registrací, vstupenek, plateb a odeslaných oznámení."
+          :language==="uk"?"Остаточне видалення можливе лише без реєстрацій, квитків, платежів та надісланих сповіщень."
+          :"Permanent deletion requires no registrations, tickets, payments or delivered notification history."}</p>
+      </section>
       {!event.is_cancelled&&<section className="panel form-stack">
         <h2>{tr("Публикация мероприятия")}</h2>
         <label>{language==="ru"?"Видимость":language==="cs"?"Viditelnost":language==="uk"?"Видимість":"Visibility"}
