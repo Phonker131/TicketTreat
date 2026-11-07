@@ -180,11 +180,9 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
               <h2>{event.spots_left === 0 ? t(language, "soldOut") : t(language, "join")}</h2>
               <p>{Number(event.price||0)<=0
                 ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.")
-                : (language==="ru"?"Платные мероприятия временно недоступны.":language==="cs"?"Placené akce jsou dočasně nedostupné.":language==="uk"?"Платні події тимчасово недоступні.":"Paid events are temporarily unavailable.")}</p>
+                : (language==="ru"?"Запись и QR-билет оформляются сразу, без подтверждения оплаты. TicketTreat не принимает и не проверяет платежи — условия оплаты уточняй у организатора.":language==="cs"?"Registrace a QR vstupenka se vydají okamžitě bez potvrzení platby. TicketTreat platby nevybírá ani neověřuje — podmínky si ověřte u pořadatele.":language==="uk"?"Запис і QR-квиток оформлюються одразу без підтвердження оплати. TicketTreat не приймає та не перевіряє платежі — умови уточнюй в організатора.":"Registration and QR tickets are immediate, without payment confirmation. TicketTreat does not collect or verify payment; check arrangements with the organizer.")}</p>
             </div>
-            {Number(event.price||0)>0 ? (
-              <p className="state-card" role="status">{language==="ru"?"Платные мероприятия пока не проводятся, регистрация недоступна.":language==="cs"?"Placené akce nyní nepořádáme. Registrace není dostupná.":language==="uk"?"Платні події поки не проводяться, реєстрація недоступна.":"Paid events are paused. Registration is not available."}</p>
-            ) : event.spots_left === 0 ? (
+            {event.spots_left === 0 ? (
               <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}${inviteQuery?`&${inviteQuery}`:""}`}>{t(language, "waitlist")}</Link>
             ) : (
               <Link className="button button-primary" href={`/checkout/${event.id}${inviteQuery||attributed?`?${[inviteQuery,attributed.replace(/^&/,"")].filter(Boolean).join("&")}`:""}`}>{t(language, "join")}</Link>
