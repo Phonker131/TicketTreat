@@ -74,6 +74,7 @@ export function AdminEventClient(){
   const [organizer,setOrganizer]=useState(""),[description,setDescription]=useState("");
   const [gallery,setGallery]=useState(""),[video,setVideo]=useState("");
   const [startsAt,setStartsAt]=useState(""),[capacity,setCapacity]=useState("30");
+  const [price,setPrice]=useState("0"),[currency,setCurrency]=useState("CZK");
   const [languages,setLanguages]=useState<LanguageCode[]>(["en","ru"]);
   async function reload(){
     const token=getWebToken();if(!token)throw new LocalValidationError(tr("Сначала войди в профиль."));
@@ -88,7 +89,8 @@ export function AdminEventClient(){
     void getPilotStaff(token,eventId).then(setPilotStaff).catch(()=>setPilotStaff([]));
     setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"TicketTreat");
     setDescription(ev.description||"");setGallery((ev.external_gallery_urls||ev.gallery_urls||[]).filter(s=>!s.startsWith("/api/gateway/demo/events/")).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
-    setCapacity(String(ev.max_participants??30));setLanguages(ev.languages||[]);
+    setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
+    setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
     setOwner(ev.owner_account_id==null?"":String(ev.owner_account_id));
     if(me.role==="global_admin"){
       const [list,history]=await Promise.all([
@@ -128,6 +130,7 @@ export function AdminEventClient(){
         gallery_urls:gallery.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),video_url:video.trim(),
         country_code:"CZ",city:"",
         max_participants:Number(capacity),
+        price:String(price),currency,
         starts_at:startsAt+":00",languages,
       };
       if(image)payload.poster_data_url=image;
@@ -471,7 +474,13 @@ export function AdminEventClient(){
         <label>{tr("Видео (YouTube/Vimeo)")}<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
         <div className="two-col"><label>{tr("Дата и время")}<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
           <label>{tr("Количество мест")}<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
-        <p className="form-note">{language==="cs"?"Zatím podporujeme pouze bezplatné akce.":language==="en"?"Only free events are supported during the pilot.":language==="uk"?"Поки що підтримуються лише безкоштовні події.":"Пока поддерживаются только бесплатные мероприятия."}</p>
+        <div className="two-col">
+          <label>{tr("Цена")}<input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)} required/></label>
+          <label>{tr("Валюта")}<select value={currency} onChange={e=>setCurrency(e.target.value)}>
+            <option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option>
+          </select></label>
+        </div>
+        <p className="form-note">{language==="cs"?"Registrace na placené akce vydá vstupenku ihned, platbu TicketTreat nevybírá ani nepotvrzuje.":language==="en"?"Registration for priced events issues a ticket immediately. TicketTreat does not collect or confirm payment.":language==="uk"?"На платну подію квиток видається відразу; TicketTreat не приймає і не підтверджує оплату.":"На платное мероприятие билет выдаётся сразу; TicketTreat не принимает и не подтверждает оплату."}</p>
         <fieldset className="event-language-fieldset"><legend>{tr("Языки")}</legend>
         <div className="event-language-options">
           {([["en","🇬🇧","English"],["cs","🇨🇿","Čeština"],["ru","🇷🇺","Русский"],["uk","🇺🇦","Українська"]] as const).map(([id,flag,name])=>
@@ -693,10 +702,10 @@ export function AdminEventClient(){
           {!data.tickets.length&&<p>{tr("Пока нет билетов.")}</p>}
           {data.tickets.map(ticket=><div className="participant-row" key={ticket.id}>
             <div><strong>{ticket.guest?.first_name} {ticket.guest?.last_name}</strong>
-              <small>{ticket.guest?.email}</small><small>{ticket.code} · {ticket.payment_status === "paid"?tr("Paid"):ticket.payment_status === "not_required"?tr("Free"):ticket.payment_status === "pending"?tr("Ожидает оплаты"):ticket.payment_status}</small></div>
+              <small>{ticket.guest?.email}</small><small>{ticket.code} · {ticket.payment_provider==="registration_only"?(language==="cs"?"Registrace (platba neověřena)":language==="en"?"Registered (payment not verified)":language==="uk"?"Записано (оплату не перевірено)":"Записан (оплата не проверена)"):ticket.payment_status === "paid"?tr("Paid"):ticket.payment_status === "not_required"?tr("Free"):ticket.payment_status === "pending"?tr("Ожидает оплаты"):ticket.payment_status}</small></div>
             <div className="participant-actions">
               <span className={ticket.checked_in_at?"status status-success":"status status-demo"}>
-                {ticket.ticket_status==="cancelled"?tr("Cancelled"):ticket.checked_in_at?tr("Checked in"):tr("Paid")}</span>
+                {ticket.ticket_status==="cancelled"?tr("Cancelled"):ticket.checked_in_at?tr("Checked in"):(language==="cs"?"Registrován":language==="en"?"Registered":language==="uk"?"Записано":"Записан")}</span>
               {ticket.ticket_status==="active"&&!ticket.checked_in_at&&<>
                 <span className="status status-muted">{tr("Awaiting QR scan")}</span>
                 <button className="button button-outline" type="button" disabled={busy}
