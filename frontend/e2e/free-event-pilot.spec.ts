@@ -12,7 +12,6 @@ test("organizer draft form offers free events only",async({page})=>{
   });
   await page.goto("/admin?lang=en",{waitUntil:"domcontentloaded"});
   await page.getByRole("button",{name:/Create event/}).click();
-  const form=page.locator("form").filter({has:page.getByRole("heading",{name:"New event"})});
   // Price, currency and payment-confirmation fields cannot enter new drafts.
   const draft=await page.locator("form.panel.form-stack").first();
   await expect(draft).toBeVisible();
