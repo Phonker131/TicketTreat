@@ -16,11 +16,10 @@ import {
   setManagePublication,setManageVisibility,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
   getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
-  getManagePaidReservations,decidePaidReservation,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
-import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff,PaidReservation} from "@/lib/api";
+import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff} from "@/lib/api";
 
 function asLocal(value: string|null): string {
   if(!value)return "";
@@ -55,7 +54,6 @@ export function AdminEventClient(){
   const [pilotInsights,setPilotInsights]=useState<PilotInsights|null>(null);
   const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180],waitlist_offer_minutes:0,event_duration_minutes:180});
   const [pilotStaff,setPilotStaff]=useState<CheckinStaff[]>([]);
-  const [paidReservations,setPaidReservations]=useState<PaidReservation[]>([]);
   const [staffEmail,setStaffEmail]=useState("");
   const [reminderMessage,setReminderMessage]=useState("Your TicketTreat event starts soon.");
   const [announcementCategory,setAnnouncementCategory]=useState<"access"|"logistics"|"schedule">("logistics");
@@ -76,8 +74,6 @@ export function AdminEventClient(){
   const [organizer,setOrganizer]=useState(""),[description,setDescription]=useState("");
   const [gallery,setGallery]=useState(""),[video,setVideo]=useState("");
   const [startsAt,setStartsAt]=useState(""),[capacity,setCapacity]=useState("30");
-  const [price,setPrice]=useState("0"),[currency,setCurrency]=useState("CZK");
-  const [paymentInstructions,setPaymentInstructions]=useState("");
   const [languages,setLanguages]=useState<LanguageCode[]>(["en","ru"]);
   async function reload(){
     const token=getWebToken();if(!token)throw new LocalValidationError(tr("Сначала войди в профиль."));
@@ -85,9 +81,6 @@ export function AdminEventClient(){
       getManageMe(token),getManageEvent(eventId,token),getManageParticipants(token,eventId)
     ]);
     setIdentity(me);setEvent(ev);setData(tickets);
-    if(Number(ev.price||0)>0){
-      void getManagePaidReservations(token,eventId).then(r=>setPaidReservations(r.reservations)).catch(()=>setPaidReservations([]));
-    }else setPaidReservations([]);
     setReminderMessage(ev.reminder_text||tr("Your TicketTreat event starts soon."));
     void getEventEmailStatus(token,eventId).then(setEmailStatus).catch(()=>setEmailStatus(null));
     void getPilotInsights(token,eventId).then(setPilotInsights).catch(()=>setPilotInsights(null));
@@ -95,9 +88,7 @@ export function AdminEventClient(){
     void getPilotStaff(token,eventId).then(setPilotStaff).catch(()=>setPilotStaff([]));
     setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"TicketTreat");
     setDescription(ev.description||"");setGallery((ev.external_gallery_urls||ev.gallery_urls||[]).filter(s=>!s.startsWith("/api/gateway/demo/events/")).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
-    setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
-    setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
-    setPaymentInstructions(ev.payment_instructions||"");
+    setCapacity(String(ev.max_participants??30));setLanguages(ev.languages||[]);
     setOwner(ev.owner_account_id==null?"":String(ev.owner_account_id));
     if(me.role==="global_admin"){
       const [list,history]=await Promise.all([
@@ -136,9 +127,8 @@ export function AdminEventClient(){
         title:title.trim(),organizer:organizer.trim(),description,location,
         gallery_urls:gallery.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),video_url:video.trim(),
         country_code:"CZ",city:"",
-        max_participants:Number(capacity),price:String(price),
-        payment_instructions:paymentInstructions.trim(),
-        currency,starts_at:startsAt+":00",languages,
+        max_participants:Number(capacity),
+        starts_at:startsAt+":00",languages,
       };
       if(image)payload.poster_data_url=image;
       await editManageEvent(token,eventId,payload);
@@ -217,20 +207,6 @@ export function AdminEventClient(){
       await reload();setNotice(tr("Владелец ивента обновлён."));
     }catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
-  async function decidePaid(id:number,action:"confirm"|"decline"){
-    const token=getWebToken();if(!token)return;
-    if(!window.confirm(action==="confirm"?
-      tr("Подтверди только после фактического получения денег организатором. Выдать билет?"):
-      tr("Отклонить заявку? Резерв места будет освобождён.")))return;
-    setBusy(true);setError("");setNotice("");
-    try{
-      await decidePaidReservation(token,eventId,id,action);
-      await reload();
-      setNotice(action==="confirm"?tr("Оплата подтверждена, QR-билет выдан."):tr("Заявка отклонена, место освобождено."));
-    }catch(e){setError(formattedError(e,language))}
-    finally{setBusy(false)}
-  }
-
   async function uploadPhotos(files: FileList|null) {
     const token=getWebToken();if(!token||!files?.length)return;
     setBusy(true);setError("");setNotice("");
@@ -495,12 +471,7 @@ export function AdminEventClient(){
         <label>{tr("Видео (YouTube/Vimeo)")}<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
         <div className="two-col"><label>{tr("Дата и время")}<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
           <label>{tr("Количество мест")}<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
-        <div className="two-col"><label>{tr("Цена")}<input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}/></label>
-          <label>{tr("Валюта")}<select value={currency} onChange={e=>setCurrency(e.target.value)}>
-          <option>CZK</option><option>EUR</option><option>USD</option></select></label></div>
-        <label>{tr("Инструкция по оплате организатору (обязательно для платных мероприятий)")}
-          <textarea value={paymentInstructions} maxLength={2000} rows={4} onChange={e=>setPaymentInstructions(e.target.value)} placeholder={tr("Способ и реквизиты прямого платежа, контакт организатора; TicketTreat платежи не принимает.")}/>
-        </label>
+        <p className="form-note">{language==="cs"?"Zatím podporujeme pouze bezplatné akce.":language==="en"?"Only free events are supported during the pilot.":language==="uk"?"Поки що підтримуються лише безкоштовні події.":"Пока поддерживаются только бесплатные мероприятия."}</p>
         <fieldset className="event-language-fieldset"><legend>{tr("Языки")}</legend>
         <div className="event-language-options">
           {([["en","🇬🇧","English"],["cs","🇨🇿","Čeština"],["ru","🇷🇺","Русский"],["uk","🇺🇦","Українська"]] as const).map(([id,flag,name])=>
@@ -696,26 +667,6 @@ export function AdminEventClient(){
             update:{ru:"Изменение",uk:"Зміна",cs:"Úprava",en:"Updated"}
           } as Record<string,Record<string,string>>)[a.action]?.[language]||a.action}</strong><small>{tr("Организатор")} #{a.actor_account_id}</small><small>{a.details}</small></div>
           <small>{new Date(a.at).toLocaleString(localeForLanguage(language))}</small>
-        </div>)}
-      </section>}
-      {Number(event.price||0)>0&&<section className="panel form-stack">
-        <h2>{tr("Заявки на платное мероприятие — подтверждение в течение 24 часов")}</h2>
-        <p className="form-note">{tr("Деньги поступают напрямую организатору. Подтверждай заявку только после проверки фактического поступления. До подтверждения QR-билет не выдаётся. Не подтверждённые заявки автоматически истекают через 24 часа.")}</p>
-        {!paidReservations.length&&<p>{tr("Заявок пока нет.")}</p>}
-        {paidReservations.map(r=><div className="participant-row" key={r.id}>
-          <div>
-            <strong>{r.guest?.first_name||tr("Участник")} {r.guest?.last_name||""}</strong>
-            <small>{r.guest?.email||"—"}</small>
-            <small>{tr("Заявка #")}{r.id} · {r.status==="pending"?tr("Ожидает оплаты"):r.status==="confirmed"?tr("Подтверждено"):r.status==="expired"?tr("Истекло"):tr("Отклонено")}</small>
-            <small>{r.status==="pending"?tr("Крайний срок: "):tr("Дата истечения: ")}{new Date(r.expires_at).toLocaleString(localeForLanguage(language))}</small>
-          </div>
-          <div className="participant-actions">
-            {r.status==="pending"&&<>
-              <button type="button" className="button button-primary" disabled={busy} onClick={()=>void decidePaid(r.id,"confirm")}>{tr("Подтвердить оплату")}</button>
-              <button type="button" className="button button-outline" disabled={busy} onClick={()=>void decidePaid(r.id,"decline")}>{tr("Отклонить")}</button>
-            </>}
-            {r.status!=="pending"&&<span className="status">{tr(r.status==="confirmed"?"Подтверждено":r.status==="expired"?"Истекло":"Отклонено")}</span>}
-          </div>
         </div>)}
       </section>}
       {data&&<>

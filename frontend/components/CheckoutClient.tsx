@@ -5,13 +5,12 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
-import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig, getWaitlistOfferStatus,claimWaitlistOffer,declineWaitlistOffer,requestQuickSignup,confirmQuickSignup, requestPaidReservation, getOwnPaidReservation } from "@/lib/api";
+import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig, getWaitlistOfferStatus,claimWaitlistOffer,declineWaitlistOffer,requestQuickSignup,confirmQuickSignup } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { getStoredGuestToken, restoreGuest, storeGuest,setWebAuth } from "@/lib/session";
 import type { TicketTreatEvent, DemoGuest, } from "@/lib/types";
-import type {PaidReservationStatus} from "@/lib/api";
 
 const CHECKOUT_TEXT={"en":{"reserved":"A place has been reserved for you. Confirm it before the deadline.","codeSent":"If eligible, a sign-up code has been sent.","confirmed":"Email verified. You can now get your free ticket.","declined":"Offer declined.","declineConfirm":"Decline the available place?","quickIntro":"No password needed: enter your name and email, then confirm a one-time code.","accept":"I have reviewed the ","and":"and ","getCode":"Send sign-up code","oneTime":"One-time 8-digit code","verify":"Verify and continue","paymentUnavailable":"Paid ticket sales are not available yet. Please check back later.","quickTitle":"Quick signup","alreadyBot":"You are already registered through the Telegram bot. See your bot registration in My tickets."},"cs":{"reserved":"Místo je pro vás rezervováno. Potvrďte ho před uplynutím lhůty.","codeSent":"Pokud je účet způsobilý, byl odeslán registrační kód.","confirmed":"E-mail byl ověřen. Nyní můžete získat vstupenku zdarma.","declined":"Nabídka byla odmítnuta.","declineConfirm":"Odmítnout nabídnuté místo?","quickIntro":"Bez hesla: vyplňte jméno a e-mail a potvrďte jednorázový kód.","accept":"Seznámil/a jsem se s ","and":"a ","getCode":"Odeslat registrační kód","oneTime":"Jednorázový osmimístný kód","verify":"Ověřit e-mail a pokračovat","paymentUnavailable":"Prodej placených vstupenek zatím není dostupný. Zkuste to později.","quickTitle":"Rychlá registrace","alreadyBot":"Už jste zaregistrováni přes Telegram bota. Registraci najdete v sekci Moje vstupenky."},"ru":{"reserved":"Место зарезервировано для тебя. Подтверди его до указанного срока.","codeSent":"Если аккаунт подходит для регистрации, код отправлен.","confirmed":"Email подтверждён. Теперь можно получить бесплатный билет.","declined":"Предложение отклонено.","declineConfirm":"Отказаться от предложенного места?","quickIntro":"Без пароля: укажи имя, email и подтверди одноразовый код. Билет станет доступен после проверки почты.","accept":"Я ознакомился с ","and":"и ","getCode":"Получить код на email","oneTime":"Одноразовый код (8 цифр)","verify":"Подтвердить email","paymentUnavailable":"Продажа платных билетов пока недоступна. Попробуй позже.","quickTitle":"Быстрая регистрация","alreadyBot":"Ты уже записан на этот ивент через Telegram-бота. Запись видна в разделе «Мои билеты»."},"uk":{"reserved":"Місце зарезервовано для тебе. Підтвердь його до кінця терміну.","codeSent":"Якщо акаунт підходить для реєстрації, код надіслано.","confirmed":"Email підтверджено. Тепер можна отримати безкоштовний квиток.","declined":"Пропозицію відхилено.","declineConfirm":"Відмовитися від запропонованого місця?","quickIntro":"Без пароля: введи ім’я, email і підтвердь одноразовий код. Квиток стане доступним після перевірки пошти.","accept":"Я ознайомився з ","and":"та ","getCode":"Отримати код на email","oneTime":"Одноразовий код (8 цифр)","verify":"Підтвердити email","paymentUnavailable":"Продаж платних квитків поки недоступний. Спробуй пізніше.","quickTitle":"Швидка реєстрація","alreadyBot":"Ти вже зареєстрований через Telegram-бота. Запис доступний у розділі «Мої квитки»."}};
 
@@ -159,7 +158,11 @@ export function CheckoutClient() {
             </section>
 
             {!isFree ? (
-              <PaidCheckout event={event} guest={guest} language={language} source={attributionSource} invite={invite}/>
+              <section className="panel form-stack" role="status">
+                <h2>{language==="cs"?"Placené akce pozastaveny":language==="en"?"Paid events paused":language==="uk"?"Платні події призупинено":"Платные мероприятия приостановлены"}</h2>
+                <p>{txt.paymentUnavailable}</p>
+                <Link className="button button-outline" href="/events">{language==="cs"?"Zobrazit akce":language==="en"?"Browse free events":language==="uk"?"Переглянути події":"Посмотреть бесплатные мероприятия"}</Link>
+              </section>
             ) : !guest ? (
               <>
               <section className="panel account-signup-banner">
@@ -281,91 +284,4 @@ export function CheckoutClient() {
       </main>
     </div>
   );
-}
-
-function PaidCheckout({event,guest,language,source,invite}:{
-  event:TicketTreatEvent;guest:DemoGuest|null;
-  language:"en"|"cs"|"ru"|"uk";source:string;invite:string|null;
-}){
-  const [state,setState]=useState<PaidReservationStatus|null>(null);
-  const [busy,setBusy]=useState(false);
-  const [copiedInstructions,setCopiedInstructions]=useState(false);
-  const [error,setError]=useState("");
-  const [currentTime,setCurrentTime]=useState(()=>Date.now());
-  const refresh=()=>getOwnPaidReservation(event.id).then(setState).catch(e=>setError(userFacingError(e,language)));
-  useEffect(()=>{
-    if(!guest)return;
-    void refresh();
-    const poll=window.setInterval(()=>{
-      if(document.visibilityState==="visible")void refresh();
-    },30000);
-    return()=>window.clearInterval(poll);
-  },[event.id,guest?.id]);
-  useEffect(()=>{
-    const tick=window.setInterval(()=>setCurrentTime(Date.now()),1000);
-    return()=>window.clearInterval(tick);
-  },[]);
-  const pending=state?.status==="pending"&&state.reservation;
-  const remains=pending?Math.max(0,new Date(pending.expires_at).getTime()-currentTime):0;
-  const time=remains>0?`${Math.floor(remains/3600000).toString().padStart(2,"0")}:${Math.floor(remains%3600000/60000).toString().padStart(2,"0")}:${Math.floor(remains%60000/1000).toString().padStart(2,"0")}`:"00:00:00";
-  const label=(en:string,ru:string,cs:string,uk:string)=>language==="ru"?ru:language==="cs"?cs:language==="uk"?uk:en;
-  async function apply(){
-    setBusy(true);setError("");
-    try{
-      await requestPaidReservation(event.id,language,source,invite);
-      await refresh();
-    }catch(e){setError(userFacingError(e,language))}
-    finally{setBusy(false)}
-  }
-  return <section className="panel form-stack">
-    <h2>{label("Organizer-direct payment","Оплата напрямую организатору","Platba přímo pořadateli","Оплата безпосередньо організатору")}</h2>
-    <p>{label("TicketTreat does not receive payments. Your application holds a place for up to 24 hours. Only the organizer can confirm receipt of your payment and activate a QR ticket.",
-    "TicketTreat не принимает деньги. Заявка резервирует место на срок до 24 часов. Только организатор подтверждает получение оплаты и активирует QR-билет.",
-    "TicketTreat nepřijímá platby. Žádost rezervuje místo až na 24 hodin. Pouze pořadatel potvrdí přijetí platby a aktivuje QR vstupenku.",
-    "TicketTreat не приймає кошти. Заявка резервує місце до 24 годин. Лише організатор підтверджує оплату та активує QR-квиток.")}</p>
-    <p><strong>{label("Organizer","Организатор","Pořadatel","Організатор")}:</strong> {event.organizer||"—"}</p>
-    {!guest ? <>
-      <p>{label("Sign in to apply. Your application and deadline will be linked to your verified account.",
-      "Войди в аккаунт, чтобы встать в очередь на подтверждение оплаты.",
-      "Přihlas se, abys požádal o rezervaci a následné potvrzení platby.",
-      "Увійди до акаунта, щоб подати заявку на підтвердження оплати.")}</p>
-      <Link className="button button-primary" href="/profile">{label("Sign in","Войти","Přihlásit se","Увійти")}</Link>
-    </>:<>
-      {!state&&<p role="status">{label("Loading reservation status…","Загружаем статус…","Načítání stavu…","Завантажуємо статус…")}</p>}
-      {pending&&remains>0&&<>
-        <div className="state-card" role="status">
-          <strong>{label("Awaiting organizer's payment confirmation","Ожидание подтверждения оплаты","Čeká se na potvrzení platby","Очікується підтвердження оплати")}</strong>
-          <p>{label("Time remaining","Осталось времени","Zbývající čas","Залишилося часу")}: <strong>{time}</strong></p>
-          <p>{label("If the organizer does not confirm payment in time, your reservation expires and the place becomes available again.",
-          "Если организатор не подтвердит оплату до истечения срока, заявка автоматически аннулируется и место освободится.",
-          "Pokud pořadatel platbu včas nepotvrdí, rezervace vyprší a místo se uvolní.",
-          "Якщо організатор не підтвердить оплату вчасно, заявку буде скасовано і місце звільниться.")}</p>
-        </div>
-        {state?.payment_instructions&&<div className="state-card tt-payment-direct-instructions">
-          <strong>{label("Organizer payment instructions","Инструкция по оплате от организатора","Pokyny k platbě od pořadatele","Інструкція з оплати від організатора")}</strong>
-          <p style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{state.payment_instructions}</p>
-          <button type="button" className="button button-secondary" onClick={()=>{
-            if(!state.payment_instructions)return;
-            void navigator.clipboard.writeText(state.payment_instructions).then(()=>{
-              setCopiedInstructions(true);
-            }).catch(()=>setError(label("Select and copy the instructions above.","Выдели и скопируй инструкцию выше.","Označ a zkopíruj pokyny výše.","Виділи та скопіюй інструкцію вище.")));
-          }}>
-            {copiedInstructions?label("Copied","Скопировано","Zkopírováno","Скопійовано"):label("Copy payment instructions","Скопировать реквизиты","Zkopírovat platební pokyny","Скопіювати реквізити")}
-          </button>
-        </div>}
-      </>}
-      {state?.status==="confirmed"&&<div className="state-card" role="status">
-        <strong>{label("Payment confirmed — your ticket is ready","Оплата подтверждена — билет готов","Platba potvrzena — vstupenka je připravena","Оплату підтверджено — квиток готовий")}</strong>
-        <p><Link href="/tickets">{label("Open My Tickets","Открыть мои билеты","Moje vstupenky","Мої квитки")}</Link></p>
-      </div>}
-      {(state?.status==="not_joined"||state?.status==="expired"||state?.status==="declined")&&<>
-        {state.status!=="not_joined"&&<p role="status">{label("The previous application is no longer active.","Предыдущая заявка больше не активна.","Předchozí žádost již není aktivní.","Попередня заявка більше не активна.")}</p>}
-        <button type="button" className="button button-primary" disabled={busy||event.is_cancelled||event.spots_left===0} onClick={()=>void apply()}>
-          {busy?label("Sending…","Отправляем…","Odesílání…","Надсилаємо…"):label("Reserve a place for 24 hours","Забронировать место на 24 часа","Rezervovat místo na 24 hodin","Зарезервувати місце на 24 години")}
-        </button>
-      </>}
-    </>}
-    <p className="tt-legal-at-collection"><Link href="/terms">{language==="ru"?"Условия использования":language==="cs"?"Obchodní podmínky":language==="uk"?"Умови користування":"Terms of Service"}</Link> · <Link href="/privacy-policy">{language==="ru"?"Политика конфиденциальности":language==="cs"?"Zásady ochrany osobních údajů":language==="uk"?"Політика конфіденційності":"Privacy Policy"}</Link></p>
-    {error&&<p className="state-card state-error" role="alert">{error}</p>}
-  </section>;
 }

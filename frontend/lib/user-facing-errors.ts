@@ -111,6 +111,12 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
     "ru": "Все места заняты. Если доступен лист ожидания, запишись в него.",
     "uk": "Усі місця зайняті. Якщо доступний список очікування, запишися."
   },
+  "paid_events_disabled": {
+    "en":"Paid events and organizer payment confirmations are temporarily disabled. Only free events can be created or booked.",
+    "cs":"Placené akce a potvrzování plateb pořadatelem jsou dočasně vypnuté. Nyní lze vytvářet a rezervovat pouze bezplatné akce.",
+    "ru":"Платные мероприятия и подтверждение оплаты организатором временно отключены. Сейчас можно создавать и бронировать только бесплатные события.",
+    "uk":"Платні події та підтвердження оплати організатором тимчасово вимкнено. Зараз можна створювати та бронювати лише безкоштовні події."
+  },
   "only_unpublished_drafts_can_be_deleted": {
     "en":"Only an unpublished, uncancelled draft can be deleted. Published or scheduled events must be managed through cancellation.",
     "cs":"Smazat lze pouze nezveřejněný a nezrušený koncept. Zveřejněné nebo plánované akce je nutné řešit zrušením.",
