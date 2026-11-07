@@ -1805,13 +1805,6 @@ def show_event_details_by_id(
                 callback_data="noop",
             )
         )
-    elif event.get("payment_required") and WEB_APP_URL.startswith("https://"):
-        keyboard.add(
-            InlineKeyboardButton(
-                "⏳ Заявка на оплату — 24 часа" if spots_left != 0 else "⏳ Проверить мою заявку",
-                web_app=WebAppInfo(url=f"{WEB_APP_URL}/checkout/{event_id}"),
-            )
-        )
     elif spots_left == 0:
         keyboard.add(
             InlineKeyboardButton(
@@ -2977,32 +2970,8 @@ def handle_register(call):
 
     event_id = int(call.data.split(":")[1])
 
-    # Paid applications have one canonical queue in TicketTreat Mini App.
-    # Legacy callback buttons in old Telegram messages must not create a
-    # second, separate RegistrationPayment entry on the Bot backend.
-    try:
-        target_event=backend_request("GET",f"/events/{event_id}",timeout=10)
-    except Exception:
-        target_event=None
-    if target_event is None or target_event.get("error"):
-        answer_callback(call,"Не удалось проверить мероприятие")
-        return
-    if target_event.get("payment_required"):
-        answer_callback(call,"Открой TicketTreat для заявки")
-        if not WEB_APP_URL.startswith("https://"):
-            bot.send_message(call.message.chat.id,"Платные заявки доступны только через TicketTreat Mini App.")
-            return
-        keyboard=InlineKeyboardMarkup()
-        keyboard.add(InlineKeyboardButton(
-            "⏳ Резерв 24 часа → TicketTreat",
-            web_app=WebAppInfo(url=f"{WEB_APP_URL}/checkout/{event_id}"),
-        ))
-        bot.send_message(call.message.chat.id,
-            "Оплата производится напрямую организатору. "
-            "Открой Mini App: место резервируется на 24 часа, "
-            "а QR-билет появится только после подтверждения оплаты организатором.",
-            reply_markup=keyboard)
-        return
+    # Event price may be positive, but sign-up uses the same registration
+    # action as a free event; no 24-hour payment hold or approval.
 
     payload = {
         "telegram_id": telegram_id,
@@ -3052,7 +3021,10 @@ def handle_register(call):
         else:
             bot.send_message(
                 call.message.chat.id,
-                "✅ Ты записан на ивент. Оплата не требуется.",
+                ("✅ Ты записан на ивент. TicketTreat не подтверждает оплату; "
+                 "вопросы оплаты решаются напрямую с организатором."
+                 if float(data.get("price") or 0) > 0
+                 else "✅ Ты записан на ивент. Оплата не требуется."),
                 reply_markup=get_main_menu(telegram_id),
             )
         return
@@ -3142,13 +3114,6 @@ def my_events(message):
         # flows. Canonical QR passes must be cancelled by their owner in
         # Mini App (the legacy unsubscribe endpoint cannot cancel them).
         if not ticket_id:
-            if event.get("payment_status") == "pending":
-                keyboard.add(
-                    InlineKeyboardButton(
-                        "💳 Реквизиты оплаты",
-                        callback_data=f"payment_info:{event['id']}",
-                    )
-                )
             keyboard.add(
                 InlineKeyboardButton(
                     "❌ Отписаться",
@@ -4126,11 +4091,8 @@ def handle_admin_event_creation(message):
 
         temporary["currency"] = currency
 
-        next_state = (
-            "WAIT_EVENT_PAYMENT_INSTRUCTIONS"
-            if float(temporary.get("price") or 0) > 0
-            else "WAIT_EVENT_LANGUAGES"
-        )
+        # Priced events no longer need organizer payment instructions.
+        next_state = "WAIT_EVENT_LANGUAGES"
 
         prompt_creation_state(
             message.chat.id,
@@ -4263,7 +4225,6 @@ EDIT_FIELDS = [
     ("👥 Max participants", "max_participants"),
     ("💰 Price", "price"),
     ("💱 Currency", "currency"),
-    ("💳 Payment instructions", "payment_instructions"),
     ("🌐 Языки ивента", "languages"),
     ("🕒 Start time", "starts_at"),
     ("⏰ Reminder time", "reminder_minutes_before"),

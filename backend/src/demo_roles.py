@@ -398,8 +398,6 @@ def install_demo_roles(app, get_db, main):
         account: WebAccount=Depends(managing),db: Session=Depends(get_db),
     ):
         validate_payload(payload.languages,payload.currency)
-        if payload.price>0:
-            raise HTTPException(status_code=409,detail="paid_events_disabled")
         from demo_pilot_ops import EventPilotSettings, validate_reminders
         reminder_intervals = validate_reminders(payload.reminder_minutes)
         reminder_message = payload.reminder_text.strip()
@@ -411,9 +409,9 @@ def install_demo_roles(app, get_db, main):
         values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","reminder_minutes","visibility"})
         validate_media_urls(payload.gallery_urls,payload.video_url)
         from main import EventCreate
-        values["payment_instructions"]=payload.payment_instructions.strip() if payload.price > 0 else ""
-        if payload.price > 0 and not values["payment_instructions"]:
-            raise HTTPException(422,"organizer_payment_instructions_required")
+        # Price is informational; neither booking nor publication requires
+        # organizer payment instructions in registration-only mode.
+        values["payment_instructions"]=""
         # The Telegram bot currently delivers one reminder, at the closest
         # configured offset. Email can deliver all configured offsets.
         values["reminder_minutes_before"]=min(reminder_intervals)
@@ -554,8 +552,6 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(404,"event_not_found")
         if event.is_cancelled:
             raise HTTPException(409,"event_is_cancelled")
-        if payload.status!="draft" and main.price_decimal(event.price)>0:
-            raise HTTPException(status_code=409,detail="paid_events_disabled")
         if payload.status=="draft":
             # Hiding events with issued passes or waiting attendees breaks
             # existing users' links. Cancellation is a separate audited flow.
@@ -589,10 +585,6 @@ def install_demo_roles(app, get_db, main):
                 raise HTTPException(422,"publish_requires_capacity")
             if not main.get_event_languages(db,event_id):
                 raise HTTPException(422,"publish_requires_languages")
-            if main.price_decimal(event.price)>0:
-                setting=main.get_payment_settings(db,event_id)
-                if not setting or not setting.payment_instructions.strip():
-                    raise HTTPException(422,"organizer_payment_instructions_required")
             if payload.status=="scheduled":
                 if payload.publish_at is None or payload.publish_at.tzinfo is None:
                     raise HTTPException(422,"publish_at_timezone_required")
@@ -634,8 +626,6 @@ def install_demo_roles(app, get_db, main):
         languages=main.get_event_languages(db,event_id)
         if not languages:
             raise HTTPException(422,"source_languages_missing")
-        if main.price_decimal(source.price)>0:
-            raise HTTPException(status_code=409,detail="paid_events_disabled")
         data=CreateManageEvent(
             title=(source.title[:240]+" (копия)") if len(source.title)<241 else source.title[:255],
             organizer=source.organizer,location=source.location,
@@ -647,8 +637,7 @@ def install_demo_roles(app, get_db, main):
             gallery_urls=external,video_url=video,poster_data_url=poster,
             reminder_minutes=__import__("demo_pilot_ops").effective_settings(db, source.id)["reminder_minutes"],
             reminder_text=(source.reminder_text or "Your TicketTreat event starts soon."),
-            payment_instructions=(main.get_payment_settings(db,event_id).payment_instructions
-                if main.get_payment_settings(db,event_id) else ""),
+            payment_instructions="",
         )
         # Copy only editorial media; fail before creating the new event if limits have changed.
         source_images=db.query(EventGalleryImage).filter(
@@ -694,8 +683,6 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(status_code=422,detail="date_required")
         if "price" in values and values["price"] is None:
             raise HTTPException(status_code=422,detail="invalid_price")
-        if "price" in values and values["price"]>0:
-            raise HTTPException(status_code=409,detail="paid_events_disabled")
         validate_media_urls(gallery, video)
         if gallery is not None:
             uploaded = db.query(EventGalleryImage).filter(

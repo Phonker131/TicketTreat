@@ -68,9 +68,11 @@ def maybe_offer_next(db, event, registered_count):
         return None
     if event.starts_at is None:
         return None
-    from main import normalize_event_datetime, event_has_started, price_decimal
+    from main import normalize_event_datetime, event_has_started
     from demo_pilot_ops import booking_cutoff_reached
-    if event.is_cancelled or event_has_started(event) or booking_cutoff_reached(db, event) or price_decimal(event.price) != 0:
+    # Paid-price and free events both use ordinary QR registration; a waitlist
+    # offer never collects or confirms payment.
+    if event.is_cancelled or event_has_started(event) or booking_cutoff_reached(db, event):
         return None
     now = datetime.now(timezone.utc)
     remaining = utc(normalize_event_datetime(event.starts_at)) - now

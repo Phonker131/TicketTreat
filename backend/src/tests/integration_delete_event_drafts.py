@@ -239,49 +239,98 @@ class DeleteUnusedDraftE2E(unittest.TestCase):
             self.assertTrue(db.query(main.DemoTicket.id).filter(
                 main.DemoTicket.event_id==event_id).first())
 
-    def test_paid_event_creation_and_price_updates_are_paused(self):
+    def test_priced_event_created_edited_and_published_without_payment_details(self):
         headers={"Authorization":"Bearer "+self.owner_token}
         payload={
-            "country_code":"CZ","city":"Prague","title":"Paid pilot disabled",
-            "description":"Must not appear during free-only pilot",
-            "location":"Prague, test venue",
+            "country_code":"CZ","city":"Prague",
+            "title":"Registration-only priced event "+secrets.token_hex(5),
+            "description":"Admission fee displayed, no online payment",
+            "location":"Prague test venue",
             "starts_at":(datetime.now(timezone.utc)+timedelta(days=7)).isoformat(),
             "max_participants":10,"price":"200","currency":"CZK",
-            "languages":["en"],"payment_instructions":"Pay organizer directly",
+            "languages":["en"],
         }
-        denied=self.client.post("/demo/manage/events",headers=headers,json=payload)
-        self.assertEqual(denied.status_code,409,denied.text)
-        self.assertEqual(denied.json()["detail"],"paid_events_disabled")
-        with SessionLocal() as db:
-            self.assertIsNone(db.query(main.Event.id).filter(
-                main.Event.title=="Paid pilot disabled").first())
-        event_id=self._create_draft()
-        attempted=self.client.patch(f"/demo/manage/events/{event_id}",
-                                   headers=headers,json={"price":"200"})
-        self.assertEqual(attempted.status_code,409,attempted.text)
-        with SessionLocal() as db:
-            self.assertEqual(Decimal(str(db.get(main.Event,event_id).price)),Decimal("0"))
-
-    def test_old_paid_event_cannot_be_published_or_approved(self):
-        headers={"Authorization":"Bearer "+self.owner_token}
-        event_id=self._create_draft()
-        with SessionLocal() as db:
-            event=db.get(main.Event,event_id)
-            event.price=Decimal("200")
-            db.commit()
-        publishing=self.client.put(f"/demo/manage/events/{event_id}/publication",
-                                   headers=headers,json={"status":"published"})
-        self.assertEqual(publishing.status_code,409,publishing.text)
-        self.assertEqual(publishing.json()["detail"],"paid_events_disabled")
-        for suffix in ("confirm","decline"):
-            response=self.client.post(
-                f"/demo/manage/events/{event_id}/paid-reservations/99999/{suffix}",
-                headers=headers)
-            self.assertEqual(response.status_code,409,response.text)
-            self.assertEqual(response.json()["detail"],"paid_events_disabled")
+        result=self.client.post("/demo/manage/events",headers=headers,json=payload)
+        self.assertEqual(result.status_code,201,result.text)
+        event_id=result.json()["id"]
         with SessionLocal() as db:
             self.assertEqual(Decimal(str(db.get(main.Event,event_id).price)),Decimal("200"))
+            self.assertIsNone(main.get_payment_settings(db,event_id))
+        changed=self.client.patch(f"/demo/manage/events/{event_id}",headers=headers,
+                                  json={"price":"250","currency":"CZK"})
+        self.assertEqual(changed.status_code,200,changed.text)
+        self.assertEqual(Decimal(str(changed.json()["price"])),Decimal("250"))
+        published=self.client.put(f"/demo/manage/events/{event_id}/publication",
+                                  headers=headers,json={"status":"published"})
+        self.assertEqual(published.status_code,200,published.text)
+        public=self.client.get(f"/events/{event_id}")
+        self.assertEqual(public.status_code,200,public.text)
+        self.assertEqual(Decimal(public.json()["price"]),Decimal("250"))
+        self.assertFalse(public.json()["payment_required"])
+        copied=self.client.post(f"/demo/manage/events/{event_id}/duplicate",
+                                headers=headers,json={})
+        self.assertEqual(copied.status_code,201,copied.text)
+        self.assertEqual(Decimal(str(copied.json()["price"])),Decimal("250"))
 
+    def test_priced_registration_issues_qr_without_payment_or_approval(self):
+        from integration_legacy import signed
+        from demo_paid_reservations import PaidReservation
+        from demo_telegram import DemoTelegramIdentity
+        headers={"Authorization":"Bearer "+self.owner_token}
+        event_id=self._create_draft()
+        update=self.client.patch(f"/demo/manage/events/{event_id}",headers=headers,
+                                 json={"price":"200","max_participants":1})
+        self.assertEqual(update.status_code,200,update.text)
+        publish=self.client.put(f"/demo/manage/events/{event_id}/publication",
+                                headers=headers,json={"status":"published"})
+        self.assertEqual(publish.status_code,200,publish.text)
+        login_a=signed(secrets.randbelow(10**12)+10**10)
+        login_b=signed(secrets.randbelow(10**12)+10**10)
+        for identity in (login_a,login_b):
+            reply=self.client.post("/demo/telegram/auth",json={"init_data":identity})
+            self.assertEqual(reply.status_code,200,reply.text)
+        auth={"X-Telegram-Init-Data":login_a}
+        booked=self.client.post(f"/demo/me/events/{event_id}/checkout",
+                                json={"language":"en"},headers=auth)
+        self.assertEqual(booked.status_code,200,booked.text)
+        self.assertEqual(booked.json()["status"],"registered")
+        self.assertFalse(booked.json()["demo_payment"])
+        self.assertFalse(booked.json()["real_money_charged"])
+        ticket=booked.json()["ticket"]
+        self.assertEqual(ticket["payment_provider"],"registration_only")
+        self.assertEqual(ticket["payment_status"],"not_collected")
+        self.assertEqual(ticket["payment_amount"],"0")
+        again=self.client.post(f"/demo/me/events/{event_id}/checkout",
+                               json={"language":"en"},headers=auth)
+        self.assertEqual(again.status_code,200,again.text)
+        self.assertEqual(again.json()["status"],"already_registered")
+        self.assertEqual(again.json()["ticket"]["id"],ticket["id"])
+        full=self.client.post(f"/demo/me/events/{event_id}/checkout",
+                              json={"language":"en"},
+                              headers={"X-Telegram-Init-Data":login_b})
+        self.assertEqual(full.status_code,409,full.text)
+        wait=self.client.post(f"/demo/me/events/{event_id}/waitlist",
+                              headers={"X-Telegram-Init-Data":login_b})
+        self.assertEqual(wait.status_code,200,wait.text)
+        self.assertEqual(wait.json()["status"],"waiting")
+        cancelled=self.client.delete(f"/demo/me/tickets/{ticket['id']}",headers=auth)
+        self.assertEqual(cancelled.status_code,200,cancelled.text)
+        self.assertEqual(cancelled.json()["ticket"]["payment_status"],"not_collected")
+        self.assertIsNotNone(cancelled.json()["promoted_ticket_id"])
+        promoted=self.client.get("/demo/me/tickets",headers={
+            "X-Telegram-Init-Data":login_b})
+        self.assertEqual(promoted.status_code,200,promoted.text)
+        self.assertEqual(len(promoted.json()),1)
+        self.assertEqual(promoted.json()[0]["payment_provider"],"registration_only")
+        self.assertEqual(promoted.json()[0]["payment_status"],"not_collected")
+        with SessionLocal() as db:
+            self.assertEqual(db.query(PaidReservation).filter(
+                PaidReservation.event_id==event_id).count(),0)
+            self.assertEqual(db.query(main.RegistrationPayment).filter(
+                main.RegistrationPayment.event_id==event_id).count(),0)
+            self.assertEqual(db.query(main.DemoTicket).filter(
+                main.DemoTicket.event_id==event_id,
+                main.DemoTicket.ticket_status=="active").count(),1)
 
     def test_no_new_direct_paid_reservations_can_be_submitted(self):
         event_id=self._create_draft()

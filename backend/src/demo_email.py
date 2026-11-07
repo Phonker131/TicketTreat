@@ -516,6 +516,19 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
                     pass
         link = f"{web_url}/tickets/{ticket.id}"
         button = d["button_ticket"]
+        # A QR registration does not collect money: display the advertised
+        # admission price while keeping the transaction amount at zero.
+        price_display = (
+            f"{event.price} {ticket.currency}"
+            if ticket.payment_provider == "registration_only"
+            else f"{ticket.payment_amount} {ticket.currency}"
+        )
+        registration_notice = {
+            "en": "Registration confirmed; TicketTreat has not collected or verified payment. Check arrangements with the organizer.",
+            "cs": "Registrace potvrzena; TicketTreat platbu nepřijal ani neověřil. Podmínky si ověřte u pořadatele.",
+            "uk": "Запис підтверджено; TicketTreat не приймав і не перевіряв оплату. Умови уточнюй в організатора.",
+            "ru": "Запись подтверждена; TicketTreat не принимал и не проверял оплату. Условия уточни у организатора.",
+        }.get(row.language or "en", "Registration confirmed; payment not verified.")
         extra = (
             '<table role="presentation" style="width:100%;border-collapse:collapse;'
             'border-top:1px solid #E6DFD1;border-bottom:1px solid #E6DFD1">'
@@ -523,7 +536,7 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             + card(d["date"], event_date(event.starts_at))
             + card(d["location"], event.location or "—")
             + card(d["number"], f"CRD-{ticket.id:06d}")
-            + card(d["price"], f"{ticket.payment_amount} {ticket.currency}")
+            + card(d["price"], price_display)
             + '</table>'
         )
         details_plain = "\n".join([
@@ -531,7 +544,7 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             f'{d["date"]}: {event_date(event.starts_at)}',
             f'{d["location"]}: {event.location or "—"}',
             f'{d["number"]}: CRD-{ticket.id:06d}',
-            f'{d["price"]}: {ticket.payment_amount} {ticket.currency}',
+            f'{d["price"]}: {price_display}',
         ])
         if row.kind == "ticket":
             # No QR for cancelled tickets or reissued tickets (stale messages).
@@ -547,9 +560,13 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
                 '<img alt="Ticket QR" width="220" height="220" style="max-width:100%;height:auto" '
                 'src="cid:tickettreat-ticket-qr"></div>'
             )
-            caption = d["qr_fallback"] + (" " + d["demo"] if ticket.payment_provider == "demo" else "")
+            caption = (d["qr_fallback"]
+                       + (" " + d["demo"] if ticket.payment_provider == "demo" else "")
+                       + (" " + registration_notice if ticket.payment_provider == "registration_only" else ""))
         else:
-            caption = d["demo"] if ticket.payment_provider == "demo" else ""
+            caption = (d["demo"] if ticket.payment_provider == "demo"
+                       else registration_notice if ticket.payment_provider == "registration_only"
+                       else "")
 
     return {
         "from": os.environ["EMAIL_FROM"].strip(),

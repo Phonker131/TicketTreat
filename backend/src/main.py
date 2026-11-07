@@ -626,40 +626,25 @@ def payment_state_for_registration(
     event: Any,
     user_id: int,
 ) -> dict[str, Any]:
-    payment_required = event_requires_payment(event)
+    """Legacy registration status, not a request to collect or confirm payment.
 
-    if not payment_required:
-        return {
-            "payment_required": False,
-            "payment_status": "confirmed",
-            "payment_deadline": None,
-            "payment_confirmed_at": None,
-            "payment_confirmed_by": None,
-        }
-
-    payment = get_registration_payment(
-        db,
-        event.id,
-        user_id,
-    )
-
-    # Existing registrations created before this feature are preserved
-    # as valid/confirmed registrations.
-    if payment is None:
-        return {
-            "payment_required": True,
-            "payment_status": "confirmed",
-            "payment_deadline": None,
-            "payment_confirmed_at": None,
-            "payment_confirmed_by": None,
-        }
-
+    Paid event *price* is descriptive during the registration-only pilot.
+    Retain historical confirmed payments where present but never manufacture
+    a payment confirmation or a 24-hour payment deadline.
+    """
+    if not event_requires_payment(event):
+        status = "confirmed"
+    else:
+        historical = get_registration_payment(db, event.id, user_id)
+        status = ("confirmed" if historical is not None
+                  and historical.payment_status == "confirmed"
+                  else "registration_only")
     return {
-        "payment_required": True,
-        "payment_status": payment.payment_status,
-        "payment_deadline": payment.payment_deadline,
-        "payment_confirmed_at": payment.payment_confirmed_at,
-        "payment_confirmed_by": payment.payment_confirmed_by,
+        "payment_required": False,
+        "payment_status": status,
+        "payment_deadline": None,
+        "payment_confirmed_at": None,
+        "payment_confirmed_by": None,
     }
 
 
@@ -980,11 +965,9 @@ def event_to_dict(
             if db is not None
             else []
         ),
-        "payment_required": event_requires_payment(event),
-        "payment_instructions_configured": bool(
-            settings
-            and settings.payment_instructions.strip()
-        ),
+        # Event price remains visible, but booking has no payment stage.
+        "payment_required": False,
+        "payment_instructions_configured": False,
         "image_url": public_event_image_url(event),
         "starts_at": event.starts_at,
         "telegram_photo_file_id": getattr(
@@ -1456,9 +1439,6 @@ def create_event(
     payload: EventCreate,
     db: Session = Depends(get_db),
 ):
-    # Free-only pilot: a paid listing must never enter the booking funnel.
-    if price_decimal(payload.price) > 0:
-        return {"error": "paid_events_disabled"}
     payment_instructions = (
         payload.payment_instructions.strip()
         if payload.payment_instructions
@@ -1472,14 +1452,6 @@ def create_event(
     if not event_languages:
         return {
             "error": "event_languages_required",
-        }
-
-    if (
-        price_decimal(payload.price) > 0
-        and not payment_instructions
-    ):
-        return {
-            "error": "payment_setup_missing",
         }
 
     event = Event()
@@ -1626,11 +1598,6 @@ def update_event(
     update_data = payload.model_dump(
         exclude_unset=True
     )
-    # Allow edits to legacy paid-event metadata, but never re-enable
-    # charging or convert an existing free event to paid during the pilot.
-    if "price" in update_data and price_decimal(update_data["price"]) > 0:
-        return {"error": "paid_events_disabled"}
-
     languages_were_set = "languages" in update_data
     language_values = update_data.pop(
         "languages",
@@ -1678,19 +1645,6 @@ def update_event(
         )
     else:
         new_instructions = current_instructions
-
-    effective_price = update_data.get(
-        "price",
-        event.price,
-    )
-
-    if (
-        price_decimal(effective_price) > 0
-        and not new_instructions
-    ):
-        return {
-            "error": "payment_setup_missing",
-        }
 
     if (
         "currency" in update_data
@@ -1938,9 +1892,8 @@ def register_to_event(
     if booking_cutoff_reached(db, event):
         return {"error": "event_registration_closed"}
 
-    if event_requires_payment(event):
-        return {"error": "paid_events_disabled"}
-
+    # The ticket/registration flow never creates a payment hold in this pilot.
+    # Event pricing is informational; settlement happens outside TicketTreat.
     user = (
         db.query(User)
         .filter(
@@ -2025,20 +1978,6 @@ def register_to_event(
     )
 
     db.add(registration)
-
-    if event_requires_payment(event):
-        payment = RegistrationPayment(
-            event_id=event.id,
-            user_id=user.id,
-            payment_status="pending",
-            payment_deadline=(
-                utc_now()
-                + timedelta(
-                    hours=PAYMENT_CONFIRMATION_HOURS
-                )
-            ),
-        )
-        db.add(payment)
 
     db.commit()
 
@@ -2566,10 +2505,6 @@ def promote_demo_waitlist(
 
     if event is None or getattr(event, "is_cancelled", False) or event_has_started(event):
         return None
-    if price_decimal(event.price) > 0 and not DEMO_PAYMENT_MODE:
-        # Never silently create an unpaid "paid" ticket.
-        return None
-
     expire_for_event(db,event_id)
     registered=get_registered_count(db,event_id)
     if (event.max_participants is not None
@@ -2599,9 +2534,9 @@ def promote_demo_waitlist(
         ticket = existing
         ticket.qr_token = secrets.token_urlsafe(32)
         ticket.ticket_status = "active"
-        ticket.payment_status = "not_required" if price_decimal(event.price) <= 0 else "paid"
-        ticket.payment_provider = "free" if price_decimal(event.price) <= 0 else "demo"
-        ticket.payment_amount = str(price_decimal(event.price))
+        ticket.payment_status = "not_required" if price_decimal(event.price) <= 0 else "not_collected"
+        ticket.payment_provider = "free" if price_decimal(event.price) <= 0 else "registration_only"
+        ticket.payment_amount = "0"
         ticket.currency = getattr(event, "currency", None) or "CZK"
         ticket.checked_in_at = None
         ticket.cancelled_at = None
@@ -2611,9 +2546,9 @@ def promote_demo_waitlist(
             guest_id=waitlist_entry.guest_id,
             qr_token=secrets.token_urlsafe(32),
             ticket_status="active",
-            payment_status="not_required" if price_decimal(event.price) <= 0 else "paid",
-            payment_provider="free" if price_decimal(event.price) <= 0 else "demo",
-            payment_amount=str(price_decimal(event.price)),
+            payment_status="not_required" if price_decimal(event.price) <= 0 else "not_collected",
+            payment_provider="free" if price_decimal(event.price) <= 0 else "registration_only",
+            payment_amount="0",
             currency=getattr(event, "currency", None) or "CZK",
         )
         db.add(ticket)
@@ -2882,9 +2817,8 @@ def demo_checkout(
     x_telegram_init_data: str | None = Header(default=None),
     x_event_invite: str | None = Header(default=None),
 ):
-    # A genuinely free event never needs a payment provider.
-    # Paid events still require explicit DEMO_PAYMENT_MODE until a real
-    # licensed payment integration is activated.
+    # Paid and free events use the same registration/QR flow. The advertised
+    # event price is NOT a payment: no provider, collection or approval here.
     guest = get_demo_guest_by_token(db, payload.guest_token)
 
     if guest is None:
@@ -2916,9 +2850,6 @@ def demo_checkout(
     acquisition_source = payload.source if payload.source != "direct" else (
         "telegram" if x_telegram_init_data else "direct"
     )
-    if not free_event:
-        raise HTTPException(status_code=409, detail="paid_events_disabled")
-
     if getattr(event, "is_cancelled", False):
         raise HTTPException(status_code=409, detail="event_cancelled")
 
@@ -2941,9 +2872,9 @@ def demo_checkout(
 
     if existing is not None and existing.ticket_status == "active":
         return {
-            "status": "already_registered" if free_event else "already_paid",
+            "status": "already_registered",
             "ticket": demo_ticket_to_dict(existing, db),
-            "demo_payment": not free_event,
+            "demo_payment": False,
             "real_money_charged": False,
         }
 
@@ -2960,9 +2891,9 @@ def demo_checkout(
         ticket = existing
         ticket.qr_token = secrets.token_urlsafe(32)
         ticket.ticket_status = "active"
-        ticket.payment_status = "not_required" if free_event else "paid"
-        ticket.payment_provider = "free" if free_event else "demo"
-        ticket.payment_amount = str(price_decimal(event.price))
+        ticket.payment_status = "not_required" if free_event else "not_collected"
+        ticket.payment_provider = "free" if free_event else "registration_only"
+        ticket.payment_amount = "0"
         ticket.currency = getattr(event, "currency", None) or "CZK"
         ticket.checked_in_at = None
         ticket.cancelled_at = None
@@ -2974,9 +2905,9 @@ def demo_checkout(
             qr_token=secrets.token_urlsafe(32),
             ticket_status="active",
             acquisition_source=acquisition_source,
-            payment_status="not_required" if free_event else "paid",
-            payment_provider="free" if free_event else "demo",
-            payment_amount=str(price_decimal(event.price)),
+            payment_status="not_required" if free_event else "not_collected",
+            payment_provider="free" if free_event else "registration_only",
+            payment_amount="0",
             currency=getattr(event, "currency", None) or "CZK",
         )
         db.add(ticket)
@@ -3018,9 +2949,9 @@ def demo_checkout(
         )
 
     return {
-        "status": "registered" if free_event else "paid",
+        "status": "registered",
         "ticket": demo_ticket_to_dict(ticket, db),
-        "demo_payment": not free_event,
+        "demo_payment": False,
         "real_money_charged": False,
     }
 
@@ -3232,6 +3163,7 @@ def cancel_demo_ticket(
     # Never report simulated transactions as real money refunded.
     ticket.payment_status = (
         "not_required" if ticket.payment_provider in {"free","legacy_free"}
+        else "not_collected" if ticket.payment_provider == "registration_only"
         else "cancelled_demo"
     )
     ticket.cancelled_at = utc_now()
