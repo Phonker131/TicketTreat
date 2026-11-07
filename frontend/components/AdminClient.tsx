@@ -123,9 +123,7 @@ export function AdminClient() {
         location:String(data.get("location")||"").trim(),
         country_code:"CZ",city:"",
         max_participants:Number(data.get("max_participants")||30),
-        price:String(data.get("price")||"0"),
-        currency:String(data.get("currency")||"CZK"),
-        payment_instructions:String(data.get("payment_instructions")||"").trim(),
+        price:"0",currency:"CZK",
         starts_at:starts+":00",languages:langs,poster_data_url,
         reminder_minutes:reminderMinutes,reminder_text:reminderMessage.trim(),
       });
@@ -196,12 +194,7 @@ export function AdminClient() {
         <label>{tr("Мест")}<input name="max_participants" type="number" min="1" defaultValue="30" required/></label></div>
         <ReminderEditor minutes={reminderMinutes} onChange={setReminderMinutes}
           message={reminderMessage} onMessageChange={setReminderMessage} language={language}/>
-        <div className="two-col"><label>{tr("Цена")}<input name="price" type="number" min="0" step="0.01" defaultValue="0"/></label>
-        <label>{tr("Валюта")}<select name="currency" defaultValue="CZK"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option></select></label></div>
-        <label>{ui.payment}
-          <textarea name="payment_instructions" rows={4} maxLength={2000}
-            placeholder={ui.paymentHint}/>
-        </label>
+        <p className="form-note">{language==="cs"?"Během pilotního provozu lze vytvářet pouze bezplatné akce.":language==="en"?"During the pilot, new events are free only.":language==="uk"?"Під час пілоту можна створювати лише безкоштовні події.":"Во время пилота можно создавать только бесплатные мероприятия."}</p>
         <button className="button button-primary" disabled={saving}>{saving?ui.saving:ui.createDraft}</button>
       </form>}
       <section className="panel pilot-event-filters" aria-label={tr("Фильтрация мероприятий")}>
