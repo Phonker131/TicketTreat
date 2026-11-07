@@ -1,4 +1,4 @@
-"""Deletion of unused drafts: PostgreSQL + real authenticated management HTTP API.
+"""Deletion of unused events: PostgreSQL + real authenticated management HTTP API.
 
 Never run against user data: CI must provide the disposable /tickettreat_ci DB.
 """
@@ -124,16 +124,69 @@ class DeleteUnusedDraftE2E(unittest.TestCase):
             "/demo/manage/events",headers={"Authorization":"Bearer "+self.owner_token}
         ).json()))
 
-    def test_published_and_scheduled_events_cannot_be_deleted(self):
+    def test_published_and_scheduled_unused_events_can_be_deleted(self):
+        headers={"Authorization":"Bearer "+self.owner_token}
+        for status in ("published","scheduled"):
+            with self.subTest(status=status):
+                event_id=self._create_draft()
+                url=f"/demo/manage/events/{event_id}"
+                payload={"status":status}
+                if status=="scheduled":
+                    payload["publish_at"]=(datetime.now(timezone.utc)+timedelta(hours=2)).isoformat()
+                published=self.client.put(url+"/publication",headers=headers,json=payload)
+                self.assertEqual(published.status_code,200,published.text)
+                deleted=self.client.delete(url,headers=headers)
+                self.assertEqual(deleted.status_code,200,deleted.text)
+                with SessionLocal() as db:
+                    self.assertIsNone(db.get(main.Event,event_id))
+                remaining=self.client.get("/demo/manage/events",headers=headers)
+                self.assertEqual(remaining.status_code,200,remaining.text)
+                self.assertFalse(any(e["id"]==event_id for e in remaining.json()))
+
+    def test_cancelled_unused_event_can_be_deleted_from_db_and_public_catalog(self):
+        headers={"Authorization":"Bearer "+self.owner_token}
         event_id=self._create_draft()
         url=f"/demo/manage/events/{event_id}"
+        published=self.client.put(url+"/publication",headers=headers,
+                                  json={"status":"published"})
+        self.assertEqual(published.status_code,200,published.text)
+        cancel=self.client.post(url+"/cancel",headers=headers,
+                                json={"reason":"Cancelled test event without attendees"})
+        self.assertEqual(cancel.status_code,200,cancel.text)
+        with SessionLocal() as db:
+            self.assertTrue(db.get(main.Event,event_id).is_cancelled)
+        deleted=self.client.delete(url,headers=headers)
+        self.assertEqual(deleted.status_code,200,deleted.text)
+        with SessionLocal() as db:
+            self.assertIsNone(db.get(main.Event,event_id))
+            self.assertIsNone(db.get(EventPublication,event_id))
+            self.assertEqual(db.query(EventModerationLog).filter(
+                EventModerationLog.event_id==event_id,
+                EventModerationLog.action=="delete").count(),1)
+        remaining=self.client.get("/events?include_past=true")
+        self.assertEqual(remaining.status_code,200,remaining.text)
+        self.assertFalse(any(e["id"]==event_id for e in remaining.json()))
+
+    def test_published_event_with_history_must_be_retained(self):
         headers={"Authorization":"Bearer "+self.owner_token}
-        publish=self.client.put(url+"/publication",headers=headers,
-                                json={"status":"published"})
-        self.assertEqual(publish.status_code,200,publish.text)
-        response=self.client.delete(url,headers=headers)
-        self.assertEqual(response.status_code,409,response.text)
-        self.assertEqual(response.json()["detail"],"only_unpublished_drafts_can_be_deleted")
+        event_id=self._create_draft()
+        with SessionLocal() as db:
+            guest=main.DemoGuest(
+                first_name="Attendee",email=f"history-{secrets.token_hex(9)}@example.invalid",
+                access_token=secrets.token_urlsafe(32))
+            db.add(guest);db.flush()
+            db.add(main.DemoTicket(
+                event_id=event_id,guest_id=guest.id,
+                qr_token=secrets.token_urlsafe(32),
+                ticket_status="cancelled",payment_status="not_required",
+                payment_provider="free",payment_amount="0",currency="CZK"))
+            db.commit()
+        url=f"/demo/manage/events/{event_id}"
+        published=self.client.put(url+"/publication",headers=headers,json={"status":"published"})
+        self.assertEqual(published.status_code,200,published.text)
+        denied=self.client.delete(url,headers=headers)
+        self.assertEqual(denied.status_code,409,denied.text)
+        self.assertEqual(denied.json()["detail"],"event_has_history_cannot_delete")
         with SessionLocal() as db:
             self.assertIsNotNone(db.get(main.Event,event_id))
 

@@ -436,16 +436,19 @@ def install_demo_roles(app, get_db, main):
         return event_data(event,db,main)
 
     @app.delete("/demo/manage/events/{event_id}")
-    def delete_empty_draft(
+    def delete_unused_event(
         event_id: int, account: WebAccount=Depends(managing),
         db: Session=Depends(get_db),
     ):
-        """Permanently remove ONLY an owned, never-used draft.
+        """Permanently remove an owned event ONLY when it has no activity.
 
         TICKETTREAT CRITICAL — OWNER REVIEW REQUIRED.
-        Do not weaken the guards or delete historical participant/payment rows.
-        Lock the Event row so checkout and other capacity-changing operations
-        cannot race with this deletion. All SQL changes commit atomically.
+        Cancellation, publication and event dates are NOT evidence of guest
+        activity: allow removal of old, future and cancelled test events, but
+        never erase historical registrations, tickets, payments, reservations,
+        notices delivered to users or marketing campaigns.
+        Lock the Event row before checking those dependent records. All SQL
+        mutations commit atomically; preserve the non-FK audit trail.
         """
         ensure_owner(db,event_id,account)
         event=(db.query(main.Event).filter(main.Event.id==event_id)
@@ -453,9 +456,9 @@ def install_demo_roles(app, get_db, main):
         if event is None:
             raise HTTPException(status_code=404,detail="event_not_found")
         publication=db.get(EventPublication,event_id)
-        # Historical unmarked events count as published, never deletable drafts.
-        if publication is None or publication.status!="draft" or event.is_cancelled:
-            raise HTTPException(status_code=409,detail="only_unpublished_drafts_can_be_deleted")
+        is_unused_draft=bool(publication and publication.status=="draft"
+                             and not event.is_cancelled)
+        conflict="draft_has_activity_cannot_delete" if is_unused_draft else "event_has_history_cannot_delete"
 
         from demo_paid_reservations import PaidReservation
         from demo_waitlist_offers import WaitlistOffer
@@ -475,9 +478,9 @@ def install_demo_roles(app, get_db, main):
         for model in protected:
             event_column=model.__table__.c.event_id
             if db.query(event_column).filter(event_column==event_id).first() is not None:
-                raise HTTPException(status_code=409,detail="draft_has_activity_cannot_delete")
+                raise HTTPException(status_code=409,detail=conflict)
 
-        # A draft edit may leave an operational EventNotice even with zero
+        # An event edit or cancellation can leave an EventNotice with zero
         # recipients. Only recipient-free notices are metadata; never erase
         # email delivery history (sent, failed or pending).
         notice_ids=[
@@ -486,7 +489,7 @@ def install_demo_roles(app, get_db, main):
         ]
         if notice_ids and db.query(EmailOutbox.id).filter(
             EmailOutbox.notice_id.in_(notice_ids)).first() is not None:
-            raise HTTPException(status_code=409,detail="draft_has_activity_cannot_delete")
+            raise HTTPException(status_code=409,detail=conflict)
 
         from demo_pilot_ops import EventPilotSettings, EventCheckinStaff
         from demo_event_access import EventAccess
@@ -508,7 +511,9 @@ def install_demo_roles(app, get_db, main):
                 synchronize_session=False
             )
         # Retain a minimal event-ID audit trail (this table has no event FK).
-        audit(db,event_id,account.id,"delete","unused_draft")
+        audit(db,event_id,account.id,"delete",
+              "unused_event:"+("cancelled" if event.is_cancelled else
+                               (publication.status if publication else "legacy")) )
         db.delete(event)
         db.commit()
 
