@@ -68,9 +68,13 @@ export function CheckoutClient() {
   const isFree = Boolean(event && Number(event.price || 0) <= 0);
   const freeLabel = language === "ru" ? "Бесплатно" : language === "uk" ? "Безкоштовно" :
     language === "cs" ? "Zdarma" : "Free";
-  const registerLabel = language === "ru" ? "Получить бесплатный билет" :
-    language === "uk" ? "Отримати безкоштовний квиток" :
-    language === "cs" ? "Získat vstupenku zdarma" : "Get free ticket";
+  const registerLabel = isFree
+    ? (language === "ru" ? "Получить бесплатный билет" : language === "uk" ? "Отримати безкоштовний квиток" : language === "cs" ? "Získat vstupenku zdarma" : "Get free ticket")
+    : (language === "ru" ? "Записаться и получить билет" : language === "uk" ? "Записатись і отримати квиток" : language === "cs" ? "Registrovat se a získat vstupenku" : "Register and get ticket");
+  const paidNotice = language === "ru" ? "Запись подтверждается сразу и выдаётся QR-билет. TicketTreat не принимает и не проверяет оплату: о способе оплаты договаривайся с организатором отдельно." :
+    language === "uk" ? "Запис підтверджується відразу, QR-квиток видається одразу. TicketTreat не приймає й не перевіряє оплату: домовляйся з організатором окремо." :
+    language === "cs" ? "Registrace a QR vstupenka se vydají okamžitě. TicketTreat platby nevybírá ani neověřuje; platební podmínky řešte samostatně s pořadatelem." :
+    "Registration immediately issues a QR ticket. TicketTreat does not collect or verify payment; arrange payment terms separately with the organizer.";
 
   async function submitGuest(e: FormEvent) {
     e.preventDefault();
@@ -93,12 +97,6 @@ export function CheckoutClient() {
 
   async function performCheckout() {
     if (!event || !guest) return;
-    if (!isFree) {
-      // Pilot contract: paid events are settled directly with the organizer.
-      // Never call the mock payment endpoint or mark an unpaid booking as paid.
-      setMessage(language==="ru"?"Оплата проводится напрямую организатору, не через TicketTreat.":language==="cs"?"Platba probíhá přímo pořadateli, nikoli přes TicketTreat.":language==="uk"?"Оплата проводиться безпосередньо організатору, а не через TicketTreat.":"Payment is handled directly by the organizer, not by TicketTreat.");
-      return;
-    }
     setBusy(true);
     setMessage(null);
     try {
@@ -118,9 +116,8 @@ export function CheckoutClient() {
         return;
       }
 
-      if (!isFree) await new Promise((resolve) => setTimeout(resolve, 900));
       const result = await demoCheckout(event.id, guest.access_token, language, attributionSource,invite);
-      router.push(`/tickets/${result.ticket.id}${isFree ? "?registered=1" : "?paid=1"}`);
+      router.push(`/tickets/${result.ticket.id}?registered=1`);
     } catch (err) {
       const text = err instanceof Error ? err.message : "Error";
       if (text === "event_full") {
@@ -145,7 +142,7 @@ export function CheckoutClient() {
           {bookingConfig?.demo_payment_mode && <p>{t(language, "demoHint")}</p>}
         </div>
 
-        {!event || (isFree && loadingGuest) ? (
+        {!event || loadingGuest ? (
           <div className="state-card">{t(language, "loading")}</div>
         ) : (
           <>
@@ -157,13 +154,8 @@ export function CheckoutClient() {
               <strong>{isFree ? freeLabel : price}</strong>
             </section>
 
-            {!isFree ? (
-              <section className="panel form-stack" role="status">
-                <h2>{language==="cs"?"Placené akce pozastaveny":language==="en"?"Paid events paused":language==="uk"?"Платні події призупинено":"Платные мероприятия приостановлены"}</h2>
-                <p>{txt.paymentUnavailable}</p>
-                <Link className="button button-outline" href="/events">{language==="cs"?"Zobrazit akce":language==="en"?"Browse free events":language==="uk"?"Переглянути події":"Посмотреть бесплатные мероприятия"}</Link>
-              </section>
-            ) : !guest ? (
+            {!isFree&&<p className="state-card" role="status">{paidNotice}</p>}
+            {!guest ? (
               <>
               <section className="panel account-signup-banner">
                 <h2>{language === "en" ? "Create your TicketTreat profile" : language === "cs" ? "Vytvoř si profil TicketTreat" : language === "uk" ? "Створи профіль TicketTreat" : "Создай профиль TicketTreat"}</h2>
@@ -257,13 +249,13 @@ export function CheckoutClient() {
                   </>
                 ) : (
                   <>
-                    <h2>{freeLabel}</h2>
-                    <p className="demo-banner">{
+                    <h2>{isFree?freeLabel:price}</h2>
+                    <p className="demo-banner">{isFree?(
                       language === "ru" ? "Оплата не нужна. После регистрации сразу получишь QR-билет." :
                       language === "uk" ? "Оплата не потрібна. QR-квиток буде доступний одразу." :
                       language === "cs" ? "Platba není potřeba. QR vstupenka bude připravena ihned." :
                       "No payment required. Your QR ticket will be ready immediately."
-                    }</p>
+                    ):paidNotice}</p>
               <p className="tt-legal-at-collection">
                 {language==="ru"?"Регистрация и обработка данных выполняются по ":language==="uk"?"Реєстрація та обробка даних здійснюються відповідно до ":language==="cs"?"Informace o registraci a zpracování osobních údajů: ":"Registration and data handling: "}
                 <Link href="/terms" target="_blank" rel="noopener noreferrer">{language==="ru"?"условиям использования":language==="uk"?"умов користування":language==="cs"?"Obchodní podmínky":"Terms of Service"}</Link>
