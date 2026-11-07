@@ -626,40 +626,25 @@ def payment_state_for_registration(
     event: Any,
     user_id: int,
 ) -> dict[str, Any]:
-    payment_required = event_requires_payment(event)
+    """Legacy registration status, not a request to collect or confirm payment.
 
-    if not payment_required:
-        return {
-            "payment_required": False,
-            "payment_status": "confirmed",
-            "payment_deadline": None,
-            "payment_confirmed_at": None,
-            "payment_confirmed_by": None,
-        }
-
-    payment = get_registration_payment(
-        db,
-        event.id,
-        user_id,
-    )
-
-    # Existing registrations created before this feature are preserved
-    # as valid/confirmed registrations.
-    if payment is None:
-        return {
-            "payment_required": True,
-            "payment_status": "confirmed",
-            "payment_deadline": None,
-            "payment_confirmed_at": None,
-            "payment_confirmed_by": None,
-        }
-
+    Paid event *price* is descriptive during the registration-only pilot.
+    Retain historical confirmed payments where present but never manufacture
+    a payment confirmation or a 24-hour payment deadline.
+    """
+    if not event_requires_payment(event):
+        status = "confirmed"
+    else:
+        historical = get_registration_payment(db, event.id, user_id)
+        status = ("confirmed" if historical is not None
+                  and historical.payment_status == "confirmed"
+                  else "registration_only")
     return {
-        "payment_required": True,
-        "payment_status": payment.payment_status,
-        "payment_deadline": payment.payment_deadline,
-        "payment_confirmed_at": payment.payment_confirmed_at,
-        "payment_confirmed_by": payment.payment_confirmed_by,
+        "payment_required": False,
+        "payment_status": status,
+        "payment_deadline": None,
+        "payment_confirmed_at": None,
+        "payment_confirmed_by": None,
     }
 
 
@@ -980,11 +965,9 @@ def event_to_dict(
             if db is not None
             else []
         ),
-        "payment_required": event_requires_payment(event),
-        "payment_instructions_configured": bool(
-            settings
-            and settings.payment_instructions.strip()
-        ),
+        # Event price remains visible, but booking has no payment stage.
+        "payment_required": False,
+        "payment_instructions_configured": False,
         "image_url": public_event_image_url(event),
         "starts_at": event.starts_at,
         "telegram_photo_file_id": getattr(
