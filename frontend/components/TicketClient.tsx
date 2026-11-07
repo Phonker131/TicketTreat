@@ -149,6 +149,7 @@ export function TicketClient() {
              <div><span>{t(language,"location")}</span><strong>{ticket.event?.location||"Czechia"}</strong></div>
              <div><span>{t(language,"price")}</span><strong>{ticket.event?formatPrice(ticket.event,language):`${ticket.payment_amount} ${ticket.currency}`}</strong></div>
            </div>
+           {ticket.payment_provider==="registration_only"&&<p className="form-note" role="note">{language==="ru"?"Запись подтверждена. TicketTreat не принимал и не проверял оплату — условия уточни у организатора.":language==="cs"?"Registrace potvrzena. TicketTreat platbu nepřijal ani neověřil — podmínky zjistěte u pořadatele.":language==="uk"?"Запис підтверджено. TicketTreat не приймав і не перевіряв оплату — умови уточни в організатора.":"Registration confirmed. TicketTreat has not collected or verified payment; confirm terms with the organizer."}</p>}
            <div className="tt-pass-countdown" role="timer" aria-live="off">
              <span>{ticketText.until}</span>
              {!countdown?<strong>—</strong>:countdown.started?<strong>{ticketText.started}</strong>:
