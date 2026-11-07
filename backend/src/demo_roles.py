@@ -398,6 +398,8 @@ def install_demo_roles(app, get_db, main):
         account: WebAccount=Depends(managing),db: Session=Depends(get_db),
     ):
         validate_payload(payload.languages,payload.currency)
+        if payload.price>0:
+            raise HTTPException(status_code=409,detail="paid_events_disabled")
         from demo_pilot_ops import EventPilotSettings, validate_reminders
         reminder_intervals = validate_reminders(payload.reminder_minutes)
         reminder_message = payload.reminder_text.strip()
@@ -552,6 +554,8 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(404,"event_not_found")
         if event.is_cancelled:
             raise HTTPException(409,"event_is_cancelled")
+        if payload.status!="draft" and main.price_decimal(event.price)>0:
+            raise HTTPException(status_code=409,detail="paid_events_disabled")
         if payload.status=="draft":
             # Hiding events with issued passes or waiting attendees breaks
             # existing users' links. Cancellation is a separate audited flow.
@@ -630,6 +634,8 @@ def install_demo_roles(app, get_db, main):
         languages=main.get_event_languages(db,event_id)
         if not languages:
             raise HTTPException(422,"source_languages_missing")
+        if main.price_decimal(source.price)>0:
+            raise HTTPException(status_code=409,detail="paid_events_disabled")
         data=CreateManageEvent(
             title=(source.title[:240]+" (копия)") if len(source.title)<241 else source.title[:255],
             organizer=source.organizer,location=source.location,
@@ -688,6 +694,8 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(status_code=422,detail="date_required")
         if "price" in values and values["price"] is None:
             raise HTTPException(status_code=422,detail="invalid_price")
+        if "price" in values and values["price"]>0:
+            raise HTTPException(status_code=409,detail="paid_events_disabled")
         validate_media_urls(gallery, video)
         if gallery is not None:
             uploaded = db.query(EventGalleryImage).filter(
