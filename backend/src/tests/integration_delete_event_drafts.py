@@ -282,6 +282,20 @@ class DeleteUnusedDraftE2E(unittest.TestCase):
         with SessionLocal() as db:
             self.assertEqual(Decimal(str(db.get(main.Event,event_id).price)),Decimal("200"))
 
+
+    def test_no_new_direct_paid_reservations_can_be_submitted(self):
+        event_id=self._create_draft()
+        headers={"Authorization":"Bearer "+self.owner_token}
+        attempted=self.client.post(
+            f"/demo/me/events/{event_id}/paid-reservations",
+            headers=headers,json={"language":"en","source":"direct"})
+        self.assertEqual(attempted.status_code,409,attempted.text)
+        self.assertEqual(attempted.json()["detail"],"paid_events_disabled")
+        from demo_paid_reservations import PaidReservation
+        with SessionLocal() as db:
+            self.assertEqual(db.query(PaidReservation).filter(
+                PaidReservation.event_id==event_id).count(),0)
+
     def test_free_pilot_booking_creation_still_works(self):
         event_id=self._create_draft()
         with SessionLocal() as db:
