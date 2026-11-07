@@ -2916,8 +2916,8 @@ def demo_checkout(
     acquisition_source = payload.source if payload.source != "direct" else (
         "telegram" if x_telegram_init_data else "direct"
     )
-    if not free_event and not DEMO_PAYMENT_MODE:
-        raise HTTPException(status_code=503, detail="demo_payment_disabled")
+    if not free_event:
+        raise HTTPException(status_code=409, detail="paid_events_disabled")
 
     if getattr(event, "is_cancelled", False):
         raise HTTPException(status_code=409, detail="event_cancelled")
