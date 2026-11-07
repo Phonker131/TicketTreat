@@ -1,6 +1,6 @@
 import {test,expect} from "@playwright/test";
 
-test("organizer draft form offers free events only",async({page})=>{
+test("organizer draft form allows priced events without payment approval",async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.addInitScript(()=>localStorage.setItem("tickettreat_web_auth","browser-session"));
   await page.route("**/api/gateway/api/v1/manage/**",route=>{
@@ -12,15 +12,18 @@ test("organizer draft form offers free events only",async({page})=>{
   });
   await page.goto("/admin?lang=en",{waitUntil:"domcontentloaded"});
   await page.getByRole("button",{name:/Create event/}).click();
-  // Price, currency and payment-confirmation fields cannot enter new drafts.
+  // Organizer can specify displayed price; TicketTreat never takes payment.
   const draft=await page.locator("form.panel.form-stack").first();
   await expect(draft).toBeVisible();
-  await expect(draft.locator('[name="price"]')).toHaveCount(0);
+  await expect(draft.locator('[name="price"]')).toHaveCount(1);
+  await expect(draft.locator('[name="price"]')).toHaveValue("0");
   await expect(draft.locator('[name="payment_instructions"]')).toHaveCount(0);
-  await expect(draft.locator('[name="currency"]')).toHaveCount(0);
+  await expect(draft.locator('[name="currency"]')).toHaveCount(1);
+  await draft.locator('[name="price"]').fill("200");
+  await expect(draft.locator('[name="price"]')).toHaveValue("200");
 });
 
-test("paid checkout is read-only and offers no 24-hour reservation",async({page})=>{
+test("priced event checkout has normal registration and no payment approval",async({page})=>{
   await page.route("**/api/gateway/events/995001",route=>route.fulfill({
     status:200,contentType:"application/json",
     body:JSON.stringify({
@@ -36,7 +39,8 @@ test("paid checkout is read-only and offers no 24-hour reservation",async({page}
     body:JSON.stringify({demo_payment_mode:false,verified_accounts_required:true}),
   }));
   await page.goto("/checkout/995001?lang=en",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("heading",{name:"Paid events paused"})).toBeVisible();
+  await expect(page.getByText("Registration immediately issues a QR ticket.",{exact:false}).first()).toBeVisible();
+  await expect(page.getByText("Create your TicketTreat profile")).toBeVisible();
   await expect(page.getByRole("button",{name:/Reserve a place for 24 hours/i})).toHaveCount(0);
   await expect(page.getByRole("button",{name:/Confirm payment/i})).toHaveCount(0);
 });
