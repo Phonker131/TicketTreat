@@ -129,9 +129,10 @@ def get_own(db,main,event_id,guest):
         event=_lock_event(db,main,event_id)
         db.commit()
         db.refresh(row)
-    settings=main.get_payment_settings(db,event_id) if row.status=="pending" else None
+    # Historical reservations can still be inspected; do not encourage
+    # payment to an organizer while confirmations are disabled.
     return {"status":row.status,"reservation":public_row(row),
-            "payment_instructions":settings.payment_instructions if settings else None}
+            "payment_instructions":None}
 
 def admin_list(db,main,event_id,account):
     from demo_roles import ensure_owner
