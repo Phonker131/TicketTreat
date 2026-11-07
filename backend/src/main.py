@@ -1456,6 +1456,9 @@ def create_event(
     payload: EventCreate,
     db: Session = Depends(get_db),
 ):
+    # Free-only pilot: a paid listing must never enter the booking funnel.
+    if price_decimal(payload.price) > 0:
+        return {"error": "paid_events_disabled"}
     payment_instructions = (
         payload.payment_instructions.strip()
         if payload.payment_instructions
@@ -1623,6 +1626,10 @@ def update_event(
     update_data = payload.model_dump(
         exclude_unset=True
     )
+    # Allow edits to legacy paid-event metadata, but never re-enable
+    # charging or convert an existing free event to paid during the pilot.
+    if "price" in update_data and price_decimal(update_data["price"]) > 0:
+        return {"error": "paid_events_disabled"}
 
     languages_were_set = "languages" in update_data
     language_values = update_data.pop(
@@ -1932,18 +1939,7 @@ def register_to_event(
         return {"error": "event_registration_closed"}
 
     if event_requires_payment(event):
-        settings = get_payment_settings(
-            db,
-            event.id,
-        )
-
-        if (
-            settings is None
-            or not settings.payment_instructions.strip()
-        ):
-            return {
-                "error": "payment_setup_missing",
-            }
+        return {"error": "paid_events_disabled"}
 
     user = (
         db.query(User)
@@ -2155,6 +2151,10 @@ def confirm_payment(
         return {
             "error": "event_not_found",
         }
+
+    # Historical payment rows remain readable, but organizer payment
+    # confirmation/activation is disabled while TicketTreat is free-only.
+    raise HTTPException(status_code=409, detail="paid_events_disabled")
 
     user = (
         db.query(User)
