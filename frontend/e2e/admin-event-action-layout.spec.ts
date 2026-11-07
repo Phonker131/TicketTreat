@@ -68,16 +68,19 @@ test("cancelled event controls stay aligned on iPhone and deletion requires ID",
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
   }
 
-  // Cancelling the second destructive confirmation must not call the API.
-  page.once("dialog",dialog=>dialog.accept());
-  page.once("dialog",dialog=>dialog.dismiss());
+  // A declined ID prompt must not delete the record.
+  let promptCount=0;
+  page.on("dialog",async dialog=>{
+    if(dialog.type()==="confirm"){await dialog.accept();return;}
+    promptCount++;
+    if(promptCount===1)await dialog.dismiss();
+    else await dialog.accept(String(eventId));
+  });
   await controls.getByRole("button",{name:"Delete event"}).click();
   expect(deleteCalls).toBe(0);
 
   // Confirm then type the event ID: remove once and return to the admin list.
-  page.once("dialog",dialog=>dialog.accept());
-  page.once("dialog",dialog=>dialog.accept(String(eventId)));
   await controls.getByRole("button",{name:"Delete event"}).click();
-  await expect(page).toHaveURL(/\/admin\/?$/);
+  await expect(page).toHaveURL(/\\/admin\\/?$/);
   expect(deleteCalls).toBe(1);
 });
