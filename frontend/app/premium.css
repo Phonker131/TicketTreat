@@ -1750,3 +1750,56 @@ html body .app-shell .profile-overview .profile-fact .button-outline {
     grid-column:1 / -1;
   }
 }
+
+
+/* Organizer event detail: keep related controls together on narrow devices.
+   Distinguish destructive deletion without splitting actions across the hero,
+   cancellation reason, and the next analytics panel. */
+html body .app-shell .tt-admin-event-toolbar{
+  width:100%;min-width:0;box-sizing:border-box;display:grid;gap:12px;
+  margin:14px 0 24px;padding:clamp(12px,2.5vw,20px);
+  border:1.5px solid var(--tp-line);border-radius:20px;
+  background:var(--tp-surf);color:var(--tp-fg);
+}
+html body .app-shell .tt-admin-event-toolbar-primary,
+html body .app-shell .tt-admin-event-toolbar-secondary{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(175px,100%),1fr));
+  gap:10px;min-width:0;
+}
+html body .app-shell .tt-admin-event-toolbar-secondary{
+  padding-top:12px;border-top:1px solid var(--tp-line);
+}
+html body .app-shell .tt-admin-event-toolbar .button{
+  display:flex;align-items:center;justify-content:center;box-sizing:border-box;
+  width:100%;min-width:0;max-width:100%;min-height:48px;
+  padding:10px 14px;text-align:center;white-space:normal;overflow-wrap:break-word;
+  line-height:1.2;font-size:clamp(13px,1.5vw,15px);box-shadow:none!important;
+}
+html body .app-shell .tt-admin-event-toolbar .tt-admin-event-delete{
+  color:#C83D48!important;border:2px solid #C83D48!important;
+  background:transparent!important;
+}
+html body .app-shell .tt-admin-event-toolbar .tt-admin-event-delete:is(:hover,:focus-visible):not(:disabled){
+  color:#fff!important;background:#B6303B!important;border-color:#B6303B!important;
+}
+html body .app-shell .tt-admin-event-toolbar .tt-admin-event-delete-hint{
+  font:500 12px/1.45 var(--u);color:var(--tp-mute);margin:0;
+}
+@media(max-width:680px){
+  html body .app-shell .tt-admin-event-toolbar-primary,
+  html body .app-shell .tt-admin-event-toolbar-secondary{
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+  }
+  html body .app-shell .tt-admin-event-toolbar .button{
+    font-size:13px;padding:11px 8px;min-height:50px;
+  }
+  html body .app-shell .tt-admin-event-toolbar .tt-admin-event-delete{
+    grid-column:1 / -1;
+  }
+}
+@media(max-width:350px){
+  html body .app-shell .tt-admin-event-toolbar-primary,
+  html body .app-shell .tt-admin-event-toolbar-secondary{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
