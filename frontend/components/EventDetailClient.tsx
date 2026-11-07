@@ -180,14 +180,10 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
               <h2>{event.spots_left === 0 ? t(language, "soldOut") : t(language, "join")}</h2>
               <p>{Number(event.price||0)<=0
                 ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.")
-                : (language==="ru"?"Платёж производится напрямую организатору, не через TicketTreat. Уточни у организатора способ оплаты, регистрацию и возврат.":language==="cs"?"Platba probíhá přímo pořadateli, nikoli přes TicketTreat. Podmínky platby, registrace a vrácení peněz sdělí pořadatel.":language==="uk"?"Оплата здійснюється безпосередньо організатору, а не через TicketTreat. Уточни в організатора умови оплати, реєстрації та повернення.":"Payment is arranged directly with the organizer, not through TicketTreat. Ask the organizer about payment, registration and refunds.")}</p>
+                : (language==="ru"?"Платные мероприятия временно недоступны.":language==="cs"?"Placené akce jsou dočasně nedostupné.":language==="uk"?"Платні події тимчасово недоступні.":"Paid events are temporarily unavailable.")}</p>
             </div>
             {Number(event.price||0)>0 ? (
-              <Link className="button button-primary" href={`/checkout/${event.id}${inviteQuery?`?${inviteQuery}`:""}`}>
-                {event.spots_left===0
-                  ? (language==="ru"?"Проверить мою заявку":language==="cs"?"Zkontrolovat žádost":language==="uk"?"Перевірити заявку":"Check my application")
-                  : (language==="ru"?"Заявка на оплату — 24 часа":language==="cs"?"Rezervovat na 24 hodin":language==="uk"?"Заявка на оплату — 24 години":"Reserve for 24 hours")}
-              </Link>
+              <p className="state-card" role="status">{language==="ru"?"Платные мероприятия пока не проводятся, регистрация недоступна.":language==="cs"?"Placené akce nyní nepořádáme. Registrace není dostupná.":language==="uk"?"Платні події поки не проводяться, реєстрація недоступна.":"Paid events are paused. Registration is not available."}</p>
             ) : event.spots_left === 0 ? (
               <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}${inviteQuery?`&${inviteQuery}`:""}`}>{t(language, "waitlist")}</Link>
             ) : (
