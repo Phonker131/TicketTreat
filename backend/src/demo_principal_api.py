@@ -53,8 +53,9 @@ def install_principal_api(app,get_db,main):
     def create_paid_reservation(event_id:int,payload:FreeBooking,
              x_event_invite:str|None=Header(default=None),
              guest=Depends(guest_for),db:Session=Depends(get_db)):
-        from demo_paid_reservations import apply
-        return apply(db,main,event_id,guest,payload.language,payload.source,x_event_invite)
+        # Free-only pilot: no new organizer-direct payment holds.
+        # Existing historical reservations remain accessible via GET.
+        raise HTTPException(status_code=409,detail="paid_events_disabled")
 
     @app.get("/demo/me/events/{event_id}/paid-reservations")
     def own_paid_reservation(event_id:int,guest=Depends(guest_for),

@@ -129,9 +129,10 @@ def get_own(db,main,event_id,guest):
         event=_lock_event(db,main,event_id)
         db.commit()
         db.refresh(row)
-    settings=main.get_payment_settings(db,event_id) if row.status=="pending" else None
+    # Historical reservations can still be inspected; do not encourage
+    # payment to an organizer while confirmations are disabled.
     return {"status":row.status,"reservation":public_row(row),
-            "payment_instructions":settings.payment_instructions if settings else None}
+            "payment_instructions":None}
 
 def admin_list(db,main,event_id,account):
     from demo_roles import ensure_owner
@@ -214,11 +215,13 @@ def install_paid_admin_api(app,get_db,main):
     @app.post("/demo/manage/events/{event_id}/paid-reservations/{reservation_id}/confirm")
     def confirm(event_id:int,reservation_id:int,background_tasks:BackgroundTasks,
                 account=Depends(manager),db:Session=Depends(get_db)):
-        return decision(db,main,event_id,reservation_id,account,True,background_tasks)
+        # Keep the endpoint authenticated but never issue a paid QR pass.
+        raise HTTPException(status_code=409,detail="paid_events_disabled")
     @app.post("/demo/manage/events/{event_id}/paid-reservations/{reservation_id}/decline")
     def decline(event_id:int,reservation_id:int,background_tasks:BackgroundTasks,
                 account=Depends(manager),db:Session=Depends(get_db)):
-        return decision(db,main,event_id,reservation_id,account,False,background_tasks)
+        # Historical rows are retained; new approval/decline decisions are paused.
+        raise HTTPException(status_code=409,detail="paid_events_disabled")
 
 def install_paid_expiry_worker(app,session_factory,main):
     """Enable on exactly one Demo API instance; routes also expire lazily."""

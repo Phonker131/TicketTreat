@@ -8,6 +8,7 @@ import secrets
 import time
 import unittest
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from fastapi.testclient import TestClient
 
@@ -237,3 +238,69 @@ class DeleteUnusedDraftE2E(unittest.TestCase):
             self.assertIsNotNone(db.get(main.Event,event_id))
             self.assertTrue(db.query(main.DemoTicket.id).filter(
                 main.DemoTicket.event_id==event_id).first())
+
+    def test_paid_event_creation_and_price_updates_are_paused(self):
+        headers={"Authorization":"Bearer "+self.owner_token}
+        payload={
+            "country_code":"CZ","city":"Prague","title":"Paid pilot disabled",
+            "description":"Must not appear during free-only pilot",
+            "location":"Prague, test venue",
+            "starts_at":(datetime.now(timezone.utc)+timedelta(days=7)).isoformat(),
+            "max_participants":10,"price":"200","currency":"CZK",
+            "languages":["en"],"payment_instructions":"Pay organizer directly",
+        }
+        denied=self.client.post("/demo/manage/events",headers=headers,json=payload)
+        self.assertEqual(denied.status_code,409,denied.text)
+        self.assertEqual(denied.json()["detail"],"paid_events_disabled")
+        with SessionLocal() as db:
+            self.assertIsNone(db.query(main.Event.id).filter(
+                main.Event.title=="Paid pilot disabled").first())
+        event_id=self._create_draft()
+        attempted=self.client.patch(f"/demo/manage/events/{event_id}",
+                                   headers=headers,json={"price":"200"})
+        self.assertEqual(attempted.status_code,409,attempted.text)
+        with SessionLocal() as db:
+            self.assertEqual(Decimal(str(db.get(main.Event,event_id).price)),Decimal("0"))
+
+    def test_old_paid_event_cannot_be_published_or_approved(self):
+        headers={"Authorization":"Bearer "+self.owner_token}
+        event_id=self._create_draft()
+        with SessionLocal() as db:
+            event=db.get(main.Event,event_id)
+            event.price=Decimal("200")
+            db.commit()
+        publishing=self.client.put(f"/demo/manage/events/{event_id}/publication",
+                                   headers=headers,json={"status":"published"})
+        self.assertEqual(publishing.status_code,409,publishing.text)
+        self.assertEqual(publishing.json()["detail"],"paid_events_disabled")
+        for suffix in ("confirm","decline"):
+            response=self.client.post(
+                f"/demo/manage/events/{event_id}/paid-reservations/99999/{suffix}",
+                headers=headers)
+            self.assertEqual(response.status_code,409,response.text)
+            self.assertEqual(response.json()["detail"],"paid_events_disabled")
+        with SessionLocal() as db:
+            self.assertEqual(Decimal(str(db.get(main.Event,event_id).price)),Decimal("200"))
+
+
+    def test_no_new_direct_paid_reservations_can_be_submitted(self):
+        event_id=self._create_draft()
+        headers={"Authorization":"Bearer "+self.owner_token}
+        attempted=self.client.post(
+            f"/demo/me/events/{event_id}/paid-reservations",
+            headers=headers,json={"language":"en","source":"direct"})
+        self.assertEqual(attempted.status_code,409,attempted.text)
+        self.assertEqual(attempted.json()["detail"],"paid_events_disabled")
+        from demo_paid_reservations import PaidReservation
+        with SessionLocal() as db:
+            self.assertEqual(db.query(PaidReservation).filter(
+                PaidReservation.event_id==event_id).count(),0)
+
+    def test_free_pilot_booking_creation_still_works(self):
+        event_id=self._create_draft()
+        with SessionLocal() as db:
+            self.assertEqual(Decimal(str(db.get(main.Event,event_id).price)),Decimal("0"))
+        response=self.client.get(f"/demo/manage/events/{event_id}",
+                                 headers={"Authorization":"Bearer "+self.owner_token})
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertEqual(Decimal(str(response.json()["price"])),Decimal("0"))
