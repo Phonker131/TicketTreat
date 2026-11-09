@@ -71,12 +71,10 @@ for(const theme of ["dark","light"] as const){
       for(const pair of contrast.results)expect(pair.ratio,pair.selector).toBeGreaterThanOrEqual(4.5);
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
       await card.locator(".button-secondary").hover();
-      const hover=await card.locator(".button-secondary").evaluate(el=>{
+      await expect.poll(()=>card.locator(".button-secondary").evaluate(el=>{
         const css=getComputedStyle(el);
         return {color:css.color,background:css.backgroundColor};
-      });
-      expect(hover.color).toBe("rgb(255, 255, 255)");
-      expect(hover.background).toBe("rgb(2, 7, 10)");
+      })).toEqual({color:"rgb(255, 255, 255)",background:"rgb(2, 7, 10)"});
     });
   }
 }
