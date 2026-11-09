@@ -14,7 +14,7 @@ for(const theme of ["dark","light"] as const){
         if(!section)throw new Error("Events section missing");
         section.insertAdjacentHTML("beforeend",`
           <div class="event-grid tp-feed">
-            <article class="event-card" data-contrast-fixture>
+            <article class="event-card tt-event-paper-card" data-contrast-fixture>
               <div class="tt-event-poster-wrap"><div class="tt-event-date-sticker"><strong>10</strong><span>NOV TUE</span></div></div>
               <div class="event-card-body">
                 <div class="event-card-meta"><span>10 NOV 2026 AT 19:20</span><span>100 CZK</span></div>
@@ -74,7 +74,7 @@ for(const theme of ["dark","light"] as const){
       await expect.poll(()=>card.locator(".button-secondary").evaluate(el=>{
         const css=getComputedStyle(el);
         return {color:css.color,background:css.backgroundColor};
-      })).toEqual({color:"rgb(255, 255, 255)",background:"rgb(2, 7, 10)"});
+      })).toEqual({color:"rgb(255, 255, 255)",background:"rgb(22, 29, 37)"});
     });
   }
 }
