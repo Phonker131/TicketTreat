@@ -149,7 +149,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         </section>
         <section className="panel" style={{marginTop:20,marginBottom:20}}>
           <h2>{language==="ru"?"Как добраться и сохранить дату":language==="cs"?"Místo a kalendář":language==="uk"?"Як дістатися та календар":"Venue and calendar"}</h2>
-          <div className="admin-event-actions">
+          <div className="tt-event-share-actions">
             {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar(event,eventUrl)}>{language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
             {!preview&&<>
               <button type="button" className="button button-outline" onClick={shareEvent}>{shareWords.button}</button>
