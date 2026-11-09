@@ -1803,3 +1803,58 @@ html body .app-shell .tt-admin-event-toolbar .tt-admin-event-delete-hint{
     grid-template-columns:minmax(0,1fr);
   }
 }
+
+
+/* 2026-11-09 — printed event cards always use ink on a light card surface.
+   The homepage can be dark while card surfaces are light (including iOS Safari).
+   Do not inherit the page theme's paper-coloured text or global outline buttons. */
+html body .tt-night-home .event-card {
+  --tt-event-card-ink:#02070A;
+  --tt-event-card-muted:#4C555C;
+  background:#FBF9F4!important;
+  color:var(--tt-event-card-ink)!important;
+  color-scheme:light;
+}
+html body .tt-night-home .event-card .event-card-body {
+  background:#FBF9F4!important;
+  color:var(--tt-event-card-ink)!important;
+}
+html body .tt-night-home .event-card :is(h2,.event-card-meta,.event-card-meta span:first-child,.tt-event-organizer-link) {
+  color:var(--tt-event-card-ink)!important;
+}
+html body .tt-night-home .event-card :is(.event-card-location,.event-card-languages) {
+  color:var(--tt-event-card-muted)!important;
+}
+html body .tt-night-home .event-card .event-card-meta span:last-child {
+  background:#FC734D!important;
+  color:#02070A!important;
+}
+html body .tt-night-home .event-card .event-card-footer .status:not(.status-danger) {
+  background:#E6DFD1!important;
+  color:#02070A!important;
+  border:1px solid #706A62!important;
+}
+html body .tt-night-home .event-card .event-card-footer .status-danger {
+  background:#9E2638!important;
+  color:#FFFFFF!important;
+  border:1px solid #9E2638!important;
+}
+html body .tt-night-home .event-card .event-card-footer .button-secondary {
+  background:#FFFFFF!important;
+  color:#02070A!important;
+  border:2px solid #02070A!important;
+}
+html body .tt-night-home .event-card .event-card-footer .button-secondary:is(:hover,:focus-visible) {
+  background:#02070A!important;
+  color:#FFFFFF!important;
+  border-color:#02070A!important;
+}
+html body .tt-night-home .event-card .event-card-footer .button-secondary:focus-visible,
+html body .tt-night-home .event-card .tt-event-organizer-link:focus-visible {
+  outline:3px solid #025C91!important;
+  outline-offset:3px!important;
+}
+html body .tt-night-home .event-card .tt-event-date-sticker {
+  background:#F0EBE1!important;
+  color:#02070A!important;
+}
