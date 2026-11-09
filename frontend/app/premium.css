@@ -971,8 +971,9 @@ html[data-theme="light"],html[data-theme="paper"]{--mute:#4C555C}
 }
 
 /* =====================================================================================
-   Events filter bar: one segmented switch (Swipe | Feed) with a sliding pill, and mood chips with icons.
-   No map. On phones the switch is full width and the chips scroll sideways with a faded edge.
+   Events filter bar: Swipe/Feed and responsive mood chips.
+   On phones, show all mood choices in a contained grid: no clipped horizontal
+   scroller, fade mask, negative gutters or tags protruding past the viewport.
    ===================================================================================== */
 .tp-filterbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:12px 20px;margin:18px 0 24px}
 .tp-seg{position:relative;display:inline-grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;padding:4px;border-radius:99px;background:var(--tp-surf);box-shadow:0 0 0 1.5px var(--tp-line),0 14px 24px -18px var(--tp-shadow);isolation:isolate}
@@ -999,12 +1000,36 @@ html[data-theme="light"],html[data-theme="paper"]{--mute:#4C555C}
 .tp-feed{gap:clamp(14px,2vw,24px)}
 
 @media (max-width:999px){
- .tt-night-events .tp-filterbar{display:grid;gap:10px;margin:8px 0 12px}
- .tt-night-events .tp-seg{display:grid;width:100%}
- .tt-night-events .tp-seg button{min-width:0}
- .tt-night-events .tp-moods{flex-wrap:nowrap;overflow-x:auto;margin-inline:calc(var(--tp-gutter)*-1);padding:4px var(--tp-gutter);scrollbar-width:none;scroll-snap-type:x proximity;-webkit-mask-image:linear-gradient(90deg,transparent,#000 var(--tp-gutter),#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,transparent,#000 var(--tp-gutter),#000 calc(100% - 36px),transparent)}
- .tt-night-events .tp-moods::-webkit-scrollbar{display:none}
- .tt-night-events .tp-mood{flex:none;scroll-snap-align:start}
+ .tt-night-events .tt-discovery{width:100%;min-width:0;max-width:100%}
+ .tt-night-events .tp-filterbar{
+   display:grid;grid-template-columns:minmax(0,1fr);justify-items:stretch;
+   width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+   gap:14px;margin:16px 0 24px;
+ }
+ .tt-night-events .tp-seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+ .tt-night-events .tp-seg button{min-width:0;max-width:100%;padding-inline:10px}
+ .tt-night-events .tp-moods{
+   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;
+   width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+   gap:10px;margin:0;padding:3px;
+   overflow:visible;scroll-snap-type:none;scrollbar-width:auto;
+   -webkit-mask-image:none;mask-image:none;
+ }
+ .tt-night-events .tp-mood{
+   display:flex;align-items:center;justify-content:center;
+   width:100%;max-width:100%;min-width:0;min-height:48px;
+   padding:10px 12px;gap:8px;box-sizing:border-box;
+   flex:none;scroll-snap-align:none;
+   font-size:14px;line-height:1.2;text-align:center;white-space:normal;
+ }
+ .tt-night-events .tp-mood span{min-width:0;max-width:100%;overflow-wrap:anywhere;hyphens:auto}
+}
+@media (min-width:600px) and (max-width:999px){
+ .tt-night-events .tp-moods{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:359px){
+ .tt-night-events .tp-moods{gap:8px}
+ .tt-night-events .tp-mood{padding:9px 7px;gap:5px;font-size:13px}
 }
 @media (min-width:1000px) and (min-height:600px){
  .tt-night-events:has(.tp-deck) .tp-filterbar{display:grid;gap:12px;margin:0;justify-items:start}
