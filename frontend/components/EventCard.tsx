@@ -87,7 +87,7 @@ export function EventCard({
       : t(language, "notSpecified");
 
   return (
-    <article className="event-card">
+    <article className="event-card tt-event-paper-card">
       <div className="tt-event-poster-wrap">
         {event.image_url && !posterUnavailable ? (
           // eslint-disable-next-line @next/next/no-img-element

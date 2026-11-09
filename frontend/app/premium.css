@@ -1858,3 +1858,96 @@ html body .tt-night-home .event-card .tt-event-date-sticker {
   background:#F0EBE1!important;
   color:#02070A!important;
 }
+
+
+/* Public event color-system repair — 2026-11-09.
+   Public event share tools are NOT organizer admin controls. Previously the
+   class .admin-event-actions on the public event page activated the global
+   dashboard :has(...) theme, painting a paper page while its title and
+   description retained pale night colors. Keep page background and text in
+   the same theme, independently of the admin CSS. */
+html body .app-shell .event-page {
+  --tt-event-detail-heading:#F0EBE1;
+  --tt-event-detail-body:#D7DFE5;
+  --tt-event-detail-muted:#B9C6D0;
+  background:#02070A!important;
+  color:#F0EBE1!important;
+}
+html[data-theme="light"] body .app-shell .event-page,
+html[data-theme="paper"] body .app-shell .event-page {
+  --tt-event-detail-heading:#161D25;
+  --tt-event-detail-body:#27333D;
+  --tt-event-detail-muted:#455460;
+  background:#F0EBE1!important;
+  color:#161D25!important;
+}
+html body .app-shell .event-page .event-hero h1 {
+  color:var(--tt-event-detail-heading)!important;
+}
+html body .app-shell .event-page .event-hero .event-description {
+  color:var(--tt-event-detail-body)!important;
+  opacity:1!important;
+}
+html body .app-shell .event-page .back-link {
+  color:var(--tt-event-detail-heading)!important;
+}
+html body .app-shell .event-page .detail-item span,
+html body .app-shell .event-page .join-card p {
+  color:var(--tp-mute)!important;
+}
+html body .app-shell .event-page .detail-item strong,
+html body .app-shell .event-page .join-card h2 {
+  color:var(--tp-fg)!important;
+}
+/* Public share/calendar actions have their own layout. They must not reuse the
+   admin-event-actions selector because that selector controls entire pages. */
+html body .app-shell .event-page .tt-event-share-actions {
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;min-width:0;
+}
+html body .app-shell .event-page .tt-event-share-actions .button {
+  max-width:100%;white-space:normal;text-align:center;
+}
+@media(max-width:760px){
+  html body .app-shell .event-page .tt-event-share-actions{width:100%}
+}
+
+/* A paper card inside a night-themed homepage must ALWAYS have a readable ink
+   palette, even when a user keeps a previously hydrated tab in iOS Safari.
+   Explicit opt-in class prevents affecting tickets and other colored cards. */
+html[data-theme] body .app-shell.tt-night-home .event-card.tt-event-paper-card {
+  --tt-event-card-ink:#161D25;
+  --tt-event-card-muted:#40505E;
+  --tt-event-card-link:#075985;
+  background:#FBF9F4!important;
+  color:#161D25!important;
+  color-scheme:light;
+}
+html[data-theme] body .app-shell.tt-night-home .event-card.tt-event-paper-card .event-card-body {
+  background:#FBF9F4!important;
+  color:#161D25!important;
+  opacity:1!important;
+}
+html[data-theme] body .app-shell.tt-night-home .event-card.tt-event-paper-card :is(h2,.event-card-meta,.event-card-meta span:first-child) {
+  color:#161D25!important;
+  opacity:1!important;
+}
+html[data-theme] body .app-shell.tt-night-home .event-card.tt-event-paper-card .tt-event-organizer-link {
+  color:#075985!important;
+  text-decoration-color:#075985!important;
+  opacity:1!important;
+}
+html[data-theme] body .app-shell.tt-night-home .event-card.tt-event-paper-card :is(.event-card-location,.event-card-languages) {
+  color:#40505E!important;
+  opacity:1!important;
+}
+html[data-theme] body .app-shell.tt-night-home .event-card.tt-event-paper-card .event-card-footer .button-secondary {
+  background:#FFFFFF!important;
+  border:2px solid #161D25!important;
+  color:#161D25!important;
+  opacity:1!important;
+}
+html[data-theme] body .app-shell.tt-night-home .event-card.tt-event-paper-card .event-card-footer .button-secondary:is(:hover,:focus-visible) {
+  background:#161D25!important;
+  border-color:#161D25!important;
+  color:#FFFFFF!important;
+}
