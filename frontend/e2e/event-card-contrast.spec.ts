@@ -9,10 +9,13 @@ for(const theme of ["dark","light"] as const){
       await page.addInitScript((t)=>localStorage.setItem("tt4-theme",t),theme);
       await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
       await expect(page.locator(".tt-night-events")).toBeVisible();
+      await expect(page.locator("html")).toHaveAttribute("data-theme",theme);
+      // Mount outside the React-managed tree: hydration may otherwise detach
+      // the injected fixture mid-evaluation and return empty computed colors.
       await page.evaluate(()=>{
-        const section=document.querySelector(".tt-night-events");
-        if(!section)throw new Error("Events section missing");
-        section.insertAdjacentHTML("beforeend",`
+        if(!document.querySelector(".tt-night-events"))throw new Error("Events section missing");
+        document.body.insertAdjacentHTML("beforeend",`
+          <div class="app-shell tt-night-home" data-contrast-root>
           <div class="event-grid tp-feed">
             <article class="event-card tt-event-paper-card" data-contrast-fixture>
               <div class="tt-event-poster-wrap"><div class="tt-event-date-sticker"><strong>10</strong><span>NOV TUE</span></div></div>
@@ -28,9 +31,11 @@ for(const theme of ["dark","light"] as const){
                 </div>
               </div>
             </article>
+          </div>
           </div>`);
       });
       const card=page.locator("[data-contrast-fixture]");
+      await expect(card).toBeAttached();
       const contrast=await card.evaluate(el=>{
         const parse=(css:string):number[]=>{
           const match=css.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
