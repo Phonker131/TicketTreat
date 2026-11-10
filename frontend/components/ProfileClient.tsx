@@ -383,16 +383,51 @@ export function ProfileClient() {
     if (/^[a-zA-Z0-9_-]{24,100}$/.test(pendingLink)) setIncomingLink(pendingLink);
     const browserLogin=new URLSearchParams(window.location.search).get("telegram_browser_login")||"";
     if(/^[A-Za-z0-9_-]{40,100}$/.test(browserLogin)) setIncomingBrowserLogin(browserLogin);
-    // The Google OAuth callback writes an HttpOnly cookie and redirects here.
-    // The browser-session marker is not a credential; it merely asks the
-    // gateway to validate that cookie. A missing/invalid cookie is rejected
-    // server-side and restoreWebProfile() clears the marker on 401.
-    if (["google","telegram"].some(provider => new URLSearchParams(window.location.search).get(provider) === "success")) {
+    // OIDC callbacks have already set the HttpOnly cookie on the server.
+    // This browser marker is NOT a credential: validate the cookie via /auth/me.
+    const callbackUrl = new URL(window.location.href);
+    const telegramResult = callbackUrl.searchParams.get("telegram");
+    const existingWebMarker = Boolean(getWebToken());
+    if (["google","telegram"].some(provider => callbackUrl.searchParams.get(provider) === "success")) {
       window.localStorage.setItem("tickettreat_web_auth", "browser-session");
     }
+    const clearTelegramCallback = () => {
+      if (!callbackUrl.searchParams.has("telegram")) return;
+      callbackUrl.searchParams.delete("telegram");
+      window.history.replaceState(window.history.state,"",
+        callbackUrl.pathname+callbackUrl.search+callbackUrl.hash);
+    };
     restoreWebProfile()
-      .then((p) => { if(mounted && p) loadProfile(p); })
-      .catch(() => { if (mounted) setError('ui:connectionFailed'); })
+      .then((p) => {
+        if (!mounted) return;
+        if (p) {
+          loadProfile(p);
+          if (telegramResult === "success") {
+            // Clear one-use status before any future logout, refresh or back-navigation.
+            clearTelegramCallback();
+            setError("");
+            if (!existingWebMarker) {
+              // Telegram-first login: the session is verified and the browser
+              // marker now exists, so /tickets will resolve the same identity.
+              window.location.replace("/tickets");
+            } else {
+              // Connecting Telegram to an already logged-in web account keeps
+              // users in Account security, instead of redirecting unexpectedly.
+              setNotice("ui:telegramSuccessfullyLinked");
+            }
+          }
+        } else if (telegramResult === "success") {
+          // A success redirect without a valid server-side cookie must never
+          // claim the user is authenticated.
+          clearTelegramCallback();
+          setError("ui:connectionFailed");
+        }
+      })
+      .catch(() => {
+        if (!mounted) return;
+        if (telegramResult === "success") clearTelegramCallback();
+        setError("ui:connectionFailed");
+      })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);

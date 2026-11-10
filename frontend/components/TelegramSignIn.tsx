@@ -66,9 +66,16 @@ export function TelegramSignIn({link=false,compact=false}:{link?:boolean;compact
       setEnabled(oidc.enabled===true);
       setBotFallback(bot.enabled===true);
     }).finally(()=>setReady(true));
-    const result=new URLSearchParams(window.location.search).get("telegram");
-    if(result && ["success","failed","conflict","cancelled","unavailable"].includes(result))
-      setMessage(result);
+    const url=new URL(window.location.href);
+    const result=url.searchParams.get("telegram");
+    if(result && ["success","failed","conflict","cancelled","unavailable"].includes(result)) {
+      // Auth success belongs to ProfileClient only after /auth/me verifies
+      // the HttpOnly cookie. Failure statuses are one-time feedback, not
+      // persistent profile state after back-navigation or logout.
+      if(result!=="success")setMessage(result);
+      url.searchParams.delete("telegram");
+      window.history.replaceState(window.history.state,"",url.pathname+url.search+url.hash);
+    }
   },[]);
 
   useEffect(()=>{
@@ -143,7 +150,7 @@ export function TelegramSignIn({link=false,compact=false}:{link?:boolean;compact
 
   const buttonLabel=link?tr.link:tr.signIn;
   return <div className={compact?`tt-auth-provider${browserFlow||message?" tt-auth-provider--expanded":""}`:"form-stack"}>
-    {message && <p className={message==="success"?"form-note":"state-card state-error"} role="status">
+    {message && <p className={message==="success"?"form-note":"state-card state-error"} role={message==="success"?"status":"alert"}>
       {tr[message as keyof typeof tr] || tr.failed}
     </p>}
     {ready && embedded && !link && !compact && <p className="form-note">{tr.embedded}</p>}

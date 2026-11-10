@@ -53,3 +53,33 @@
 @media(prefers-reduced-motion:reduce){
   .auth-container .tt-auth-provider-button{transition:none}
 }
+
+/* Keep provider icons on one row even when Telegram has a callback error.
+   The previous flex-basis:100% moved the Telegram icon below its own error. */
+.auth-container .tt-auth-social-row{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  width:100%;
+  align-items:start;
+  column-gap:12px;
+  row-gap:12px;
+}
+.auth-container .tt-auth-social-row > .tt-auth-provider:first-child{justify-self:end}
+.auth-container .tt-auth-social-row > .tt-auth-provider:nth-child(2){justify-self:start}
+.auth-container .tt-auth-provider--expanded{display:contents}
+.auth-container .tt-auth-provider--expanded > .tt-auth-provider-google{
+  grid-column:1;grid-row:1;justify-self:end;
+}
+.auth-container .tt-auth-provider--expanded > .tt-auth-provider-telegram{
+  grid-column:2;grid-row:1;justify-self:start;
+}
+.auth-container .tt-auth-provider--expanded > .panel,
+.auth-container .tt-auth-provider--expanded > .state-card,
+.auth-container .tt-auth-provider--expanded > .form-note,
+.auth-container .tt-auth-provider--expanded > .tt-auth-bot-fallback{
+  grid-column:1/-1;
+  justify-self:stretch;
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
