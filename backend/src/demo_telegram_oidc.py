@@ -206,6 +206,14 @@ def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict):
         db.flush()
         db.add(WebAccountRole(account_id=account.id, role="participant"))
     db.commit()
+    # The older /myevents bot created legacy registrations before the
+    # canonical Mini App existed. The first *website* Telegram login must
+    # reconcile eligible free passes too; otherwise these users see an
+    # apparently empty ticket list until they separately open Mini App.
+    # Paid/past/conflicting legacy registrations stay untouched for review.
+    from demo_legacy import reconcile_free_legacy
+    from importlib import import_module
+    reconcile_free_legacy(db, import_module("main"), telegram_id, guest.id)
     return account
 
 
