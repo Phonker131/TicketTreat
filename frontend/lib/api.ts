@@ -488,6 +488,19 @@ export function authenticateTelegram(initData: string): Promise<TelegramAuthResu
 
 
 /** Confirmation of an already authenticated website account. */
+/** Telegram-first identities can add an email after proving its ownership.
+ * If the address already belongs to a website account, require two-proof linking. */
+export function requestTelegramEmailAttach(token:string,email:string):Promise<{status:string}> {
+  return request("/demo/auth/email/attach/request",{
+    method:"POST",headers:{Authorization:`Bearer ${token}`},body:JSON.stringify({email})
+  });
+}
+export function confirmTelegramEmailAttach(token:string,email:string,code:string):Promise<{email_verified:boolean}> {
+  return request("/demo/auth/email/attach/confirm",{
+    method:"POST",headers:{Authorization:`Bearer ${token}`},body:JSON.stringify({email,code})
+  });
+}
+
 export function requestEmailVerification(token:string):Promise<{status:string}> {
   return request("/demo/auth/email/request-verification",{method:"POST",headers:{Authorization:`Bearer ${token}`}});
 }
