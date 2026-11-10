@@ -50,7 +50,7 @@ class BotApprovedWebLoginTests(unittest.TestCase):
             self.assertEqual(pending.status_code,200,pending.text)
             self.assertEqual(pending.json()["status"],"pending")
             invalid=client.post("/demo/auth/telegram/browser/claim",json={
-                "challenge":code,"init_data":"unsigned_request"})
+                "challenge":code,"init_data":"x"*40,"pin":pin})
             self.assertEqual(invalid.status_code,401)
             missing_pin=client.post("/demo/auth/telegram/browser/claim",json={
                 "challenge":code,"init_data":signed})
