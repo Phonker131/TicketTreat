@@ -42,6 +42,15 @@ with SessionLocal() as db:
         starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=11),
         max_participants=20,
     ))
+    # Public event SSR regression fixture: Next.js server components fetch
+    # from FastAPI, so Playwright browser routing cannot create this page.
+    db.add(main.Event(
+        id=940917,title="Werewolf",organizer="Amber Events",
+        location="Prague",description="Werewolf is a party game for 10 to 16 people. Our host explains the rules so everyone can play.",
+        price=Decimal("100"),currency="CZK",
+        starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=12),
+        max_participants=16,
+    ))
     guest=main.DemoGuest(
         access_token="ci-browser-guest-not-a-production-secret-"+str(os.getpid()),
         first_name="Browser",last_name="Tester",
