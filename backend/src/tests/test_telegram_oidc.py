@@ -50,16 +50,24 @@ class TelegramOidcVerificationTests(unittest.TestCase):
         result=self.verified(self.signed())
         self.assertEqual(result["sub"],"123456781234")
 
-    def test_rejects_wrong_audience_nonce_expiry_and_inconsistent_id(self):
+    def test_rejects_wrong_audience_nonce_expiry_and_invalid_id(self):
         now=int(time.time())
         for overrides in (
             {"aud":"someone-else"},{"nonce":"replayed"},
             {"exp":now-1},{"iat":now+300},
-            {"id":987654321},
+            {"id":None},{"id":"123456781234"},{"id":-42},
         ):
             with self.subTest(overrides=overrides):
                 with self.assertRaises(HTTPException):
                     self.verified(self.signed(**overrides))
+
+    def test_telegram_oidc_subject_can_differ_from_bot_user_id(self):
+        # Telegram OIDC lists distinct sub and id. The signed profile id
+        # is the canonical Bot API/Mini App identity.
+        claims = self.verified(self.signed(
+            sub="1234123412341234123", id=987654321))
+        self.assertEqual(claims["sub"], "1234123412341234123")
+        self.assertEqual(claims["id"], 987654321)
 
     def test_rejects_tampered_signature_and_unsigned_algorithm(self):
         token=self.signed()
