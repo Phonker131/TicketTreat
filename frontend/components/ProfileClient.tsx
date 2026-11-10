@@ -359,6 +359,7 @@ export function ProfileClient() {
   const [incomingLink, setIncomingLink] = useState("");
   const [incomingBrowserLogin,setIncomingBrowserLogin]=useState("");
   const [browserLoginApproved,setBrowserLoginApproved]=useState(false);
+  const [browserLoginPin,setBrowserLoginPin]=useState("");
   const [linkConfirmed, setLinkConfirmed] = useState(false);
   const [linkBusy, setLinkBusy] = useState(false);
   const [mfaLinkAction, setMfaLinkAction] = useState<"current"|"browser"|null>(null);
@@ -484,13 +485,14 @@ export function ProfileClient() {
 
   async function approveBrowserLogin(){
     const initData=getTelegramWebApp()?.initData;
-    if(!initData||!telegramProfile||!incomingBrowserLogin){
+    if(!initData||!telegramProfile||!incomingBrowserLogin||!/^[0-9]{6}$/.test(browserLoginPin)){
       setError("ui:telegramOpenBot");return;
     }
     setLinkBusy(true);setError("");
     try{
-      await approveTelegramBrowserLogin(incomingBrowserLogin,initData);
+      await approveTelegramBrowserLogin(incomingBrowserLogin,initData,browserLoginPin);
       setBrowserLoginApproved(true);
+      setBrowserLoginPin("");
       setNotice("");
     }catch(err){setError(readableError(err));}
     finally{setLinkBusy(false);}
@@ -666,9 +668,15 @@ export function ProfileClient() {
         {incomingBrowserLogin && <section className="panel form-stack" aria-label="Approve browser login">
           <h2>{language==="cs"?"Potvrzení přihlášení k webu":language==="en"?"Approve website sign-in":language==="ru"?"Подтвердить вход на сайт":"Підтвердити вхід на сайт"}</h2>
           <p className="form-note">{language==="cs"?"Potvrď pouze přihlášení, které jsi sám/sama zahájil(a) na tickettreat.eu. Cizí žádosti zamítni.":language==="en"?"Only approve if you personally started this sign-in on tickettreat.eu. Never approve an unexpected request.":language==="ru"?"Подтверждай, только если сам начал вход на tickettreat.eu. Чужие запросы не подтверждай.":"Підтверджуй лише власний запит входу на tickettreat.eu."}</p>
+          {!browserLoginApproved && <label>
+            {language==="cs"?"Šestimístný kód ze stránky tickettreat.eu":language==="en"?"Six-digit code from tickettreat.eu":language==="ru"?"Шестизначный код с сайта":"Шестизначний код із сайту"}
+            <input type="text" inputMode="numeric" autoComplete="off"
+              pattern="[0-9]{6}" maxLength={6} minLength={6} required
+              value={browserLoginPin} onChange={e=>setBrowserLoginPin(e.target.value)}/>
+          </label>}
           {browserLoginApproved ? <p role="status">{language==="cs"?"Schváleno. Vrať se do prohlížeče.":language==="en"?"Approved. Return to your browser.":language==="ru"?"Подтверждено. Вернись в браузер.":"Підтверджено. Повернись у браузер."}</p> :
             <button type="button" className="button button-primary"
-              disabled={!telegramProfile||linkBusy} onClick={()=>void approveBrowserLogin()}>
+              disabled={!telegramProfile||linkBusy||!/^[0-9]{6}$/.test(browserLoginPin)} onClick={()=>void approveBrowserLogin()}>
               {linkBusy?"…":language==="cs"?"Potvrdit přihlášení":language==="en"?"Approve sign-in":language==="ru"?"Подтвердить вход":"Підтвердити вхід"}
             </button>}
         </section>}
