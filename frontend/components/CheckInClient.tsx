@@ -127,10 +127,10 @@ export function CheckInClient() {
           </div>
           <div className="tt-checkin-controls">
             <div className="tt-checkin-manual">
-              <label htmlFor="tickettreat-manual-token">{tr("QR-код билета — ручной ввод")}</label>
+              <label htmlFor="tickettreat-manual-token">{language==="cs"?"Kód vstupenky nebo QR token":language==="en"?"Ticket code or QR token":tr("QR-код билета — ручной ввод")}</label>
               <input id="tickettreat-manual-token" value={manual}
                 onChange={(e) => setManual(e.target.value)}
-                placeholder={tr("Вставь токен из QR-кода")}
+                placeholder="CRD-000013"
                 autoComplete="off" />
             </div>
             <div className="tt-checkin-buttons">
