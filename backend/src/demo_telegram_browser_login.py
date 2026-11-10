@@ -7,13 +7,14 @@ the ordinary scoped website session exactly once. No login by name/email.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import BigInteger, Column, DateTime, String
+from sqlalchemy import BigInteger, Column, DateTime, Integer, String
 from sqlalchemy.orm import Session
 
 from db.base import Base
@@ -25,6 +26,8 @@ class TelegramBrowserLogin(Base):
     __tablename__ = "demo_telegram_browser_logins"
     code_hash = Column(String(64), primary_key=True)
     verifier_hash = Column(String(64), nullable=False)
+    pin_hash = Column(String(64), nullable=False)
+    attempts = Column(Integer, nullable=False, default=0)
     telegram_id = Column(BigInteger, nullable=True)
     first_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
@@ -37,6 +40,7 @@ class TelegramBrowserLogin(Base):
 class BotBrowserApproval(BaseModel):
     challenge: str = Field(min_length=30, max_length=100)
     init_data: str = Field(min_length=32, max_length=8192)
+    pin: str = Field(min_length=6, max_length=6, pattern=r"^[0-9]{6}$")
 
 
 class BotBrowserComplete(BaseModel):
@@ -45,6 +49,12 @@ class BotBrowserComplete(BaseModel):
 
 def _hash(code: str) -> str:
     return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def _pin_hash(challenge: str, pin: str) -> str:
+    # A database leak cannot brute-force six-digit PINs without the bot key.
+    key=os.getenv("TELEGRAM_MINIAPP_BOT_TOKEN","").encode()
+    return hmac.new(key,("browser-login-pin:"+challenge+":"+pin).encode(),hashlib.sha256).hexdigest()
 
 
 def _aware(value: datetime) -> datetime:
@@ -71,14 +81,16 @@ def install_browser_telegram_login(app, get_db, DemoGuest, issue_session, profil
         record_rate(db,"telegram_browser_login_ip",ip,600)
         challenge=secrets.token_urlsafe(32)
         verifier=secrets.token_urlsafe(32)
+        pin=f"{secrets.randbelow(1_000_000):06d}"
         db.query(TelegramBrowserLogin).filter(
             TelegramBrowserLogin.expires_at < datetime.now(timezone.utc)).delete(synchronize_session=False)
         db.add(TelegramBrowserLogin(
             code_hash=_hash(challenge),verifier_hash=_hash(verifier),
+            pin_hash=_pin_hash(challenge,pin),attempts=0,
             status="pending",expires_at=datetime.now(timezone.utc)+timedelta(seconds=TTL_SECONDS)))
         db.commit()
         return {
-            "challenge":challenge,"browser_token":verifier,
+            "challenge":challenge,"browser_token":verifier,"pin":pin,
             "bot_link":f"https://t.me/TicketTreatBot?start=login_{challenge}",
             "expires_in_seconds":TTL_SECONDS,
         }
@@ -97,6 +109,12 @@ def install_browser_telegram_login(app, get_db, DemoGuest, issue_session, profil
             raise HTTPException(410,"telegram_login_expired")
         if row.status != "pending":
             raise HTTPException(409,"telegram_login_already_approved")
+        if row.attempts >= 5:
+            raise HTTPException(429,"telegram_login_attempts_exceeded")
+        row.attempts+=1
+        if not secrets.compare_digest(row.pin_hash,_pin_hash(payload.challenge,payload.pin)):
+            db.commit()
+            raise HTTPException(400,"telegram_login_pin_invalid")
         row.telegram_id=user["id"]
         row.first_name=user["first_name"].strip()[:100]
         row.last_name=str(user.get("last_name") or "")[:100]
