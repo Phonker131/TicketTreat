@@ -59,6 +59,10 @@ test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({
   await expect(page.locator(".tt-ticket-front")).toBeHidden();
   await expect(page.locator(".tt-ticket-back .tt-pass-qr img")).toBeVisible();
   await expect(page.locator(".tt-ticket-back")).toHaveCSS("transform","none");
+  // Telegram's specific-ticket shortcut must land on the QR side directly.
+  await page.goto(page.url().split("?")[0]+"?show=qr");
+  await expect(page.locator(".tt-ticket-front")).toBeHidden();
+  await expect(page.locator(".tt-ticket-back .tt-pass-qr img")).toBeVisible();
   await page.getByRole("button",{name:/Назад к билету|Back to ticket|Zpět ke vstupence|Назад до квитка/}).click();
   await expect(page.locator(".tt-ticket-front")).toBeVisible();
   page.once("dialog",d=>d.accept());
@@ -153,4 +157,33 @@ test("public event can be shared with a canonical URL without needing external a
     .toHaveAttribute("href",new RegExp("^https://t\\.me/share/url\\?"));
   await expect(page.getByRole("link",{name:"Share event: WhatsApp"}))
     .toHaveAttribute("href",new RegExp("^https://wa\\.me/\\?"));
+});
+
+test("manual check-in still works after four tickets with camera unavailable",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>localStorage.setItem("tickettreat_web_auth","browser-session"));
+  const scans:string[]=[];
+  await page.route("**/api/gateway/api/v1/pilot/check-in",route=>{
+    const payload=route.request().postDataJSON() as {qr_token:string};
+    scans.push(payload.qr_token);
+    return route.fulfill({status:200,contentType:"application/json",
+      body:JSON.stringify({status:"checked_in",ticket:{
+        id:scans.length,code:"CRD-000001",ticket_status:"active",
+        guest:{first_name:"CI",last_name:"Attendee"},
+        event:{title:"CI browser free event"}
+      }})});
+  });
+  const jsErrors:string[]=[];
+  page.on("pageerror",error=>jsErrors.push(error.message));
+  await page.goto("/admin/check-in?lang=en",{waitUntil:"domcontentloaded"});
+  const manual=page.locator("#tickettreat-manual-token");
+  await expect(manual).toBeVisible();
+  for(const code of ["CRD000011","CRD-000012","CRD000013","CRD000014"]){
+    await manual.fill(code);
+    await page.locator(".tt-checkin-buttons .button-primary").click();
+    await expect(page.locator(".success-banner")).toContainText("Check-in successful");
+    await expect(manual).toHaveValue("");
+  }
+  expect(scans).toEqual(["CRD000011","CRD-000012","CRD000013","CRD000014"]);
+  expect(jsErrors).toEqual([]);
 });
