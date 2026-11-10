@@ -8,7 +8,7 @@ test("Telegram login fallback opens bot approval, not a second sign-up",async({p
   const challenge="A".repeat(43);
   await page.route("**/api/gateway/demo/auth/telegram/browser/start",route=>
     route.fulfill({contentType:"application/json",body:JSON.stringify({
-      challenge,bot_link:"https://t.me/TicketTreatBot?start=login_"+challenge,
+      challenge,pin:"123456",bot_link:"https://t.me/TicketTreatBot?start=login_"+challenge,
       expires_in_seconds:600
     })}));
   await page.route("**/api/gateway/demo/auth/telegram/browser/complete",route=>
@@ -20,6 +20,7 @@ test("Telegram login fallback opens bot approval, not a second sign-up",async({p
   await expect(page.getByRole("link",{name:"Approve in Telegram"})).toHaveAttribute(
     "href","https://t.me/TicketTreatBot?start=login_"+challenge);
   await expect(page.getByText("Open @TicketTreatBot and approve the login.")).toBeVisible();
+  await expect(page.getByText("123456", {exact:true})).toBeVisible();
 });
 
 test("Telegram callback without matching browser verifier cannot log in",async({request})=>{
