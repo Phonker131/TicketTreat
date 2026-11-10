@@ -73,6 +73,12 @@ class UnifiedTelegramIdentityTests(unittest.TestCase):
                 self.assertEqual(account["profile"]["guest"]["id"],guest_id)
                 self.assertIsNone(account["profile"]["account"]["email"])
                 self.assertFalse(account["profile"]["email_verified"])
+                # A shadow WebAccount must not suppress the Mini App's option
+                # to bind an existing independently verified email identity.
+                telegram_again=client.post("/demo/telegram/auth",json={
+                    "init_data":signed_init_data(tg_id)})
+                self.assertEqual(telegram_again.status_code,200,telegram_again.text)
+                self.assertFalse(telegram_again.json()["accounts_linked"])
                 bearer={"Authorization":"Bearer "+account["token"]}
                 self.assertEqual(client.get("/demo/auth/me",headers=bearer).status_code,200)
                 self.assertEqual(client.get("/demo/me/tickets",headers=bearer).status_code,200)
