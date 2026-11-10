@@ -1006,7 +1006,7 @@ html[data-theme="light"],html[data-theme="paper"]{--mute:#4C555C}
    width:100%;max-width:100%;min-width:0;box-sizing:border-box;
    gap:14px;margin:16px 0 24px;
  }
- .tt-night-events .tp-seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+ .tt-night-events .tp-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;max-width:100%;min-width:0;box-sizing:border-box}
  .tt-night-events .tp-seg button{min-width:0;max-width:100%;padding-inline:10px}
  .tt-night-events .tp-moods{
    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;
@@ -2129,6 +2129,23 @@ html body .tp-seg button{min-width:0;padding:0 14px;gap:7px}
 .tp-seg button[aria-pressed="true"] .tp-seg-count{background:var(--ink);color:var(--paper)}
 .tp-linkbtn{padding:0;border:0;background:none;color:var(--tp-fg);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .tp-events-empty.is-compact .tp-ee-copy p{margin:0 0 4px;color:var(--tp-mute);font:400 15px/1.5 var(--u);max-width:46ch}
+/* Discovery UI regression: the three tabs share one capsule; the brand tile must fit its label. */
+.tt-night-events .tp-events-empty.is-compact .tp-ee-fan{width:clamp(150px,14vw,176px);aspect-ratio:1}
+.tt-night-events .tp-events-empty.is-compact .tp-ee-p2{left:0;top:0;width:100%;aspect-ratio:1}
+.tt-night-events .tp-events-empty.is-compact .tp-poster-art-tag{
+ left:50%;bottom:12px;transform:translateX(-50%);
+ box-sizing:border-box;max-width:calc(100% - 20px);
+ font-size:9.5px;letter-spacing:.04em;white-space:nowrap
+}
+@media (max-width:700px){
+ .tt-night-events .tp-events-empty.is-compact{
+  grid-template-columns:minmax(0,1fr);justify-items:center;gap:22px;text-align:center
+ }
+ .tt-night-events .tp-events-empty.is-compact .tp-ee-fan{width:min(160px,60vw)}
+ .tt-night-events .tp-events-empty.is-compact .tp-ee-copy{min-width:0}
+ .tt-night-events .tp-events-empty.is-compact .tp-ee-copy p{margin-inline:auto}
+}
+
 
 /* ---- saved events on the tickets page ---- */
 .tp-saved-section{margin-top:28px}
