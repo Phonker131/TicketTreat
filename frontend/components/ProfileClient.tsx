@@ -10,7 +10,7 @@ import { getVerifiedTelegramSession } from "@/lib/session";
 import { useLanguage } from "@/components/LanguageProvider";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink, elevateMFA, requestTelegramEmailAttach, confirmTelegramEmailAttach } from "@/lib/api";
+import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink, elevateMFA, requestTelegramEmailAttach, confirmTelegramEmailAttach, approveTelegramBrowserLogin } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -357,6 +357,8 @@ export function ProfileClient() {
   const [accountRole, setAccountRole] = useState<"participant"|"organizer">("participant");
   const [linkRequest, setLinkRequest] = useState<{challenge:string;bot_link:string}|null>(null);
   const [incomingLink, setIncomingLink] = useState("");
+  const [incomingBrowserLogin,setIncomingBrowserLogin]=useState("");
+  const [browserLoginApproved,setBrowserLoginApproved]=useState(false);
   const [linkConfirmed, setLinkConfirmed] = useState(false);
   const [linkBusy, setLinkBusy] = useState(false);
   const [mfaLinkAction, setMfaLinkAction] = useState<"current"|"browser"|null>(null);
@@ -378,6 +380,8 @@ export function ProfileClient() {
     void getMailStatus().then(data=>{if(mounted)setMailReady(data.available===true);}).catch(()=>{if(mounted)setMailReady(false);});
     const pendingLink = new URLSearchParams(window.location.search).get("telegram_link") || "";
     if (/^[a-zA-Z0-9_-]{24,100}$/.test(pendingLink)) setIncomingLink(pendingLink);
+    const browserLogin=new URLSearchParams(window.location.search).get("telegram_browser_login")||"";
+    if(/^[A-Za-z0-9_-]{40,100}$/.test(browserLogin)) setIncomingBrowserLogin(browserLogin);
     // The Google OAuth callback writes an HttpOnly cookie and redirects here.
     // The browser-session marker is not a credential; it merely asks the
     // gateway to validate that cookie. A missing/invalid cookie is rejected
@@ -475,6 +479,20 @@ export function ProfileClient() {
       setLinkRequest({challenge:result.challenge,bot_link:result.bot_link});
       window.open(result.bot_link,"_blank","noopener,noreferrer");
     }catch(e){handleTelegramLinkError(e,"browser");}
+    finally{setLinkBusy(false);}
+  }
+
+  async function approveBrowserLogin(){
+    const initData=getTelegramWebApp()?.initData;
+    if(!initData||!telegramProfile||!incomingBrowserLogin){
+      setError("ui:telegramOpenBot");return;
+    }
+    setLinkBusy(true);setError("");
+    try{
+      await approveTelegramBrowserLogin(incomingBrowserLogin,initData);
+      setBrowserLoginApproved(true);
+      setNotice("");
+    }catch(err){setError(readableError(err));}
     finally{setLinkBusy(false);}
   }
 
@@ -645,6 +663,15 @@ export function ProfileClient() {
       <AppHeader />
       <main className="page auth-container">
         <Link href="/" className="back-link">← {tr.back}</Link>
+        {incomingBrowserLogin && <section className="panel form-stack" aria-label="Approve browser login">
+          <h2>{language==="cs"?"Potvrzení přihlášení k webu":language==="en"?"Approve website sign-in":language==="ru"?"Подтвердить вход на сайт":"Підтвердити вхід на сайт"}</h2>
+          <p className="form-note">{language==="cs"?"Potvrď pouze přihlášení, které jsi sám/sama zahájil(a) na tickettreat.eu. Cizí žádosti zamítni.":language==="en"?"Only approve if you personally started this sign-in on tickettreat.eu. Never approve an unexpected request.":language==="ru"?"Подтверждай, только если сам начал вход на tickettreat.eu. Чужие запросы не подтверждай.":"Підтверджуй лише власний запит входу на tickettreat.eu."}</p>
+          {browserLoginApproved ? <p role="status">{language==="cs"?"Schváleno. Vrať se do prohlížeče.":language==="en"?"Approved. Return to your browser.":language==="ru"?"Подтверждено. Вернись в браузер.":"Підтверджено. Повернись у браузер."}</p> :
+            <button type="button" className="button button-primary"
+              disabled={!telegramProfile||linkBusy} onClick={()=>void approveBrowserLogin()}>
+              {linkBusy?"…":language==="cs"?"Potvrdit přihlášení":language==="en"?"Approve sign-in":language==="ru"?"Подтвердить вход":"Підтвердити вхід"}
+            </button>}
+        </section>}
         {incomingLink && <section className="panel form-stack" aria-label="Telegram account linking">
           <h2>{ui.confirmTelegram}</h2>
           {linkConfirmed ? <p role="status">{ui.linkConfirmed}</p> : <>
