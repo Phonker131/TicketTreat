@@ -440,6 +440,16 @@ def install_telegram_auth(app, get_db, main) -> None:
 
         from demo_legacy import reconcile_free_legacy
         legacy = reconcile_free_legacy(db,main,telegram_id,guest.id)
+        # A Telegram-only passwordless shadow WebAccount must not be treated
+        # as an already-linked email/Google identity: the Mini App still needs
+        # to offer two-proof onboarding to the holder of a *different* existing
+        # website account.
+        from demo_accounts import WebAccount
+        from demo_account_recovery import email_is_verified
+        web_account = db.query(WebAccount).filter(WebAccount.guest_id == guest.id).first()
+        verified_web_link = bool(
+            web_account and web_account.email and email_is_verified(db, web_account.id)
+        )
         return {
             "legacy_reconciliation": legacy,
             "guest": main.demo_guest_to_dict(guest, db),
@@ -449,7 +459,7 @@ def install_telegram_auth(app, get_db, main) -> None:
                 "username": guest.username,
             },
             "bot_registrations": bot_user_registrations(db, telegram_id, main),
-            "accounts_linked": bool(db.query(__import__("demo_accounts").WebAccount.id).filter(__import__("demo_accounts").WebAccount.guest_id == guest.id).first()),
+            "accounts_linked": verified_web_link,
         }
 
 def send_miniapp_ticket_notice(
