@@ -1,0 +1,55 @@
+/* Shared identity / social login: icon-first, accessible, mobile-safe. */
+.auth-container .tt-auth-social-row{
+  display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;
+  gap:12px;min-width:0;margin:4px 0 14px;
+}
+.auth-container .tt-auth-provider{
+  display:flex;flex:0 0 auto;flex-direction:column;
+  align-items:center;gap:10px;max-width:100%;min-width:0;
+}
+.auth-container .tt-auth-provider--expanded{flex-basis:100%;order:1}
+.auth-container .tt-auth-provider--expanded > .panel,
+.auth-container .tt-auth-provider--expanded > .state-card,
+.auth-container .tt-auth-provider--expanded > .form-note{
+  width:min(100%,440px);box-sizing:border-box;
+}
+.auth-container .tt-auth-provider-button{
+  display:grid;place-items:center;flex:none;
+  width:58px;height:58px;min-width:58px;min-height:58px;
+  padding:0;border:1px solid rgba(17,24,39,.23);border-radius:18px;
+  background:#fff;color:#151d25;
+  box-shadow:0 2px 0 rgba(11,22,32,.035);
+  cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+.auth-container .tt-auth-provider-button svg{display:block;width:27px;height:27px;flex:none}
+.auth-container .tt-auth-provider-button:hover:not(:disabled){
+  border-color:#0089d6;box-shadow:0 3px 10px rgba(0,137,214,.12);
+  transform:translateY(-1px);
+}
+.auth-container .tt-auth-provider-button:focus-visible{
+  outline:3px solid #0089d6;outline-offset:3px;
+}
+.auth-container .tt-auth-provider-button:disabled{
+  cursor:not-allowed;opacity:.48;transform:none;box-shadow:none;
+}
+.auth-container .tt-auth-method-divider{
+  display:flex;align-items:center;justify-content:center;
+  gap:13px;min-width:0;padding:2px 0 6px;
+  color:var(--muted);font-size:13px;font-weight:600;text-align:center;
+}
+.auth-container .tt-auth-method-divider::before,
+.auth-container .tt-auth-method-divider::after{
+  content:"";display:block;height:1px;flex:1 1 0;
+  background:rgba(17,24,39,.17);
+}
+.auth-container .tt-auth-method-divider span{white-space:nowrap;min-width:0}
+.auth-container .auth-tabs--single{grid-template-columns:minmax(0,1fr)}
+@media(max-width:420px){
+  .auth-container .tt-auth-provider-button{
+    width:54px;height:54px;min-width:54px;min-height:54px;border-radius:16px;
+  }
+  .auth-container .tt-auth-social-row{gap:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  .auth-container .tt-auth-provider-button{transition:none}
+}
