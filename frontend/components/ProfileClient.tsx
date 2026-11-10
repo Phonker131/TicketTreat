@@ -717,6 +717,22 @@ export function ProfileClient() {
                   <button type="submit" className="button button-primary" disabled={busy}>{ui.confirmEmail}</button>
                 </form>
               </div>}
+              {!profile.account.email && <section className="panel form-stack" aria-label="Optional email for Telegram account">
+                <h3>{language==="cs"?"Přidat e-mail (volitelné)":"Add an email (optional)"}</h3>
+                <p className="form-note">{language==="cs"?"Vstupenky už patří tvému účtu Telegram. E-mail je volitelný pro přihlašování, obnovu účtu a upozornění.":"Your Telegram tickets already belong to this account. Email is optional for email sign-in, recovery and notifications."}</p>
+                <label>{tr.email}<input type="email" required maxLength={255} autoComplete="email"
+                  value={newTelegramEmail} onChange={e=>{setNewTelegramEmail(e.target.value);setEmailAttachSent(false);}}/></label>
+                <button type="button" className="button button-outline" disabled={busy||mailReady===false||!newTelegramEmail.includes("@")}
+                  onClick={async()=>{const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await requestTelegramEmailAttach(token,newTelegramEmail.trim());setEmailAttachSent(true);setNotice("ui:verificationSent");}catch(err){setError(err instanceof Error&&err.message==="email_already_registered_link_accounts"?(language==="cs"?"E-mail již patří jinému účtu. Přihlas se k němu a propoj jej s Telegramem.":"This email belongs to another account. Sign in there and use the existing Telegram link."):readableError(err));}finally{setBusy(false);}}}>
+                  {ui.sendCode}
+                </button>
+                {emailAttachSent && <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await confirmTelegramEmailAttach(token,newTelegramEmail.trim(),newTelegramEmailCode);loadProfile(await getWebProfile(token));setNewTelegramEmailCode("");setEmailAttachSent(false);setNotice("ui:emailVerifiedNotice");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
+                  <label>{ui.emailCode}<input type="text" inputMode="numeric" autoComplete="one-time-code"
+                    pattern="[0-9]{8}" minLength={8} maxLength={8} required
+                    value={newTelegramEmailCode} onChange={e=>setNewTelegramEmailCode(e.target.value)}/></label>
+                  <button type="submit" className="button button-primary" disabled={busy}>{ui.confirmEmail}</button>
+                </form>}
+              </section>}
               {profile.email_verified&&<p className="form-note">✓ {ui.emailVerified}</p>}
               <p className="form-note">{tr.note}</p>
               {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary"> {ui.organizerDashboard} →</Link>}
@@ -732,7 +748,7 @@ export function ProfileClient() {
             <section className="panel form-stack">
               <h2>{ui.accountSecurity}</h2>
               <p className="form-note">{ui.passwordWarning}</p>
-              <form className="form-stack" onSubmit={updatePassword}>
+              {profile.account.email && <form className="form-stack" onSubmit={updatePassword}>
                 <label>{ui.currentPassword}
                   <input required type="password" autoComplete="current-password" value={oldPassword}
                     onChange={e=>setOldPassword(e.target.value)}/></label>
@@ -744,8 +760,9 @@ export function ProfileClient() {
                     value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)}/></label>
                 <button type="submit" className="button button-primary" disabled={busy}>
                   {ui.changePassword}</button>
-              </form>
+              </form>}
               <GoogleSignIn link />
+              {!profile.guest.telegram_id && <TelegramSignIn link />}
               <p className="form-note">{ui.googlePasswordHint}</p>
               <Link href="/security/mfa" className="button button-outline">{ui.twoFactor}</Link>
               {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
@@ -782,6 +799,11 @@ export function ProfileClient() {
             <form className="panel form-stack" onSubmit={submitAuth}>
               <h2>{mode==="signup"?tr.create:tr.login}</h2>
               <GoogleSignIn />
+              <TelegramSignIn />
+              {telegramProfile && !telegramProfile.accounts_linked && mode==="login" && <label className="form-note">
+                <input type="checkbox" checked={connectOnLogin} onChange={e=>setConnectOnLogin(e.target.checked)}/>
+                {" "}{language==="cs"?"Po přihlášení propojit tento ověřený Telegram s mým stávajícím TicketTreat účtem.":language==="en"?"After signing in, connect this verified Telegram to my existing TicketTreat account.":language==="ru"?"После входа связать этот подтверждённый Telegram с моим существующим аккаунтом TicketTreat.":"Після входу з'єднати цей підтверджений Telegram із моїм акаунтом TicketTreat."}
+              </label>}
               {mode==="signup" && (
                 <fieldset className="event-language-fieldset">
                   <legend>{language==="en"?"Register as":language==="cs"?"Typ účtu":language==="uk"?"Зареєструватися як":"Зарегистрироваться как"}</legend>
