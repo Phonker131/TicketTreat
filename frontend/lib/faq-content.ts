@@ -25,7 +25,7 @@ export const faqCopy:Record<LanguageCode,FaqCopy>={
       ]},
       {title:"Payments and event changes",items:[
         {q:"Does TicketTreat accept card payments?",a:"Not during the current pilot. For priced events, any payment is made directly to the organizer, not through TicketTreat. Never enter payment-card details into a TicketTreat support message."},
-        {q:"When will I receive a ticket for a paid event?",a:"An organizer-direct payment request can hold a place for up to 24 hours. The organizer must confirm payment before the QR ticket becomes active. If payment is not confirmed in time, the reservation can expire."},
+        {q:"When will I receive a ticket for a paid event?",a:"For priced events in the current pilot, a QR ticket is issued immediately after successful registration. TicketTreat does not collect or verify payment; arrange any payment separately with the organizer."},
         {q:"What happens if an event is cancelled or I need a refund?",a:"Check the event notice and contact the organizer or contractual seller about an event cancellation, payment or refund. TicketTreat support can help with platform or account issues, but cannot refund money paid directly to an organizer."}
       ]},
       {title:"Support and privacy",items:[
@@ -81,7 +81,7 @@ export const faqCopy:Record<LanguageCode,FaqCopy>={
       ]},
       {title:"Platby a zrušení akce",items:[
         {q:"Lze platit kartou přes TicketTreat?",a:"Zatím ne. Během pilotního provozu se případné platby za placené akce řeší přímo s pořadatelem, nikoli přes TicketTreat. Platební údaje neposílejte do podpory."},
-        {q:"Kdy dostanu vstupenku na placenou akci?",a:"Žádost o místo s platbou pořadateli může držet rezervaci až 24 hodin. QR vstupenka se aktivuje až po potvrzení platby pořadatelem. Bez potvrzení rezervace může vypršet."},
+        {q:"Kdy dostanu vstupenku na placenou akci?",a:"V aktuálním pilotním provozu obdržíte QR vstupenku na placenou akci hned po úspěšné registraci. TicketTreat platby nevybírá ani neověřuje; případnou platbu řešte přímo s pořadatelem."},
         {q:"Co když se akce zruší nebo chci vrátit peníze?",a:"Informace o změnách a vrácení peněz vám poskytne pořadatel či smluvní prodávající. Podpora TicketTreat řeší technické problémy platformy, nevrací ale platby zaslané přímo pořadateli."}
       ]},
       {title:"Podpora a soukromí",items:[
