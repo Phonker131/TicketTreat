@@ -8,6 +8,7 @@ Requires BotFather Login Widget client ID, secret and registered redirect URI.
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import json
 import os
@@ -131,8 +132,8 @@ def verify_id_token(id_token: str, client_id: str, nonce: str, *, at: int | None
         if type(telegram_id) is not int or not 0 < telegram_id < 2**63:
             raise ValueError("missing_telegram_user_id")
         return claims
-    except (ValueError, TypeError, KeyError, IndexError, OverflowError, InvalidSignature,
-            requests.RequestException, json.JSONDecodeError):
+    except (ValueError, TypeError, KeyError, IndexError, OverflowError, binascii.Error, UnicodeError,
+            InvalidSignature, requests.RequestException, json.JSONDecodeError):
         raise HTTPException(401, "invalid_telegram_oidc_identity") from None
 
 
