@@ -238,10 +238,12 @@ def install_demo_accounts(
 
     from demo_google import install_google_auth
     from demo_telegram_oidc import install_telegram_oidc
+    from demo_telegram_browser_login import install_browser_telegram_login
     from demo_quick_signup import install_quick_signup
     install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict)
     install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict)
     install_telegram_oidc(app, get_db, DemoGuest, issue_session, profile_dict)
+    install_browser_telegram_login(app, get_db, DemoGuest, issue_session, profile_dict)
 
     @app.post("/demo/auth/signup", status_code=201)
     def signup(payload: SignupData, request: Request, db: Session = Depends(get_db)):
