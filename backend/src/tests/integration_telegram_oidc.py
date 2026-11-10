@@ -5,6 +5,8 @@ import secrets
 import unittest
 from unittest.mock import patch
 from urllib.parse import urlsplit, parse_qs
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from fastapi.testclient import TestClient
 
@@ -166,6 +168,34 @@ class UnifiedTelegramIdentityTests(unittest.TestCase):
                 headers={"X-Telegram-Browser-Token":verifier},
                 json={"challenge":code})
             self.assertEqual(replay.status_code,409,replay.text)
+
+    def test_old_bot_free_registration_appears_on_first_website_login(self):
+        # A legacy /myevents user might never have opened the Mini App.
+        # OIDC must reconcile eligible upcoming free registrations directly.
+        tg_id=secrets.randbelow(10**12)+10**10
+        with SessionLocal() as db:
+            user=main.User(telegram_id=tg_id,first_name="Legacy user")
+            event=main.Event(title="Telegram legacy CI ticket",price=Decimal("0"),
+                starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=5),
+                max_participants=20,currency="CZK")
+            db.add_all([user,event]);db.flush()
+            db.add(main.Registration(user_id=user.id,event_id=event.id))
+            db.commit()
+            event_id=event.id
+        with patch("demo_telegram_oidc.exchange",side_effect=self.fake_exchange):
+            with TestClient(main.app) as client:
+                first=self.oidc(client,tg_id)
+                headers={"Authorization":"Bearer "+first["token"]}
+                tickets=client.get("/demo/me/tickets",headers=headers)
+                self.assertEqual(tickets.status_code,200,tickets.text)
+                matches=[ticket for ticket in tickets.json() if ticket["event_id"]==event_id]
+                self.assertEqual(len(matches),1)
+                self.assertEqual(matches[0]["payment_provider"],"legacy_free")
+                second=self.oidc(client,tg_id)
+                self.assertEqual(second["profile"]["guest"]["id"],
+                                 first["profile"]["guest"]["id"])
+                repeat=client.get("/demo/me/tickets",headers=headers).json()
+                self.assertEqual(sum(t["event_id"]==event_id for t in repeat),1)
 
     def test_optional_email_requires_otp_and_does_not_merge_other_account(self):
         tg_id=secrets.randbelow(10**12)+10**10
