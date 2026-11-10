@@ -4,10 +4,15 @@ import sys
 import unittest
 from pathlib import Path
 from fastapi import HTTPException
+from sqlalchemy import Column, Integer, MetaData, Table, create_engine
+from sqlalchemy.exc import IntegrityError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 os.environ.setdefault("DATABASE_URL", "postgresql://unused:unused@127.0.0.1:5432/unused")
-from demo_roles import EVENT_TAGS, normalize_tags, validate_venue_url
+from demo_roles import (
+    EVENT_TAGS, CreateManageEvent, EventDetails, UpdateManageEvent,
+    normalize_tags, validate_venue_url,
+)
 
 
 class VenueUrlValidationTest(unittest.TestCase):
@@ -25,6 +30,42 @@ class VenueUrlValidationTest(unittest.TestCase):
     def test_userinfo_rejected(self):
         with self.assertRaises(HTTPException):
             validate_venue_url("https://user@evil.example.com/")
+
+    def test_invalid_venue_links_on_create_and_update(self):
+        create_fields = dict(title="Concert", starts_at="2030-01-01T18:00:00Z", languages=["en"])
+        for url in ("https://[bad", "https://example.org:bad", "https://example.org:99999"):
+            for model, fields in ((CreateManageEvent, create_fields), (UpdateManageEvent, {})):
+                with self.subTest(url=url, model=model.__name__):
+                    with self.assertRaises(HTTPException) as raised:
+                        model(venue_url=url, **fields)
+                    self.assertEqual(raised.exception.status_code, 422)
+                    self.assertEqual(raised.exception.detail, "invalid_venue_url")
+
+
+class EventDetailsSchemaTest(unittest.TestCase):
+    def test_defaults_and_foreign_key_for_both_initialization_paths(self):
+        migration = Path(__file__).resolve().parents[2] / "migrations" / "20261109_event_details.sql"
+        schema = MetaData()
+        Table("events", schema, Column("id", Integer, primary_key=True))
+        EventDetails.__table__.to_metadata(schema)
+        for initialize_with_sql in (False, True):
+            with self.subTest(initialize_with_sql=initialize_with_sql):
+                engine = create_engine("sqlite://")
+                self.addCleanup(engine.dispose)
+                with engine.begin() as conn:
+                    conn.exec_driver_sql("PRAGMA foreign_keys = ON")
+                    if initialize_with_sql:
+                        schema.tables["events"].create(conn)
+                        conn.exec_driver_sql(migration.read_text())
+                    else:
+                        schema.create_all(conn)
+                    with self.assertRaises(IntegrityError):
+                        conn.exec_driver_sql("INSERT INTO demo_event_details (event_id) VALUES (1)")
+                    conn.exec_driver_sql("INSERT INTO events (id) VALUES (1)")
+                    conn.exec_driver_sql("INSERT INTO demo_event_details (event_id) VALUES (1)")
+                    self.assertEqual(conn.exec_driver_sql("SELECT tags_json FROM demo_event_details").scalar_one(), "[]")
+                    conn.exec_driver_sql("DELETE FROM events WHERE id = 1")
+                    self.assertEqual(conn.exec_driver_sql("SELECT count(*) FROM demo_event_details").scalar_one(), 0)
 
 
 class TagNormalizationTest(unittest.TestCase):

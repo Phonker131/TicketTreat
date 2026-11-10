@@ -19,11 +19,11 @@ import io
 import os
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Annotated, Any
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.responses import Response
-from pydantic import BaseModel, Field
-from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text, UniqueConstraint, Boolean, func
+from pydantic import AfterValidator, BaseModel, Field
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint, Boolean, func
 from sqlalchemy.orm import Session
 from db.base import Base
 from demo_geography import DemoEventPlace, place_dict, save_place
@@ -103,9 +103,9 @@ class EventMedia(Base):
 class EventDetails(Base):
     """Organizer-set venue website and discovery tags (the home page moods)."""
     __tablename__ = "demo_event_details"
-    event_id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, ForeignKey("events.id", ondelete="CASCADE"), primary_key=True, autoincrement=False)
     venue_url = Column(String(2048), nullable=True)
-    tags_json = Column(Text, nullable=False, default="[]")
+    tags_json = Column(Text, nullable=False, default="[]", server_default="[]")
 
 
 # Mirrors the mood filter on the home page; the frontend falls back to keyword
@@ -115,10 +115,24 @@ EVENT_TAGS = ("meet", "friends", "listen", "dance")
 
 def validate_venue_url(venue_url):
     if not venue_url:
-        return
-    parsed = urlsplit(venue_url)
-    if len(venue_url) > 2048 or parsed.scheme != "https" or not parsed.hostname or "@" in parsed.netloc:
+        return venue_url
+    if len(venue_url) > 2048 or "\\" in venue_url or any(
+        char.isspace() or ord(char) < 32 or ord(char) == 127 for char in venue_url
+    ):
         raise HTTPException(status_code=422, detail="invalid_venue_url")
+    try:
+        parsed = urlsplit(venue_url)
+        hostname = parsed.hostname
+        # urllib validates the numeric port and its range on access.
+        _ = parsed.port
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="invalid_venue_url") from exc
+    if parsed.scheme != "https" or not hostname or parsed.username is not None:
+        raise HTTPException(status_code=422, detail="invalid_venue_url")
+    return venue_url
+
+
+VenueUrl = Annotated[str, AfterValidator(validate_venue_url)]
 
 
 def normalize_tags(tags):
@@ -230,7 +244,7 @@ class CreateManageEvent(BaseModel):
     poster_data_url: str | None = Field(default=None, max_length=5700000)
     gallery_urls: list[str] = Field(default_factory=list)
     video_url: str | None = None
-    venue_url: str | None = None
+    venue_url: VenueUrl | None = None
     tags: list[str] = Field(default_factory=list, max_length=8)
     reminder_minutes: list[int] = Field(default_factory=lambda: [10080, 1440, 180], min_length=1, max_length=4)
     reminder_text: str = Field(default="Your TicketTreat event starts soon.", max_length=1000)
@@ -251,7 +265,7 @@ class UpdateManageEvent(BaseModel):
     poster_data_url: str | None = Field(default=None, max_length=5700000)
     gallery_urls: list[str] | None = None
     video_url: str | None = None
-    venue_url: str | None = None
+    venue_url: VenueUrl | None = None
     tags: list[str] | None = None
     reminder_text: str | None = Field(default=None, max_length=1000)
 
@@ -472,7 +486,6 @@ def install_demo_roles(app, get_db, main):
         # Existing bot event-creation logic remains the source of truth.
         values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","venue_url","tags","reminder_minutes","visibility"})
         validate_media_urls(payload.gallery_urls,payload.video_url)
-        validate_venue_url(payload.venue_url)
         normalize_tags(payload.tags)
         from main import EventCreate
         # Price is informational; neither booking nor publication requires
@@ -755,7 +768,6 @@ def install_demo_roles(app, get_db, main):
         if "price" in values and values["price"] is None:
             raise HTTPException(status_code=422,detail="invalid_price")
         validate_media_urls(gallery, video)
-        validate_venue_url(venue)
         normalize_tags(tags)
         if gallery is not None:
             uploaded = db.query(EventGalleryImage).filter(
