@@ -101,6 +101,10 @@ class PilotScopedOperationsTests(unittest.TestCase):
             denied=client.post("/demo/pilot/check-in",headers=worker_headers,
                                json={"qr_token":qr})
             self.assertEqual(denied.status_code,403,denied.text)
+            # Printed codes must not bypass the event-scoped access check.
+            denied_printed=client.post("/demo/pilot/check-in",headers=worker_headers,
+                json={"qr_token":f"CRD{ticket_id:06d}"})
+            self.assertEqual(denied_printed.status_code,403,denied_printed.text)
             granted=client.post(f"/demo/manage/events/{event_id}/checkin-staff",
                 headers=owner_headers,json={"email":worker.email})
             self.assertEqual(granted.status_code,201,granted.text)
@@ -117,6 +121,13 @@ class PilotScopedOperationsTests(unittest.TestCase):
                                   json={"qr_token":qr})
             self.assertEqual(duplicate.status_code,200,duplicate.text)
             self.assertEqual(duplicate.json()["status"],"already_checked_in")
+            # Old cards can be entered without the hyphen. Manual and QR paths
+            # share a single checked-in state and never admit twice.
+            printed_duplicate=client.post("/demo/pilot/check-in",headers=worker_headers,
+                json={"qr_token":f"CRD{ticket_id:06d}"})
+            self.assertEqual(printed_duplicate.status_code,200,printed_duplicate.text)
+            self.assertEqual(printed_duplicate.json()["status"],"already_checked_in")
+            self.assertNotIn("qr_token",printed_duplicate.json()["ticket"])
             forbidden_manual=client.post(
                 f"/demo/manage/events/{event_id}/check-in-by-list/{ticket_id}",
                 headers=worker_headers)
@@ -131,6 +142,33 @@ class PilotScopedOperationsTests(unittest.TestCase):
             self.assertEqual(history.json()["visit_count"],1)
             updated=client.get(f"/demo/manage/events/{event_id}/insights",headers=owner_headers)
             self.assertEqual(updated.json()["checked_in"],1)
+            # A fourth scan must work after three successful admissions and
+            # manual CRD-code entry must work without the QR secret.
+            with SessionLocal() as db:
+                extra=[]
+                for n in range(4):
+                    extra_guest=main.DemoGuest(access_token=secrets.token_urlsafe(32),
+                        first_name="Repeat",last_name="Guest",
+                        email=f"scan-{secrets.token_hex(12)}@example.invalid")
+                    db.add(extra_guest);db.flush()
+                    new_ticket=main.DemoTicket(event_id=event_id,guest_id=extra_guest.id,
+                        qr_token=secrets.token_urlsafe(32),ticket_status="active",
+                        payment_status="not_required",payment_provider="free",
+                        payment_amount="0",currency="CZK")
+                    db.add(new_ticket);db.flush()
+                    extra.append((new_ticket.id,new_ticket.qr_token))
+                db.commit()
+            for ticket_number, token_value in extra[:3]:
+                checked=client.post("/demo/pilot/check-in",headers=worker_headers,
+                    json={"qr_token":f"TICKETTREAT:TICKET:{token_value}"})
+                self.assertEqual(checked.status_code,200,checked.text)
+                self.assertEqual(checked.json()["status"],"checked_in")
+            fourth_id=extra[3][0]
+            fourth=client.post("/demo/pilot/check-in",headers=worker_headers,
+                json={"qr_token":f"CRD{fourth_id:06d}"})
+            self.assertEqual(fourth.status_code,200,fourth.text)
+            self.assertEqual(fourth.json()["status"],"checked_in")
+            self.assertNotIn("qr_token",fourth.json()["ticket"])
             revoked=client.delete(
                 f"/demo/manage/events/{event_id}/checkin-staff/{worker_id}",
                 headers=owner_headers)
