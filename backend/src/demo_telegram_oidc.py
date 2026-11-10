@@ -125,8 +125,11 @@ def verify_id_token(id_token: str, client_id: str, nonce: str, *, at: int | None
         if (not isinstance(sub, str) or not sub.isdecimal()
                 or not 0 < int(sub) < 2**63):
             raise ValueError("invalid_subject")
-        if "id" in claims and str(claims["id"]) != sub:
-            raise ValueError("inconsistent_identity")
+        # The OIDC subject may differ from the Telegram numeric user ID.
+        # Only the signed profile claim "id" matches Bot API and Mini App IDs.
+        telegram_id = claims.get("id")
+        if type(telegram_id) is not int or not 0 < telegram_id < 2**63:
+            raise ValueError("missing_telegram_user_id")
         return claims
     except (ValueError, TypeError, KeyError, IndexError, OverflowError, InvalidSignature,
             requests.RequestException, json.JSONDecodeError):
@@ -171,7 +174,7 @@ def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict):
     from demo_accounts import WebAccount
     from demo_roles import WebAccountRole
 
-    telegram_id = int(claims["sub"])
+    telegram_id = int(claims["id"])
     link = db.query(DemoTelegramIdentity).filter(
         DemoTelegramIdentity.telegram_id == telegram_id).with_for_update().first()
     if link is None:
@@ -269,7 +272,7 @@ def install_telegram_oidc(app, get_db, DemoGuest, issue_session, profile_dict):
                 raise HTTPException(403, "email_verification_required")
             require_privileged_mfa(db, account, session)
             _telegram_link(db, __import__("main"), account, {
-                "id": int(claims["sub"]),
+                "id": int(claims["id"]),
                 "first_name": str(claims.get("given_name") or claims.get("name") or "Telegram user"),
                 "last_name": str(claims.get("family_name") or ""),
                 "username": str(claims.get("preferred_username") or ""),
