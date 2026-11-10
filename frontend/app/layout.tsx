@@ -11,6 +11,7 @@ import "./brand-v11-coverage.css";
 import "./revision2.css";
 import "./brandbook-fidelity.css";
 import "./premium.css";
+import "./auth-providers.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { MotionProvider } from "@/components/MotionProvider";

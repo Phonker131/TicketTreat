@@ -19,7 +19,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
     email:"Электронная почта",password:"Пароль (не менее 12 символов)",phone:"Телефон",
     instagram:"Instagram (необязательно)",contact:"Предпочтительный способ связи",
     save:"Сохранить изменения",saving:"Сохраняем…",loading:"Загрузка…",
-    logout:"Выйти",welcome:"С возвращением!",create:"Создать аккаунт",need:"Зарегистрируйся, чтобы иметь доступ к билетам с любого устройства.",
+    logout:"Выйти",welcome:"С возвращением!",create:"Создать аккаунт",need:"Один аккаунт TicketTreat для всех билетов — через email, Google или Telegram.",
     note:"Подтверждение email и восстановление пароля работают только при настроенном почтовом провайдере. Используй уникальный пароль.",
     visits:"Посещений",tickets:"Мои билеты",profile:"Данные профиля",
     accountCreated:"Аккаунт создан.",updated:"Профиль обновлён.",required:"Заполни обязательные поля.",
@@ -32,7 +32,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
     email:"Email",password:"Password (at least 12 characters)",phone:"Phone",
     instagram:"Instagram (optional)",contact:"Preferred contact method",save:"Save changes",
     saving:"Saving…",loading:"Loading…",logout:"Log out",welcome:"Welcome back!",
-    create:"Create account",need:"Register to access your tickets from any device.",
+    create:"Create account",need:"One TicketTreat account for every event and ticket, whether you use email, Google or Telegram.",
     note:"Email verification and password recovery require a configured email provider. Use a unique password.",
     visits:"Check-ins",tickets:"My tickets",profile:"Profile details",
     accountCreated:"Account created.",updated:"Profile updated.",required:"Complete the required fields.",
@@ -45,7 +45,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
     email:"E-mail",password:"Heslo (alespoň 12 znaků)",phone:"Telefon",
     instagram:"Instagram (nepovinné)",contact:"Preferovaný kontakt",save:"Uložit změny",
     saving:"Ukládání…",loading:"Načítání…",logout:"Odhlásit se",welcome:"Vítej zpět!",
-    create:"Vytvořit účet",need:"Zaregistruj se a měj vstupenky dostupné na každém zařízení.",
+    create:"Vytvořit účet",need:"Jeden účet TicketTreat pro všechny akce a vstupenky – ať použiješ e-mail, Google nebo Telegram.",
     note:"Ověření e-mailu a obnovení hesla vyžadují aktivní e-mailovou službu.",
     visits:"Návštěvy",tickets:"Moje vstupenky",profile:"Údaje profilu",
     accountCreated:"Účet vytvořen.",updated:"Profil aktualizován.",required:"Vyplň povinná pole.",
@@ -59,7 +59,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
     instagram:"Instagram (необов’язково)",contact:"Бажаний спосіб зв’язку",
     save:"Зберегти зміни",saving:"Зберігаємо…",loading:"Завантаження…",
     logout:"Вийти",welcome:"З поверненням!",create:"Створити акаунт",
-    need:"Зареєструйся, щоб бачити квитки з будь-якого пристрою.",
+    need:"Один акаунт TicketTreat для всіх квитків — через email, Google або Telegram.",
     note:"Підтвердження email і відновлення пароля потребують налаштованої пошти. Використовуй унікальний пароль.",
     visits:"Відвідувань",tickets:"Мої квитки",profile:"Дані профілю",
     accountCreated:"Акаунт створено.",updated:"Профіль оновлено.",required:"Заповни обов’язкові поля.",
@@ -824,17 +824,33 @@ export function ProfileClient() {
               </div>
               <small className="tt-telegram-separate-note">{ui.telegramSeparate}</small>
             </section>}
-            <p className="form-note">{tr.need}</p>
-            <div className="auth-tabs" role="tablist">
+            <p className="form-note">{telegramProfile
+              ? language==="cs"?"V Telegramu už účet TicketTreat máš. Níže se přihlas jen tehdy, pokud chceš propojit existující e-mailový či Google účet."
+              :language==="en"?"Your TicketTreat account already exists in Telegram. Sign in below only to connect an existing email or Google account."
+              :language==="ru"?"Ты уже вошёл в TicketTreat через Telegram. Ниже можно войти в существующий email/Google-аккаунт для связи, новую регистрацию создавать не нужно."
+              :"Твій обліковий запис TicketTreat уже існує в Telegram. Нижче можна увійти в наявний email/Google-акаунт для зв'язування."
+              :tr.need}</p>
+            <div className={telegramProfile?"auth-tabs auth-tabs--single":"auth-tabs"} role="tablist">
               {!telegramProfile && <button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setError("");}}>{tr.signup}</button>}
               <button type="button" className={mode==="login"?"active":""} onClick={()=>{setMode("login");setError("");}}>{tr.login}</button>
             </div>
             {error && <div className="state-card state-error" role="alert">{error.startsWith("ui:")?displayMessage(error):userFacingError(error,language)}</div>}
             {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
             <form className="panel form-stack" onSubmit={submitAuth}>
-              <h2>{mode==="signup"?tr.create:tr.login}</h2>
-              <GoogleSignIn />
-              <TelegramSignIn />
+              <h2>{mode==="signup"
+                ?language==="cs"?"Registrace e-mailem"
+                :language==="en"?"Create an account with email"
+                :language==="ru"?"Регистрация по email"
+                :"Реєстрація через email"
+                :language==="cs"?"Přihlášení":language==="en"?"Sign in":tr.login}</h2>
+              {!telegramProfile && <div className="tt-auth-social-row" role="group"
+                aria-label={language==="cs"?"Přihlášení přes služby":language==="en"?"Sign in with a provider":language==="ru"?"Вход через сервис": "Вхід через сервіс"}>
+                <GoogleSignIn compact />
+                <TelegramSignIn compact />
+              </div>}
+              <div className="tt-auth-method-divider" aria-hidden="true"><span>
+                {language==="cs"?"nebo e-mailem":language==="en"?"or with email":language==="ru"?"или через email":"або через email"}
+              </span></div>
               {telegramProfile && !telegramProfile.accounts_linked && mode==="login" && <label className="form-note">
                 <input type="checkbox" checked={connectOnLogin} onChange={e=>setConnectOnLogin(e.target.checked)}/>
                 {" "}{language==="cs"?"Po přihlášení propojit tento ověřený Telegram s mým stávajícím TicketTreat účtem.":language==="en"?"After signing in, connect this verified Telegram to my existing TicketTreat account.":language==="ru"?"После входа связать этот подтверждённый Telegram с моим существующим аккаунтом TicketTreat.":"Після входу з'єднати цей підтверджений Telegram із моїм акаунтом TicketTreat."}
@@ -852,7 +868,7 @@ export function ProfileClient() {
               )}
               {mode==="signup" && details}
               <label>{tr.email}<input type="email" required maxLength={255} autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} /></label>
-              <label>{tr.password}<input type="password" required minLength={mode==="signup"?12:1} maxLength={128} autoComplete={mode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} /></label>
+              <label>{mode==="signup"?tr.password:language==="cs"?"Heslo":language==="en"?"Password":language==="ru"?"Пароль":"Пароль"}<input type="password" required minLength={mode==="signup"?12:1} maxLength={128} autoComplete={mode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} /></label>
               {mode==="signup" && <p className="tt-legal-at-collection">
                 {language==="ru"?"Перед регистрацией ознакомься с ":language==="uk"?"Перед реєстрацією ознайомся з ":language==="cs"?"Před registrací si přečti ":"Before creating an account, read the "}
                 <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">{language==="ru"?"политикой конфиденциальности":language==="uk"?"політикою конфіденційності":language==="cs"?"zásady ochrany osobních údajů":"Privacy Policy"}</Link>
