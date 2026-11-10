@@ -3,6 +3,7 @@ import ast
 import pathlib
 import time
 import unittest
+from types import SimpleNamespace
 
 SOURCE = pathlib.Path(__file__).resolve().parents[3] / "bot" / "src" / "main.py"
 
@@ -33,6 +34,8 @@ class MenuTests(unittest.TestCase):
         self.scope={"time":time,"backend_request":api,
                     "_menu_registration_cache":{},"MENU_REGISTRATION_TTL_SECONDS":90,
                     "ReplyKeyboardMarkup":Keyboard,"KeyboardButton":Button,
+                    "WebAppInfo":lambda url:SimpleNamespace(url=url),
+                    "WEB_APP_URL":"https://tickettreat.eu",
                     "is_admin":lambda i:i==102}
         exec(compile(ast.Module(body=funcs,type_ignores=[]),str(SOURCE),"exec"),
              self.scope)
@@ -49,6 +52,11 @@ class MenuTests(unittest.TestCase):
             ["🆘 Client service"]])
         self.assertNotIn("🏠 Start",sum(labels,[]))
         self.assertNotIn("🌐 TicketTreat Mini App",sum(labels,[]))
+        menu=self.scope["get_main_menu"](100,private=True)
+        self.assertEqual(menu.keyboard[0][1].kwargs["web_app"].url,
+                         "https://tickettreat.eu/tickets")
+        group=self.scope["get_main_menu"](100,private=False)
+        self.assertNotIn("web_app",group.keyboard[0][1].kwargs)
 
     def test_new_user_keeps_start_and_explicit_registration(self):
         labels=self.labels(101)

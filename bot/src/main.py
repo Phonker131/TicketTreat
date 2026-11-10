@@ -1263,12 +1263,18 @@ def menu_profile_complete(user_id: int) -> bool:
         return cached[1] if cached is not None else False
 
 
-def get_main_menu(user_id: int):
+def get_main_menu(user_id: int, *, private: bool = True):
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     registered = menu_profile_complete(user_id)
 
     if registered:
-        keyboard.row(KeyboardButton("📅 Events"), KeyboardButton("🎟 My tickets"))
+        # Telegram supports reply-keyboard Web Apps only in private chats.
+        # Opening tickets should take one tap, not an extra legacy bot menu.
+        tickets_button = KeyboardButton("🎟 My tickets")
+        if private and WEB_APP_URL.startswith("https://"):
+            tickets_button = KeyboardButton(
+                "🎟 My tickets", web_app=WebAppInfo(url=f"{WEB_APP_URL}/tickets"))
+        keyboard.row(KeyboardButton("📅 Events"), tickets_button)
         keyboard.row(KeyboardButton("👤 My profile"), KeyboardButton("🏅 Passport"))
         keyboard.row(KeyboardButton("🆘 Client service"))
     else:
@@ -2028,7 +2034,7 @@ def start(message):
     send_branded_welcome(
         bot, message.chat.id,
         preserve_custom(welcome_text(lang, getattr(message.from_user, "first_name", None))),
-        get_main_menu(message.from_user.id),
+        get_main_menu(message.from_user.id, private=message.chat.type == "private"),
         language=lang,
     )
     send_start_shortcuts(message, copy)
@@ -2106,6 +2112,12 @@ def events_button(message):
 
 @bot.message_handler(func=lambda message: ui_text_matches(message.text, "🎟 My events") or ui_text_matches(message.text, "🎟 My tickets"))
 def my_events_button(message):
+    # Previously sent reply keyboards still send text. Guide those users
+    # directly to My tickets; leave /myevents as an explicit legacy command.
+    if WEB_APP_URL.startswith("https://") and message.chat.type == "private":
+        copy = get_copy(remember_telegram_language(message.from_user))
+        copy_send(message, copy["tickets_intro"], [(copy["buttons"][1], "/tickets")])
+        return
     my_events(message)
 
 
@@ -3094,7 +3106,7 @@ def my_events(message):
             keyboard.add(InlineKeyboardButton(
                 "🎫 Открыть QR-билет",
                 web_app=WebAppInfo(
-                    url=f"{WEB_APP_URL}/tickets/{int(ticket_id)}"
+                    url=f"{WEB_APP_URL}/tickets/{int(ticket_id)}?show=qr"
                 ),
             ))
         keyboard.add(

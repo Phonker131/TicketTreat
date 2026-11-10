@@ -75,6 +75,58 @@ class LegacyPaidNavigationTests(unittest.TestCase):
             options["reply_markup"].keyboard[0][0].web_app.url,
             "https://tickettreat.eu/events/42")
 
+    def test_private_reply_menu_opens_ticket_page_directly(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        fn = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                  and node.name == "get_main_menu")
+
+        class ReplyMenu:
+            def __init__(self, **_kwargs):
+                self.rows = []
+            def row(self, *buttons):
+                self.rows.append(buttons)
+
+        namespace = {
+            "WEB_APP_URL": "https://tickettreat.eu",
+            "ReplyKeyboardMarkup": ReplyMenu,
+            "KeyboardButton": Button,
+            "WebAppInfo": lambda url: SimpleNamespace(url=url),
+            "menu_profile_complete": lambda _id: True,
+            "is_admin": lambda _id: False,
+        }
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), str(SOURCE), "exec"), namespace)
+        private = namespace["get_main_menu"](42, private=True)
+        self.assertEqual(private.rows[0][1].web_app.url,
+                         "https://tickettreat.eu/tickets")
+        group = namespace["get_main_menu"](42, private=False)
+        self.assertIsNone(group.rows[0][1].web_app)
+
+    def test_legacy_ticket_card_opens_exact_qr_page(self):
+        source = SOURCE.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        fn = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                  and node.name == "my_events")
+        seen = []
+        bot = Bot()
+        bot.message_handler = lambda **_kwargs: lambda callback: callback
+        namespace = {
+            "WEB_APP_URL": "https://tickettreat.eu",
+            "bot": bot,
+            "backend_request": lambda *_a, **_kw: [{"id": 7, "ticket_id": 42}],
+            "InlineKeyboardButton": Button,
+            "InlineKeyboardMarkup": Keyboard,
+            "WebAppInfo": lambda url: SimpleNamespace(url=url),
+            "send_event_card": lambda _chat, _event, reply_markup: seen.append(reply_markup),
+        }
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), str(SOURCE), "exec"), namespace)
+        message = SimpleNamespace(from_user=SimpleNamespace(id=42),
+                                  chat=SimpleNamespace(id=42, type="private"))
+        namespace["my_events"](message)
+        self.assertEqual(len(seen), 1)
+        self.assertEqual(seen[0].keyboard[0][0].web_app.url,
+                         "https://tickettreat.eu/tickets/42?show=qr")
+
     def test_outdated_24_hour_mini_app_prompts_are_retired(self):
         source = SOURCE.read_text(encoding="utf-8")
         self.assertNotIn('"⏳ Резерв 24 часа → TicketTreat":', source)
