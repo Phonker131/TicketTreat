@@ -26,6 +26,19 @@ for(const locale of ["en","cs"] as const){
       await expect(moods).toBeVisible();
       await expect(moods.locator("button")).toHaveCount(5);
       await expect(controls.locator(".tp-seg button")).toHaveCount(3);
+      // All three modes must occupy a single row inside the rounded frame,
+      // including at 320px where the tab labels and icons are the tightest.
+      const tabs=await controls.locator(".tp-seg").evaluate(seg=>{
+        const frame=seg.getBoundingClientRect();
+        const buttons=[...seg.querySelectorAll("button")].map(el=>el.getBoundingClientRect());
+        return {
+          sameRow:buttons.every(rect=>Math.abs(rect.top-buttons[0].top)<1),
+          withinFrame:buttons.every(rect=>rect.left>=frame.left-1&&rect.right<=frame.right+1&&rect.top>=frame.top-1&&rect.bottom<=frame.bottom+1),
+          equalWidths:Math.max(...buttons.map(rect=>rect.width))-Math.min(...buttons.map(rect=>rect.width))<2,
+          noOverflow:seg.scrollWidth<=seg.clientWidth+1
+        };
+      });
+      expect(tabs,JSON.stringify(tabs)).toEqual({sameRow:true,withinFrame:true,equalWidths:true,noOverflow:true});
       const data=await controls.evaluate(ctl=>{
         const rect=(el:Element)=>el.getBoundingClientRect();
         const section=ctl.closest(".tt-night-events")!;
@@ -79,6 +92,18 @@ for(const locale of ["en","cs"] as const){
       await expect(controls.locator(".tp-mood").nth(2)).toHaveAttribute("aria-pressed","true");
       await controls.locator(".tp-seg button").nth(1).click();
       await expect(controls.locator(".tp-seg button").nth(1)).toHaveAttribute("aria-pressed","true");
+      await controls.locator(".tp-seg button").nth(2).click();
+      const empty=page.locator(".tt-night-events .tp-events-empty.is-compact");
+      await expect(empty).toBeVisible();
+      const logo=empty.locator(".tp-ee-p2 .tp-poster-art-tag");
+      await expect(logo).toHaveText("TICKETTREAT");
+      const placement=await logo.evaluate(el=>{
+        const tile=el.closest(".tp-ee-p2")!.getBoundingClientRect();
+        const tag=el.getBoundingClientRect();
+        return {fits:tag.left>=tile.left+5&&tag.right<=tile.right-5,
+          pageFits:document.documentElement.scrollWidth<=window.innerWidth+1};
+      });
+      expect(placement,JSON.stringify(placement)).toEqual({fits:true,pageFits:true});
     });
   }
 }
