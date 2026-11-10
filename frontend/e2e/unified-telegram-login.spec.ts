@@ -34,3 +34,27 @@ test("pre-existing account linking remains available in profile",async({page})=>
   await expect(page.locator("form input[type=email]").first()).toBeVisible();
   await expect(page.locator("form input[type=password]").first()).toBeVisible();
 });
+
+test("official Telegram OIDC failure offers existing-account bot login, not sign-up",async({page})=>{
+  const challenge="B".repeat(43);
+  await page.route("**/api/gateway/demo/auth/telegram/status",route=>
+    route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({enabled:true})}));
+  await page.route("**/api/gateway/demo/auth/telegram/browser/status",route=>
+    route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({enabled:true})}));
+  await page.route("**/api/gateway/demo/auth/telegram/browser/start",route=>
+    route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({
+      challenge,bot_link:"https://t.me/TicketTreatBot?start=login_"+challenge,
+      pin:"654321",expires_in_seconds:600,
+    })}));
+  await page.route("**/api/gateway/demo/auth/telegram/browser/complete",route=>
+    route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({status:"pending"})}));
+  await page.goto("/profile?lang=en&telegram=failed");
+  const fallback=page.getByRole("button",{name:"Sign in with the bot instead"});
+  await expect(fallback).toBeVisible();
+  await fallback.click();
+  await expect(page.getByText("654321",{exact:true})).toBeVisible();
+  await expect(page.getByRole("link",{name:"Approve in Telegram"}))
+    .toHaveAttribute("href","https://t.me/TicketTreatBot?start=login_"+challenge);
+  await expect(fallback).toHaveCount(0);
+  await expect(page.locator("form input[type=email]").first()).toBeVisible();
+});
