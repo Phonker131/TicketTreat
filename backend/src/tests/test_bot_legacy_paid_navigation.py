@@ -32,6 +32,9 @@ class Bot:
     def __init__(self):
         self.messages = []
 
+    def callback_query_handler(self, **_kwargs):
+        return lambda fn: fn
+
     def send_message(self, chat_id, text, **kwargs):
         self.messages.append((chat_id, text, kwargs))
 
