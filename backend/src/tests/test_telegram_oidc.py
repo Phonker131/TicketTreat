@@ -55,11 +55,32 @@ class TelegramOidcVerificationTests(unittest.TestCase):
         for overrides in (
             {"aud":"someone-else"},{"nonce":"replayed"},
             {"exp":now-1},{"iat":now+300},
-            {"id":None},{"id":"123456781234"},{"id":-42},
+            {"id":None},{"id":-42},{"id":True},{"id":0},
+            {"id":"not-a-number"},{"id":"-12"},{"id":"12.0"},
+            {"id":"１２３４"},{"id":"1"*300},{"id":str(2**63)},
         ):
             with self.subTest(overrides=overrides):
                 with self.assertRaises(HTTPException):
                     self.verified(self.signed(**overrides))
+
+    def test_signed_decimal_string_id_is_canonical_telegram_bot_identity(self):
+        # Telegram may encode its numeric profile ID as a JSON decimal
+        # string. It is not the same as OIDC sub (which may be much larger).
+        for signed_id in (987654321, "987654321", "123412341234123"):
+            with self.subTest(signed_id=signed_id):
+                claims=self.verified(self.signed(
+                    sub="1234123412341234123", id=signed_id))
+                self.assertEqual(claims["id"],int(signed_id))
+                self.assertEqual(type(claims["id"]),int)
+                self.assertEqual(claims["sub"],"1234123412341234123")
+
+    def test_absent_telegram_bot_id_is_not_inferred_from_oidc_subject(self):
+        # A signed OIDC sub is not evidence of a matching Bot API identity.
+        with self.assertLogs("tickettreat.telegram_oidc",level="WARNING") as logs:
+            with self.assertRaises(HTTPException):
+                self.verified(self.signed(id=None,sub="1234123412341234123"))
+        self.assertIn("category=missing_telegram_user_id"," ".join(logs.output))
+        self.assertNotIn("1234123412341234123"," ".join(logs.output))
 
     def test_telegram_oidc_subject_can_differ_from_bot_user_id(self):
         # Telegram OIDC lists distinct sub and id. The signed profile id
