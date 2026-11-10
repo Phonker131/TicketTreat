@@ -130,7 +130,7 @@ def install_browser_telegram_login(app, get_db, DemoGuest, issue_session, profil
         row.status="consumed"
         from demo_telegram_oidc import ensure_telegram_web_account
         claims={
-            "sub":str(row.telegram_id),"given_name":row.first_name or "Telegram user",
+            "id":int(row.telegram_id),"sub":str(row.telegram_id),"given_name":row.first_name or "Telegram user",
             "family_name":row.last_name or "","preferred_username":row.username or "",
         }
         account=ensure_telegram_web_account(db,DemoGuest,claims)
