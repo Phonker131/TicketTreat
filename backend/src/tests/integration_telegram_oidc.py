@@ -85,10 +85,14 @@ class UnifiedTelegramIdentityTests(unittest.TestCase):
                 with SessionLocal() as db:
                     self.assertEqual(db.query(WebAccount).filter(
                         WebAccount.guest_id==guest_id).count(),1)
-                # Participant must never become an organizer/admin by omission
-                # of email ownership or MFA.
-                denied=client.get("/demo/manage/me",headers=bearer)
-                self.assertIn(denied.status_code,(403,404))
+                # Public role introspection is readable; Telegram-only users
+                # must always remain participants and cannot manage events.
+                identity=client.get("/demo/manage/me",headers=bearer)
+                self.assertEqual(identity.status_code,200,identity.text)
+                self.assertEqual(identity.json()["role"],"participant")
+                blocked=client.post("/demo/manage/events",headers=bearer,
+                                    json={"title":"unauthorized"})
+                self.assertEqual(blocked.status_code,403,blocked.text)
 
     def test_web_first_account_link_revokes_telegram_shadow_sessions(self):
         tg_id=secrets.randbelow(10**12)+10**10
