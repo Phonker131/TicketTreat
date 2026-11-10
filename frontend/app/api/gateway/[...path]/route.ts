@@ -192,11 +192,12 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
         !/^[A-Za-z0-9_-]{30,128}$/.test(data.browser_token) ||
         typeof data.challenge!=="string" ||
         !/^[A-Za-z0-9_-]{30,100}$/.test(data.challenge) ||
+        typeof data.pin!=="string" || !/^[0-9]{6}$/.test(data.pin) ||
         typeof data.bot_link!=="string" ||
         data.bot_link!=="https://t.me/TicketTreatBot?start=login_"+data.challenge)
       return NextResponse.json({detail:"malformed_telegram_browser_login"},{status:502});
     const response=NextResponse.json({
-      challenge:data.challenge,bot_link:data.bot_link,expires_in_seconds:600
+      challenge:data.challenge,bot_link:data.bot_link,pin:data.pin,expires_in_seconds:600
     },{headers:{"Cache-Control":"private, no-store"}});
     response.cookies.set("tt_telegram_browser_flow",data.browser_token,{
       httpOnly:true,sameSite:"strict",
