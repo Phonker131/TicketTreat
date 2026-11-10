@@ -32,7 +32,9 @@ export function TicketClient() {
   const search = useSearchParams();
   const [ticket, setTicket] = useState<DemoTicket | null>(null);
   const [qr, setQr] = useState("");
-  const [flipped,setFlipped] = useState(false);
+  // Deep links from the bot open the specific ticket with its QR side visible.
+  const [flipped,setFlipped] = useState(search.get("show")==="qr");
+  useEffect(()=>{setFlipped(search.get("show")==="qr");},[params?.id,search]);
   const [clock,setClock] = useState<number|null>(null);
   useEffect(()=>{
     const sync=()=>setClock(Date.now());

@@ -25,8 +25,13 @@ export function CheckInClient() {
   const [result, setResult] = useState<DemoTicket | null>(null);
   const [successful, setSuccessful] = useState(false);
   const [message, setMessage] = useState("");
-  const scannerRef = useRef<{stop: () => Promise<void>} | null>(null);
   const scanBusy = useRef(false);
+  const lastDecoded = useRef<{value:string;at:number}|null>(null);
+  // Wait until the old camera stream and its DOM elements are released
+  // before starting a replacement scanner (notably necessary on iOS).
+  const teardown = useRef<Promise<void>>(Promise.resolve());
+  const submitLatest = useRef<(value:string)=>Promise<void>>(async()=>{});
+  const [submitting,setSubmitting]=useState(false);
   const [scanCycle,setScanCycle]=useState(0);
   const [scanning,setScanning]=useState(false);
   const [cameraError,setCameraError]=useState(false);
@@ -35,6 +40,7 @@ export function CheckInClient() {
     const token = extractToken(value);
     if (!token || scanBusy.current) return;
     scanBusy.current=true;
+    setSubmitting(true);
     try {
       const session = getWebToken();
       if (!session) throw new Error("login_required");
@@ -48,43 +54,63 @@ export function CheckInClient() {
       setMessage(userFacingError(e,language));
       setResult(null);
       setSuccessful(false);
-    } finally { scanBusy.current=false; }
+    } finally {
+      scanBusy.current=false;
+      setSubmitting(false);
+    }
   }
 
-  useEffect(() => {
-    let mounted = true;
-    import("html5-qrcode").then(async ({Html5Qrcode}) => {
-      if (!mounted) return;
-      const scanner = new Html5Qrcode("tickettreat-qr-reader");
-      scannerRef.current = scanner;
+  // Camera callbacks always use the current UI language without restarting
+  // the camera whenever a check-in updates the component state.
+  submitLatest.current=submit;
+
+  useEffect(()=>{
+    let disposed=false;
+    let scanner:import("html5-qrcode").Html5Qrcode|null=null;
+    lastDecoded.current=null;
+    const ready=teardown.current.then(async()=>{
+      if(disposed)return;
+      const {Html5Qrcode}=await import("html5-qrcode");
+      if(disposed)return;
+      scanner=new Html5Qrcode("tickettreat-qr-reader");
       try {
         await scanner.start(
-          {facingMode: "environment"},
-          {fps: 10, qrbox: (width:number,height:number) => {
-            const side=Math.max(150,Math.min(250,Math.floor(Math.min(width,height)*0.70)));
+          {facingMode:"environment"},
+          {fps:10,qrbox:(width:number,height:number)=>{
+            const side=Math.max(150,Math.min(250,Math.floor(Math.min(width,height)*.70)));
             return {width:side,height:side};
           }},
-          async (decodedText) => {
-            if(scanBusy.current)return;
-            await scanner.stop().catch(() => {});
-            setScanning(false);
-            await submit(decodedText);
+          decodedText=>{
+            // Do NOT stop the camera on a scan. Success or failure must leave
+            // the reader usable for the next attendee immediately.
+            const value=extractToken(decodedText);
+            if(disposed||scanBusy.current||!value)return;
+            const recent=lastDecoded.current;
+            const now=Date.now();
+            if(recent?.value===value&&now-recent.at<15000)return;
+            lastDecoded.current={value,at:now};
+            void submitLatest.current(value);
           },
-          () => {},
+          ()=>{},
         );
-        setScanning(true);setCameraError(false);
-      } catch {
-        setScanning(false);setCameraError(true);
-        setMessage(tr("Camera unavailable. You can paste the QR token manually."));
+        if(!disposed){setScanning(true);setCameraError(false);}
+      }catch{
+        if(!disposed){setScanning(false);setCameraError(true);}
       }
+    }).catch(()=>{
+      if(!disposed){setScanning(false);setCameraError(true);}
     });
-
-    return () => {
-      mounted = false;
-      scannerRef.current?.stop().catch(() => {});
-      scannerRef.current=null;
+    return ()=>{
+      disposed=true;
+      // Serialize async start/stop/clear to avoid WebKit camera races and
+      // reusing a mutated html5-qrcode container on retries/navigation.
+      teardown.current=ready.then(async()=>{
+        if(!scanner)return;
+        try{await scanner.stop();}catch{/* Camera may not have started. */}
+        try{scanner.clear();}catch{/* Reader was already cleared. */}
+      }).catch(()=>{});
     };
-  }, [scanCycle,language]);
+  },[scanCycle]);
 
   return (
     <div className="app-shell">
@@ -101,18 +127,18 @@ export function CheckInClient() {
           </div>
           <div className="tt-checkin-controls">
             <div className="tt-checkin-manual">
-              <label htmlFor="tickettreat-manual-token">{tr("QR-код билета — ручной ввод")}</label>
+              <label htmlFor="tickettreat-manual-token">{language==="cs"?"Kód vstupenky nebo QR token":language==="en"?"Ticket code or QR token":tr("QR-код билета — ручной ввод")}</label>
               <input id="tickettreat-manual-token" value={manual}
                 onChange={(e) => setManual(e.target.value)}
-                placeholder={tr("Вставь токен из QR-кода")}
+                placeholder="CRD-000013"
                 autoComplete="off" />
             </div>
             <div className="tt-checkin-buttons">
               <button type="button" className="button button-primary"
-                disabled={!manual.trim()} onClick={() => submit(manual)}>{tr("Check in")}</button>
-              <button type="button" className="button button-outline" disabled={scanning}
-                onClick={()=>{setResult(null);setSuccessful(false);setMessage("");setCameraError(false);setScanCycle(v=>v+1);}}>
-                {scanning?tr("Камера активна"):tr("↻ Перезапустить камеру")}
+                disabled={submitting||!manual.trim()} onClick={() => void submit(manual)}>{tr("Check in")}</button>
+              <button type="button" className="button button-outline" disabled={submitting}
+                onClick={()=>{setScanning(false);setCameraError(false);setScanCycle(v=>v+1);}}>
+                {tr("↻ Перезапустить камеру")}
               </button>
             </div>
           </div>

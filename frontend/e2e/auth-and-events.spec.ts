@@ -59,6 +59,10 @@ test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({
   await expect(page.locator(".tt-ticket-front")).toBeHidden();
   await expect(page.locator(".tt-ticket-back .tt-pass-qr img")).toBeVisible();
   await expect(page.locator(".tt-ticket-back")).toHaveCSS("transform","none");
+  // Telegram's specific-ticket shortcut must land on the QR side directly.
+  await page.goto(page.url().split("?")[0]+"?show=qr");
+  await expect(page.locator(".tt-ticket-front")).toBeHidden();
+  await expect(page.locator(".tt-ticket-back .tt-pass-qr img")).toBeVisible();
   await page.getByRole("button",{name:/Назад к билету|Back to ticket|Zpět ke vstupence|Назад до квитка/}).click();
   await expect(page.locator(".tt-ticket-front")).toBeVisible();
   page.once("dialog",d=>d.accept());
