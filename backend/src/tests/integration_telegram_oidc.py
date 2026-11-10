@@ -128,6 +128,9 @@ class UnifiedTelegramIdentityTests(unittest.TestCase):
             data=init.json()
             code=data["challenge"]
             verifier=data["browser_token"]
+            pin=data["pin"]
+            self.assertRegex(pin,r"^[0-9]{6}$")
+            self.assertNotIn(pin,data["bot_link"])
             self.assertNotIn(verifier,data["bot_link"])
             self.assertIn("login_"+code,data["bot_link"])
             pending=client.post("/demo/auth/telegram/browser/complete",
@@ -137,11 +140,15 @@ class UnifiedTelegramIdentityTests(unittest.TestCase):
             fake=client.post("/demo/auth/telegram/browser/claim",
                 json={"challenge":code,"init_data":"unsigned-telegram-data"})
             self.assertEqual(fake.status_code,401,fake.text)
+            bad_pin="000000" if pin!="000000" else "111111"
+            wrong=client.post("/demo/auth/telegram/browser/claim",
+                json={"challenge":code,"init_data":signed_init_data(tg_id),"pin":bad_pin})
+            self.assertEqual(wrong.status_code,400,wrong.text)
             claimed=client.post("/demo/auth/telegram/browser/claim",
-                json={"challenge":code,"init_data":signed_init_data(tg_id)})
+                json={"challenge":code,"init_data":signed_init_data(tg_id),"pin":pin})
             self.assertEqual(claimed.status_code,200,claimed.text)
             self.assertEqual(client.post("/demo/auth/telegram/browser/claim",
-                json={"challenge":code,"init_data":signed_init_data(tg_id)}).status_code,409)
+                json={"challenge":code,"init_data":signed_init_data(tg_id),"pin":pin}).status_code,409)
             denied=client.post("/demo/auth/telegram/browser/complete",
                 headers={"X-Telegram-Browser-Token":"different-"+verifier},
                 json={"challenge":code})
