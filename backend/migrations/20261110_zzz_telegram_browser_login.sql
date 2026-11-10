@@ -4,6 +4,8 @@
 CREATE TABLE IF NOT EXISTS demo_telegram_browser_logins (
     code_hash VARCHAR(64) PRIMARY KEY,
     verifier_hash VARCHAR(64) NOT NULL,
+    pin_hash VARCHAR(64) NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
     telegram_id BIGINT NULL,
     first_name VARCHAR(100) NULL,
     last_name VARCHAR(100) NULL,
