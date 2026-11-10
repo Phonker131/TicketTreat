@@ -54,7 +54,7 @@ class UnifiedTelegramIdentityTests(unittest.TestCase):
         tg_id=int(code.removeprefix("telegram"))
         return {
             "iss":"https://oauth.telegram.org",
-            "aud":client_id,"sub":str(tg_id),"id":tg_id,
+            "aud":client_id,"sub":str(tg_id+10000000000000000),"id":tg_id,
             "nonce":nonce,"given_name":"Verified Telegram",
             "family_name":"Tester",
         }
