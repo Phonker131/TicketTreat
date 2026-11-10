@@ -6,6 +6,7 @@ participant exports or QR bearer credentials. No self-assigned privileged roles.
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from fastapi import Depends, Header, HTTPException
@@ -55,7 +56,31 @@ class CheckinGrantRequest(BaseModel):
 
 
 class StaffScanRequest(BaseModel):
-    qr_token: str = Field(min_length=24, max_length=80)
+    # Manual check-in accepts the printed CRD-000123 code as well as the QR
+    # bearer token. Both paths require verified, event-scoped staff access.
+    qr_token: str = Field(min_length=1, max_length=100)
+
+
+def _checkin_lookup(db: Session, main, raw_value: str):
+    """Resolve QR bearer values or printed ticket codes without returning QR secrets."""
+    value = raw_value.strip()
+    for prefix in ("TICKETTREAT:TICKET:", "CROWDLY:TICKET:"):
+        if value.startswith(prefix):
+            value = value[len(prefix):].strip()
+            break
+    printed = re.fullmatch(r"CRD-?([0-9]{1,10})", value, flags=re.IGNORECASE)
+    if printed is not None:
+        ticket_id = int(printed.group(1))
+        if not 1 <= ticket_id <= 2147483647:
+            raise HTTPException(400, "invalid_qr_token")
+        return db.query(main.DemoTicket).filter(
+            main.DemoTicket.id == ticket_id).with_for_update().first()
+    # Tokens are generated with secrets.token_urlsafe(32). Reject incomplete
+    # hand-entered strings rather than triggering a Pydantic form error.
+    if not 24 <= len(value) <= 80:
+        raise HTTPException(400, "invalid_qr_token")
+    return db.query(main.DemoTicket).filter(
+        main.DemoTicket.qr_token == value).with_for_update().first()
 
 
 def effective_settings(db: Session, event_id: int) -> dict:
@@ -323,8 +348,7 @@ def install_pilot_ops(app, get_db, main):
             raise HTTPException(403, "email_verification_required")
         # Lock the ticket, so simultaneous device scans cannot both issue a
         # successful first check-in.
-        ticket = db.query(main.DemoTicket).filter(
-            main.DemoTicket.qr_token == payload.qr_token).with_for_update().first()
+        ticket = _checkin_lookup(db, main, payload.qr_token)
         if ticket is None:
             raise HTTPException(404, "ticket_not_found")
         from demo_roles import role_for, EventOwnership
