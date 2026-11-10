@@ -2007,11 +2007,12 @@ def start(message):
             ))
             bot.send_message(
                 message.chat.id,
-                ("Did you start a login on tickettreat.eu? Only approve if you "
-                 "recognize this request. Never approve unexpected logins."
+                ("Did you start a login on tickettreat.eu? Open the Mini App, enter "
+                 "the six-digit code shown ONLY on your website tab, and "
+                 "never approve unexpected sign-ins."
                  if lang == "en" else
-                 "Zahájil(a) jsi přihlášení na tickettreat.eu? Potvrď jej pouze "
-                 "pokud jsi ho sám/sama zahájil(a). Cizí žádosti nepotvrzuj."),
+                 "Zahájil(a) jsi přihlášení na tickettreat.eu? Otevři Mini App "
+                 "a zadej šestimístný kód z původní stránky. Cizí žádosti nepotvrzuj."),
                 reply_markup=keyboard,
             )
             return
