@@ -46,7 +46,7 @@ export function TelegramSignIn({link=false}:{link?:boolean}) {
   const {language}=useLanguage();const tr=words[language];
   const [enabled,setEnabled]=useState(false);
   const [botFallback,setBotFallback]=useState(false);
-  const [browserFlow,setBrowserFlow]=useState<{challenge:string;bot_link:string;expires:number}|null>(null);
+  const [browserFlow,setBrowserFlow]=useState<{challenge:string;bot_link:string;pin:string;expires:number}|null>(null);
   const [ready,setReady]=useState(false);
   const [busy,setBusy]=useState(false);
   const [embedded,setEmbedded]=useState(false);
@@ -107,12 +107,12 @@ export function TelegramSignIn({link=false}:{link?:boolean}) {
         body:"{}"
       });
       const data=await response.json();
-      if(!response.ok || typeof data.challenge!=="string" || typeof data.bot_link!=="string")
+      if(!response.ok || typeof data.challenge!=="string" || typeof data.bot_link!=="string" || !/^[0-9]{6}$/.test(data.pin))
         throw new Error("fallback_unavailable");
       const url=new URL(data.bot_link);
       if(url.origin!=="https://t.me" || url.pathname!=="/TicketTreatBot")
         throw new Error("fallback_unavailable");
-      setBrowserFlow({challenge:data.challenge,bot_link:data.bot_link,expires:Date.now()+600000});
+      setBrowserFlow({challenge:data.challenge,bot_link:data.bot_link,pin:data.pin,expires:Date.now()+600000});
     }catch{setMessage("unavailable");}
     finally{setBusy(false);}
   }
@@ -151,6 +151,8 @@ export function TelegramSignIn({link=false}:{link?:boolean}) {
         </button>
         {browserFlow && <div className="panel form-stack" role="status">
           <p>{language==="cs"?"Otevři @TicketTreatBot a potvrď přihlášení. Tato stránka se poté automaticky přihlásí.":language==="en"?"Open @TicketTreatBot and approve the login. This page will sign you in automatically.":language==="ru"?"Открой @TicketTreatBot и подтверди вход — сайт авторизуется автоматически.":"Відкрий @TicketTreatBot і підтвердь вхід — сайт авторизується автоматично."}</p>
+          <p className="form-note">{language==="cs"?"Potvrzovací kód uvidíš pouze zde. Zadej ho v Telegram Mini App, nikomu ho neposílej.":language==="en"?"This confirmation code appears only here. Enter it in Telegram Mini App; do not share it.":language==="ru"?"Код отображается только здесь. Введи его в Mini App, никому не пересылай.":"Код лише тут. Введи його в Mini App, не передавай іншим."}</p>
+          <strong style={{fontSize:"1.5rem",letterSpacing:".12em"}}>{browserFlow.pin}</strong>
           <a className="button button-primary" href={browserFlow.bot_link}
             target="_blank" rel="noopener noreferrer">
             {language==="cs"?"Potvrdit v Telegramu":language==="en"?"Approve in Telegram":language==="ru"?"Подтвердить в Telegram":"Підтвердити в Telegram"}
