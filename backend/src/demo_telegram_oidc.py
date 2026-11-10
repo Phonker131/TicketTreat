@@ -145,12 +145,30 @@ def verify_id_token(id_token: str, client_id: str, nonce: str, *, at: int | None
         if (not isinstance(sub, str) or not sub.isdecimal()
                 or not 0 < int(sub) < 2**63):
             raise ValueError("invalid_subject")
-        # The OIDC subject may differ from the Telegram numeric user ID.
-        # Only the signed profile claim "id" matches Bot API and Mini App IDs.
-        telegram_id = claims.get("id")
-        if type(telegram_id) is not int or not 0 < telegram_id < 2**63:
+        # Telegram's OIDC 'sub' is a different principal identifier from
+        # the Bot API/Mini App numeric user ID. NEVER substitute sub for id:
+        # doing so could attach a person's tickets to an unrelated account.
+        # Some signed profile payloads encode this numeric ID as a decimal
+        # JSON string. Accept either representation after signature, aud,
+        # issuer, nonce, state/PKCE and expiry have been verified.
+        raw_id = claims.get("id")
+        if type(raw_id) is int:
+            telegram_id = raw_id
+        elif (type(raw_id) is str and 1 <= len(raw_id) <= 19
+              and raw_id.isascii() and raw_id.isdigit()):
+            telegram_id = int(raw_id)
+        else:
+            id_kind = ("absent" if "id" not in claims else
+                       "null" if raw_id is None else
+                       "string" if type(raw_id) is str else "unexpected_type")
+            logger.warning("telegram_oidc_user_id_unusable kind=%s", id_kind)
             raise ValueError("missing_telegram_user_id")
-        return claims
+        if not 0 < telegram_id < 2**63:
+            logger.warning("telegram_oidc_user_id_unusable kind=out_of_range")
+            raise ValueError("missing_telegram_user_id")
+        # Normalize only the verified numeric Bot API claim. The caller uses
+        # the canonical integer to resolve the exact existing Telegram user.
+        return {**claims, "id": telegram_id}
     except (ValueError, TypeError, KeyError, IndexError, OverflowError, binascii.Error, UnicodeError,
             InvalidSignature, requests.RequestException, json.JSONDecodeError) as exc:
         category = "invalid_signature" if isinstance(exc, InvalidSignature) else (
