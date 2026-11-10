@@ -1,0 +1,149 @@
+"""End-to-end identity/session regressions on disposable CI PostgreSQL ONLY."""
+import json
+import os
+import secrets
+import unittest
+from unittest.mock import patch
+from urllib.parse import urlsplit, parse_qs
+
+from fastapi.testclient import TestClient
+
+if not os.getenv("DATABASE_URL","").endswith("/tickettreat_ci"):
+    raise RuntimeError("Telegram OIDC integration may run only against disposable CI PostgreSQL")
+
+import main
+from db.session import SessionLocal
+from demo_accounts import WebAccount, WebSession
+from demo_telegram import DemoTelegramIdentity
+from integration_telegram_browser_link import BOT_TOKEN,signed_init_data,website_account
+
+
+class UnifiedTelegramIdentityTests(unittest.TestCase):
+    def setUp(self):
+        self.keys = {
+            "TELEGRAM_MINIAPP_BOT_TOKEN":BOT_TOKEN,
+            "TELEGRAM_LOGIN_CLIENT_ID":"12345678",
+            "TELEGRAM_LOGIN_CLIENT_SECRET":"ci-client-secret-not-real-1234567890",
+            "TELEGRAM_LOGIN_REDIRECT_URI":"https://tickettreat.eu/api/auth/telegram/callback",
+        }
+        self.previous={name:os.environ.get(name) for name in self.keys}
+        os.environ.update(self.keys)
+
+    def tearDown(self):
+        for key,old in self.previous.items():
+            if old is None:os.environ.pop(key,None)
+            else:os.environ[key]=old
+
+    def oidc(self,client,tg_id,*,link=False,headers=None):
+        start=client.post("/demo/auth/telegram/start",json={"link":link},headers=headers or {})
+        self.assertEqual(start.status_code,200,start.text)
+        data=start.json()
+        state=parse_qs(urlsplit(data["url"]).query)["state"][0]
+        response=client.post("/demo/auth/telegram/finish",json={
+            "code":"telegram"+str(tg_id),"state":state,
+            "browser_token":data["browser_token"]})
+        self.assertEqual(response.status_code,200,response.text)
+        replay=client.post("/demo/auth/telegram/finish",json={
+            "code":"telegram"+str(tg_id),"state":state,
+            "browser_token":data["browser_token"]})
+        self.assertEqual(replay.status_code,400,replay.text)
+        return response.json()
+
+    @staticmethod
+    def fake_exchange(code,verifier,redirect,client_id,secret,nonce):
+        tg_id=int(code.removeprefix("telegram"))
+        return {
+            "iss":"https://oauth.telegram.org",
+            "aud":client_id,"sub":str(tg_id),"id":tg_id,
+            "nonce":nonce,"given_name":"Verified Telegram",
+            "family_name":"Tester",
+        }
+
+    def test_telegram_bot_first_desktop_login_reuses_exact_guest_and_tickets(self):
+        tg_id=secrets.randbelow(10**12)+10**10
+        other_id=secrets.randbelow(10**12)+10**10
+        with patch("demo_telegram_oidc.exchange",side_effect=self.fake_exchange):
+            with TestClient(main.app) as client:
+                bot=client.post("/demo/telegram/auth",json={"init_data":signed_init_data(tg_id)})
+                self.assertEqual(bot.status_code,200,bot.text)
+                guest_id=bot.json()["guest"]["id"]
+                account=self.oidc(client,tg_id)
+                self.assertEqual(account["profile"]["guest"]["id"],guest_id)
+                self.assertIsNone(account["profile"]["account"]["email"])
+                self.assertFalse(account["profile"]["email_verified"])
+                bearer={"Authorization":"Bearer "+account["token"]}
+                self.assertEqual(client.get("/demo/auth/me",headers=bearer).status_code,200)
+                self.assertEqual(client.get("/demo/me/tickets",headers=bearer).status_code,200)
+                with SessionLocal() as db:
+                    self.assertEqual(db.query(WebAccount).filter(WebAccount.guest_id==guest_id).count(),1)
+                    self.assertEqual(db.get(DemoTelegramIdentity,tg_id).guest_id,guest_id)
+                # Simultaneous logins / new devices cannot duplicate a principal.
+                again=self.oidc(client,tg_id)
+                self.assertEqual(again["profile"]["account"]["id"],account["profile"]["account"]["id"])
+                other=self.oidc(client,other_id)
+                self.assertNotEqual(other["profile"]["guest"]["id"],guest_id)
+                with SessionLocal() as db:
+                    self.assertEqual(db.query(WebAccount).filter(
+                        WebAccount.guest_id==guest_id).count(),1)
+                # Participant must never become an organizer/admin by omission
+                # of email ownership or MFA.
+                denied=client.get("/demo/manage/me",headers=bearer)
+                self.assertIn(denied.status_code,(403,404))
+
+    def test_web_first_account_link_revokes_telegram_shadow_sessions(self):
+        tg_id=secrets.randbelow(10**12)+10**10
+        website_id, website_guest, website_bearer=website_account()
+        with patch("demo_telegram_oidc.exchange",side_effect=self.fake_exchange):
+            with TestClient(main.app) as client:
+                shadow=self.oidc(client,tg_id)
+                shadow_headers={"Authorization":"Bearer "+shadow["token"]}
+                self.assertIsNone(shadow["profile"]["account"]["email"])
+                confirmed=client.post("/demo/telegram/link",json={"init_data":signed_init_data(tg_id)},
+                    headers={"Authorization":"Bearer "+website_bearer})
+                self.assertEqual(confirmed.status_code,200,confirmed.text)
+                self.assertTrue(confirmed.json()["linked"])
+                with SessionLocal() as db:
+                    self.assertEqual(db.get(DemoTelegramIdentity,tg_id).guest_id,website_guest)
+                    self.assertEqual(db.query(WebSession).filter(
+                        WebSession.account_id==shadow["profile"]["account"]["id"]).count(),0)
+                self.assertEqual(client.get("/demo/auth/me",headers=shadow_headers).status_code,401)
+                self.assertEqual(client.get("/demo/auth/me",headers={
+                    "Authorization":"Bearer "+website_bearer}).status_code,200)
+                # Future Telegram login leads to the canonical website profile.
+                future=self.oidc(client,tg_id)
+                self.assertEqual(future["profile"]["account"]["id"],website_id)
+
+    def test_optional_email_requires_otp_and_does_not_merge_other_account(self):
+        tg_id=secrets.randbelow(10**12)+10**10
+        other_web,other_guest,other_bearer=website_account()
+        with patch("demo_telegram_oidc.exchange",side_effect=self.fake_exchange):
+            with TestClient(main.app) as client:
+                user=self.oidc(client,tg_id)
+                headers={"Authorization":"Bearer "+user["token"]}
+                rejected=client.post("/demo/auth/email/attach/request",headers=headers,
+                    json={"email":client.get("/demo/auth/me",headers={
+                        "Authorization":"Bearer "+other_bearer}).json()["account"]["email"]})
+                self.assertEqual(rejected.status_code,409,rejected.text)
+                target=f"new-{secrets.token_hex(10)}@example.invalid"
+                with patch("demo_account_recovery.send_code") as send:
+                    requested=client.post("/demo/auth/email/attach/request",headers=headers,
+                                          json={"email":target})
+                    self.assertEqual(requested.status_code,200,requested.text)
+                    otp=send.call_args.args[2]
+                rejected=client.post("/demo/auth/email/attach/confirm",headers=headers,
+                                     json={"email":target,"code":"00000000"})
+                self.assertEqual(rejected.status_code,400,rejected.text)
+                accepted=client.post("/demo/auth/email/attach/confirm",headers=headers,
+                                     json={"email":target,"code":otp})
+                self.assertEqual(accepted.status_code,200,accepted.text)
+                profile=client.get("/demo/auth/me",headers=headers).json()
+                self.assertEqual(profile["account"]["email"],target)
+                self.assertTrue(profile["email_verified"])
+                self.assertEqual(profile["guest"]["id"],user["profile"]["guest"]["id"])
+                with SessionLocal() as db:
+                    self.assertEqual(db.get(DemoTelegramIdentity,tg_id).guest_id,profile["guest"]["id"])
+                    self.assertEqual(db.query(WebAccount).filter(WebAccount.email==target).count(),1)
+
+
+if __name__=="__main__":
+    unittest.main()
