@@ -90,8 +90,8 @@ class UnifiedTelegramIdentityTests(unittest.TestCase):
                 identity=client.get("/demo/manage/me",headers=bearer)
                 self.assertEqual(identity.status_code,200,identity.text)
                 self.assertEqual(identity.json()["role"],"participant")
-                blocked=client.post("/demo/manage/events",headers=bearer,
-                                    json={"title":"unauthorized"})
+                blocked=client.get("/demo/manage/events/999999999/insights",
+                                   headers=bearer)
                 self.assertEqual(blocked.status_code,403,blocked.text)
 
     def test_web_first_account_link_revokes_telegram_shadow_sessions(self):
