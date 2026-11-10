@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import {GoogleSignIn} from "@/components/GoogleSignIn";
+import {TelegramSignIn} from "@/components/TelegramSignIn";
+import {getTelegramWebApp} from "@/lib/telegram";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { getVerifiedTelegramSession } from "@/lib/session";
 import { useLanguage } from "@/components/LanguageProvider";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink, elevateMFA } from "@/lib/api";
+import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink, elevateMFA, requestTelegramEmailAttach, confirmTelegramEmailAttach } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -361,6 +363,11 @@ export function ProfileClient() {
   const [mfaLinkSetup, setMfaLinkSetup] = useState(false);
   const [mfaLinkCode, setMfaLinkCode] = useState("");
   const [mfaLinkBusy, setMfaLinkBusy] = useState(false);
+  const [connectOnLogin,setConnectOnLogin]=useState(true);
+  const [pendingTelegramConnect,setPendingTelegramConnect]=useState(false);
+  const [newTelegramEmail,setNewTelegramEmail]=useState("");
+  const [newTelegramEmailCode,setNewTelegramEmailCode]=useState("");
+  const [emailAttachSent,setEmailAttachSent]=useState(false);
 
 
   useEffect(() => {
@@ -375,7 +382,7 @@ export function ProfileClient() {
     // The browser-session marker is not a credential; it merely asks the
     // gateway to validate that cookie. A missing/invalid cookie is rejected
     // server-side and restoreWebProfile() clears the marker on 401.
-    if (new URLSearchParams(window.location.search).get("google") === "success") {
+    if (["google","telegram"].some(provider => new URLSearchParams(window.location.search).get(provider) === "success")) {
       window.localStorage.setItem("tickettreat_web_auth", "browser-session");
     }
     restoreWebProfile()
@@ -491,7 +498,7 @@ export function ProfileClient() {
   function loadProfile(p: WebProfile) {
     setProfile(p);
     storeGuest(p.guest);
-    setEmail(p.account.email);
+    setEmail(p.account.email || "");
     setFirstName(p.account.first_name);
     setLastName(p.account.last_name);
     setPhone(p.account.phone || "");
@@ -532,6 +539,23 @@ export function ProfileClient() {
       loadProfile(result.profile);
       setNotice(mode === "signup" ? "ui:accountCreated" : "ui:welcome");
       setPassword("");
+      // Explicit checkbox consent + independently proven website credentials
+      // and signed Telegram initData: link during first sign-in to Mini App.
+      if (connectOnLogin && getTelegramWebApp()?.initData) {
+        const tg=await getVerifiedTelegramSession().catch(()=>null);
+        if (tg && !tg.accounts_linked) {
+          if (result.profile.email_verified) {
+            try {
+              await linkTelegramToWebsite(result.token,getTelegramWebApp()!.initData!);
+              loadProfile(await getWebProfile(result.token));
+              setTelegramProfile({...tg,accounts_linked:true});
+              setNotice("ui:telegramSuccessfullyLinked");
+            } catch (err) { setError(readableError(err)); }
+          } else {
+            setPendingTelegramConnect(true);
+          }
+        }
+      }
     } catch(err) { setError(readableError(err)); }
     finally { setBusy(false); }
   }
@@ -638,7 +662,7 @@ export function ProfileClient() {
                 <div className="profile-avatar">{profile.account.first_name.charAt(0).toUpperCase()}</div>
                 <div className="profile-identity">
                   <h1>{profile.account.first_name} {profile.account.last_name}</h1>
-                  <p>{profile.account.email}</p>
+                  <p>{profile.account.email || "Telegram · @TicketTreatBot"}</p>
                 </div>
               </div>
               <div className="profile-identity-meta">
@@ -682,13 +706,13 @@ export function ProfileClient() {
                   <Link href="/security/mfa" className="button button-outline">{ui.mfaManage}</Link>
                 </form>}
               </section>}
-              {!profile.email_verified && <div className="panel form-stack">
+              {!profile.email_verified && profile.account.email && <div className="panel form-stack">
                 <h3>{ui.verifyEmailTitle}</h3>
                 <p className="form-note">{ui.verifyEmailHelp}</p>
                 <button type="button" className="button button-outline" disabled={busy||mailReady===false}
                   onClick={async()=>{const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await requestEmailVerification(token);setNotice("ui:verificationSent");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
                   {ui.sendCode}</button>
-                <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await confirmAccountEmail(token,profile.account.email,verificationCode);loadProfile(await getWebProfile(token));setVerificationCode("");setNotice("ui:emailVerifiedNotice");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
+                <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{if(!profile.account.email)return;await confirmAccountEmail(token,profile.account.email,verificationCode);loadProfile(await getWebProfile(token));setVerificationCode("");setNotice("ui:emailVerifiedNotice");if(pendingTelegramConnect&&getTelegramWebApp()?.initData){try{await linkTelegramToWebsite(token,getTelegramWebApp()!.initData!);loadProfile(await getWebProfile(token));setTelegramProfile(tg=>tg?{...tg,accounts_linked:true}:tg);setPendingTelegramConnect(false);setNotice("ui:telegramSuccessfullyLinked");}catch(linkErr){setError(readableError(linkErr));}}}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
                   <label>{ui.emailCode}<input type="text" autoComplete="one-time-code" name="one-time-code" inputMode="numeric" pattern="[0-9]{8}" required minLength={8} maxLength={8} value={verificationCode} onChange={e=>setVerificationCode(e.target.value)}/></label>
                   <button type="submit" className="button button-primary" disabled={busy}>{ui.confirmEmail}</button>
                 </form>
