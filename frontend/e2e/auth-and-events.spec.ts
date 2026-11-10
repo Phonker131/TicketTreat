@@ -161,7 +161,22 @@ test("public event can be shared with a canonical URL without needing external a
 
 test("manual check-in still works after four tickets with camera unavailable",async({page})=>{
   await page.setViewportSize({width:390,height:844});
-  await page.addInitScript(()=>localStorage.setItem("tickettreat_web_auth","browser-session"));
+  await page.addInitScript(()=>{
+    localStorage.setItem("tickettreat_web_auth","browser-session");
+    // The cookie overlay must not obscure the scanner's mobile check-in button.
+    const now=Date.now();
+    localStorage.setItem("tt_cookie_choice_v1",JSON.stringify({
+      version:"2026-10-23/maps-v1",savedAt:new Date(now).toISOString(),
+      expiresAt:new Date(now+86400000).toISOString(),
+      necessary:true,externalMedia:false
+    }));
+    // Simulate an iOS permission-denied camera: manual admission must still work.
+    Object.defineProperty(navigator,"mediaDevices",{configurable:true,value:{
+      getUserMedia:async()=>{throw new DOMException("Permission denied","NotAllowedError");},
+      enumerateDevices:async()=>[],
+    }});
+  });
+  test.setTimeout(60_000);
   const scans:string[]=[];
   await page.route("**/api/gateway/api/v1/pilot/check-in",route=>{
     const payload=route.request().postDataJSON() as {qr_token:string};
