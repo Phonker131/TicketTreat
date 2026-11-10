@@ -65,7 +65,7 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   // Evaluate every existing session/privilege guard against the same logical
   // handler path, regardless of the public API prefix used by the browser.
   const checked = relative.startsWith("/api/v1/") ? "/demo/" + relative.slice("/api/v1/".length) : relative;
-  if (checked === "/demo/auth/google/finish") return NextResponse.json({detail:"path_not_allowed"},{status:404});
+  if (checked === "/demo/auth/google/finish" || checked === "/demo/auth/telegram/finish") return NextResponse.json({detail:"path_not_allowed"},{status:404});
   if (!checked.startsWith("/demo/") && checked !== "/events" && !/^\/events\/\d+$/.test(checked) && checked !== "/") {
     return NextResponse.json({detail:"path_not_allowed"},{status:404});
   }
@@ -157,6 +157,25 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
     response.cookies.set("tt_google_flow",data.browser_token,{httpOnly:true,sameSite:"lax",
       secure:process.env.NODE_ENV==="production" || req.nextUrl.protocol==="https:",
       path:"/api/auth/google",maxAge:600});
+    return response;
+  }
+  if (checked === "/demo/auth/telegram/start" && upstream.ok) {
+    const data = await upstream.json().catch(() => null);
+    if (!data || typeof data.browser_token !== "string" ||
+        typeof data.url !== "string" || data.browser_token.length < 20 ||
+        data.browser_token.length > 128)
+      return NextResponse.json({detail:"malformed_telegram_login_response"},{status:502});
+    let authUrl:URL;
+    try {authUrl = new URL(data.url);} catch {
+      return NextResponse.json({detail:"malformed_telegram_login_response"},{status:502});
+    }
+    if(authUrl.origin!=="https://oauth.telegram.org" || authUrl.pathname!=="/auth")
+      return NextResponse.json({detail:"malformed_telegram_login_response"},{status:502});
+    const response = NextResponse.json({url:data.url},{headers:{"Cache-Control":"private, no-store"}});
+    response.cookies.set("tt_telegram_flow",data.browser_token,{
+      httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production" || req.nextUrl.protocol==="https:",
+      path:"/api/auth/telegram",maxAge:600
+    });
     return response;
   }
   const shouldSave=sessionPaths.has(checked) && upstream.ok;
