@@ -99,7 +99,7 @@ class ProfileCopyTests(unittest.TestCase):
             "get_copy":module.get_copy,
             "welcome_text":module.welcome_text,
             "preserve_custom":lambda text:text,
-            "get_main_menu":lambda user_id:menu,
+            "get_main_menu":lambda user_id, **_kwargs:menu,
             "send_start_shortcuts":lambda message,copy:shortcuts.append((message,copy)),
             "bot":types.SimpleNamespace(send_message=lambda *a,**kw:sent.append((a,kw))),
         }
