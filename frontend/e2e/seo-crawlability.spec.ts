@@ -248,6 +248,32 @@ test("dynamic sitemap is never empty when there are no future public events or o
   }
 });
 
+test("published priced events expose their actual price in Event JSON-LD",async({request})=>{
+  // Browser CI seeds 9372 in disposable PostgreSQL; the independent SEO
+  // fixture uses different IDs and has separate contract checks.
+  test.skip(process.env.TICKETTREAT_SEO_FIXTURE==="1","Requires browser CI event seed");
+  const response=await request.get("/events/9372",{maxRedirects:0});
+  expect(response.status()).toBe(200);
+  const dom=new JSDOM(await response.text());
+  const scripts=Array.from(dom.window.document.querySelectorAll('script[type="application/ld+json"]'));
+  const event=scripts.map(node=>{
+    try{return JSON.parse(node.textContent||"null");}catch{return null;}
+  }).find(value=>value?.["@type"]==="Event");
+  expect(event).toBeTruthy();
+  expect(event.offers).toMatchObject({
+    "@type":"Offer",url:origin+"/events/9372",price:350,
+    priceCurrency:"CZK",availability:"https://schema.org/InStock"
+  });
+  dom.window.close();
+});
+
+test("security headers enforce core CSP restrictions",async({request})=>{
+  const response=await request.get("/en/faq");
+  const policy=response.headers()["content-security-policy"]||"";
+  for(const directive of ["base-uri 'self'","object-src 'none'","form-action 'self'","upgrade-insecure-requests"])
+    expect(policy).toContain(directive);
+});
+
 test("SEO preview images resolve absolute HTTPS URLs without unsafe schemes",()=>{
   expect(seoImageUrl("/demo/events/42/poster")).toBe("https://tickettreat.eu/demo/events/42/poster");
   expect(seoImageUrl("https://tickettreat.eu/images/cover.webp")).toBe("https://tickettreat.eu/images/cover.webp");
