@@ -1,0 +1,138 @@
+import {test,expect} from "@playwright/test";
+
+/* No organizer credentials required: render the public CSS on a representative
+   admin heading only after hydration, without mocking account/DB privileges. */
+for(const theme of ["dark","light"] as const){
+  for(const width of [390,1024,1440]){
+    test(`organizer heading and hover are readable: ${theme} ${width}px`,async({page})=>{
+      await page.setViewportSize({width,height:850});
+      await page.addInitScript(t=>localStorage.setItem("tt4-theme",t),theme);
+      await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
+      await expect(page.locator(".topbar-menu-toggle")).toBeEnabled();
+      await page.evaluate(()=>{
+        const root=document.querySelector(".app-shell")!;
+        // Use a neutral admin shell, not the home hero background image.
+        root.classList.remove("tt-night-home");
+        root.insertAdjacentHTML("beforeend",`
+          <main class="page"><div class="admin-heading" data-admin-header-test>
+            <div><span class="status status-demo">Global administrator</span>
+              <h1>ALL TICKETTREAT EVENTS</h1>
+              <p>Full access, organizer assignments and moderation.</p>
+            </div>
+            <div class="admin-event-actions">
+              <a href="#" class="button button-primary">Analytics</a>
+              <a href="#" class="button button-outline">Organizer profile</a>
+            </div>
+          </div></main>`);
+      });
+      const header=page.locator("[data-admin-header-test]");
+      const stats=await header.evaluate(el=>{
+        const rgb=(value:string)=>{const m=value.match(/rgba?\((\d+)[, ]+(\d+)[, ]+(\d+)/);if(!m)throw Error(value);return [Number(m[1]),Number(m[2]),Number(m[3])]};
+        const lum=(col:number[])=>col.map(v=>{const x=v/255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4})
+          .reduce((total,v,i)=>total+v*[.2126,.7152,.0722][i],0);
+        const heading=el.querySelector("h1")!;
+        const painted=el.closest(".app-shell")!;
+        const a=lum(rgb(getComputedStyle(heading).color)),b=lum(rgb(getComputedStyle(painted).backgroundColor));
+        const bound=heading.getBoundingClientRect();
+        return {ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05),
+          visible:bound.width>180&&bound.height>25,noOverflow:document.documentElement.scrollWidth<=innerWidth+1};
+      });
+      expect(stats.ratio).toBeGreaterThanOrEqual(4.5);
+      expect(stats.visible).toBe(true);
+      expect(stats.noOverflow).toBe(true);
+      const outline=header.getByRole("link",{name:"Organizer profile"});
+      await outline.hover();
+      const hover=await outline.evaluate(el=>{
+        const style=getComputedStyle(el);const rect=el.getBoundingClientRect();
+        return {color:style.color,background:style.backgroundColor,shadow:style.boxShadow,
+          within:rect.left>=-1&&rect.right<=innerWidth+1};
+      });
+      expect(hover.within).toBe(true);
+      expect(hover.color).not.toBe(hover.background);
+      expect(hover.shadow).not.toContain("7px 8px");
+    });
+  }
+}
+
+
+for(const width of [320,390,430]){
+  test(`mobile tabbar stays pinned to viewport after footer scroll: ${width}px`,async({page})=>{
+    await page.setViewportSize({width,height:720});
+    await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
+    const tab=page.locator(".tp-tabbar");
+    await expect(tab).toBeVisible();
+    await page.locator("footer.tt-legal-footer").scrollIntoViewIfNeeded();
+    const position=await tab.evaluate(el=>{
+      const r=el.getBoundingClientRect();
+      const s=getComputedStyle(el);
+      return {bodyParent:el.parentElement===document.body,position:s.position,
+        bottomGap:window.innerHeight-r.bottom,
+        inside:r.left>=0&&r.right<=innerWidth+1,
+        scrollOverflow:document.documentElement.scrollWidth>innerWidth+1};
+    });
+    expect(position.bodyParent).toBe(true);
+    expect(position.position).toBe("fixed");
+    expect(position.bottomGap).toBeGreaterThanOrEqual(0);
+    expect(position.bottomGap).toBeLessThan(38);
+    expect(position.inside).toBe(true);
+    expect(position.scrollOverflow).toBe(false);
+  });
+}
+
+
+/* Footer regression: the final Telegram item is a navigation link, not a
+   raised CTA. Older a:last-child:hover overrode the plain-link style and
+   painted dark-on-dark text plus a white L-shaped offset shadow. */
+for(const theme of ["dark","light"] as const){
+  for(const width of [390,1440]){
+    test(`Telegram footer link stays readable without offset plate: ${theme} ${width}px`,async({page})=>{
+      await page.setViewportSize({width,height:850});
+      await page.addInitScript(value=>localStorage.setItem("tt4-theme",value),theme);
+      await page.goto("/loyalty?lang=en",{waitUntil:"domcontentloaded"});
+      // Cookie consent is a deliberately blocking overlay on a new browser
+      // profile. Exercise the privacy-preserving "Essential only" action
+      // before attempting to hover links underneath it on mobile.
+      const consent=page.getByTestId("tt-cookie-banner");
+      await expect(consent).toBeVisible();
+      await consent.getByRole("button",{name:"Essential only"}).click();
+      await expect(consent).toBeHidden();
+      const footer=page.locator("footer.tt-legal-footer");
+      const telegram=footer.getByRole("link",{name:"Official TicketTreat Telegram bot"});
+      await expect(telegram).toBeVisible();
+      await expect(telegram).toHaveAttribute("href","https://t.me/TicketTreatBot");
+
+      const inspect=()=>telegram.evaluate(el=>{
+        const s=getComputedStyle(el);
+        const footerStyle=getComputedStyle(el.closest("footer")!);
+        const rgb=(color:string)=>{
+          const values=color.match(/[0-9]+/g);
+          if(!values||values.length<3)throw Error("Expected RGB color: "+color);
+          return values.slice(0,3).map(Number);
+        };
+        const luminance=(v:number[])=>v.map(x=>{const n=x/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;})
+          .reduce((sum,n,i)=>sum+n*[.2126,.7152,.0722][i],0);
+        const a=luminance(rgb(s.color)),b=luminance(rgb(footerStyle.backgroundColor));
+        const rect=el.getBoundingClientRect();
+        return {contrast:(Math.max(a,b)+.05)/(Math.min(a,b)+.05),
+          shadow:s.boxShadow,transform:s.transform,label:el.textContent?.trim(),
+          visible:rect.width>70&&rect.height>=40};
+      });
+      const normal=await inspect();
+      expect(normal.label).toBe("Telegram");
+      expect(normal.contrast).toBeGreaterThanOrEqual(4.5);
+      expect(normal.shadow).toBe("none");
+      expect(normal.visible).toBe(true);
+
+      await telegram.hover();
+      const hover=await inspect();
+      expect(hover.contrast).toBeGreaterThanOrEqual(4.5);
+      expect(hover.shadow).toBe("none");
+      expect(hover.transform).toBe("none");
+
+      await telegram.focus();
+      const focus=await inspect();
+      expect(focus.contrast).toBeGreaterThanOrEqual(4.5);
+      expect(focus.shadow).toBe("none");
+    });
+  }
+}

@@ -12,16 +12,15 @@ import {localeForLanguage} from "@/lib/i18n";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
-  editManageEvent,cancelManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,orderManageGallery,
+  editManageEvent,cancelManageEvent,deleteManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,orderManageGallery,
   setManagePublication,setManageVisibility,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
   getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
-  getManagePaidReservations,decidePaidReservation,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
 import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag,type EventTag} from "@/lib/event-tags";
-import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff,PaidReservation} from "@/lib/api";
+import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff} from "@/lib/api";
 
 type Tab="overview"|"details"|"media"|"guests"|"notify"|"analytics"|"moderation";
 const TABS:Tab[]=["overview","details","media","guests","notify","analytics","moderation"];
@@ -64,7 +63,6 @@ export function AdminEventClient(){
   const [pilotInsights,setPilotInsights]=useState<PilotInsights|null>(null);
   const [pilotSettings,setPilotSettings]=useState<PilotSettings>({signup_cutoff_minutes:0,reminder_minutes:[10080,1440,180],waitlist_offer_minutes:0,event_duration_minutes:180});
   const [pilotStaff,setPilotStaff]=useState<CheckinStaff[]>([]);
-  const [paidReservations,setPaidReservations]=useState<PaidReservation[]>([]);
   const [staffEmail,setStaffEmail]=useState("");
   const [reminderMessage,setReminderMessage]=useState("Your TicketTreat event starts soon.");
   const [announcementCategory,setAnnouncementCategory]=useState<"access"|"logistics"|"schedule">("logistics");
@@ -82,14 +80,15 @@ export function AdminEventClient(){
   const cancelDialogRef=useRef<HTMLDialogElement>(null);
   const [cancelError,setCancelError]=useState("");
   const [reason,setReason]=useState(""),[owner,setOwner]=useState("");
-  const [scheduleAt,setScheduleAt]=useState("");
+  const [scheduleDate,setScheduleDate]=useState("");
+  const [scheduleTime,setScheduleTime]=useState("");
+  const scheduleAt=scheduleDate&&scheduleTime?`${scheduleDate}T${scheduleTime}`:"";
   const [poster,setPoster]=useState<File|null>(null);
   const [title,setTitle]=useState(""),[location,setLocation]=useState("");
   const [organizer,setOrganizer]=useState(""),[description,setDescription]=useState("");
   const [gallery,setGallery]=useState(""),[video,setVideo]=useState("");
   const [startsAt,setStartsAt]=useState(""),[capacity,setCapacity]=useState("30");
   const [price,setPrice]=useState("0"),[currency,setCurrency]=useState("CZK");
-  const [paymentInstructions,setPaymentInstructions]=useState("");
   const [languages,setLanguages]=useState<LanguageCode[]>(["en","ru"]);
   const [venueUrl,setVenueUrl]=useState("");
   const [tags,setTags]=useState<EventTag[]>([]);
@@ -99,9 +98,6 @@ export function AdminEventClient(){
       getManageMe(token),getManageEvent(eventId,token),getManageParticipants(token,eventId)
     ]);
     setIdentity(me);setEvent(ev);setData(tickets);
-    if(Number(ev.price||0)>0){
-      void getManagePaidReservations(token,eventId).then(r=>setPaidReservations(r.reservations)).catch(()=>setPaidReservations([]));
-    }else setPaidReservations([]);
     setReminderMessage(ev.reminder_text||tr("Your TicketTreat event starts soon."));
     void getEventEmailStatus(token,eventId).then(setEmailStatus).catch(()=>setEmailStatus(null));
     void getPilotInsights(token,eventId).then(setPilotInsights).catch(()=>setPilotInsights(null));
@@ -111,7 +107,6 @@ export function AdminEventClient(){
     setDescription(ev.description||"");setGallery((ev.external_gallery_urls||ev.gallery_urls||[]).filter(s=>!s.startsWith("/api/gateway/demo/events/")).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
     setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
-    setPaymentInstructions(ev.payment_instructions||"");
     setVenueUrl(ev.venue_url||"");setTags((ev.tags||[]).filter(isEventTag));
     setOwner(ev.owner_account_id==null?"":String(ev.owner_account_id));
     if(me.role==="global_admin"){
@@ -151,9 +146,9 @@ export function AdminEventClient(){
         title:title.trim(),organizer:organizer.trim(),description,location,
         gallery_urls:gallery.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),video_url:video.trim(),
         country_code:"CZ",city:"",
-        max_participants:Number(capacity),price:String(price),
-        payment_instructions:paymentInstructions.trim(),
-        currency,starts_at:startsAt+":00",languages,
+        max_participants:Number(capacity),
+        price:String(price),currency,
+        starts_at:startsAt+":00",languages,
         venue_url:venueUrl.trim(),tags,
       };
       if(image)payload.poster_data_url=image;
@@ -198,6 +193,33 @@ export function AdminEventClient(){
       setCancelError(formattedError(e,language));
     }finally{setBusy(false);}
   }
+  async function removeUnusedEvent(){
+    if(busy||!event)return;
+    const title=event.title,id=event.id;
+    const question=language==="ru"
+      ?`Безвозвратно удалить мероприятие «${title}» (#${id}) из базы и всех списков? Удаление возможно только без регистраций, билетов, платежей и истории уведомлений.`
+      :language==="cs"
+      ?`Trvale smazat akci „${title}“ (#${id}) z databáze a všech seznamů? Lze smazat pouze akci bez registrací, vstupenek, plateb a historie oznámení.`
+      :language==="uk"
+      ?`Назавжди видалити подію «${title}» (#${id}) з бази та всіх списків? Видалення можливе лише без реєстрацій, квитків, платежів і сповіщень.`
+      :`Permanently remove “${title}” (#${id}) from the database and all event lists? Only events without registration, ticket, payment or notification history can be deleted.`;
+    if(!window.confirm(question))return;
+    const prompt=language==="ru"?`Для подтверждения введи ID мероприятия: ${id}`:
+      language==="cs"?`Pro potvrzení zadejte ID akce: ${id}`:
+      language==="uk"?`Для підтвердження введи ID події: ${id}`:
+      `Type the event ID to confirm permanent deletion: ${id}`;
+    if(window.prompt(prompt)!==String(id))return;
+    const token=getWebToken();
+    if(!token){setError(tr("Сессия завершилась. Войди в профиль и повтори попытку."));return;}
+    setBusy(true);setError("");setNotice("");
+    try{
+      await deleteManageEvent(token,id);
+      router.replace("/admin");
+    }catch(e){
+      setError(formattedError(e,language));
+      setBusy(false);
+    }
+  }
   async function assign(){
     const token=getWebToken();if(!token||!owner)return;
     setBusy(true);setError("");setNotice("");
@@ -206,20 +228,6 @@ export function AdminEventClient(){
       await reload();setNotice(tr("Владелец ивента обновлён."));
     }catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
-  async function decidePaid(id:number,action:"confirm"|"decline"){
-    const token=getWebToken();if(!token)return;
-    if(!window.confirm(action==="confirm"?
-      tr("Подтверди только после фактического получения денег организатором. Выдать билет?"):
-      tr("Отклонить заявку? Резерв места будет освобождён.")))return;
-    setBusy(true);setError("");setNotice("");
-    try{
-      await decidePaidReservation(token,eventId,id,action);
-      await reload();
-      setNotice(action==="confirm"?tr("Оплата подтверждена, QR-билет выдан."):tr("Заявка отклонена, место освобождено."));
-    }catch(e){setError(formattedError(e,language))}
-    finally{setBusy(false)}
-  }
-
   async function uploadPhotos(files: FileList|null) {
     const token=getWebToken();if(!token||!files?.length)return;
     setBusy(true);setError("");setNotice("");
@@ -394,7 +402,13 @@ export function AdminEventClient(){
   async function checkIn(qr:string){
     const token=getWebToken();if(!token)return;
     setBusy(true);setError("");
-    try{await checkInManagedTicket(token,qr);await reload();setNotice(tr("Check-in выполнен."));}
+    try{
+      const result=await checkInManagedTicket(token,qr,eventId);
+      await reload();
+      setNotice(result.status==="already_checked_in"
+        ?tr("Этот билет уже отмечен.")
+        :tr("Check-in выполнен."));
+    }
     catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
@@ -406,17 +420,12 @@ export function AdminEventClient(){
       <div className="admin-heading tp-event-head">
         <div><span className={event.is_cancelled?"status status-danger":"status status-demo"}>{event.is_cancelled?tr("Cancelled"):`${tr(event.publication?.status==="draft"?"Черновик":event.publication?.status==="scheduled"?"Запланировано":"Опубликовано")} · #${event.id}`}</span>
         <h1>{event.title}</h1><p>{event.location}</p></div>
-        <div className="admin-event-actions tp-admin-primary">
-          {!event.is_cancelled&&<button type="button" className="button button-primary" onClick={()=>pickTab("details")}>{tr("Редактировать ивент")}</button>}
-          <Link className="button button-sun" href="/admin/check-in">{tr("Scan QR")}</Link>
-        </div>
       </div>
       {event.is_cancelled&&<div className="state-card state-error"><strong>{tr("Причина отмены:")}</strong> {event.cancellation_reason||"—"}</div>}
       <div className="tp-tabs" role="tablist" aria-label={TAB_WORDS[language].overview}>
         {TABS.filter(t=>t!=="moderation"||identity.role==="global_admin").map(t=><button key={t} type="button" role="tab" aria-selected={tab===t} onClick={()=>pickTab(t)}>
           {TAB_WORDS[language][t]}
           {t==="guests"&&data&&<b className="tp-badge">{data.tickets.filter(x=>x.ticket_status==="active").length}</b>}
-          {t==="guests"&&paidReservations.some(r=>r.status==="pending")&&<b className="tp-badge" aria-label={tr("Ожидает оплаты")}>!</b>}
         </button>)}
       </div>
       {tab==="overview"&&<div className="tp-tabpanel">
@@ -426,14 +435,30 @@ export function AdminEventClient(){
         <div><strong>{data?data.waitlist.filter(w=>w.status==="waiting").length:"—"}</strong><span>{tr("Ожидают места")}</span></div>
         <div><strong>{asLocal(event.starts_at).replace("T"," ")||"—"}</strong><span>{tr("Дата и время")}</span></div>
       </div>
-      <div className="admin-event-actions">
-        {!event.is_cancelled&&<button type="button" className="button button-outline" disabled={busy}
-          onClick={openCancelDialog}>{tr("Отменить ивент")}</button>}
-        <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
-        {event.publication?.visible&&<Link className="button button-outline" href={event.invite_url||`/events/${event.id}`}>{language==="ru"?"Страница мероприятия ↗":"Event page ↗"}</Link>}
-        <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>{tr("Копировать ивент")}</button>
-        <button className="button button-outline" onClick={csv} disabled={busy}>{tr("↓ Export CSV")}</button>
-      </div>
+      <section className="tt-admin-event-toolbar" aria-label={language==="cs"?"Správa akce":language==="ru"?"Управление мероприятием":language==="uk"?"Керування подією":"Event management actions"}>
+        <div className="tt-admin-event-toolbar-primary">
+          {!event.is_cancelled&&<button type="button" className="button button-primary" disabled={busy} onClick={()=>pickTab("details")}>
+            {tr("Редактировать ивент")}
+          </button>}
+          <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
+          {event.publication?.visible&&<Link className="button button-outline" href={event.invite_url||`/events/${event.id}`}>{language==="ru"?"Страница мероприятия ↗":language==="cs"?"Stránka akce ↗":language==="uk"?"Сторінка події ↗":"Event page ↗"}</Link>}
+          <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>{tr("Копировать ивент")}</button>
+        </div>
+        <div className="tt-admin-event-toolbar-secondary">
+          <button type="button" className="button button-outline" onClick={csv} disabled={busy}>{tr("↓ Export CSV")}</button>
+          <Link className="button button-sun" href="/admin/check-in">{tr("Scan QR")}</Link>
+          {!event.is_cancelled&&<button type="button" className="button button-outline" disabled={busy} onClick={openCancelDialog}>{tr("Отменить ивент")}</button>}
+          <button type="button" className="button button-outline tt-admin-event-delete" disabled={busy}
+            onClick={()=>void removeUnusedEvent()}>
+            {language==="ru"?"Удалить мероприятие":language==="cs"?"Smazat akci":language==="uk"?"Видалити подію":"Delete event"}
+          </button>
+        </div>
+        <p className="tt-admin-event-delete-hint">{language==="ru"
+          ?"Безвозвратное удаление доступно, только если у мероприятия нет регистраций, билетов, платежей и истории отправленных уведомлений."
+          :language==="cs"?"Trvalé odstranění je možné pouze bez registrací, vstupenek, plateb a odeslaných oznámení."
+          :language==="uk"?"Остаточне видалення можливе лише без реєстрацій, квитків, платежів та надісланих сповіщень."
+          :"Permanent deletion requires no registrations, tickets, payments or delivered notification history."}</p>
+      </section>
       {!event.is_cancelled&&<section className="panel form-stack">
         <h2>{tr("Публикация мероприятия")}</h2>
         <label>{language==="ru"?"Видимость":language==="cs"?"Viditelnost":language==="uk"?"Видимість":"Visibility"}
@@ -455,7 +480,14 @@ export function AdminEventClient(){
           {event.publication?.visible&&<button type="button" className="button button-outline" disabled={busy} onClick={()=>publication("draft")}>{tr("Снять с публикации")}</button>}
         </div>
         {!event.publication?.visible&&<div className="tt-publication-schedule">
-          <label>{tr("Опубликовать автоматически")}<input type="datetime-local" value={scheduleAt} onChange={e=>setScheduleAt(e.target.value)}/></label>
+          <div className="tt-publication-schedule-fields" role="group" aria-label={tr("Опубликовать автоматически")}>
+            <label>{language==="ru"?"Дата публикации":language==="cs"?"Datum zveřejnění":language==="uk"?"Дата публікації":"Publish date"}
+              <input type="date" value={scheduleDate} onChange={e=>setScheduleDate(e.target.value)}/>
+            </label>
+            <label>{language==="ru"?"Время публикации":language==="cs"?"Čas zveřejnění":language==="uk"?"Час публікації":"Publish time"}
+              <input type="time" value={scheduleTime} onChange={e=>setScheduleTime(e.target.value)}/>
+            </label>
+          </div>
           <button type="button" className="button button-outline" disabled={busy||!scheduleAt} onClick={()=>publication("scheduled")}>{tr("Запланировать")}</button>
         </div>}
         {event.publication?.visible&&<div className="admin-event-actions">
@@ -478,12 +510,13 @@ export function AdminEventClient(){
         <label>{tr("Видео (YouTube/Vimeo)")}<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
         <div className="two-col"><label>{tr("Дата и время")}<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
           <label>{tr("Количество мест")}<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
-        <div className="two-col"><label>{tr("Цена")}<input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}/></label>
+        <div className="two-col">
+          <label>{tr("Цена")}<input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)} required/></label>
           <label>{tr("Валюта")}<select value={currency} onChange={e=>setCurrency(e.target.value)}>
-          <option>CZK</option><option>EUR</option><option>USD</option></select></label></div>
-        <label>{tr("Инструкция по оплате организатору (обязательно для платных мероприятий)")}
-          <textarea value={paymentInstructions} maxLength={2000} rows={4} onChange={e=>setPaymentInstructions(e.target.value)} placeholder={tr("Способ и реквизиты прямого платежа, контакт организатора; TicketTreat платежи не принимает.")}/>
-        </label>
+            <option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option>
+          </select></label>
+        </div>
+        <p className="form-note">{language==="cs"?"Registrace na placené akce vydá vstupenku ihned, platbu TicketTreat nevybírá ani nepotvrzuje.":language==="en"?"Registration for priced events issues a ticket immediately. TicketTreat does not collect or confirm payment.":language==="uk"?"На платну подію квиток видається відразу; TicketTreat не приймає і не підтверджує оплату.":"На платное мероприятие билет выдаётся сразу; TicketTreat не принимает и не подтверждает оплату."}</p>
         <fieldset className="event-language-fieldset"><legend>{tr("Категории")}</legend>
         <p className="tp-field-hint">{tr("По ним гости фильтруют афишу на главной. Можно выбрать несколько.")}</p>
         <div className="event-language-options">
@@ -710,26 +743,6 @@ export function AdminEventClient(){
       </section>}
       </div>}
       {tab==="guests"&&<div className="tp-tabpanel">
-      {Number(event.price||0)>0&&<section className="panel form-stack">
-        <h2>{tr("Заявки на платное мероприятие — подтверждение в течение 24 часов")}</h2>
-        <p className="form-note">{tr("Деньги поступают напрямую организатору. Подтверждай заявку только после проверки фактического поступления. До подтверждения QR-билет не выдаётся. Не подтверждённые заявки автоматически истекают через 24 часа.")}</p>
-        {!paidReservations.length&&<p>{tr("Заявок пока нет.")}</p>}
-        {paidReservations.map(r=><div className="participant-row" key={r.id}>
-          <div>
-            <strong>{r.guest?.first_name||tr("Участник")} {r.guest?.last_name||""}</strong>
-            <small>{r.guest?.email||"—"}</small>
-            <small>{tr("Заявка #")}{r.id} · {r.status==="pending"?tr("Ожидает оплаты"):r.status==="confirmed"?tr("Подтверждено"):r.status==="expired"?tr("Истекло"):tr("Отклонено")}</small>
-            <small>{r.status==="pending"?tr("Крайний срок: "):tr("Дата истечения: ")}{new Date(r.expires_at).toLocaleString(localeForLanguage(language))}</small>
-          </div>
-          <div className="participant-actions">
-            {r.status==="pending"&&<>
-              <button type="button" className="button button-primary" disabled={busy} onClick={()=>void decidePaid(r.id,"confirm")}>{tr("Подтвердить оплату")}</button>
-              <button type="button" className="button button-outline" disabled={busy} onClick={()=>void decidePaid(r.id,"decline")}>{tr("Отклонить")}</button>
-            </>}
-            {r.status!=="pending"&&<span className="status">{tr(r.status==="confirmed"?"Подтверждено":r.status==="expired"?"Истекло":"Отклонено")}</span>}
-          </div>
-        </div>)}
-      </section>}
       {data&&<>
         <div className="stats-grid">
           <div className="stat-card"><strong>{data.tickets.filter(t=>t.ticket_status==="active").length}</strong><span>{tr("Билеты")}</span></div>
@@ -754,10 +767,10 @@ export function AdminEventClient(){
           {!data.tickets.length&&<p>{tr("Пока нет билетов.")}</p>}
           {data.tickets.map(ticket=><div className="participant-row" key={ticket.id}>
             <div><strong>{ticket.guest?.first_name} {ticket.guest?.last_name}</strong>
-              <small>{ticket.guest?.email}</small><small>{ticket.code} · {ticket.payment_status === "paid"?tr("Paid"):ticket.payment_status === "not_required"?tr("Free"):ticket.payment_status === "pending"?tr("Ожидает оплаты"):ticket.payment_status}</small></div>
+              <small>{ticket.guest?.email}</small><small>{ticket.code} · {ticket.payment_provider==="registration_only"?(language==="cs"?"Registrace (platba neověřena)":language==="en"?"Registered (payment not verified)":language==="uk"?"Записано (оплату не перевірено)":"Записан (оплата не проверена)"):ticket.payment_status === "paid"?tr("Paid"):ticket.payment_status === "not_required"?tr("Free"):ticket.payment_status === "pending"?tr("Ожидает оплаты"):ticket.payment_status}</small></div>
             <div className="participant-actions">
               <span className={ticket.checked_in_at?"status status-success":"status status-demo"}>
-                {ticket.ticket_status==="cancelled"?tr("Cancelled"):ticket.checked_in_at?tr("Checked in"):tr("Paid")}</span>
+                {ticket.ticket_status==="cancelled"?tr("Cancelled"):ticket.checked_in_at?tr("Checked in"):(language==="cs"?"Registrován":language==="en"?"Registered":language==="uk"?"Записано":"Записан")}</span>
               {ticket.ticket_status==="active"&&!ticket.checked_in_at&&<>
                 <span className="status status-muted">{tr("Awaiting QR scan")}</span>
                 <button className="button button-outline" type="button" disabled={busy}

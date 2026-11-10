@@ -1,11 +1,6 @@
-import type {Metadata} from "next";
-import {FaqClient} from "@/components/FaqClient";
-import {faqAlternates} from "@/lib/faq-seo";
+import {permanentRedirect} from "next/navigation";
 
-export const metadata:Metadata={
-  title:"FAQ — Frequently Asked Questions",
-  description:"Ответы о билетах, регистрации, Telegram, оплате организатору и поддержке TicketTreat.",
-  alternates:{canonical:"/faq",languages:faqAlternates},
-  openGraph:{type:"website",url:"/faq",title:"Частые вопросы — TicketTreat"},
-};
-export default function FaqPage(){return <FaqClient/>;}
+/** The former default FAQ URL served Russian. Preserve bookmarks with a
+ * permanent redirect to the current English FAQ, not stale Russian content.
+ */
+export default function LegacyFaqRoute(){permanentRedirect("/en/faq");}

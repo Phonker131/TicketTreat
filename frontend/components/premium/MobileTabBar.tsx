@@ -1,5 +1,6 @@
 "use client";
 import {useEffect} from "react";
+import {createPortal} from "react-dom";
 import Link from "next/link";
 import {usePathname} from "next/navigation";
 import {useReducedMotion} from "motion/react";
@@ -27,11 +28,15 @@ export function MobileTabBar({homepage}:{homepage:string}){
  const labels=premium[language].tabs;
  const links=[homepage,"/tickets","/loyalty","/profile"];
  const active=(i:number)=>i===0?(pathname==="/"||/^\/(cs|en|uk)$/.test(pathname)||pathname.startsWith("/events")):pathname===links[i]||pathname.startsWith(links[i]+"/");
- return <nav className="tp-tabbar" aria-label={language==="ru"?"Нижняя навигация":language==="cs"?"Dolní navigace":language==="uk"?"Нижня навігація":"Bottom navigation"}>
+ // The header uses backdrop-filter; fixed-position descendants then become
+ // anchored to the header on iOS Safari. A body-level portal keeps this nav
+ // truly fixed to the visual viewport while preserving React events.
+ if(typeof document==="undefined")return null;
+ return createPortal(<nav className="tp-tabbar" aria-label={language==="ru"?"Нижняя навигация":language==="cs"?"Dolní navigace":language==="uk"?"Нижня навігація":"Bottom navigation"}>
   {links.map((href,i)=><Link key={href} href={href} aria-current={active(i)?"page":undefined} className={active(i)?"is-on":""}>
    {active(i)&&<M.span layoutId="tp-tab-pill" className="tp-tab-pill" transition={reduce?{duration:0}:{type:"spring",stiffness:420,damping:34}}/>}
    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icons[i]}</svg>
    <span>{labels[i]}</span>
   </Link>)}
- </nav>;
+ </nav>,document.body);
 }

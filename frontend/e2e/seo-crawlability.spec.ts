@@ -62,7 +62,7 @@ for (const [agent, userAgent] of [["Googlebot", googlebot], ["browser", "Mozilla
 }
 
 test("static diagnostic sitemap is valid XML and independent of API",async({request})=>{
-  const expected=[origin+"/",origin+"/cs",origin+"/faq"];
+  const expected=[origin+"/",origin+"/cs",origin+"/en/faq"];
   const path="/sitemap-diagnostic.xml";
   for(const agent of [googlebot,"Mozilla/5.0"]){
     const opts={headers:{"user-agent":agent},maxRedirects:0};
@@ -83,7 +83,7 @@ test("sitemap is valid XML with unique canonical public URLs", async ({request})
   const locations = sitemapLocations(await response.text());
   const normalized = locations.map(loc => new URL(loc).href);
   expect(new Set(normalized).size).toBe(normalized.length);
-  expect(normalized).toEqual(expect.arrayContaining([origin + "/", origin + "/cs",origin + "/en",origin + "/uk",origin + "/faq", origin + "/cs/faq", origin + "/en/faq", origin + "/uk/faq",origin + "/privacy-policy",origin + "/terms",origin + "/cookie-policy",origin + "/legal-notice", origin + "/organizers"]));
+  expect(normalized).toEqual(expect.arrayContaining([origin + "/", origin + "/cs",origin + "/en",origin + "/cs/faq", origin + "/en/faq",origin + "/privacy-policy",origin + "/terms",origin + "/cookie-policy",origin + "/legal-notice", origin + "/organizers"]));
 });
 
 test("robots allows noindex HTML routes while blocking API",async({request})=>{
@@ -92,7 +92,7 @@ test("robots allows noindex HTML routes while blocking API",async({request})=>{
   const robots=robotsParser(origin+"/robots.txt",await response.text());
   expect(robots.getSitemaps()).toEqual([origin+"/sitemap.xml",origin+"/sitemap-events.xml"]);
   for(const agent of ["Googlebot","Bingbot","TicketTreatAuditBot"]){
-    for(const path of ["/","/sitemap.xml","/faq","/cs/faq","/en/faq","/uk/faq",
+    for(const path of ["/","/sitemap.xml","/cs/faq","/en/faq",
       "/organizers","/events/910001","/privacy-policy","/cookie-policy","/terms","/legal-notice",
       "/admin","/profile","/tickets","/checkout/910001","/support","/privacy"]){
       expect(robots.isAllowed(origin+path,agent),agent+": "+path).toBe(true);
@@ -114,18 +114,42 @@ test("private HTML routes include HTTP noindex and no-store",async({request})=>{
 });
 
 test("localized FAQ pages have matching HTML and canonical hreflang",async({request})=>{
-  for(const [path,title] of [["/faq","Частые вопросы"],["/cs/faq","Často kladené otázky"],
-    ["/en/faq","Frequently asked questions"],["/uk/faq","Поширені запитання"]] as const){
+  for(const [path,title] of [["/cs/faq","Často kladené otázky"],
+    ["/en/faq","Frequently asked questions"]] as const){
     const response=await request.get(path,{maxRedirects:0});
     expect(response.status(),path).toBe(200);
     const dom=new JSDOM(await response.text());
     const doc=dom.window.document;
     expect(doc.querySelector("h1")?.textContent).toBe(title);
     expect(doc.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(origin+path);
-    for(const locale of ["ru","cs","en","uk"]){
+    for(const locale of ["cs","en"]){
       expect(doc.querySelector('link[rel="alternate"][hreflang="'+locale+'"]'),locale).not.toBeNull();
     }
     expect(doc.querySelectorAll("details.tt-faq-item").length).toBe(12);
+    dom.window.close();
+  }
+});
+
+
+test("legacy RU and UK localized routes permanently redirect to English",async({request})=>{
+  for(const [path,destination] of [["/faq","/en/faq"],["/uk/faq","/en/faq"],["/uk","/en"]] as const){
+    const response=await request.get(path,{maxRedirects:0});
+    expect(response.status(),path).toBe(308);
+    const target=new URL(response.headers().location,origin);
+    expect(target.origin).toBe(origin);
+    expect(target.pathname).toBe(destination);
+  }
+});
+
+test("FAQ only offers Czech and English",async({request})=>{
+  for(const path of ["/en/faq","/cs/faq"]){
+    const response=await request.get(path);
+    const dom=new JSDOM(await response.text());
+    const links=[...dom.window.document.querySelectorAll(".tt-faq-languages a")];
+    expect(links.map(a=>a.getAttribute("hreflang"))).toEqual(["cs","en"]);
+    expect(links.map(a=>a.textContent)).toEqual(["Čeština","English"]);
+    expect(dom.window.document.querySelector('link[rel="alternate"][hreflang="ru"]')).toBeNull();
+    expect(dom.window.document.querySelector('link[rel="alternate"][hreflang="uk"]')).toBeNull();
     dom.window.close();
   }
 });
@@ -135,7 +159,7 @@ test("missing event returns HTTP 404, not a soft-404 HTML page",async({request})
 });
 
 test("stable primary sitemap remains complete during upstream outages",async({request})=>{
-  const expected=["https://tickettreat.eu/","https://tickettreat.eu/cs","https://tickettreat.eu/en","https://tickettreat.eu/uk","https://tickettreat.eu/faq","https://tickettreat.eu/cs/faq","https://tickettreat.eu/en/faq","https://tickettreat.eu/uk/faq","https://tickettreat.eu/privacy-policy","https://tickettreat.eu/terms","https://tickettreat.eu/cookie-policy","https://tickettreat.eu/legal-notice","https://tickettreat.eu/organizers"];
+  const expected=["https://tickettreat.eu/","https://tickettreat.eu/cs","https://tickettreat.eu/en","https://tickettreat.eu/cs/faq","https://tickettreat.eu/en/faq","https://tickettreat.eu/privacy-policy","https://tickettreat.eu/terms","https://tickettreat.eu/cookie-policy","https://tickettreat.eu/legal-notice","https://tickettreat.eu/organizers"];
   const first=await request.get("/sitemap.xml",{maxRedirects:0});
   expect(first.status()).toBe(200);
   expect(sitemapLocations(await first.text())).toEqual(expected);
@@ -172,14 +196,14 @@ test("separate dynamic event sitemap discovers only eligible fixtures",async({re
 });
 
 test("localized home pages have search-friendly descriptions and reciprocal hreflang",async({request})=>{
-  for(const [path,hint] of [["/cs","Akce a vstupenky"],["/en","Events and tickets"],["/uk","Події та квитки"]] as const){
+  for(const [path,hint] of [["/cs","Akce a vstupenky"],["/en","Events and tickets"]] as const){
     const response=await request.get(path,{maxRedirects:0});
     expect(response.status()).toBe(200);
     const dom=new JSDOM(await response.text());
     const doc=dom.window.document;
     expect(doc.querySelector("title")?.textContent).toContain(hint);
     expect(doc.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(origin+path);
-    for(const locale of ["ru","cs","en","uk"]){
+    for(const locale of ["cs","en"]){
       expect(doc.querySelector('link[rel="alternate"][hreflang="'+locale+'"]'),path).not.toBeNull();
     }
     dom.window.close();
@@ -200,7 +224,7 @@ test("advertised dynamic sitemap fails with retryable 503 and no false empty XML
     expect(await response.text()).not.toContain("<urlset");
     const stable=await request.get("/sitemap.xml",{headers:{"user-agent":googlebot}});
     expect(stable.status()).toBe(200);
-    expect(sitemapLocations(await stable.text())).toHaveLength(13);
+    expect(sitemapLocations(await stable.text())).toHaveLength(10);
   }finally{
     await request.get("http://127.0.0.1:8100/_fixture/recover-events");
   }
@@ -233,4 +257,19 @@ test("SEO preview images resolve absolute HTTPS URLs without unsafe schemes",()=
     "/\\\\evil.test/cover.png", "/path\nheader", "  /poster.png"]){
     expect(seoImageUrl(value),value).toBeUndefined();
   }
+});
+
+test("official uploaded ticket mark is used for favicon and footer",async({request})=>{
+  const icon=await request.get("/favicon.svg?v=20261104-logo");
+  expect(icon.status()).toBe(200);
+  expect(icon.headers()["content-type"]).toContain("image/svg+xml");
+  const svg=await icon.text();
+  expect(svg).toContain('viewBox="0 0 192 192"');
+  expect(svg).toContain('fill="#0297DE"');
+
+  const html=await request.get("/en/faq");
+  expect(html.status()).toBe(200);
+  const body=await html.text();
+  expect(body).toContain('/favicon.svg?v=20261104-logo');
+  expect(body).toContain('class="tt-legal-footer-home"');
 });

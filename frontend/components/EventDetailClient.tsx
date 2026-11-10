@@ -151,7 +151,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         </section>
         <section className="panel" style={{marginTop:20,marginBottom:20}}>
           <h2>{language==="ru"?"Как добраться и сохранить дату":language==="cs"?"Místo a kalendář":language==="uk"?"Як дістатися та календар":"Venue and calendar"}</h2>
-          <div className="admin-event-actions">
+          <div className="tt-event-share-actions">
             {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar(event,eventUrl)}>{language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
             {!preview&&<>
               <button type="button" className="button button-outline" onClick={shareEvent}>{shareWords.button}</button>
@@ -183,15 +183,9 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
               <h2>{event.spots_left === 0 ? t(language, "soldOut") : t(language, "join")}</h2>
               <p>{Number(event.price||0)<=0
                 ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.")
-                : (language==="ru"?"Платёж производится напрямую организатору, не через TicketTreat. Уточни у организатора способ оплаты, регистрацию и возврат.":language==="cs"?"Platba probíhá přímo pořadateli, nikoli přes TicketTreat. Podmínky platby, registrace a vrácení peněz sdělí pořadatel.":language==="uk"?"Оплата здійснюється безпосередньо організатору, а не через TicketTreat. Уточни в організатора умови оплати, реєстрації та повернення.":"Payment is arranged directly with the organizer, not through TicketTreat. Ask the organizer about payment, registration and refunds.")}</p>
+                : (language==="ru"?"Запись и QR-билет оформляются сразу, без подтверждения оплаты. TicketTreat не принимает и не проверяет платежи — условия оплаты уточняй у организатора.":language==="cs"?"Registrace a QR vstupenka se vydají okamžitě bez potvrzení platby. TicketTreat platby nevybírá ani neověřuje — podmínky si ověřte u pořadatele.":language==="uk"?"Запис і QR-квиток оформлюються одразу без підтвердження оплати. TicketTreat не приймає та не перевіряє платежі — умови уточнюй в організатора.":"Registration and QR tickets are immediate, without payment confirmation. TicketTreat does not collect or verify payment; check arrangements with the organizer.")}</p>
             </div>
-            {Number(event.price||0)>0 ? (
-              <Link className="button button-primary" href={`/checkout/${event.id}${inviteQuery?`?${inviteQuery}`:""}`}>
-                {event.spots_left===0
-                  ? (language==="ru"?"Проверить мою заявку":language==="cs"?"Zkontrolovat žádost":language==="uk"?"Перевірити заявку":"Check my application")
-                  : (language==="ru"?"Заявка на оплату — 24 часа":language==="cs"?"Rezervovat na 24 hodin":language==="uk"?"Заявка на оплату — 24 години":"Reserve for 24 hours")}
-              </Link>
-            ) : event.spots_left === 0 ? (
+            {event.spots_left === 0 ? (
               <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}${inviteQuery?`&${inviteQuery}`:""}`}>{t(language, "waitlist")}</Link>
             ) : (
               <Link className="button button-primary" href={`/checkout/${event.id}${inviteQuery||attributed?`?${[inviteQuery,attributed.replace(/^&/,"")].filter(Boolean).join("&")}`:""}`}>{t(language, "join")}</Link>

@@ -145,7 +145,6 @@ export function AdminClient() {
         max_participants:Number(data.get("max_participants")||30),
         price:String(data.get("price")||"0"),
         currency:String(data.get("currency")||"CZK"),
-        payment_instructions:String(data.get("payment_instructions")||"").trim(),
         starts_at:starts+":00",languages:langs,poster_data_url,
         reminder_minutes:reminderMinutes,reminder_text:reminderMessage.trim(),
       });
@@ -194,7 +193,6 @@ export function AdminClient() {
       <li><Link href="/admin/organizer-profile">{x.profile}</Link></li>
       {identity.role==="global_admin"&&<>
         <li><Link href="/admin/accounts">{x.accounts}</Link></li>
-        <li><Link href="/admin/content">{x.content}</Link></li>
         <li><Link href="/admin/broadcasts">{ui.broadcast}</Link></li>
         <li><Link href="/admin/support">{ui.support}{supportUnread!==null&&supportUnread>0&&<b className="tp-badge">{supportUnread}</b>}</Link></li>
         <li><Link href="/admin/privacy">{x.privacy}</Link></li>
@@ -234,11 +232,9 @@ export function AdminClient() {
             <h3>{x.when}</h3>
             <div className="two-col"><label>{x.start}<input name="starts_at" type="datetime-local" required/></label>
             <label>{x.capacity}<input name="max_participants" type="number" min="1" defaultValue="30" required/></label></div>
-            <div className="two-col"><label>{x.price}<input name="price" type="number" min="0" step="0.01" defaultValue="0"/></label>
+            <div className="two-col"><label>{x.price}<input name="price" type="number" min="0" step="0.01" defaultValue="0" required/></label>
             <label>{x.currency}<select name="currency" defaultValue="CZK"><option value="CZK">CZK</option><option value="EUR">EUR</option><option value="USD">USD</option></select></label></div>
-            <label>{ui.payment}
-              <textarea name="payment_instructions" rows={3} maxLength={2000} placeholder={ui.paymentHint}/>
-            </label>
+            <p className="form-note">{language==="cs"?"Registrace a QR vstupenka fungují stejně jako u bezplatné akce. TicketTreat nevybírá ani neověřuje platby; případnou platbu řeší pořadatel mimo platformu.":language==="en"?"Registration and QR tickets work like a free event. TicketTreat does not collect or verify payments; the organizer handles any payment outside the platform.":language==="uk"?"Запис та QR-квитки працюють як для безкоштовної події. TicketTreat не приймає та не перевіряє оплату; її організатор узгоджує окремо.":"Запись и QR-билет работают как для бесплатного мероприятия. TicketTreat не принимает и не проверяет оплату; её организатор согласовывает отдельно."}</p>
           </section>
           <section className="tp-form-section">
             <h3>{x.themes}</h3>

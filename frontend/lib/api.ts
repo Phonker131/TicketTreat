@@ -355,6 +355,13 @@ export function duplicateManageEvent(token:string,eventId:number,startsAt?:strin
 export function editManageEvent(token: string, eventId: number, payload: Record<string,unknown>): Promise<import("@/lib/types").ManageEvent> {
   return request(`/demo/manage/events/${eventId}`, {method:"PATCH",headers:accountHeaders(token),body:JSON.stringify(payload)});
 }
+/** Permanently remove an owned event without guest/booking/notification history. Server enforces eligibility. */
+export function deleteManageEvent(token:string,eventId:number):
+  Promise<{status:"deleted";event_id:number}>{
+  return request(`/demo/manage/events/${eventId}`,{
+    method:"DELETE",headers:accountHeaders(token)
+  });
+}
 export function cancelManageEvent(token: string, eventId: number, reason: string): Promise<import("@/lib/types").ManageEvent> {
   return request(`/demo/manage/events/${eventId}/cancel`,{method:"POST",headers:accountHeaders(token),body:JSON.stringify({reason})});
 }
@@ -391,8 +398,8 @@ export function deleteManageGalleryPhoto(token:string,eventId:number,imageId:num
 export function getManageParticipants(token:string, eventId:number): Promise<AdminEventTickets> {
   return request(`/demo/manage/events/${eventId}/participants`,{headers:accountHeaders(token)});
 }
-export function checkInManagedTicket(token:string, qrToken:string):Promise<{status:string;ticket:DemoTicket}> {
-  return request(`/demo/manage/check-in`,{method:"POST",headers:accountHeaders(token),body:JSON.stringify({qr_token:qrToken})});
+export function checkInManagedTicket(token:string, qrToken:string, eventId:number):Promise<{status:"checked_in"|"already_checked_in";ticket:DemoTicket}> {
+  return request(`/demo/manage/check-in`,{method:"POST",headers:accountHeaders(token),body:JSON.stringify({qr_token:qrToken,event_id:eventId})});
 }
 export async function exportManageParticipantsCsv(token:string,eventId:number):Promise<void> {
   const r=await fetch(`${API_URL}/demo/manage/events/${eventId}/participants.csv`,{
@@ -493,18 +500,6 @@ export function requestPasswordReset(email:string):Promise<{status:string}> {
 }
 export function confirmPasswordReset(email:string,code:string,newPassword:string):Promise<{status:string}> {
   return request("/demo/auth/password/reset",{method:"POST",body:JSON.stringify({email,code,new_password:newPassword})});
-}
-
-export type SiteLanding = {headline:string;subtitle:string;hero_image_url:string|null};
-export function getSiteLanding():Promise<SiteLanding> {
-  return request("/demo/site/landing");
-}
-export function updateSiteLanding(token:string,payload:{
-  headline:string;subtitle:string;hero_image_data_url?:string|null;remove_hero_image?:boolean;
-}):Promise<SiteLanding> {
-  return request("/demo/manage/site/landing",{
-    method:"PUT",headers:{Authorization:`Bearer ${token}`},body:JSON.stringify(payload)
-  });
 }
 
 export function exportAccountData(token:string):Promise<unknown> {
@@ -659,6 +654,7 @@ export type OrganizerAnalyticsEvent = {
   legacy_registrations:number;waitlist:number;pending_payment:number;
   pending_payment_24h:number;cancelled_tickets:number;event_finished:boolean;
   upcoming:boolean;is_cancelled:boolean;publication:string;
+  channels:{source:string;registrations:number;checked_in:number}[];
 };
 export type OrganizerAnalytics = {
   summary:{
@@ -669,7 +665,9 @@ export type OrganizerAnalytics = {
     occupancy_percent:number|null;qr_checkin_percent:number|null;
   };
   events:OrganizerAnalyticsEvent[];
-  channels:{source:string;registrations:number}[];
+  audience:{visitors:number;first_time:number;returning:number;loyal:number;
+    active_30d:number;inactive_90d:number;repeat_percent:number|null};
+  channels:{source:string;registrations:number;checked_in:number}[];
   daily_bookings:{date:string;count:number}[];
   truncated:boolean;limitations:string[];
 };

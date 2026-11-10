@@ -28,7 +28,7 @@ function useCountdown(days:number,hours:number){
  return left??["--","--","--","--"];
 }
 
-/** One sample ticket with pointer tilt, a moving foil sheen and a 3D flip to the QR side. */
+/** One sample ticket with pointer tilt and a Safari-safe, upright front/QR side switch. */
 function SampleTicket({index,language,flipped,onToggle,interactive=true}:{index:number;language:LanguageCode;flipped:boolean;onToggle:()=>void;interactive?:boolean}){
  const s=samples[index],c=premium[language],reduce=useReducedMotion();
  const time=useCountdown(s.days,s.h);
@@ -87,11 +87,15 @@ export function TicketsPlaceholder({language}:{language:LanguageCode}){
  const icons:("scan"|"clock"|"chk")[]=["scan","clock","chk"];
  return <section className="tp-tickets-empty" aria-labelledby="tp-tickets-title">
   <div className="tp-te-copy">
-   <h2 id="tp-tickets-title">{c.title}</h2>
-   <p className="tp-te-intro">{c.intro}</p>
-   <ul className="tp-te-points">{c.points.map((p,i)=><li key={p}><i><BrandIcon name={icons[i]} size={20}/></i>{p}</li>)}</ul>
-   <div className="tp-te-actions"><Link href="/" className="button button-primary">{c.find}</Link></div>
-   <p className="tp-te-note">{c.note}</p>
+   <div className="tp-te-summary">
+    <h2 id="tp-tickets-title">{c.title}</h2>
+    <p className="tp-te-intro">{c.intro}</p>
+   </div>
+   <div className="tp-te-details">
+    <ul className="tp-te-points">{c.points.map((p,i)=><li key={p}><i><BrandIcon name={icons[i]} size={20}/></i>{p}</li>)}</ul>
+    <div className="tp-te-actions"><Link href="/" className="button button-primary">{c.find}</Link></div>
+    <p className="tp-te-note">{c.note}</p>
+   </div>
   </div>
   <div className="tp-te-stage">
    <div className="tp-wallet" aria-label={c.title}>

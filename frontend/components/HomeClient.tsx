@@ -13,7 +13,7 @@ import {PhoneScreen} from "@/components/premium/Screens";
 import {BrandPhoto} from "@/components/premium/BrandPhoto";
 import dynamic from "next/dynamic";
 import {useLanguage} from "@/components/LanguageProvider";
-import {getEvents,getSiteLanding,type SiteLanding} from "@/lib/api";
+import {getEvents} from "@/lib/api";
 import {t} from "@/lib/i18n";
 import type {TicketTreatEvent} from "@/lib/types";
 
@@ -30,7 +30,6 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
   const [storyReady,setStoryReady]=useState(false);
   useEffect(()=>setStoryReady(true),[]);
   const [error,setError]=useState<string|null>(null);
-  const [landing,setLanding]=useState<SiteLanding|null>(null);
 
   useEffect(()=>{
     const controller=new AbortController();
@@ -41,7 +40,6 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
         // A temporary client refresh error must not erase server-rendered events.
         if(initialEvents===null)setError(e instanceof Error?e.message:"Unknown error");
       }).finally(()=>{if(!controller.signal.aborted)setLoading(false)});
-    void getSiteLanding().then(setLanding).catch(()=>{});
     return()=>controller.abort();
   },[]);
 

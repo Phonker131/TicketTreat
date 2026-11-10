@@ -1,9 +1,10 @@
-export const FAQ_LOCALES=["ru","cs","en","uk"] as const;
+/** Public SEO locales offered by TicketTreat. Legacy RU/UK are retired. */
+export const FAQ_LOCALES=["cs","en"] as const;
 export type FaqLocale=typeof FAQ_LOCALES[number];
-export function faqUrl(locale:FaqLocale):string{return locale==="ru"?"/faq":"/"+locale+"/faq";}
-export const faqAlternates={ru:"/faq",cs:"/cs/faq",en:"/en/faq",uk:"/uk/faq","x-default":"/faq"};
+export function faqUrl(locale:FaqLocale):string{return "/"+locale+"/faq";}
+export const faqAlternates={cs:"/cs/faq",en:"/en/faq","x-default":"/en/faq"};
 
-export const HOME_LOCALES=["ru","cs","en","uk"] as const;
+export const HOME_LOCALES=["cs","en"] as const;
 export type HomeLocale=typeof HOME_LOCALES[number];
-export function homeUrl(locale:HomeLocale):string{return locale==="ru"?"/":"/"+locale;}
-export const homeAlternates={ru:"/",cs:"/cs",en:"/en",uk:"/uk","x-default":"/"};
+export function homeUrl(locale:HomeLocale):string{return "/"+locale;}
+export const homeAlternates={cs:"/cs",en:"/en","x-default":"/"};

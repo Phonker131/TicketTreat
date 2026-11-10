@@ -111,6 +111,30 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
     "ru": "Все места заняты. Если доступен лист ожидания, запишись в него.",
     "uk": "Усі місця зайняті. Якщо доступний список очікування, запишися."
   },
+  "paid_events_disabled": {
+    "en":"Paid events and organizer payment confirmations are temporarily disabled. Only free events can be created or booked.",
+    "cs":"Placené akce a potvrzování plateb pořadatelem jsou dočasně vypnuté. Nyní lze vytvářet a rezervovat pouze bezplatné akce.",
+    "ru":"Платные мероприятия и подтверждение оплаты организатором временно отключены. Сейчас можно создавать и бронировать только бесплатные события.",
+    "uk":"Платні події та підтвердження оплати організатором тимчасово вимкнено. Зараз можна створювати та бронювати лише безкоштовні події."
+  },
+  "only_unpublished_drafts_can_be_deleted": {
+    "en":"Only an unpublished, uncancelled draft can be deleted. Published or scheduled events must be managed through cancellation.",
+    "cs":"Smazat lze pouze nezveřejněný a nezrušený koncept. Zveřejněné nebo plánované akce je nutné řešit zrušením.",
+    "ru":"Удалить можно только неопубликованный и неотменённый черновик. Для опубликованных и запланированных мероприятий используй отмену.",
+    "uk":"Видалити можна лише неопубліковану й нескасовану чернетку. Опубліковані та заплановані події потрібно скасовувати."
+  },
+  "event_has_history_cannot_delete": {
+    "en":"This event has registration, ticket, payment, waitlist or notification history and cannot be permanently deleted. Keep it cancelled to preserve records.",
+    "cs":"Tato akce má historii registrací, vstupenek, plateb, čekací listiny nebo oznámení, proto ji nelze trvale smazat. Ponechte ji zrušenou.",
+    "ru":"У мероприятия есть история регистраций, билетов, платежей, очереди или уведомлений. Удалять его из базы нельзя — оставь его отменённым.",
+    "uk":"Подія має історію реєстрацій, квитків, платежів, черги або сповіщень. Видаляти її з бази не можна — залиш її скасованою."
+  },
+  "draft_has_activity_cannot_delete": {
+    "en":"This draft has a registration, ticket, waitlist, payment request or notification history and cannot be permanently deleted.",
+    "cs":"Tento koncept má historii registrací, vstupenek, čekací listiny, plateb nebo oznámení, a proto ho nelze trvale smazat.",
+    "ru":"У черновика есть история регистраций, билетов, заявок, ожидания или уведомлений. Безвозвратное удаление запрещено.",
+    "uk":"Чернетка має історію реєстрацій, квитків, заявок, очікування або сповіщень. Остаточне видалення заборонено."
+  },
   "event_not_found": {
     "en": "This event is unavailable. Return to the event list and choose another.",
     "cs": "Tato akce není dostupná. Vraťte se na seznam akcí.",

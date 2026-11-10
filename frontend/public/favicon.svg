@@ -1,12 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="TicketTreat">
-  <rect width="128" height="128" rx="15" fill="#F0EBE1"/>
-  <g transform="translate(5 8) scale(.392)">
-    <text stroke-linejoin="round" paint-order="stroke fill" stroke-width="3.4" stroke="#0297DE" x="5" y="100" font-family="'Arial Black',Impact,'DejaVu Sans',Arial,sans-serif" font-size="105" font-weight="900" fill="#0297DE" textLength="294" lengthAdjust="spacingAndGlyphs">TICKET</text>
-    <text stroke-linejoin="round" paint-order="stroke fill" stroke-width="3.4" stroke="#02070A" x="0" y="96" font-family="'Arial Black',Impact,'DejaVu Sans',Arial,sans-serif" font-size="105" font-weight="900" fill="#02070A" textLength="294" lengthAdjust="spacingAndGlyphs">TICKET</text>
-    <g transform="translate(0 121)">
-      <path d="M6,0 L294,0 A6,6 0 0 1 300,6 L300,39 A11,11 0 0 0 300,61 L300,94 A6,6 0 0 1 294,100 L6,100 A6,6 0 0 1 0,94 L0,61 A11,11 0 0 0 0,39 L0,6 A6,6 0 0 1 6,0 Z" transform="translate(6,5)" fill="#FC734D"/>
-      <path d="M6,0 L294,0 A6,6 0 0 1 300,6 L300,39 A11,11 0 0 0 300,61 L300,94 A6,6 0 0 1 294,100 L6,100 A6,6 0 0 1 0,94 L0,61 A11,11 0 0 0 0,39 L0,6 A6,6 0 0 1 6,0 Z" fill="none" stroke="#02070A" stroke-width="5"/>
-      <text stroke-linejoin="round" paint-order="stroke fill" stroke-width="3.4" stroke="#02070A" x="20" y="82" font-family="'Arial Black',Impact,'DejaVu Sans',Arial,sans-serif" font-size="94" font-weight="900" fill="#02070A" textLength="262" lengthAdjust="spacingAndGlyphs">TREAT</text>
-    </g>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-labelledby="title"><title id="title">TicketTreat</title><rect width="192" height="192" rx="34" fill="#0297DE"/><path d="M46 61h100a12 12 0 0 1 12 12v10a13 13 0 0 0 0 26v10a12 12 0 0 1-12 12H46a12 12 0 0 1-12-12v-10a13 13 0 0 0 0-26V73a12 12 0 0 1 12-12Z" fill="#F0EBE1" stroke="#02070A" stroke-width="6"/><path d="M54 81h38m-19 0v37m20-37h38m-19 0v37" stroke="#02070A" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="150" cy="41" r="18" fill="#FC734D" stroke="#02070A" stroke-width="5"/></svg>
