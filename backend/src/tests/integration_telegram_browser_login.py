@@ -36,7 +36,10 @@ class BotApprovedWebLoginTests(unittest.TestCase):
             self.assertEqual(started.status_code,200,started.text)
             code=started.json()["challenge"]
             verifier=started.json()["browser_token"]
+            pin=started.json()["pin"]
+            self.assertRegex(pin,r"^[0-9]{6}$")
             self.assertNotIn(verifier,started.json()["bot_link"])
+            self.assertNotIn(pin,started.json()["bot_link"])
             good={"X-Telegram-Browser-Token":verifier}
             body={"challenge":code}
             self.assertEqual(client.post("/demo/auth/telegram/browser/complete",json=body).status_code,401)
@@ -49,11 +52,17 @@ class BotApprovedWebLoginTests(unittest.TestCase):
             invalid=client.post("/demo/auth/telegram/browser/claim",json={
                 "challenge":code,"init_data":"unsigned_request"})
             self.assertEqual(invalid.status_code,401)
-            approved=client.post("/demo/auth/telegram/browser/claim",json={
+            missing_pin=client.post("/demo/auth/telegram/browser/claim",json={
                 "challenge":code,"init_data":signed})
+            self.assertEqual(missing_pin.status_code,422,missing_pin.text)
+            invalid_pin=client.post("/demo/auth/telegram/browser/claim",json={
+                "challenge":code,"init_data":signed,"pin":"000000" if pin!="000000" else "111111"})
+            self.assertEqual(invalid_pin.status_code,400,invalid_pin.text)
+            approved=client.post("/demo/auth/telegram/browser/claim",json={
+                "challenge":code,"init_data":signed,"pin":pin})
             self.assertEqual(approved.status_code,200,approved.text)
             self.assertEqual(client.post("/demo/auth/telegram/browser/claim",json={
-                "challenge":code,"init_data":signed_init_data(other_id)}).status_code,409)
+                "challenge":code,"init_data":signed_init_data(other_id),"pin":pin}).status_code,409)
             complete=client.post("/demo/auth/telegram/browser/complete",headers=good,json=body)
             self.assertEqual(complete.status_code,200,complete.text)
             self.assertEqual(complete.json()["status"],"authenticated")
