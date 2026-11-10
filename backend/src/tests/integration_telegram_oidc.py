@@ -146,7 +146,7 @@ class UnifiedTelegramIdentityTests(unittest.TestCase):
                 json={"challenge":code})
             self.assertEqual(pending.json()["status"],"pending")
             fake=client.post("/demo/auth/telegram/browser/claim",
-                json={"challenge":code,"init_data":"unsigned-telegram-data"})
+                json={"challenge":code,"init_data":"x"*40,"pin":pin})
             self.assertEqual(fake.status_code,401,fake.text)
             bad_pin="000000" if pin!="000000" else "111111"
             wrong=client.post("/demo/auth/telegram/browser/claim",
