@@ -12,7 +12,7 @@ function applyTheme(mode:Mode){
 }
 export function ThemeToggle(){
  const {language}=useLanguage();
- const [mode,setMode]=useState<Mode>("dark");
+ const [mode,setMode]=useState<Mode | null>(null);
  useEffect(()=>{
   const sync=()=>setMode(document.documentElement.dataset.theme==="light"?"light":"dark");
   sync();
@@ -25,7 +25,7 @@ export function ThemeToggle(){
  const label=mode==="dark"?
   {ru:"Включить светлую тему",cs:"Zapnout světlý režim",uk:"Увімкнути світлу тему",en:"Switch to light theme"}[language]:
   {ru:"Включить тёмную тему",cs:"Zapnout tmavý režim",uk:"Увімкнути темну тему",en:"Switch to dark theme"}[language];
- return <button type="button" className="tt-theme-toggle" aria-label={label} title={label} aria-pressed={mode==="dark"}
+ return <button type="button" className="tt-theme-toggle" disabled={mode === null} aria-label={label} title={label} aria-pressed={mode==="dark"}
  onClick={()=>{const next=mode==="dark"?"light":"dark";try{localStorage.setItem(KEY,next)}catch{}applyTheme(next);setMode(next)}}>
  <svg width="23" height="23" viewBox="0 0 52 52" aria-hidden="true" fill="none"><use href={mode==="dark"?"/brand/icons.svg#sun":"/brand/icons.svg#moon"}/></svg>
  </button>;
