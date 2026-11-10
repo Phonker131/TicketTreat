@@ -247,6 +247,10 @@ def install_demo_accounts(
 
     @app.post("/demo/auth/signup", status_code=201)
     def signup(payload: SignupData, request: Request, db: Session = Depends(get_db)):
+        # A signed Mini App user already has a canonical Telegram guest.
+        # Do not let legacy signup UIs mint a second guest/email account.
+        from demo_telegram import reject_parallel_signup_inside_telegram
+        reject_parallel_signup_inside_telegram(request)
         source_ip = request.client.host if request.client else "unknown"
         guard_rate(db, "signup_ip", source_ip, 40, 600)
         record_rate(db, "signup_ip", source_ip, 600)
