@@ -504,7 +504,6 @@ UI_TRANSLATIONS.update({
         "Popis, fotografie, vstupenky a aktuální volná místa najdeš v TicketTreat Mini App.",
         "Описание, фотографии, билеты и актуальная доступность мест отображаются в TicketTreat Mini App.",
         "Опис, фотографії, квитки та актуальну наявність місць можна переглянути в TicketTreat Mini App."),
-    "⏳ Заявка на оплату — 24 часа": _tr("⏳ Payment request — 24 hours", "⏳ Žádost o platbu — 24 hodin", "⏳ Заявка на оплату — 24 часа", "⏳ Заявка на оплату — 24 години"),
     "⏳ Проверить мою заявку": _tr("⏳ Check my request", "⏳ Zkontrolovat žádost", "⏳ Проверить мою заявку", "⏳ Перевірити мою заявку"),
     "Открой TicketTreat для регистрации": _tr("Open TicketTreat to register", "Zaregistruj se v TicketTreat", "Открой TicketTreat для регистрации", "Відкрий TicketTreat для реєстрації"),
     "Неверная ссылка на событие.": _tr("Invalid event link.", "Neplatný odkaz na akci.", "Неверная ссылка на событие.", "Недійсне посилання на подію."),
@@ -517,12 +516,6 @@ UI_TRANSLATIONS.update({
     "Не удалось проверить мероприятие": _tr("Could not verify the event", "Akci se nepodařilo ověřit", "Не удалось проверить мероприятие", "Не вдалося перевірити подію"),
     "Открой TicketTreat для заявки": _tr("Open TicketTreat to request a place", "Požádej o místo v TicketTreat", "Открой TicketTreat для заявки", "Відкрий TicketTreat, щоб подати заявку"),
     "Платные заявки доступны только через TicketTreat Mini App.": _tr("Paid event requests are only available through TicketTreat Mini App.", "Žádosti o placené akce lze podat jen přes TicketTreat Mini App.", "Платные заявки доступны только через TicketTreat Mini App.", "Заявки на платні події доступні лише через TicketTreat Mini App."),
-    "⏳ Резерв 24 часа → TicketTreat": _tr("⏳ Hold for 24 hours → TicketTreat", "⏳ Rezervace na 24 hodin → TicketTreat", "⏳ Резерв 24 часа → TicketTreat", "⏳ Резерв на 24 години → TicketTreat"),
-    "Оплата производится напрямую организатору. Открой Mini App: место резервируется на 24 часа, а QR-билет появится только после подтверждения оплаты организатором.": _tr(
-        "Pay the organizer directly. Open Mini App to hold a place for 24 hours. A QR ticket is issued only after the organizer confirms payment.",
-        "Platba probíhá přímo pořadateli. V Mini App si rezervuješ místo na 24 hodin. QR vstupenka se vystaví až po potvrzení platby pořadatelem.",
-        "Оплата производится напрямую организатору. Открой Mini App: место резервируется на 24 часа, а QR-билет появится только после подтверждения оплаты организатором.",
-        "Оплата здійснюється безпосередньо організатору. У Mini App місце резервується на 24 години. QR-квиток з'явиться лише після підтвердження оплати організатором."),
     "Не удалось загрузить мероприятия. Попробуй ещё раз позже.": _tr("Could not load events. Please try again later.", "Akce se nepodařilo načíst. Zkus to prosím později.", "Не удалось загрузить мероприятия. Попробуй ещё раз позже.", "Не вдалося завантажити події. Спробуй пізніше."),
     "🎟 Открыть профиль TicketTreat": _tr("🎟 Open TicketTreat profile", "🎟 Otevřít profil TicketTreat", "🎟 Открыть профиль TicketTreat", "🎟 Відкрити профіль TicketTreat"),
     "В этом Telegram-аккаунте пока нет доступных записей. Если ты покупал билет на сайте, сначала привяжи Telegram к своему подтверждённому TicketTreat-аккаунту в профиле. По одному имени или email аккаунты не объединяются.": _tr(
@@ -1512,9 +1505,9 @@ def send_payment_instructions_message(
         "💳 Для завершения регистрации оплати билет "
         "по реквизитам ниже:\n\n"
         f"{instructions}\n\n"
-        "⏳ Администратор должен подтвердить оплату "
-        "в течение 24 часов.\n"
-        f"Крайний срок подтверждения: {deadline}\n\n"
+        "⏳ Это запись старого формата. Подтверждение оплаты ведёт организатор, "
+        "не TicketTreat.\n"
+        f"Установленный срок: {deadline}\n\n"
         "Если оплата не будет подтверждена вовремя, "
         "бронь автоматически отменится.",
     )
@@ -3131,6 +3124,20 @@ def my_events(message):
 )
 def payment_info(call):
     event_id = int(call.data.split(":")[1])
+    # Old inline keyboards can remain in chats for months. Never initiate a
+    # second paid-registration flow while the unified Mini App is available.
+    if WEB_APP_URL.startswith("https://"):
+        answer_callback(call, "Открой TicketTreat")
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(InlineKeyboardButton(
+            "🎟 Открыть событие в TicketTreat",
+            web_app=WebAppInfo(url=f"{WEB_APP_URL}/events/{event_id}"),
+        ))
+        bot.send_message(call.message.chat.id,
+            "Сейчас QR-билет выдаётся после успешной регистрации в TicketTreat. "
+            "Платёжные условия уточняй напрямую у организатора: TicketTreat не "
+            "принимает и не подтверждает оплату.", reply_markup=keyboard)
+        return
 
     try:
         data = backend_request(
@@ -3842,13 +3849,8 @@ def admin_event_language_selection(call):
     if action == "back":
         answer_callback(call)
 
-        previous_state = (
-            "WAIT_EVENT_PAYMENT_INSTRUCTIONS"
-            if float(
-                temporary.get("price") or 0
-            ) > 0
-            else "WAIT_EVENT_CURRENCY"
-        )
+        # No separate paid-event setup step in the unified pilot flow.
+        previous_state = "WAIT_EVENT_CURRENCY"
 
         prompt_creation_state(
             call.message.chat.id,
