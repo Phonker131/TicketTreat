@@ -42,7 +42,7 @@ class WebAccount(Base):
     __tablename__ = "demo_web_accounts"
 
     id = Column(Integer, primary_key=True)
-    email = Column(String(255), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=True)  # Telegram-first: optional verified email
     password_hash = Column(String(255), nullable=False)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
@@ -209,7 +209,7 @@ def install_demo_accounts(
         return {
             "admin_claim_available": (
                 role != "global_admin"
-                and account.email.casefold() in permanent_global_admin_emails()
+                and (account.email or "").casefold() in permanent_global_admin_emails()
             ),
             "account": {
                 "id": account.id, "email": account.email,
@@ -229,7 +229,7 @@ def install_demo_accounts(
             },
             "email_verified": _verified_email(db, account.id),
             "admin_claim_available": bool(
-                account.email.casefold() in permanent_global_admin_emails()
+                (account.email or "").casefold() in permanent_global_admin_emails()
                 and _verified_email(db, account.id)
                 and len(os.getenv("GLOBAL_ADMIN_RECOVERY_SECRET", "")) >= 32
                 and role_for(db, account) != "global_admin"
@@ -237,9 +237,13 @@ def install_demo_accounts(
         }
 
     from demo_google import install_google_auth
+    from demo_telegram_oidc import install_telegram_oidc
+    from demo_telegram_browser_login import install_browser_telegram_login
     from demo_quick_signup import install_quick_signup
     install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict)
     install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict)
+    install_telegram_oidc(app, get_db, DemoGuest, issue_session, profile_dict)
+    install_browser_telegram_login(app, get_db, DemoGuest, issue_session, profile_dict)
 
     @app.post("/demo/auth/signup", status_code=201)
     def signup(payload: SignupData, request: Request, db: Session = Depends(get_db)):

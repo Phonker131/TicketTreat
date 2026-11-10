@@ -150,8 +150,18 @@ def _telegram_link(db: Session, main, account, user: dict, background_tasks: Bac
         ).with_for_update().first()
 
     existing_web = db.query(WebAccount).filter(WebAccount.guest_id == link.guest_id).first()
+    # An OIDC-first Telegram identity has a passwordless shadow web account.
+    # Its creation must NOT make a later two-proof website account merge
+    # impossible. This exception never applies to an email/Google account or
+    # an account with organizer/admin privileges.
+    telegram_shadow = None
     if existing_web and existing_web.id != account.id:
-        raise HTTPException(409, "telegram_already_linked_to_another_account")
+        from demo_roles import role_for
+        if (existing_web.email is not None
+                or existing_web.password_hash != "!telegram-only"
+                or role_for(db, existing_web) != "participant"):
+            raise HTTPException(409, "telegram_already_linked_to_another_account")
+        telegram_shadow = existing_web
     other_telegram = db.query(DemoTelegramIdentity).filter(
         DemoTelegramIdentity.guest_id == account.guest_id,
         DemoTelegramIdentity.telegram_id != telegram_id,
@@ -244,6 +254,14 @@ def _telegram_link(db: Session, main, account, user: dict, background_tasks: Bac
     guest.telegram_id = telegram_id
     guest.username = str(user.get("username") or "")[:255] or None
     link.guest_id = guest.id
+    if telegram_shadow is not None:
+        # Revoke all old Telegram-only website sessions before transferring
+        # the identity. Keep the dormant row for audit; it no longer has any
+        # provider credential and must never be used for login again.
+        from demo_accounts import WebSession
+        db.query(WebSession).filter(
+            WebSession.account_id == telegram_shadow.id
+        ).delete(synchronize_session=False)
     if challenge is not None:
         challenge.status, challenge.telegram_id = "linked", telegram_id
 
@@ -422,6 +440,16 @@ def install_telegram_auth(app, get_db, main) -> None:
 
         from demo_legacy import reconcile_free_legacy
         legacy = reconcile_free_legacy(db,main,telegram_id,guest.id)
+        # A Telegram-only passwordless shadow WebAccount must not be treated
+        # as an already-linked email/Google identity: the Mini App still needs
+        # to offer two-proof onboarding to the holder of a *different* existing
+        # website account.
+        from demo_accounts import WebAccount
+        from demo_account_recovery import email_is_verified
+        web_account = db.query(WebAccount).filter(WebAccount.guest_id == guest.id).first()
+        verified_web_link = bool(
+            web_account and web_account.email and email_is_verified(db, web_account.id)
+        )
         return {
             "legacy_reconciliation": legacy,
             "guest": main.demo_guest_to_dict(guest, db),
@@ -431,7 +459,7 @@ def install_telegram_auth(app, get_db, main) -> None:
                 "username": guest.username,
             },
             "bot_registrations": bot_user_registrations(db, telegram_id, main),
-            "accounts_linked": bool(db.query(__import__("demo_accounts").WebAccount.id).filter(__import__("demo_accounts").WebAccount.guest_id == guest.id).first()),
+            "accounts_linked": verified_web_link,
         }
 
 def send_miniapp_ticket_notice(

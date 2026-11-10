@@ -1987,6 +1987,36 @@ def start(message):
     if len(parts) > 1:
         payload = parts[1].strip()
 
+        if payload.startswith("login_"):
+            # Independent website login: Telegram proves ownership through
+            # signed Mini App launch data; browser owns a separate HttpOnly
+            # verifier cookie. Never turn a forwarded bot link into a session.
+            code = payload[6:]
+            if (message.chat.type != "private" or not 40 <= len(code) <= 100
+                    or not re.fullmatch(r"[A-Za-z0-9_-]+", code)
+                    or not WEB_APP_URL.startswith("https://")):
+                bot.send_message(message.chat.id,
+                                 "Invalid website login request." if lang == "en" else
+                                 "Neplatná žádost o přihlášení na web.")
+                return
+            keyboard = InlineKeyboardMarkup()
+            keyboard.add(InlineKeyboardButton(
+                "Approve website login" if lang == "en" else "Potvrdit přihlášení na web",
+                web_app=WebAppInfo(
+                    url=f"{WEB_APP_URL}/profile?telegram_browser_login={code}"),
+            ))
+            bot.send_message(
+                message.chat.id,
+                ("Did you start a login on tickettreat.eu? Open the Mini App, enter "
+                 "the six-digit code shown ONLY on your website tab, and "
+                 "never approve unexpected sign-ins."
+                 if lang == "en" else
+                 "Zahájil(a) jsi přihlášení na tickettreat.eu? Otevři Mini App "
+                 "a zadej šestimístný kód z původní stránky. Cizí žádosti nepotvrzuj."),
+                reply_markup=keyboard,
+            )
+            return
+
         if payload.startswith("link_"):
             code = payload[5:]
             # Deep-link payload is an opaque secret, never a Telegram ID or email.

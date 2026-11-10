@@ -42,7 +42,16 @@ def install_principal_api(app,get_db,main):
             from demo_account_recovery import email_is_verified
             account,_=session_for(db,authorization)
             if not email_is_verified(db,account.id):
-                raise HTTPException(403,"email_verification_required")
+                # A Telegram-only account uses the same verified Telegram
+                # identity in the browser via OIDC; no email is required for
+                # participant tickets. Never bypass MFA/role guards.
+                from demo_telegram import DemoTelegramIdentity
+                from demo_roles import role_for
+                if not (account.email is None and account.password_hash == "!telegram-only"
+                        and role_for(db,account) == "participant"
+                        and db.query(DemoTelegramIdentity.telegram_id).filter(
+                            DemoTelegramIdentity.guest_id == account.guest_id).first()):
+                    raise HTTPException(403,"email_verification_required")
             guest=db.query(main.DemoGuest).filter(
                 main.DemoGuest.id==account.guest_id).first()
         if guest is None:

@@ -48,6 +48,15 @@ class EmailChallenge(Base):
     attempts = Column(Integer, nullable=False, default=0)
 
 
+class TelegramEmailClaim(Base):
+    __tablename__ = "demo_telegram_email_claims"
+    account_id = Column(Integer, ForeignKey("demo_web_accounts.id"), primary_key=True)
+    email = Column(String(255), nullable=False)
+    code_hash = Column(String(64), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    attempts = Column(Integer, nullable=False, default=0)
+
+
 class EmailRequest(BaseModel):
     email: str = Field(min_length=5, max_length=255)
 
@@ -206,11 +215,87 @@ def install_email_account_security(app, get_db):
             raise HTTPException(401, "invalid_session")
         return account
 
+    def telegram_without_email(account: WebAccount, db: Session) -> None:
+        """Only the authenticated Telegram holder can assign their first email."""
+        from demo_telegram import DemoTelegramIdentity
+        if (account.email is not None or account.password_hash != "!telegram-only"
+                or not db.query(DemoTelegramIdentity.telegram_id).filter(
+                    DemoTelegramIdentity.guest_id == account.guest_id).first()):
+            raise HTTPException(409, "telegram_email_attach_not_available")
+
+    @app.post("/demo/auth/email/attach/request")
+    def request_telegram_email(payload: EmailRequest, request: Request,
+                               account: WebAccount = Depends(get_account),
+                               db: Session = Depends(get_db)):
+        telegram_without_email(account, db)
+        email = normalize_email(payload.email)
+        ip = request.client.host if request.client else "unknown"
+        guard_rate(db, "telegram_email_ip", ip, 15, 3600)
+        guard_rate(db, "telegram_email_account", str(account.id), 4, 3600)
+        # Rate limiting applies even to existing-address attempts; otherwise
+        # an authenticated Telegram user could enumerate website emails.
+        record_rate(db, "telegram_email_ip", ip, 3600)
+        record_rate(db, "telegram_email_account", str(account.id), 3600)
+        if db.query(WebAccount.id).filter(WebAccount.email == email).first():
+            # Existing email/Google account: prove both identities before
+            # merging; no automatic reassignment based on an email string.
+            raise HTTPException(409, "email_already_registered_link_accounts")
+        code = f"{secrets.randbelow(100_000_000):08d}"
+        send_code(email, "verify", code)
+        row = db.get(TelegramEmailClaim, account.id)
+        if row is None:
+            row = TelegramEmailClaim(account_id=account.id)
+            db.add(row)
+        row.email = email
+        row.code_hash = code_digest(account.id, "telegram-email", code)
+        row.expires_at = now() + timedelta(minutes=10)
+        row.attempts = 0
+        db.commit()
+        return {"status": "sent"}
+
+    @app.post("/demo/auth/email/attach/confirm")
+    def confirm_telegram_email(payload: EmailCode,
+                               account: WebAccount = Depends(get_account),
+                               db: Session = Depends(get_db)):
+        account = db.query(WebAccount).filter(WebAccount.id == account.id).with_for_update().one()
+        telegram_without_email(account, db)
+        email = normalize_email(payload.email)
+        row = db.query(TelegramEmailClaim).filter(
+            TelegramEmailClaim.account_id == account.id).with_for_update().first()
+        if (row is None or row.email != email or aware(row.expires_at) <= now()
+                or row.attempts >= 5):
+            raise HTTPException(400, "invalid_or_expired_code")
+        row.attempts += 1
+        if not secrets.compare_digest(
+                row.code_hash, code_digest(account.id, "telegram-email", payload.code)):
+            db.commit()
+            raise HTTPException(400, "invalid_or_expired_code")
+        if db.query(WebAccount.id).filter(WebAccount.email == email).first():
+            raise HTTPException(409, "email_already_registered_link_accounts")
+        account.email = email
+        # Keep '!telegram-only' until the user chooses a password via the
+        # established email reset flow. Email magic login works immediately.
+        account.contact_preference = "email"
+        db.add(VerifiedEmail(account_id=account.id, verified_at=now()))
+        from main import DemoGuest
+        guest = db.get(DemoGuest, account.guest_id)
+        if guest is not None:
+            guest.email = email
+        db.delete(row)
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise HTTPException(409, "email_already_registered_link_accounts") from None
+        return {"email_verified": True}
+
     @app.post("/demo/auth/email/request-verification")
     def request_verification(request: Request, account: WebAccount = Depends(get_account),
                              db: Session = Depends(get_db)):
         if email_is_verified(db, account.id):
             return {"status": "already_verified"}
+        if not account.email:
+            raise HTTPException(409, "email_required_attach_first")
         ip = request.client.host if request.client else "unknown"
         # Delivery failures must not exhaust the small *successful-send*
         # allowance. Keep an independent generous attempt budget so an

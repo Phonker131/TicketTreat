@@ -313,6 +313,10 @@ def permanent_global_admin_emails() -> set[str]:
 
 
 def role_for(db: Session, account: WebAccount) -> str:
+    # Telegram-first users are participants until they independently verify
+    # an email. No legacy numeric-ID grant may elevate a passwordless account.
+    if not account.email:
+        return "participant"
     if account.id in global_admin_ids():
         return "global_admin"
     normalized_email = (account.email or "").strip().casefold()
