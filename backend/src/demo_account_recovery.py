@@ -229,17 +229,19 @@ def install_email_account_security(app, get_db):
                                db: Session = Depends(get_db)):
         telegram_without_email(account, db)
         email = normalize_email(payload.email)
-        if db.query(WebAccount.id).filter(WebAccount.email == email).first():
-            # Existing email/Google account: both identities must be proven
-            # through the existing two-proof linking flow, never inferred.
-            raise HTTPException(409, "email_already_registered_link_accounts")
         ip = request.client.host if request.client else "unknown"
         guard_rate(db, "telegram_email_ip", ip, 15, 3600)
         guard_rate(db, "telegram_email_account", str(account.id), 4, 3600)
-        code = f"{secrets.randbelow(100_000_000):08d}"
-        send_code(email, "verify", code)
+        # Rate limiting applies even to existing-address attempts; otherwise
+        # an authenticated Telegram user could enumerate website emails.
         record_rate(db, "telegram_email_ip", ip, 3600)
         record_rate(db, "telegram_email_account", str(account.id), 3600)
+        if db.query(WebAccount.id).filter(WebAccount.email == email).first():
+            # Existing email/Google account: prove both identities before
+            # merging; no automatic reassignment based on an email string.
+            raise HTTPException(409, "email_already_registered_link_accounts")
+        code = f"{secrets.randbelow(100_000_000):08d}"
+        send_code(email, "verify", code)
         row = db.get(TelegramEmailClaim, account.id)
         if row is None:
             row = TelegramEmailClaim(account_id=account.id)
