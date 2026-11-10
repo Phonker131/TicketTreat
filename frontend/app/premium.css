@@ -1419,3 +1419,168 @@ html body .tt-consent-actions .tt-consent-secondary{flex:0 0 auto;grid-column:au
 }
 /* the category switches already show their state; the extra tick glyph goes */
 html body :is(.tt-consent-status,.tt-consent-toggle)>span{display:none!important}
+
+/* =====================================================================================
+   v9 (09.11.2026): even event cards (one 4:5 poster format, clamped text), saved events,
+   organizer tags, venue link, organizer dashboard navigation and event page tabs.
+   ===================================================================================== */
+/* ---- feed grid: fixed-width columns, so two events never become two giant posters ---- */
+html body .tt-night-home .event-grid.tp-feed{grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:clamp(16px,2vw,26px);margin-top:24px;align-items:stretch}
+@media (min-width:1300px){html body .tt-night-home .event-grid.tp-feed{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* ---- the card ---- */
+html body .tt-night-home .event-card.tp-ecard{display:flex;flex-direction:column;min-width:0;padding:0;border:0;border-radius:22px;background:var(--tp-surf);box-shadow:0 0 0 1.5px var(--tp-line);overflow:hidden;animation:none;transition:transform .4s var(--ease),box-shadow .4s var(--ease)}
+@media (hover:hover){html body .tt-night-home .event-card.tp-ecard:hover{transform:translateY(-4px);box-shadow:0 0 0 1.5px var(--tp-line),0 24px 40px -28px var(--tp-shadow)}}
+html body .tt-night-home .tp-ecard-media{position:relative;margin:0;width:100%;aspect-ratio:4/5;overflow:hidden;border-radius:0;background:var(--tp-surf2);animation:none}
+html body .tt-night-home .tp-ecard-media::after{display:none!important}
+html body .tt-night-home .tp-ecard-poster{display:block;width:100%;height:100%}
+html body .tt-night-home .tp-ecard-media :is(.event-card-poster,.tp-card-art){display:block;width:100%!important;height:100%!important;max-height:none;aspect-ratio:auto!important;object-fit:cover;border:0!important;outline:0!important;border-radius:0!important;box-shadow:none!important;filter:none!important;background:var(--tp-surf2);transition:transform .6s var(--ease)}
+@media (hover:hover){html body .tt-night-home .event-card.tp-ecard:hover .event-card-poster{transform:scale(1.03)}}
+html body .tt-night-home .tp-ecard-date{position:absolute;left:12px;top:12px;right:auto;bottom:auto;z-index:2;display:grid;justify-items:center;gap:0;min-width:48px;padding:7px 9px 6px;border-radius:12px;background:var(--paper);color:var(--ink);transform:none!important;box-shadow:0 3px 12px rgba(2,7,10,.28)}
+html body .tt-night-home .tp-ecard-date strong{font:900 26px/.9 var(--d);letter-spacing:0}
+html body .tt-night-home .tp-ecard-date span{font:700 9.5px/1.3 var(--m);letter-spacing:.06em}
+html body .tt-night-home .tp-ecard-price{position:absolute;right:12px;bottom:12px;z-index:2;padding:8px 11px;border-radius:999px;background:var(--tom);color:var(--ink);font:700 12.5px/1 var(--m);white-space:nowrap;box-shadow:0 3px 12px rgba(2,7,10,.28)}
+.tp-heart{position:absolute;right:10px;top:10px;z-index:3;display:grid;place-items:center;width:40px;height:40px;padding:0;border:0;border-radius:50%;background:rgba(2,7,10,.5);color:var(--paper);cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:transform .25s var(--ease),background .25s,color .25s;-webkit-tap-highlight-color:transparent}
+.tp-heart svg{display:block}
+.tp-heart[aria-pressed="true"]{background:var(--paper);color:var(--yel)}
+.tp-heart[aria-pressed="true"] svg{fill:currentColor}
+@media (hover:hover){.tp-heart:hover{transform:scale(1.1)}}
+.tp-heart:active{transform:scale(.92)}
+.tp-heart:focus-visible{outline:3px solid var(--paper);outline-offset:2px}
+.tp-heart.is-inline{position:static;flex:none;background:var(--tp-surf2);color:var(--tp-fg);-webkit-backdrop-filter:none;backdrop-filter:none}
+.tp-heart.is-inline[aria-pressed="true"]{color:var(--yel)}
+html body .tt-night-home .tp-ecard-body{display:flex;flex-direction:column;flex:1;gap:6px;min-width:0;padding:14px 16px 16px}
+html body .tt-night-home .tp-ecard-when{margin:0;color:var(--tp-mute);font:700 12px/1.3 var(--m);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .tt-night-home .tp-ecard-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0;min-height:1.9em;font:900 clamp(26px,2.1vw,32px)/.95 var(--d);letter-spacing:0;text-transform:uppercase;color:var(--tp-fg);overflow-wrap:anywhere}
+html body .tt-night-home .tp-ecard-title a{color:inherit;text-decoration:none}
+html body .tt-night-home .tp-ecard-title a:focus-visible{outline:3px solid var(--tp-fg);outline-offset:2px}
+html body .tt-night-home .tp-ecard-place{display:block;margin:0;min-width:0;color:var(--tp-mute);font:500 14px/1.4 var(--u);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .tt-night-home .tp-ecard-place .tt-event-organizer-link{color:var(--tp-fg);font-weight:700;text-decoration:none}
+html body .tt-night-home .tp-ecard-place .tt-event-organizer-link:hover{text-decoration:underline;text-underline-offset:3px}
+.tp-ecard-tags{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 0;padding:0;list-style:none}
+.tp-ecard-tags li{padding:5px 9px;border-radius:999px;background:var(--tp-surf2);color:var(--tp-fg);font:600 12px/1.2 var(--u)}
+.tp-ecard-tags li.is-lang{background:transparent;box-shadow:inset 0 0 0 1.5px var(--tp-line);color:var(--tp-mute);font:700 11px/1.2 var(--m)}
+.tp-ecard-tags.is-hero{margin:0 0 14px}
+html body .tt-night-home .tp-ecard-foot{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:12px}
+html body .tt-night-home .tp-ecard-foot .status{min-height:36px;padding:0 11px;border:0;border-radius:999px;background:transparent;color:var(--tp-fg);box-shadow:inset 0 0 0 1.5px var(--tp-line);font:700 12px/1 var(--m);white-space:nowrap}
+html body .tt-night-home .tp-ecard-foot .status-danger{background:var(--fire);color:var(--paper);box-shadow:none}
+html body .tt-night-home .tp-ecard-foot .button{flex:none;min-height:40px;padding:0 16px;border:2px solid var(--ink);border-radius:999px;background:var(--paper);color:var(--ink);box-shadow:none;font-size:14px}
+html body .tt-night-home .tp-ecard-foot .button:active{transform:scale(.97)}
+/* phones: compact rows, poster on the left, so a screen shows two or three events */
+@media (max-width:640px){
+ html body .tt-night-home .event-grid.tp-feed{grid-template-columns:minmax(0,1fr);gap:12px;margin-top:8px}
+ html body .tt-night-home .event-card.tp-ecard{display:grid;grid-template-columns:118px minmax(0,1fr);gap:0 12px;padding:10px;border-radius:20px}
+ html body .tt-night-home .event-card.tp-ecard:hover{transform:none}
+ html body .tt-night-home .tp-ecard-media{width:118px;border-radius:14px}
+ html body .tt-night-home .tp-ecard-date{left:6px;top:6px;min-width:38px;padding:5px 6px 4px;border-radius:9px}
+ html body .tt-night-home .tp-ecard-date strong{font-size:20px}
+ html body .tt-night-home .tp-ecard-date span{font-size:8.5px}
+ html body .tt-night-home .tp-ecard-price{right:6px;bottom:6px;padding:6px 8px;font-size:11px}
+ html body .tt-night-home .tp-ecard-media .tp-heart{width:34px;height:34px;right:6px;top:6px}
+ html body .tt-night-home .tp-ecard-media .tp-heart svg{width:17px;height:17px}
+ html body .tt-night-home .tp-ecard-body{padding:2px 0 0;gap:4px;align-self:stretch}
+ html body .tt-night-home .tp-ecard-when{font-size:11px}
+ html body .tt-night-home .tp-ecard-title{font-size:23px;min-height:0}
+ html body .tt-night-home .tp-ecard-place{font-size:13px}
+ html body .tt-night-home .tp-ecard-tags li{padding:3px 7px;font-size:11px}
+ html body .tt-night-home .tp-ecard-foot{padding-top:8px;gap:8px}
+ html body .tt-night-home .tp-ecard-foot .status{min-height:32px;padding:0 9px;font-size:11px}
+ html body .tt-night-home .tp-ecard-foot .button{min-height:38px;padding:0 14px;font-size:13.5px}
+}
+/* light theme: the card sits on paper */
+html[data-theme="light"] body .tt-night-home .event-card.tp-ecard{background:var(--tp-surf);box-shadow:0 0 0 1.5px var(--tp-line)}
+html[data-theme="light"] body .tt-night-home .tp-ecard-date{box-shadow:0 0 0 1.5px var(--ink)}
+html[data-theme="light"] .tp-heart{background:rgba(2,7,10,.45)}
+
+/* ---- swipe deck: text never pushes the card taller than its neighbours ---- */
+html body .tp-deck-card h3{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;min-height:1.8em}
+html body .tp-deck-card>p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* ---- browse modes: three segments, saved count ---- */
+html body .tp-seg{grid-template-columns:repeat(3,minmax(0,1fr))}
+html body .tp-seg button{min-width:0;padding:0 14px;gap:7px}
+.tp-seg-count{position:relative;z-index:1;display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--yel);color:var(--ink);font:700 11px/1 var(--m)}
+.tp-seg button[aria-pressed="true"] .tp-seg-count{background:var(--ink);color:var(--paper)}
+.tp-linkbtn{padding:0;border:0;background:none;color:var(--tp-fg);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.tp-events-empty.is-compact .tp-ee-copy p{margin:0 0 4px;color:var(--tp-mute);font:400 15px/1.5 var(--u);max-width:46ch}
+
+/* ---- saved events on the tickets page ---- */
+.tp-saved-section{margin-top:28px}
+.tp-saved-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.tp-saved-main{display:grid;flex:1;gap:3px;min-width:0;color:inherit;text-decoration:none}
+.tp-saved-main h3,.tp-saved-main p{margin:0;overflow-wrap:anywhere}
+.tp-saved-main small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp-saved-row .ticket-row-right{display:flex;align-items:center;gap:10px}
+
+/* ---- event page: long descriptions wrap instead of widening the page ---- */
+html body .event-page .event-description{overflow-wrap:anywhere;white-space:pre-line}
+
+/* ---- organizer dashboard (ink on paper): one navigation row, a summary strip, readable cards ---- */
+.app-shell:has(.admin-heading,.admin-event-actions){--ad-bg:#fff;--ad-fg:var(--ink);--ad-line:var(--ink);--ad-shade:var(--shade)}
+html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions){--ad-bg:var(--tp-surf);--ad-fg:var(--tp-fg);--ad-line:var(--tp-line);--ad-shade:var(--tp-surf2)}
+html[data-theme="dark"] body .admin-heading :is(h1,p,a:not(.button)){color:var(--tp-fg)}
+html[data-theme="dark"] body .app-shell:has(.admin-heading) :is(.tp-admin-toolbar label,.tp-form-section>h3,.tp-form-section>p,.tp-form-actions .form-note){color:var(--tp-fg)}
+.tp-admin-top{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;margin:12px 0 18px}
+.tp-admin-top h1{margin:6px 0 4px}
+.tp-admin-top p{margin:0;max-width:60ch}
+.tp-admin-primary{display:flex;flex-wrap:wrap;gap:10px}
+.tp-admin-nav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;padding:0;list-style:none}
+.tp-admin-nav a{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1.5px solid var(--ad-line);border-radius:999px;background:var(--ad-bg);color:var(--ad-fg);font:600 14px/1 var(--u);text-decoration:none;transition:background .2s,color .2s}
+.tp-admin-nav a:hover{background:var(--ad-fg);color:var(--ad-bg)}
+.tp-admin-nav a:focus-visible{outline:3px solid var(--ad-fg);outline-offset:2px}
+.tp-badge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--yel);color:var(--ink);font:700 11px/1 var(--m)}
+.tp-admin-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px;margin:0 0 18px}
+.tp-admin-summary>div{display:grid;gap:3px;padding:14px 16px;border:1.5px solid var(--ad-line);border-radius:16px;background:var(--ad-bg);min-width:0}
+.tp-admin-summary strong{font:900 30px/1 var(--d);letter-spacing:0}
+.tp-admin-summary span{font:600 12px/1.3 var(--u);color:var(--ad-fg);opacity:.72;overflow-wrap:anywhere}
+.tp-admin-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px}
+.tp-admin-toolbar label{display:grid;gap:4px;font:700 12px/1.2 var(--u)}
+.tp-admin-toolbar input,.tp-admin-toolbar select{min-height:42px;padding:0 12px;border:1.5px solid var(--ad-line);border-radius:12px;background:var(--ad-bg);font:500 14px/1 var(--u)}
+.tp-admin-toolbar .is-search{flex:1 1 220px}
+html body .admin-event-grid.tp-admin-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
+html body .admin-event-card.tp-admin-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:start;padding:14px;border:1.5px solid var(--ad-line);border-radius:18px;background:var(--ad-bg);color:var(--ad-fg);text-decoration:none;min-width:0}
+html body .admin-event-card.tp-admin-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -18px rgba(2,7,10,.5)}
+.tp-admin-card .tp-ecard-date{position:static;grid-row:1/span 4;display:grid;justify-items:center;gap:0;min-width:52px;padding:8px 9px 7px;border:1.5px solid var(--ad-line);border-radius:12px;background:var(--ad-shade);color:var(--ad-fg);transform:none!important}
+.tp-admin-card .tp-ecard-date strong{font:900 26px/.9 var(--d)}
+.tp-admin-card .tp-ecard-date span{font:700 9.5px/1.3 var(--m);letter-spacing:.06em}
+.tp-admin-card .tp-ecard-date.is-empty strong{font-size:20px;opacity:.5}
+.tp-admin-card .tp-status{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;min-height:24px;padding:0 9px;border-radius:999px;background:var(--ad-shade);color:var(--ad-fg);font:700 11px/1 var(--m);letter-spacing:.03em;text-transform:uppercase}
+.tp-admin-card .tp-status.is-published{background:var(--tom);color:var(--ink)}
+.tp-admin-card .tp-status.is-scheduled{background:var(--yel);color:var(--ink)}
+.tp-admin-card .tp-status.is-cancelled{background:var(--fire);color:var(--paper)}
+html body .admin-event-card.tp-admin-card h3{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0;font:900 22px/1 var(--d);letter-spacing:0;text-transform:uppercase;overflow-wrap:anywhere}
+html body .admin-event-card.tp-admin-card p{margin:0;font:500 13px/1.35 var(--u);color:var(--ad-fg)!important;opacity:.72!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp-admin-card .tp-admin-guests{display:grid;gap:5px;margin-top:4px;font:700 12px/1 var(--m)}
+.tp-admin-card .tp-admin-guests span{display:flex;justify-content:space-between;gap:8px;opacity:.85}
+.tp-admin-bar{height:6px;border-radius:999px;background:var(--ad-shade);overflow:hidden}
+.tp-admin-bar i{display:block;height:100%;border-radius:inherit;background:var(--tom)}
+.tp-admin-bar.is-full i{background:var(--fire)}
+
+/* ---- create event form: grouped sections, two columns on wide screens ---- */
+.tp-form-sections{display:grid;gap:14px}
+.tp-form-section{display:grid;gap:12px;min-width:0;padding:16px;border:1.5px solid var(--ad-shade);border-radius:16px;background:var(--ad-bg)}
+.tp-form-section>h3{margin:0;font:900 20px/1 var(--d);letter-spacing:0;text-transform:uppercase}
+.tp-form-section>p{margin:-6px 0 0;font:400 13px/1.45 var(--u);opacity:.75}
+@media (min-width:900px){.tp-form-sections{grid-template-columns:repeat(2,minmax(0,1fr))}.tp-form-section.is-wide{grid-column:1/-1}}
+.tp-form-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;grid-column:1/-1}
+.tp-form-actions .form-note{margin:0}
+.event-language-options .event-language-flag svg{display:block}
+
+/* ---- event page in the dashboard: tabs instead of one long scroll ---- */
+.tp-tabs{position:sticky;top:0;z-index:5;display:flex;gap:6px;margin:0 0 18px;padding:8px 0 10px;overflow-x:auto;background:var(--tp-bg);border-bottom:1.5px solid var(--ad-shade);scrollbar-width:none}
+.tp-tabs::-webkit-scrollbar{display:none}
+.tp-tabs button{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:0 16px;border:1.5px solid transparent;border-radius:999px;background:transparent;color:var(--ad-fg);font:600 14px/1 var(--u);cursor:pointer;transition:background .2s,color .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
+.tp-tabs button:hover{border-color:var(--ad-fg)}
+.tp-tabs button[aria-selected="true"]{background:var(--ad-fg);color:var(--ad-bg);border-color:var(--ad-fg)}
+.tp-tabs button[aria-selected="true"] .tp-badge{background:var(--yel);color:var(--ink)}
+.tp-tabs button:focus-visible{outline:3px solid var(--ad-fg);outline-offset:2px}
+.tp-tabpanel{display:grid;gap:16px}
+.tp-tabpanel>.panel{margin:0}
+.tp-event-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 20px;align-items:start;margin:10px 0 14px}
+.tp-event-head h1{margin:6px 0 4px;overflow-wrap:anywhere}
+.tp-event-head p{margin:0;opacity:.75;overflow-wrap:anywhere}
+.tp-event-head .tp-admin-primary{justify-content:flex-end}
+@media (max-width:760px){.tp-event-head{grid-template-columns:minmax(0,1fr)}.tp-event-head .tp-admin-primary{justify-content:flex-start}}
+.tp-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px}
+.tp-quick>div{display:grid;gap:3px;padding:14px 16px;border:1.5px solid var(--ad-line);border-radius:16px;background:var(--ad-bg)}
+.tp-quick strong{font:900 30px/1 var(--d)}
+.tp-quick span{font:600 12px/1.3 var(--u);opacity:.72}

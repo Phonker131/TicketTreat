@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import {ExampleTickets} from "@/components/ExampleTickets";
 import { useLanguage } from "@/components/LanguageProvider";
-import { getDemoTickets, getMyAttendance } from "@/lib/api";
+import { getDemoTickets, getEvents, getMyAttendance } from "@/lib/api";
+import {BrandIcon} from "@/components/BrandIcon";
+import {useWanted} from "@/lib/wanted";
 import type {AttendanceHistory} from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { t, localeForLanguage } from "@/lib/i18n";
@@ -22,6 +24,21 @@ export function TicketsClient() {
   const [loading, setLoading] = useState(true);
   const [botEvents, setBotEvents] = useState<TicketTreatEvent[]>([]);
   const [error, setError] = useState("");
+  const [wanted,setWanted]=useWanted();
+  const [catalogue,setCatalogue]=useState<TicketTreatEvent[]>([]);
+  useEffect(()=>{
+    if(!wanted.length||catalogue.length)return;
+    const controller=new AbortController();
+    getEvents(controller.signal).then(setCatalogue).catch(()=>{});
+    return()=>controller.abort();
+  },[wanted.length,catalogue.length]);
+  const savedEvents=catalogue.filter(event=>wanted.includes(event.id)&&!event.is_cancelled);
+  const savedWords={
+    ru:{title:"Хочу пойти",hint:"Ивенты, которые ты сохранил свайпом или сердечком. Это ещё не билеты.",remove:"Убрать из избранного"},
+    cs:{title:"Chci jít",hint:"Akce uložené přejetím doprava nebo srdíčkem. Zatím to nejsou vstupenky.",remove:"Odebrat z uložených"},
+    uk:{title:"Хочу піти",hint:"Події, збережені свайпом або сердечком. Це ще не квитки.",remove:"Прибрати з обраного"},
+    en:{title:"Want to go",hint:"Events you saved with a swipe or the heart. These are not tickets yet.",remove:"Remove from saved"}
+  }[language];
 
   useEffect(() => {
     let live = true;
@@ -79,6 +96,22 @@ export function TicketsClient() {
               </Link>
             ))}
           </div>}
+          {savedEvents.length>0&&<section className="section tp-saved-section" aria-labelledby="tp-saved-title">
+            <div className="section-heading"><div><h2 id="tp-saved-title">{savedWords.title}</h2><p>{savedWords.hint}</p></div></div>
+            <div className="ticket-list">
+              {savedEvents.map(event=><div className="ticket-row tp-saved-row" key={event.id}>
+                <Link href={`/events/${event.id}`} className="tp-saved-main">
+                  <small>{event.location||"Praha"}</small>
+                  <h3>{event.title}</h3>
+                  <p>{formatDate(event.starts_at,language)}</p>
+                </Link>
+                <div className="ticket-row-right">
+                  <strong>{formatPrice(event,language)}</strong>
+                  <button type="button" className="tp-heart is-inline" aria-pressed="true" aria-label={savedWords.remove} onClick={()=>setWanted(event.id,false)}><BrandIcon name="heart" size={20}/></button>
+                </div>
+              </div>)}
+            </div>
+          </section>}
           <p><Link href="/loyalty" className="button button-outline">{language==="ru"?"Мои награды и уровни":language==="cs"?"Moje odměny a úrovně":language==="uk"?"Мої нагороди та рівні":"My rewards and tiers"}</Link></p>
           {attendance&&<section className="panel" style={{marginTop:20}}>
             <h2>{language==="ru"?"История посещений":language==="cs"?"Historie návštěv":language==="uk"?"Історія відвідувань":"Attendance history"}</h2>

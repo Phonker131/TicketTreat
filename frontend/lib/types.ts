@@ -36,6 +36,8 @@ export type TicketTreatEvent = {
   uploaded_gallery?: {id:number;url:string;position?:number;is_cover?:boolean}[];
   gallery_cover_url?:string|null;
   video_url?: string | null;
+  venue_url?: string | null;
+  tags?: string[];
   starts_at: string | null;
   reminder_text?: string | null;
   reminder_minutes_before?: number | null;

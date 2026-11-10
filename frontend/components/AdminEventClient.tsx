@@ -20,8 +20,17 @@ import {
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
+import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag,type EventTag} from "@/lib/event-tags";
 import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff,PaidReservation} from "@/lib/api";
 
+type Tab="overview"|"details"|"media"|"guests"|"notify"|"analytics"|"moderation";
+const TABS:Tab[]=["overview","details","media","guests","notify","analytics","moderation"];
+const TAB_WORDS:Record<LanguageCode,Record<Tab,string>>={
+  ru:{overview:"Обзор",details:"Описание",media:"Фото",guests:"Гости",notify:"Напоминания",analytics:"Аналитика",moderation:"Модерация"},
+  en:{overview:"Overview",details:"Details",media:"Photos",guests:"Guests",notify:"Reminders",analytics:"Analytics",moderation:"Moderation"},
+  cs:{overview:"Přehled",details:"Údaje",media:"Fotky",guests:"Hosté",notify:"Připomínky",analytics:"Analytika",moderation:"Moderace"},
+  uk:{overview:"Огляд",details:"Опис",media:"Фото",guests:"Гості",notify:"Нагадування",analytics:"Аналітика",moderation:"Модерація"},
+};
 function asLocal(value: string|null): string {
   if(!value)return "";
   return value.slice(0,16);
@@ -64,7 +73,12 @@ export function AdminEventClient(){
   const [audit,setAudit]=useState<{action:string;details:string;actor_account_id:number;at:string}[]>([]);
   const [error,setError]=useState(""),[notice,setNotice]=useState("");
   const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
-  const [showEdit,setShowEdit]=useState(false),[showCancel,setShowCancel]=useState(false);
+  const [showCancel,setShowCancel]=useState(false);
+  const [tab,setTab]=useState<Tab>("overview");
+  useEffect(()=>{const hash=window.location.hash.slice(1);if((TABS as string[]).includes(hash))setTab(hash as Tab)},[]);
+  // On phones the tab strip scrolls sideways; keep the active tab in view.
+  useEffect(()=>{document.querySelector('.tp-tabs [aria-selected="true"]')?.scrollIntoView({block:"nearest",inline:"center"})},[tab]);
+  const pickTab=(next:Tab)=>{setTab(next);window.history.replaceState(null,"","#"+next)};
   const cancelDialogRef=useRef<HTMLDialogElement>(null);
   const [cancelError,setCancelError]=useState("");
   const [reason,setReason]=useState(""),[owner,setOwner]=useState("");
@@ -77,6 +91,8 @@ export function AdminEventClient(){
   const [price,setPrice]=useState("0"),[currency,setCurrency]=useState("CZK");
   const [paymentInstructions,setPaymentInstructions]=useState("");
   const [languages,setLanguages]=useState<LanguageCode[]>(["en","ru"]);
+  const [venueUrl,setVenueUrl]=useState("");
+  const [tags,setTags]=useState<EventTag[]>([]);
   async function reload(){
     const token=getWebToken();if(!token)throw new LocalValidationError(tr("Сначала войди в профиль."));
     const [me,ev,tickets]=await Promise.all([
@@ -96,6 +112,7 @@ export function AdminEventClient(){
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
     setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
     setPaymentInstructions(ev.payment_instructions||"");
+    setVenueUrl(ev.venue_url||"");setTags((ev.tags||[]).filter(isEventTag));
     setOwner(ev.owner_account_id==null?"":String(ev.owner_account_id));
     if(me.role==="global_admin"){
       const [list,history]=await Promise.all([
@@ -137,10 +154,11 @@ export function AdminEventClient(){
         max_participants:Number(capacity),price:String(price),
         payment_instructions:paymentInstructions.trim(),
         currency,starts_at:startsAt+":00",languages,
+        venue_url:venueUrl.trim(),tags,
       };
       if(image)payload.poster_data_url=image;
       await editManageEvent(token,eventId,payload);
-      await reload();setShowEdit(false);setPoster(null);
+      await reload();setPoster(null);
       setNotice(tr("Изменения сохранены."));
     }catch(e){setError(formattedError(e,language));}
     finally{setBusy(false);}
@@ -385,23 +403,36 @@ export function AdminEventClient(){
     {error&&<div className="state-card state-error" role="alert">{error}</div>}
     {notice&&<div className="success-banner" role="status">{notice}</div>}
     {event&&identity&&<>
-      <div className="admin-heading">
+      <div className="admin-heading tp-event-head">
         <div><span className={event.is_cancelled?"status status-danger":"status status-demo"}>{event.is_cancelled?tr("Cancelled"):`${tr(event.publication?.status==="draft"?"Черновик":event.publication?.status==="scheduled"?"Запланировано":"Опубликовано")} · #${event.id}`}</span>
         <h1>{event.title}</h1><p>{event.location}</p></div>
-        <div className="admin-event-actions">
-          <button className="button button-outline" onClick={csv} disabled={busy}>{tr("↓ Export CSV")}</button>
+        <div className="admin-event-actions tp-admin-primary">
+          {!event.is_cancelled&&<button type="button" className="button button-primary" onClick={()=>pickTab("details")}>{tr("Редактировать ивент")}</button>}
           <Link className="button button-sun" href="/admin/check-in">{tr("Scan QR")}</Link>
         </div>
       </div>
       {event.is_cancelled&&<div className="state-card state-error"><strong>{tr("Причина отмены:")}</strong> {event.cancellation_reason||"—"}</div>}
-      <div className="admin-event-actions" style={{marginBottom:18}}>
-        {!event.is_cancelled&&<button className="button button-primary" onClick={()=>setShowEdit(v=>!v)}>
-        {showEdit?tr("Закрыть"):tr("Редактировать ивент")}</button>}
+      <div className="tp-tabs" role="tablist" aria-label={TAB_WORDS[language].overview}>
+        {TABS.filter(t=>t!=="moderation"||identity.role==="global_admin").map(t=><button key={t} type="button" role="tab" aria-selected={tab===t} onClick={()=>pickTab(t)}>
+          {TAB_WORDS[language][t]}
+          {t==="guests"&&data&&<b className="tp-badge">{data.tickets.filter(x=>x.ticket_status==="active").length}</b>}
+          {t==="guests"&&paidReservations.some(r=>r.status==="pending")&&<b className="tp-badge" aria-label={tr("Ожидает оплаты")}>!</b>}
+        </button>)}
+      </div>
+      {tab==="overview"&&<div className="tp-tabpanel">
+      <div className="tp-quick">
+        <div><strong>{event.registered_count??0}{event.max_participants?` / ${event.max_participants}`:""}</strong><span>{tr("Регистрации всего")}</span></div>
+        <div><strong>{data?data.tickets.filter(t=>t.checked_in_at).length:"—"}</strong><span>{tr("Пришли по QR")}</span></div>
+        <div><strong>{data?data.waitlist.filter(w=>w.status==="waiting").length:"—"}</strong><span>{tr("Ожидают места")}</span></div>
+        <div><strong>{asLocal(event.starts_at).replace("T"," ")||"—"}</strong><span>{tr("Дата и время")}</span></div>
+      </div>
+      <div className="admin-event-actions">
         {!event.is_cancelled&&<button type="button" className="button button-outline" disabled={busy}
           onClick={openCancelDialog}>{tr("Отменить ивент")}</button>}
         <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
         {event.publication?.visible&&<Link className="button button-outline" href={event.invite_url||`/events/${event.id}`}>{language==="ru"?"Страница мероприятия ↗":"Event page ↗"}</Link>}
         <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>{tr("Копировать ивент")}</button>
+        <button className="button button-outline" onClick={csv} disabled={busy}>{tr("↓ Export CSV")}</button>
       </div>
       {!event.is_cancelled&&<section className="panel form-stack">
         <h2>{tr("Публикация мероприятия")}</h2>
@@ -432,11 +463,16 @@ export function AdminEventClient(){
           <button type="button" className="button button-sun" onClick={()=>void downloadPromotionQR()}>{tr("Скачать QR для афиши")}</button>
         </div>}
       </section>}
-      {showEdit&&!event.is_cancelled&&<form className="panel form-stack" onSubmit={saveChanges}>
+      </div>}
+      {tab==="details"&&<div className="tp-tabpanel">
+      {event.is_cancelled&&<div className="state-card">{tr("Cancelled")}</div>}
+      {!event.is_cancelled&&<form className="panel form-stack" onSubmit={saveChanges}>
         <h2>{tr("Редактировать информацию")}</h2>
         <label>{tr("Название")}<input value={title} required onChange={e=>setTitle(e.target.value)}/></label>
         <label>{tr("Организатор")}<input value={organizer} onChange={e=>setOrganizer(e.target.value)}/></label>
         <label>{tr("Адрес или место проведения")}<input value={location} onChange={e=>setLocation(e.target.value)}/></label>
+        <label>{tr("Ссылка на площадку")}<input type="url" inputMode="url" value={venueUrl} onChange={e=>setVenueUrl(e.target.value)} placeholder="https://…"/>
+          <small className="tp-field-hint">{tr("Сайт, Instagram или страница места на карте. Гости увидят кнопку «Сайт площадки» на странице ивента.")}</small></label>
         <label>{tr("Описание")}<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>
         <label>{tr("Фото мероприятия (HTTPS, по одной ссылке на строку, до 8)")}<textarea rows={4} value={gallery} onChange={e=>setGallery(e.target.value)}/></label>
         <label>{tr("Видео (YouTube/Vimeo)")}<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
@@ -448,6 +484,15 @@ export function AdminEventClient(){
         <label>{tr("Инструкция по оплате организатору (обязательно для платных мероприятий)")}
           <textarea value={paymentInstructions} maxLength={2000} rows={4} onChange={e=>setPaymentInstructions(e.target.value)} placeholder={tr("Способ и реквизиты прямого платежа, контакт организатора; TicketTreat платежи не принимает.")}/>
         </label>
+        <fieldset className="event-language-fieldset"><legend>{tr("Категории")}</legend>
+        <p className="tp-field-hint">{tr("По ним гости фильтруют афишу на главной. Можно выбрать несколько.")}</p>
+        <div className="event-language-options">
+          {EVENT_TAGS.map(tag=><label className="event-language-option" key={tag}>
+            <input type="checkbox" checked={tags.includes(tag)} onChange={e=>setTags(s=>e.target.checked?[...s,tag]:s.filter(x=>x!==tag))}/>
+            <span className="event-language-flag" aria-hidden="true"><TagIcon tag={tag}/></span>
+            <span className="event-language-name">{TAG_LABELS[language][tag]}</span>
+          </label>)}
+        </div></fieldset>
         <fieldset className="event-language-fieldset"><legend>{tr("Языки")}</legend>
         <div className="event-language-options">
           {([["en","🇬🇧","English"],["cs","🇨🇿","Čeština"],["ru","🇷🇺","Русский"],["uk","🇺🇦","Українська"]] as const).map(([id,flag,name])=>
@@ -464,6 +509,13 @@ export function AdminEventClient(){
         {event.image_url&&<img src={event.image_url} alt="Event poster" className="event-poster-preview"/>}
         <button className="button button-primary" disabled={busy}>{busy?tr("Сохраняем…"):"Сохранить изменения"}</button>
       </form>}
+      </div>}
+      {tab==="media"&&<div className="tp-tabpanel">
+      {event.image_url&&<section className="panel form-stack">
+        <h2>{tr("Постер")}</h2>
+        <img src={event.image_url} alt="" className="event-poster-preview"/>
+        <p className="form-note">{tr("Новый постер загружается на вкладке «Описание».")}</p>
+      </section>}
       {!event.is_cancelled&&<section className="panel form-stack">
         <h2>{tr("Фотогалерея мероприятия")}</h2>
         <p className="form-note">{tr("Загружай фотографии с прошлых мероприятий (JPG, PNG, WebP; до 2 МБ каждая, максимум 8 включая HTTPS-ссылки). Файлы сохраняются на сервере TicketTreat.")}</p>
@@ -488,6 +540,7 @@ export function AdminEventClient(){
           </div>)}
         </div>
       </section>}
+      </div>}
       <dialog ref={cancelDialogRef} className="tt-event-cancel-dialog" aria-labelledby="tt-event-cancel-title"
         aria-describedby="tt-event-cancel-description" onClose={()=>setShowCancel(false)}>
         <form className="form-stack" onSubmit={cancel}>
@@ -510,6 +563,8 @@ export function AdminEventClient(){
           </div>
         </form>
       </dialog>
+      {tab==="analytics"&&<div className="tp-tabpanel">
+      {!pilotInsights&&<div className="state-card">{tr("Нет регистраций.")}</div>}
       {pilotInsights&&<section className="panel form-stack">
         <h2>{tr("Аналитика посещаемости")}</h2>
         <div className="stats-grid">
@@ -538,6 +593,8 @@ export function AdminEventClient(){
             </div>)}</div>}
         <p className="form-note">{tr("Старые записи Telegram учитываются во вместимости, но не во всех QR-метриках.")}</p>
       </section>}
+      </div>}
+      {tab==="notify"&&<div className="tp-tabpanel">
       {!event.is_cancelled&&<section className="panel form-stack">
         <h2>{tr("Правила бесплатной регистрации")}</h2>
         <label>{tr("Закрыть регистрацию за N минут до начала (0 — до старта)")}
@@ -568,6 +625,8 @@ export function AdminEventClient(){
         <button className="button button-primary" type="button" disabled={busy||!pilotSettings.reminder_minutes.length}
           onClick={savePilotPolicy}>{tr("Сохранить правила и напоминания")}</button>
       </section>}
+      </div>}
+      {tab==="guests"&&<div className="tp-tabpanel">
       <section className="panel form-stack">
         <h2>{tr("Персонал для проверки билетов")}</h2>
         <p className="form-note">{tr("Можно назначить подтверждённый TicketTreat-аккаунт только на QR check-in этого мероприятия. Управление ивентом и экспорт участников остаются закрыты.")}</p>
@@ -579,6 +638,8 @@ export function AdminEventClient(){
             onClick={()=>removeCheckinStaff(staff.account_id)}>{tr("Отозвать")}</button>
         </div>)}
       </section>
+      </div>}
+      {tab==="notify"&&<div className="tp-tabpanel">
       <section className="panel form-stack">
         <h2>{tr("Уведомления участникам")}</h2>
         <Link href={`/admin/broadcasts?event_id=${eventId}`} className="button button-outline">{tr("📢 Рассылка участникам этого ивента →")}</Link>
@@ -622,6 +683,8 @@ export function AdminEventClient(){
         </section>}
         <p className="form-note">{tr("Список адресов участников доступен через Export CSV. Рекламные массовые письма не отправляются без отдельного согласия.")}</p>
       </section>
+      </div>}
+      {tab==="moderation"&&<div className="tp-tabpanel">
       {identity.role==="global_admin"&&<section className="panel form-stack">
         <h2>{tr("Глобальная модерация")}</h2>
         <p>{tr("Владелец ивента:")} {event.owner_account_id==null?tr("не назначен"):`${tr("Аккаунт #")}${event.owner_account_id}`}</p>
@@ -645,6 +708,8 @@ export function AdminEventClient(){
           <small>{new Date(a.at).toLocaleString(localeForLanguage(language))}</small>
         </div>)}
       </section>}
+      </div>}
+      {tab==="guests"&&<div className="tp-tabpanel">
       {Number(event.price||0)>0&&<section className="panel form-stack">
         <h2>{tr("Заявки на платное мероприятие — подтверждение в течение 24 часов")}</h2>
         <p className="form-note">{tr("Деньги поступают напрямую организатору. Подтверждай заявку только после проверки фактического поступления. До подтверждения QR-билет не выдаётся. Не подтверждённые заявки автоматически истекают через 24 часа.")}</p>
@@ -708,6 +773,7 @@ export function AdminEventClient(){
           </div>)}
         </section>
       </>}
+      </div>}
     </>}
   </main></div>;
 }

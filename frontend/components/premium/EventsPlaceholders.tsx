@@ -30,11 +30,11 @@ export function EventsEmpty({language}:{language:LanguageCode}){
  </div>;
 }
 
-export function MoodEmpty({language,title,onReset}:{language:LanguageCode;title?:string;onReset:()=>void}){
+export function MoodEmpty({language,title,text,action,onReset}:{language:LanguageCode;title?:string;text?:string;action?:string;onReset:()=>void}){
  const c=premium[language].empty;
  return <div className="tp-events-empty is-compact" role="status">
   <div className="tp-ee-fan" aria-hidden="true"><PosterArt seed={3} className="tp-ee-p tp-ee-p2"/></div>
-  <div className="tp-ee-copy"><h3>{title||c.noMatchTitle}</h3>
-   <button type="button" className="button button-secondary" onClick={onReset}>{c.resetMood}</button></div>
+  <div className="tp-ee-copy"><h3>{title||c.noMatchTitle}</h3>{text&&<p>{text}</p>}
+   <button type="button" className="button button-secondary" onClick={onReset}>{action||c.resetMood}</button></div>
  </div>;
 }

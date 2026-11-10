@@ -70,7 +70,7 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
           </div>
         </div>
         <div className="tp-hero-art" role="img" aria-label="TicketTreat live-event interface preview">
-          <BrandPhoto name="hero" className="tp-hero-photo" sizes="(max-width: 900px) 92vw, 460px" priority/>
+          <BrandPhoto name="sd" className="tp-hero-photo" sizes="(max-width: 900px) 92vw, 460px" priority/>
           <PhoneFrame glow="tom" className="tp-hero-phone"><PhoneScreen kind="discover" language={language}/></PhoneFrame>
         </div>
       </section>

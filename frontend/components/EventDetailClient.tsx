@@ -13,6 +13,7 @@ import {downloadCalendar,mapQuery} from "@/lib/event-actions";
 import { CONSENT_EVENT,hasExternalMediaConsent,openCookieSettings } from "@/lib/cookie-consent";
 import { formatDate, formatPrice } from "@/lib/format";
 import { LANGUAGE_NAMES, t } from "@/lib/i18n";
+import {eventTags,TAG_LABELS} from "@/lib/event-tags";
 import type { TicketTreatEvent } from "@/lib/types";
 import {PageFaq} from "@/components/premium/PageFaq";
 
@@ -126,6 +127,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
               {demoPayments&&<span className="status status-demo">{t(language, "demo")}</span>}
             </div>
             <h1>{event.title}</h1>
+            {eventTags(event).length>0&&<ul className="tp-ecard-tags is-hero">{eventTags(event).map(tag=><li key={tag}>{TAG_LABELS[language][tag]}</li>)}</ul>}
             {event.description && <p className="event-description">{event.description}</p>}
           </div>
         </section>
@@ -156,6 +158,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
               <a className="button button-outline" href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.telegram}`}>{shareWords.telegram}</a>
               <a className="button button-outline" href={`https://wa.me/?text=${encodeURIComponent(event.title+" "+shareUrl)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.whatsapp}`}>{shareWords.whatsapp}</a>
             </>}
+            {event.venue_url&&<a className="button button-outline" href={event.venue_url} target="_blank" rel="noopener noreferrer">{language==="ru"?"Сайт площадки ↗":language==="cs"?"Web místa konání ↗":language==="uk"?"Сайт майданчика ↗":"Venue website ↗"}</a>}
             {mapUrl&&<><a className="button button-outline" href={mapUrl} target="_blank" rel="noopener noreferrer">{language==="ru"?"Открыть карту":language==="cs"?"Otevřít mapu":language==="uk"?"Відкрити карту":"Open map"}</a>
               <button type="button" className="button button-outline" onClick={()=>setMapOpen(v=>!v)}>{mapOpen?previewWords.hideMap:previewWords.showMap}</button></>}
           </div>

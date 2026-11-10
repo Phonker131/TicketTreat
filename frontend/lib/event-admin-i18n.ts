@@ -1133,6 +1133,42 @@ const messages: Array<[string,string,string,string]> = [
     "Type ERASE to authorize",
     "Pro potvrzení zadej ERASE",
     "Для підтвердження введи ERASE"
+  ],
+  [
+    "Ссылка на площадку",
+    "Venue link",
+    "Odkaz na místo konání",
+    "Посилання на майданчик"
+  ],
+  [
+    "Сайт, Instagram или страница места на карте. Гости увидят кнопку «Сайт площадки» на странице ивента.",
+    "Website, Instagram or a map page of the venue. Guests see a “Venue website” button on the event page.",
+    "Web, Instagram nebo mapa místa. Hosté uvidí tlačítko „Web místa konání“ na stránce akce.",
+    "Сайт, Instagram або сторінка місця на мапі. Гості побачать кнопку «Сайт майданчика» на сторінці події."
+  ],
+  [
+    "Категории",
+    "Categories",
+    "Kategorie",
+    "Категорії"
+  ],
+  [
+    "По ним гости фильтруют афишу на главной. Можно выбрать несколько.",
+    "Guests filter the home page by these. Pick as many as apply.",
+    "Podle nich hosté filtrují akce na úvodní stránce. Lze vybrat více.",
+    "За ними гості фільтрують афішу на головній. Можна обрати кілька."
+  ],
+  [
+    "Постер",
+    "Poster",
+    "Plakát",
+    "Афіша"
+  ],
+  [
+    "Новый постер загружается на вкладке «Описание».",
+    "Upload a new poster on the Details tab.",
+    "Nový plakát nahrajete na kartě Údaje.",
+    "Нову афішу завантажуй на вкладці «Опис»."
   ]
 ];
 const dictionary = new Map(messages.map(([ru,en,cs,uk]) => [ru,{ru,en,cs,uk}] as const));
