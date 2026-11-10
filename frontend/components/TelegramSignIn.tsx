@@ -4,6 +4,7 @@ import {useEffect,useState} from "react";
 import {useLanguage} from "@/components/LanguageProvider";
 import {getWebToken,setWebAuth} from "@/lib/session";
 import {getTelegramWebApp} from "@/lib/telegram";
+import {TelegramMark} from "@/components/AuthProviderMarks";
 
 const words={
   en:{
@@ -42,7 +43,7 @@ const words={
   }
 };
 
-export function TelegramSignIn({link=false}:{link?:boolean}) {
+export function TelegramSignIn({link=false,compact=false}:{link?:boolean;compact?:boolean}) {
   const {language}=useLanguage();const tr=words[language];
   const [enabled,setEnabled]=useState(false);
   const [botFallback,setBotFallback]=useState(false);
@@ -136,18 +137,20 @@ export function TelegramSignIn({link=false}:{link?:boolean}) {
     }catch{setMessage("unavailable");setBusy(false);}
   }
 
-  return <div className="form-stack">
+  const buttonLabel=link?tr.link:tr.signIn;
+  return <div className={compact?`tt-auth-provider${browserFlow||message?" tt-auth-provider--expanded":""}`:"form-stack"}>
     {message && <p className={message==="success"?"form-note":"state-card state-error"} role="status">
       {tr[message as keyof typeof tr] || tr.failed}
     </p>}
-    {ready && embedded && !link && <p className="form-note">{tr.embedded}</p>}
-    {ready && !embedded && !enabled && !botFallback && !link &&
+    {ready && embedded && !link && !compact && <p className="form-note">{tr.embedded}</p>}
+    {ready && !embedded && !enabled && !botFallback && !link && !compact &&
       <p className="form-note" role="status">{tr.unavailable}</p>}
     {ready && !embedded && !enabled && botFallback && !link &&
       <>
-        <button type="button" className="button button-outline"
+        <button type="button" className={compact?"tt-auth-provider-button tt-auth-provider-telegram":"button button-outline"}
+          title={tr.signIn} aria-label={tr.signIn}
           disabled={busy||!!browserFlow} onClick={()=>void beginBotLogin()}>
-          {busy?tr.opening:tr.signIn}
+          {compact?<TelegramMark/>:busy?tr.opening:tr.signIn}
         </button>
         {browserFlow && <div className="panel form-stack" role="status">
           <p>{language==="cs"?"Otevři @TicketTreatBot a potvrď přihlášení. Tato stránka se poté automaticky přihlásí.":language==="en"?"Open @TicketTreatBot and approve the login. This page will sign you in automatically.":language==="ru"?"Открой @TicketTreatBot и подтверди вход — сайт авторизуется автоматически.":"Відкрий @TicketTreatBot і підтвердь вхід — сайт авторизується автоматично."}</p>
@@ -160,9 +163,14 @@ export function TelegramSignIn({link=false}:{link?:boolean}) {
         </div>}
       </>}
     {ready && !embedded && enabled &&
-      <button type="button" className="button button-outline"
-        disabled={busy} onClick={()=>void begin()}>
-        {busy?tr.opening:link?tr.link:tr.signIn}
+      <button type="button" className={compact?"tt-auth-provider-button tt-auth-provider-telegram":"button button-outline"}
+        title={buttonLabel} aria-label={buttonLabel} disabled={busy} onClick={()=>void begin()}>
+        {compact?<TelegramMark/>:busy?tr.opening:buttonLabel}
+      </button>}
+    {compact && ready && (embedded || (!enabled && !botFallback)) &&
+      <button type="button" className="tt-auth-provider-button tt-auth-provider-telegram"
+        title={embedded?tr.embedded:tr.unavailable} aria-label={tr.signIn} disabled>
+        <TelegramMark/>
       </button>}
   </div>;
 }
