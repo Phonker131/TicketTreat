@@ -14,7 +14,8 @@ const words={
     cancelled:"Telegram sign-in was cancelled.",unavailable:"Telegram sign-in is not configured yet.",
     linked:"Telegram sign-in is complete.",opening:"Opening Telegram…",
     embedded:"You are already using Telegram Mini App. Sign in to your existing email/Google account below to connect both identities.",
-    loginFirst:"Sign in to your TicketTreat account first."
+    loginFirst:"Sign in to your TicketTreat account first.",
+    botFallbackLabel:"Sign in with the bot instead"
   },
   cs:{
     signIn:"Pokračovat přes Telegram",link:"Propojit Telegram s tímto účtem",
@@ -23,7 +24,8 @@ const words={
     cancelled:"Přihlášení přes Telegram bylo zrušeno.",unavailable:"Přihlášení přes Telegram zatím není nastavené.",
     linked:"Přihlášení přes Telegram bylo dokončeno.",opening:"Otevírání Telegramu…",
     embedded:"Jsi v Telegram Mini App. Přihlas se níže ke svému stávajícímu účtu e-mailem či přes Google a bezpečně jej propoj.",
-    loginFirst:"Nejprve se přihlas ke svému účtu TicketTreat."
+    loginFirst:"Nejprve se přihlas ke svému účtu TicketTreat.",
+    botFallbackLabel:"Přihlásit se přes bota místo toho"
   },
   ru:{
     signIn:"Продолжить с Telegram",link:"Подключить Telegram к аккаунту",
@@ -31,7 +33,8 @@ const words={
     cancelled:"Вход через Telegram отменён.",unavailable:"Вход через Telegram пока не настроен.",
     linked:"Вход через Telegram выполнен.",opening:"Открываем Telegram…",
     embedded:"Ты уже в Mini App. Войди в существующий аккаунт ниже, чтобы объединить подтверждённые учётные записи.",
-    loginFirst:"Сначала войди в TicketTreat."
+    loginFirst:"Сначала войди в TicketTreat.",
+    botFallbackLabel:"Войти через бота вместо этого"
   },
   uk:{
     signIn:"Продовжити через Telegram",link:"Підключити Telegram до акаунта",
@@ -39,7 +42,8 @@ const words={
     cancelled:"Вхід через Telegram скасовано.",unavailable:"Вхід через Telegram ще не налаштовано.",
     linked:"Вхід через Telegram виконано.",opening:"Відкриваємо Telegram…",
     embedded:"Ти вже в Mini App. Увійди до наявного акаунта нижче, щоб безпечно поєднати два входи.",
-    loginFirst:"Спочатку увійди в TicketTreat."
+    loginFirst:"Спочатку увійди в TicketTreat.",
+    botFallbackLabel:"Увійти через бота замість цього"
   }
 };
 
@@ -146,27 +150,32 @@ export function TelegramSignIn({link=false,compact=false}:{link?:boolean;compact
     {ready && !embedded && !enabled && !botFallback && !link && !compact &&
       <p className="form-note" role="status">{tr.unavailable}</p>}
     {ready && !embedded && !enabled && botFallback && !link &&
-      <>
-        <button type="button" className={compact?"tt-auth-provider-button tt-auth-provider-telegram":"button button-outline"}
-          title={tr.signIn} aria-label={tr.signIn}
-          disabled={busy||!!browserFlow} onClick={()=>void beginBotLogin()}>
-          {compact?<TelegramMark/>:busy?tr.opening:tr.signIn}
-        </button>
-        {browserFlow && <div className="panel form-stack" role="status">
-          <p>{language==="cs"?"Otevři @TicketTreatBot a potvrď přihlášení. Tato stránka se poté automaticky přihlásí.":language==="en"?"Open @TicketTreatBot and approve the login. This page will sign you in automatically.":language==="ru"?"Открой @TicketTreatBot и подтверди вход — сайт авторизуется автоматически.":"Відкрий @TicketTreatBot і підтвердь вхід — сайт авторизується автоматично."}</p>
-          <p className="form-note">{language==="cs"?"Potvrzovací kód uvidíš pouze zde. Zadej ho v Telegram Mini App, nikomu ho neposílej.":language==="en"?"This confirmation code appears only here. Enter it in Telegram Mini App; do not share it.":language==="ru"?"Код отображается только здесь. Введи его в Mini App, никому не пересылай.":"Код лише тут. Введи його в Mini App, не передавай іншим."}</p>
-          <strong style={{fontSize:"1.5rem",letterSpacing:".12em"}}>{browserFlow.pin}</strong>
-          <a className="button button-primary" href={browserFlow.bot_link}
-            target="_blank" rel="noopener noreferrer">
-            {language==="cs"?"Potvrdit v Telegramu":language==="en"?"Approve in Telegram":language==="ru"?"Подтвердить в Telegram":"Підтвердити в Telegram"}
-          </a>
-        </div>}
-      </>}
+      <button type="button" className={compact?"tt-auth-provider-button tt-auth-provider-telegram":"button button-outline"}
+        title={tr.signIn} aria-label={tr.signIn}
+        disabled={busy||!!browserFlow} onClick={()=>void beginBotLogin()}>
+        {compact?<TelegramMark/>:busy?tr.opening:tr.signIn}
+      </button>}
     {ready && !embedded && enabled &&
       <button type="button" className={compact?"tt-auth-provider-button tt-auth-provider-telegram":"button button-outline"}
         title={buttonLabel} aria-label={buttonLabel} disabled={busy} onClick={()=>void begin()}>
         {compact?<TelegramMark/>:busy?tr.opening:buttonLabel}
       </button>}
+    {ready && !embedded && enabled && botFallback && !link &&
+      (message==="failed" || message==="unavailable") &&
+      <button type="button" className="button button-outline tt-auth-bot-fallback"
+        disabled={busy||!!browserFlow} onClick={()=>void beginBotLogin()}>
+        {tr.botFallbackLabel}
+      </button>}
+    {ready && !embedded && botFallback && !link && browserFlow &&
+      <div className="panel form-stack" role="status">
+        <p>{language==="cs"?"Otevři @TicketTreatBot a potvrď přihlášení. Tato stránka se poté automaticky přihlásí.":language==="en"?"Open @TicketTreatBot and approve the login. This page will sign you in automatically.":language==="ru"?"Открой @TicketTreatBot и подтверди вход — сайт авторизуется автоматически.":"Відкрий @TicketTreatBot і підтвердь вхід — сайт авторизується автоматично."}</p>
+        <p className="form-note">{language==="cs"?"Potvrzovací kód uvidíš pouze zde. Zadej ho v Telegram Mini App, nikomu ho neposílej.":language==="en"?"This confirmation code appears only here. Enter it in Telegram Mini App; do not share it.":language==="ru"?"Код отображается только здесь. Введи его в Mini App, никому не пересылай.":"Код лише тут. Введи його в Mini App, не передавай іншим."}</p>
+        <strong style={{fontSize:"1.5rem",letterSpacing:".12em"}}>{browserFlow.pin}</strong>
+        <a className="button button-primary" href={browserFlow.bot_link}
+          target="_blank" rel="noopener noreferrer">
+          {language==="cs"?"Potvrdit v Telegramu":language==="en"?"Approve in Telegram":language==="ru"?"Подтвердить в Telegram":"Підтвердити в Telegram"}
+        </a>
+      </div>}
     {compact && ready && (embedded || (!enabled && !botFallback)) &&
       <button type="button" className="tt-auth-provider-button tt-auth-provider-telegram"
         title={embedded?tr.embedded:tr.unavailable} aria-label={tr.signIn} disabled>
