@@ -12,7 +12,7 @@ for(const theme of ["dark","light"] as const){
       // Insert outside React's tree so asynchronous hydration cannot detach it.
       await page.evaluate(()=>{
         document.body.insertAdjacentHTML("beforeend",`
-          <div class="app-shell" data-organizer-card-contrast>
+          <div class="app-shell" data-organizer-card-contrast style="position:fixed;inset:0;z-index:2147483647;overflow:auto">
             <main class="page tt-organizer-public">
               <section class="tt-organizer-hero"><h1>Amber Events</h1></section>
               <section class="tt-organizer-section">
@@ -83,7 +83,7 @@ for(const theme of ["dark","light"] as const){
       for(const x of results.colors)expect(x.contrast,x.selector).toBeGreaterThanOrEqual(4.5);
       expect(results.stickerWithinPoster).toBe(true);
       expect(results.noOverflow).toBe(true);
-      await card.locator(".button-secondary").hover();
+      await card.locator(".button-secondary").hover({force:true});
       await expect.poll(()=>card.locator(".button-secondary").evaluate(el=>{
         const s=getComputedStyle(el);return {fg:s.color,bg:s.backgroundColor};
       })).toEqual({fg:"rgb(255, 255, 255)",bg:"rgb(22, 29, 37)"});
