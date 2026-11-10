@@ -45,6 +45,7 @@ from db.base import Base
 from db.session import SessionLocal, engine, get_db
 from demo_accounts import WebAccount, WebSession, install_demo_accounts
 from demo_google import GoogleIdentity, GoogleFlow
+from demo_telegram_oidc import TelegramOidcFlow
 from demo_account_recovery import VerifiedEmail, EmailChallenge, install_email_account_security
 from demo_site_content import SiteLanding, install_site_content
 from demo_telegram import DemoTelegramIdentity, install_telegram_auth, verified_telegram_id_for_guest, verified_telegram_user, send_miniapp_ticket_notice
@@ -2785,8 +2786,19 @@ def authorize_guest_request(
                     WebAccount.id == session.account_id,
                     WebAccount.guest_id == guest.id,
                 ).first()
-                if account and expiry and expiry > utc_now() and email_is_verified(db, account.id):
-                    return
+                if account and expiry and expiry > utc_now():
+                    if email_is_verified(db, account.id):
+                        return
+                    # Telegram-only web sessions are first-party sessions for
+                    # the already HMAC/OIDC-verified Telegram identity. Never
+                    # grant these sessions organizer/admin powers.
+                    from demo_roles import role_for
+                    if (account.email is None and account.password_hash == "!telegram-only"
+                            and role_for(db, account) == "participant"
+                            and db.query(DemoTelegramIdentity.telegram_id).filter(
+                                DemoTelegramIdentity.guest_id == guest.id,
+                                DemoTelegramIdentity.telegram_id == guest.telegram_id).first()):
+                        return
         raise HTTPException(status_code=403, detail="guest_identity_mismatch")
 
     raise HTTPException(status_code=401, detail="authenticated_guest_required")
