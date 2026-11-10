@@ -791,7 +791,7 @@ export function ProfileClient() {
             </section>}
             <p className="form-note">{tr.need}</p>
             <div className="auth-tabs" role="tablist">
-              <button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setError("");}}>{tr.signup}</button>
+              {!telegramProfile && <button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setError("");}}>{tr.signup}</button>}
               <button type="button" className={mode==="login"?"active":""} onClick={()=>{setMode("login");setError("");}}>{tr.login}</button>
             </div>
             {error && <div className="state-card state-error" role="alert">{error.startsWith("ui:")?displayMessage(error):userFacingError(error,language)}</div>}
