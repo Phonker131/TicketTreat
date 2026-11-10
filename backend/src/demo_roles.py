@@ -100,6 +100,66 @@ class EventMedia(Base):
     video_url = Column(String(2048), nullable=True)
 
 
+class EventDetails(Base):
+    """Organizer-set venue website and discovery tags (the home page moods)."""
+    __tablename__ = "demo_event_details"
+    event_id = Column(Integer, primary_key=True)
+    venue_url = Column(String(2048), nullable=True)
+    tags_json = Column(Text, nullable=False, default="[]")
+
+
+# Mirrors the mood filter on the home page; the frontend falls back to keyword
+# matching for events whose organizer has not picked a tag yet.
+EVENT_TAGS = ("meet", "friends", "listen", "dance")
+
+
+def validate_venue_url(venue_url):
+    if not venue_url:
+        return
+    parsed = urlsplit(venue_url)
+    if len(venue_url) > 2048 or parsed.scheme != "https" or not parsed.hostname or "@" in parsed.netloc:
+        raise HTTPException(status_code=422, detail="invalid_venue_url")
+
+
+def normalize_tags(tags):
+    if tags is None:
+        return None
+    normalized = []
+    for tag in tags:
+        value = str(tag).strip().lower()
+        if value not in EVENT_TAGS:
+            raise HTTPException(status_code=422, detail="invalid_event_tag")
+        if value not in normalized:
+            normalized.append(value)
+    return normalized
+
+
+def save_details(db, event_id, venue_url=None, tags=None):
+    if venue_url is None and tags is None:
+        return
+    validate_venue_url(venue_url)
+    tags = normalize_tags(tags)
+    details = db.query(EventDetails).filter(EventDetails.event_id == event_id).first()
+    if details is None:
+        details = EventDetails(event_id=event_id)
+        db.add(details)
+    if venue_url is not None:
+        details.venue_url = venue_url.strip() or None
+    if tags is not None:
+        details.tags_json = json.dumps(tags)
+
+
+def details_dict(db, event_id) -> dict:
+    details = db.query(EventDetails).filter(EventDetails.event_id == event_id).first()
+    tags = []
+    if details and details.tags_json:
+        try:
+            tags = [tag for tag in json.loads(details.tags_json) if tag in EVENT_TAGS]
+        except ValueError:
+            tags = []
+    return {"venue_url": details.venue_url if details else None, "tags": tags}
+
+
 class EventGalleryImage(Base):
     """Bounded gallery storage for early pilots (up to eight images/event).
 
@@ -170,6 +230,8 @@ class CreateManageEvent(BaseModel):
     poster_data_url: str | None = Field(default=None, max_length=5700000)
     gallery_urls: list[str] = Field(default_factory=list)
     video_url: str | None = None
+    venue_url: str | None = None
+    tags: list[str] = Field(default_factory=list, max_length=8)
     reminder_minutes: list[int] = Field(default_factory=lambda: [10080, 1440, 180], min_length=1, max_length=4)
     reminder_text: str = Field(default="Your TicketTreat event starts soon.", max_length=1000)
 
@@ -189,6 +251,8 @@ class UpdateManageEvent(BaseModel):
     poster_data_url: str | None = Field(default=None, max_length=5700000)
     gallery_urls: list[str] | None = None
     video_url: str | None = None
+    venue_url: str | None = None
+    tags: list[str] | None = None
     reminder_text: str | None = Field(default=None, max_length=1000)
 
 class EventVisibilityUpdate(BaseModel):
@@ -406,8 +470,10 @@ def install_demo_roles(app, get_db, main):
         if payload.starts_at is None:
             raise HTTPException(status_code=422,detail="date_required")
         # Existing bot event-creation logic remains the source of truth.
-        values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","reminder_minutes","visibility"})
+        values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","venue_url","tags","reminder_minutes","visibility"})
         validate_media_urls(payload.gallery_urls,payload.video_url)
+        validate_venue_url(payload.venue_url)
+        normalize_tags(payload.tags)
         from main import EventCreate
         # Price is informational; neither booking nor publication requires
         # organizer payment instructions in registration-only mode.
@@ -430,6 +496,7 @@ def install_demo_roles(app, get_db, main):
         if payload.poster_data_url:
             poster_setup(db,main,request,event,payload.poster_data_url)
         save_media(db,eid,payload.gallery_urls,payload.video_url)
+        save_details(db,eid,payload.venue_url or "",payload.tags)
         audit(db,eid,account.id,"create")
         db.commit()
         db.refresh(event)
@@ -616,6 +683,7 @@ def install_demo_roles(app, get_db, main):
         original=db.query(EventMedia).filter(EventMedia.event_id==event_id).first()
         external=json.loads(original.gallery_json or "[]") if original else []
         video=original.video_url if original else None
+        source_details=details_dict(db,event_id)
         source_poster=db.query(main.DemoEventPoster).filter(
             main.DemoEventPoster.event_id==event_id,
         ).first()
@@ -635,6 +703,7 @@ def install_demo_roles(app, get_db, main):
             visibility="link_only" if __import__("demo_event_access").is_unlisted(db,event_id) else "public",
             languages=languages,country_code=place.country_code,city=place.city,
             gallery_urls=external,video_url=video,poster_data_url=poster,
+            venue_url=source_details["venue_url"],tags=source_details["tags"],
             reminder_minutes=__import__("demo_pilot_ops").effective_settings(db, source.id)["reminder_minutes"],
             reminder_text=(source.reminder_text or "Your TicketTreat event starts soon."),
             payment_instructions="",
@@ -669,9 +738,11 @@ def install_demo_roles(app, get_db, main):
         poster=values.pop("poster_data_url",None)
         gallery=values.pop("gallery_urls",None)
         video=values.pop("video_url",None)
+        venue=values.pop("venue_url",None)
+        tags=values.pop("tags",None)
         geo_country=values.pop("country_code",None)
         geo_city=values.pop("city",None)
-        if not values and poster is None and gallery is None and video is None and geo_country is None and geo_city is None:
+        if not values and poster is None and gallery is None and video is None and venue is None and tags is None and geo_country is None and geo_city is None:
             raise HTTPException(status_code=422,detail="no_changes")
         validate_payload(values.get("languages"),values.get("currency"))
         if "reminder_text" in values:
@@ -684,6 +755,8 @@ def install_demo_roles(app, get_db, main):
         if "price" in values and values["price"] is None:
             raise HTTPException(status_code=422,detail="invalid_price")
         validate_media_urls(gallery, video)
+        validate_venue_url(venue)
+        normalize_tags(tags)
         if gallery is not None:
             uploaded = db.query(EventGalleryImage).filter(
                 EventGalleryImage.event_id == event_id
@@ -707,6 +780,7 @@ def install_demo_roles(app, get_db, main):
         if poster:
             poster_setup(db,main,request,event,poster)
         save_media(db,event_id,gallery,video)
+        save_details(db,event_id,venue,tags)
         # Transactional service messages for material changes only.
         changes=[]
         if event.starts_at != original_start:
@@ -736,7 +810,7 @@ def install_demo_roles(app, get_db, main):
         if changes:
             from demo_email import queue_event_notice
             queue_event_notice(db,event=event,kind="change",message="; ".join(changes))
-        audit(db,event_id,account.id,"edit",",".join(values.keys())+(",poster" if poster else "")+(",geography" if geo_country is not None or geo_city is not None else ""))
+        audit(db,event_id,account.id,"edit",",".join(values.keys())+(",poster" if poster else "")+(",geography" if geo_country is not None or geo_city is not None else "")+(",details" if venue is not None or tags is not None else ""))
         db.commit()
         db.refresh(event)
         return event_data(event,db,main)

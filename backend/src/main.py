@@ -1020,9 +1020,11 @@ def event_to_dict(
         cover=next((item["url"] for item in data["uploaded_gallery"] if item["is_cover"]),None)
         data["gallery_cover_url"]=cover
         data["video_url"] = media.video_url if media else None
+        from demo_roles import details_dict
+        data.update(details_dict(db, event.id))
         data["organizer_profile"] = profile_for_event(db, event.id)
     else:
-        data.update({"country_code": None, "city": None})
+        data.update({"country_code": None, "city": None, "venue_url": None, "tags": []})
 
     if registered_count is not None:
         data["registered_count"] = registered_count
