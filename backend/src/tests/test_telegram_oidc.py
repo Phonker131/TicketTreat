@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from fastapi import HTTPException
 
-from demo_telegram_oidc import verify_id_token, credentials
+from demo_telegram_oidc import verify_id_token, credentials, exchange
 
 
 def b64(data: bytes) -> str:
@@ -78,6 +78,33 @@ class TelegramOidcVerificationTests(unittest.TestCase):
         unsigned=b64(json.dumps({"alg":"none","kid":"ci-rsa-key"}).encode())+"."+signed_payload[1]+"."
         with self.assertRaises(HTTPException):
             self.verified(unsigned)
+
+    def test_token_exchange_rejection_logs_only_safe_provider_error_code(self):
+        # Never write the raw OAuth response, client secret or code to logs.
+        secret="KEEP-THIS-CLIENT-SECRET-OUT-OF-LOGS"
+        token_code="KEEP-THIS-AUTH-CODE-OUT-OF-LOGS"
+        response=SimpleNamespace(
+            status_code=401,
+            content=b'{"error":"invalid_client","error_description":"PRIVATE SENTINEL"}',
+            json=lambda:{"error":"invalid_client","error_description":"PRIVATE SENTINEL"},
+        )
+        with patch("demo_telegram_oidc.requests.post",return_value=response):
+            with self.assertLogs("tickettreat.telegram_oidc",level="WARNING") as logs:
+                with self.assertRaises(HTTPException) as err:
+                    exchange(token_code,"safe-verifier","https://tickettreat.eu/api/auth/telegram/callback",
+                             "555222111",secret,"ci-nonce")
+        self.assertEqual(err.exception.status_code,401)
+        self.assertIn("provider_error=invalid_client"," ".join(logs.output))
+        for unsafe in ("PRIVATE SENTINEL",secret,token_code):
+            self.assertNotIn(unsafe," ".join(logs.output))
+
+    def test_invalid_nonce_logs_fixed_category_without_leaking_claim(self):
+        wrong="VERY-PRIVATE-NONCE-SENTINEL"
+        with self.assertLogs("tickettreat.telegram_oidc",level="WARNING") as logs:
+            with self.assertRaises(HTTPException):
+                self.verified(self.signed(nonce=wrong))
+        self.assertIn("category=invalid_nonce"," ".join(logs.output))
+        self.assertNotIn(wrong," ".join(logs.output))
 
     def test_missing_botfather_secrets_fail_closed(self):
         with patch.dict("os.environ",{"TELEGRAM_LOGIN_CLIENT_ID":"",

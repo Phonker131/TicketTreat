@@ -11,6 +11,7 @@ import base64
 import binascii
 import hashlib
 import json
+import logging
 import os
 import secrets
 import time
@@ -34,6 +35,20 @@ AUTH_URL = ISSUER + "/auth"
 TOKEN_URL = ISSUER + "/token"
 JWKS_URL = ISSUER + "/.well-known/jwks.json"
 FLOW_AGE = 600
+
+logger = logging.getLogger("tickettreat.telegram_oidc")
+# Only fixed categories. Never emit OIDC codes, JWTs, claims, client secrets,
+# Telegram identifiers, exception strings from network clients or response bodies.
+_SAFE_VERIFY_CATEGORIES = frozenset({
+    "invalid_token", "unsupported_algorithm", "missing_key", "key_service_unavailable",
+    "invalid_key_set", "unknown_signing_key", "invalid_key", "invalid_issuer",
+    "invalid_audience", "invalid_nonce", "invalid_token_times", "invalid_subject",
+    "missing_telegram_user_id", "invalid_signature",
+})
+_PROVIDER_OAUTH_ERRORS = frozenset({
+    "invalid_client", "invalid_grant", "invalid_request", "unauthorized_client",
+    "unsupported_grant_type", "server_error", "temporarily_unavailable",
+})
 
 
 class TelegramOidcFlow(Base):
@@ -116,12 +131,16 @@ def verify_id_token(id_token: str, client_id: str, nonce: str, *, at: int | None
             padding.PKCS1v15(), hashes.SHA256())
         claims = json.loads(_b64url(payload))
         current = int(time.time()) if at is None else at
-        if (not isinstance(claims, dict) or claims.get("iss") != ISSUER
-                or claims.get("aud") != client_id or claims.get("nonce") != nonce
-                or type(claims.get("iat")) is not int or type(claims.get("exp")) is not int
+        if not isinstance(claims, dict) or claims.get("iss") != ISSUER:
+            raise ValueError("invalid_issuer")
+        if claims.get("aud") != client_id:
+            raise ValueError("invalid_audience")
+        if claims.get("nonce") != nonce:
+            raise ValueError("invalid_nonce")
+        if (type(claims.get("iat")) is not int or type(claims.get("exp")) is not int
                 or claims["iat"] > current + 60 or claims["exp"] <= current
                 or claims["exp"] - claims["iat"] > 86400):
-            raise ValueError("invalid_claims")
+            raise ValueError("invalid_token_times")
         sub = claims.get("sub")
         if (not isinstance(sub, str) or not sub.isdecimal()
                 or not 0 < int(sub) < 2**63):
@@ -133,7 +152,12 @@ def verify_id_token(id_token: str, client_id: str, nonce: str, *, at: int | None
             raise ValueError("missing_telegram_user_id")
         return claims
     except (ValueError, TypeError, KeyError, IndexError, OverflowError, binascii.Error, UnicodeError,
-            InvalidSignature, requests.RequestException, json.JSONDecodeError):
+            InvalidSignature, requests.RequestException, json.JSONDecodeError) as exc:
+        category = "invalid_signature" if isinstance(exc, InvalidSignature) else (
+            str(exc) if type(exc) is ValueError and str(exc) in _SAFE_VERIFY_CATEGORIES
+            else "malformed_or_unverified_token"
+        )
+        logger.warning("telegram_oidc_verify_failed category=%s", category)
         raise HTTPException(401, "invalid_telegram_oidc_identity") from None
 
 
@@ -143,13 +167,31 @@ def exchange(code: str, verifier: str, redirect: str, client: str, secret: str, 
             "grant_type": "authorization_code", "code": code,
             "client_id": client, "redirect_uri": redirect, "code_verifier": verifier,
         }, auth=(client, secret), timeout=12, allow_redirects=False)
-        if response.status_code != 200 or len(response.content) > 65536:
+        if response.status_code != 200:
+            provider_error = "unknown"
+            if len(response.content) <= 4096:
+                try:
+                    error_name = response.json().get("error")
+                    if error_name in _PROVIDER_OAUTH_ERRORS:
+                        provider_error = error_name
+                except (ValueError, AttributeError, TypeError):
+                    pass
+            logger.warning(
+                "telegram_oidc_token_rejected status=%s provider_error=%s",
+                response.status_code, provider_error,
+            )
             raise ValueError("token_exchange_failed")
+        if len(response.content) > 65536:
+            raise ValueError("oversized_token_response")
         payload = response.json()
         if not isinstance(payload, dict) or not isinstance(payload.get("id_token"), str):
             raise ValueError("missing_id_token")
         return verify_id_token(payload["id_token"], client, nonce)
-    except (ValueError, requests.RequestException, json.JSONDecodeError):
+    except (ValueError, requests.RequestException, json.JSONDecodeError) as exc:
+        category = (str(exc) if type(exc) is ValueError
+                    and str(exc) in {"token_exchange_failed", "oversized_token_response", "missing_id_token"}
+                    else "token_request_or_response_error")
+        logger.warning("telegram_oidc_exchange_failed category=%s", category)
         raise HTTPException(401, "telegram_login_exchange_failed") from None
 
 
