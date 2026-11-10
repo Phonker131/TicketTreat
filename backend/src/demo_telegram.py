@@ -87,6 +87,22 @@ def verified_telegram_user(init_data: str, bot_token: str, now: int | None = Non
         raise HTTPException(status_code=401, detail="invalid_telegram_init_data") from None
 
 
+
+def reject_parallel_signup_inside_telegram(request) -> None:
+    """A signed Mini App user already owns a Telegram principal.
+
+    Never create another email-style guest through website sign-up while the
+    same request carries Telegram-signed initData. Use the existing Telegram
+    identity and optionally attach a verified email. Even an old cached
+    signup form must not bypass the updated onboarding UI.
+    """
+    init_data = request.headers.get("x-telegram-init-data")
+    if not init_data:
+        return
+    verified_telegram_user(init_data, os.getenv("TELEGRAM_MINIAPP_BOT_TOKEN", "").strip())
+    raise HTTPException(status_code=409, detail="telegram_identity_exists_use_sign_in")
+
+
 def bot_user_registrations(db: Session, telegram_id: int, main) -> list[dict]:
     """Old reservations stay visible until securely converted into QR tickets."""
     from demo_legacy import unresolved_bot_registrations

@@ -54,6 +54,8 @@ def install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict):
     from demo_roles import WebAccountRole
     @app.post("/demo/auth/quick/request")
     def request_quick(payload:QuickRequest,request:Request,db:Session=Depends(get_db)):
+        from demo_telegram import reject_parallel_signup_inside_telegram
+        reject_parallel_signup_inside_telegram(request)
         if payload.privacy_accepted is not True:
             raise HTTPException(422,"privacy_acceptance_required")
         email=normalize_email(payload.email)
@@ -86,6 +88,8 @@ def install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict):
 
     @app.post("/demo/auth/quick/confirm")
     def confirm_quick(payload:QuickConfirm,request:Request,db:Session=Depends(get_db)):
+        from demo_telegram import reject_parallel_signup_inside_telegram
+        reject_parallel_signup_inside_telegram(request)
         ip=request.client.host if request.client else "unknown"
         guard_rate(db,"quick_confirm_ip",ip,20,3600)
         record_rate(db,"quick_confirm_ip",ip,3600)

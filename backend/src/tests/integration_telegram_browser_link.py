@@ -65,6 +65,47 @@ class TelegramBrowserLinkTests(unittest.TestCase):
         else:
             os.environ["TELEGRAM_MINIAPP_BOT_TOKEN"]=self.previous_token
 
+    def test_signed_miniapp_cannot_create_duplicate_email_accounts(self):
+        telegram_id=secrets.randbelow(10**12)+10**10
+        signed=signed_init_data(telegram_id)
+        email=f"duplicate-guard-{secrets.token_hex(12)}@example.invalid"
+        with TestClient(main.app) as client:
+            original=client.post("/demo/telegram/auth",json={"init_data":signed})
+            self.assertEqual(original.status_code,200,original.text)
+            old_id=original.json()["guest"]["id"]
+            with SessionLocal() as db:
+                from sqlalchemy import func
+                existing_guests=db.query(func.count(main.DemoGuest.id)).scalar()
+                existing_accounts=db.query(func.count(WebAccount.id)).scalar()
+            headers={"X-Telegram-Init-Data":signed}
+            signup=client.post("/demo/auth/signup",headers=headers,json={
+                "email":email,"password":"unique-long-password-2026",
+                "first_name":"Someone","last_name":"Duplicate",
+                "language":"en","contact_preference":"email",
+            })
+            self.assertEqual(signup.status_code,409,signup.text)
+            self.assertEqual(signup.json()["detail"],"telegram_identity_exists_use_sign_in")
+            quick=client.post("/demo/auth/quick/request",headers=headers,json={
+                "email":email,"first_name":"Someone",
+                "privacy_accepted":True,"privacy_version":"2026-10",
+            })
+            self.assertEqual(quick.status_code,409,quick.text)
+            confirm=client.post("/demo/auth/quick/confirm",headers=headers,json={
+                "email":email,"code":"12345678",
+            })
+            self.assertEqual(confirm.status_code,409,confirm.text)
+            forged=client.post("/demo/auth/signup",
+                headers={"X-Telegram-Init-Data":"forged"},
+                json={"email":email,"password":"unique-long-password-2026",
+                      "first_name":"Someone","last_name":"Duplicate"})
+            self.assertEqual(forged.status_code,401,forged.text)
+            with SessionLocal() as db:
+                from sqlalchemy import func
+                self.assertEqual(db.query(func.count(main.DemoGuest.id)).scalar(),existing_guests)
+                self.assertEqual(db.query(func.count(WebAccount.id)).scalar(),existing_accounts)
+                self.assertEqual(db.get(DemoTelegramIdentity,telegram_id).guest_id,old_id)
+                self.assertIsNone(db.query(WebAccount).filter(WebAccount.email==email).first())
+
     def test_browser_pairs_legacy_tg_identity_and_consumes_code_once(self):
         telegram_id=secrets.randbelow(10**12)+10**10
         signed=signed_init_data(telegram_id)
