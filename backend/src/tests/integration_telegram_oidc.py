@@ -117,6 +117,49 @@ class UnifiedTelegramIdentityTests(unittest.TestCase):
                 future=self.oidc(client,tg_id)
                 self.assertEqual(future["profile"]["account"]["id"],website_id)
 
+    def test_browser_bot_login_needs_independent_http_only_proof_and_one_time_approval(self):
+        tg_id=secrets.randbelow(10**12)+10**10
+        with TestClient(main.app) as client:
+            bot=client.post("/demo/telegram/auth",json={"init_data":signed_init_data(tg_id)})
+            self.assertEqual(bot.status_code,200,bot.text)
+            guest_id=bot.json()["guest"]["id"]
+            init=client.post("/demo/auth/telegram/browser/start",json={})
+            self.assertEqual(init.status_code,200,init.text)
+            data=init.json()
+            code=data["challenge"]
+            verifier=data["browser_token"]
+            self.assertNotIn(verifier,data["bot_link"])
+            self.assertIn("login_"+code,data["bot_link"])
+            pending=client.post("/demo/auth/telegram/browser/complete",
+                headers={"X-Telegram-Browser-Token":verifier},
+                json={"challenge":code})
+            self.assertEqual(pending.json()["status"],"pending")
+            fake=client.post("/demo/auth/telegram/browser/claim",
+                json={"challenge":code,"init_data":"unsigned-telegram-data"})
+            self.assertEqual(fake.status_code,401,fake.text)
+            claimed=client.post("/demo/auth/telegram/browser/claim",
+                json={"challenge":code,"init_data":signed_init_data(tg_id)})
+            self.assertEqual(claimed.status_code,200,claimed.text)
+            self.assertEqual(client.post("/demo/auth/telegram/browser/claim",
+                json={"challenge":code,"init_data":signed_init_data(tg_id)}).status_code,409)
+            denied=client.post("/demo/auth/telegram/browser/complete",
+                headers={"X-Telegram-Browser-Token":"different-"+verifier},
+                json={"challenge":code})
+            self.assertEqual(denied.status_code,401,denied.text)
+            no_cookie=client.post("/demo/auth/telegram/browser/complete",json={"challenge":code})
+            self.assertEqual(no_cookie.status_code,401)
+            finished=client.post("/demo/auth/telegram/browser/complete",
+                headers={"X-Telegram-Browser-Token":verifier},
+                json={"challenge":code})
+            self.assertEqual(finished.status_code,200,finished.text)
+            self.assertEqual(finished.json()["profile"]["guest"]["id"],guest_id)
+            bearer={"Authorization":"Bearer "+finished.json()["token"]}
+            self.assertEqual(client.get("/demo/auth/me",headers=bearer).status_code,200)
+            replay=client.post("/demo/auth/telegram/browser/complete",
+                headers={"X-Telegram-Browser-Token":verifier},
+                json={"challenge":code})
+            self.assertEqual(replay.status_code,409,replay.text)
+
     def test_optional_email_requires_otp_and_does_not_merge_other_account(self):
         tg_id=secrets.randbelow(10**12)+10**10
         other_web,other_guest,other_bearer=website_account()
