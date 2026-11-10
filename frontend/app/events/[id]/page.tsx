@@ -62,8 +62,12 @@ function structuredEvent(event:TicketTreatEvent):Record<string,unknown>|null {
   };
   const image=seoImageUrl(event.image_url);
   if(image)result.image=image;
-  if(Number(event.price||0)===0)result.offers={
-    "@type":"Offer",url,price:"0",priceCurrency:event.currency||"CZK",
+  // Event offers describe the organizer's advertised ticket price; TicketTreat
+  // does not process payments. Include free and priced tickets alike.
+  const advertisedPrice=Number(event.price??0);
+  if(Number.isFinite(advertisedPrice)&&advertisedPrice>=0)result.offers={
+    "@type":"Offer",url,price:advertisedPrice,
+    priceCurrency:/^[A-Z]{3}$/.test(event.currency||"")?event.currency:"CZK",
     availability:event.spots_left===0?"https://schema.org/SoldOut":"https://schema.org/InStock",
   };
   return result;

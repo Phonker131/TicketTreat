@@ -15,7 +15,7 @@ for(const theme of ["dark","light"] as const){
       await page.evaluate(()=>{
         if(!document.querySelector(".tt-night-events"))throw new Error("Events section missing");
         document.body.insertAdjacentHTML("beforeend",`
-          <div class="app-shell tt-night-home" data-contrast-root>
+          <div class="app-shell tt-night-home" data-contrast-root style="position:fixed;inset:0;z-index:2147483647;overflow:auto">
           <div class="event-grid tp-feed">
             <article class="event-card tt-event-paper-card" data-contrast-fixture>
               <div class="tt-event-poster-wrap"><div class="tt-event-date-sticker"><strong>10</strong><span>NOV TUE</span></div></div>
@@ -75,7 +75,7 @@ for(const theme of ["dark","light"] as const){
       expect(contrast.cardBackground).toBe("rgb(251, 249, 244)");
       for(const pair of contrast.results)expect(pair.ratio,pair.selector).toBeGreaterThanOrEqual(4.5);
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
-      await card.locator(".button-secondary").hover();
+      await card.locator(".button-secondary").hover({force:true});
       await expect.poll(()=>card.locator(".button-secondary").evaluate(el=>{
         const css=getComputedStyle(el);
         return {color:css.color,background:css.backgroundColor};

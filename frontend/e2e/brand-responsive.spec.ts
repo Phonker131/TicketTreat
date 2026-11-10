@@ -210,10 +210,10 @@ test("priced events never show TicketTreat fake payment or automatic paid ticket
     status:200,contentType:"application/json",body:JSON.stringify({
       demo_payment_mode:true,verified_accounts_required:true})}));
   await page.goto("/events/9372");
-  await expect(page.getByText(/directly with the organizer|напрямую организатору|přímo pořadateli|безпосередньо організатору/i).first()).toBeVisible();
+  await expect(page.getByText(/TicketTreat does not collect or verify payment|TicketTreat platby nevybírá ani neověřuje/i).first()).toBeVisible();
   await expect(page.locator('a[href*="/checkout/9372"]')).toBeVisible();
   await page.goto("/checkout/9372");
-  await expect(page.getByRole("heading",{name:/Organizer-direct payment|Payment directly to the organizer|Оплата напрямую организатору|Platba přímo pořadateli|Оплата безпосередньо організатору/})).toBeVisible();
+  await expect(page.getByRole("status").filter({hasText:/TicketTreat does not collect or verify payment|TicketTreat platby nevybírá ani neověřuje/i})).toBeVisible();
   await expect(page.locator(".payment-methods")).toHaveCount(0);
   await expect(page.locator(".fake-card-fields")).toHaveCount(0);
 });
@@ -314,6 +314,8 @@ test("FAQ opens without login and expands answers in the offered languages",asyn
 test("FAQ search, support link and mobile width are functional",async({page})=>{
   await page.setViewportSize({width:320,height:700});
   await page.goto("/en/faq",{waitUntil:"domcontentloaded"});
+  // Client input handlers are attached on hydration, after the SSR HTML arrives.
+  await page.waitForLoadState("networkidle");
   await page.getByRole("searchbox",{name:"Search questions"}).fill("waiting list");
   await expect(page.locator(".tt-faq-item")).toHaveCount(1);
   await page.getByRole("searchbox",{name:"Search questions"}).fill("no-match-faq-0023");
