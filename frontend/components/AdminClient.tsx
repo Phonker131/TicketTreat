@@ -304,7 +304,11 @@ export function AdminClient() {
           const fill=cap?Math.min(100,Math.round(100*registered/cap)):0;
           return <Link key={ev.id} href={`/admin/events/${ev.id}`} className="admin-event-card tp-admin-card">
             <DateTile value={ev.starts_at} locale={locale} empty={x.noDate}/>
-            <span className={`tp-status is-${status}`}>{ev.visibility==="link_only"?"🔒 ":""}{statusLabel(ev)} · #{ev.id}</span>
+            <span className={`tp-status is-${status}`}>
+              <span className="tp-status-name">{ev.visibility==="link_only"?"🔒 ":""}{statusLabel(ev)}</span>
+              <span className="tp-status-divider" aria-hidden="true">·</span>
+              <span className="tp-status-number">#{ev.id}</span>
+            </span>
             <h3>{ev.title}</h3>
             <p>{whenText(ev)} · {ev.location||"—"}</p>
             <div className="tp-admin-guests">
