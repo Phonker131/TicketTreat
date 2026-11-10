@@ -59,15 +59,15 @@ for (const theme of ["dark","light"] as const) {
       expect(results.map(r=>r.status)).toEqual(["Draft","Published"]);
       expect(results.map(r=>r.number)).toEqual(["#20","#19"]);
       for (const pill of results) {
-        expect(pill.height,pill.status).toBeGreaterThanOrEqual(28);
-        expect(pill.height,pill.status).toBeLessThanOrEqual(32);
-        expect(pill.height,pill.status).toBeLessThan(pill.dateHeight);
-        expect(pill.withinCard,pill.status).toBe(true);
-        expect(pill.withinViewport,pill.status).toBe(true);
-        expect(pill.inlineLayout,pill.status).toBe(true);
-        expect(pill.fontSize,pill.status).toBeLessThanOrEqual(12);
-        expect(pill.labelContrast,pill.status).toBeGreaterThanOrEqual(4.5);
-        expect(pill.numberContrast,pill.status).toBeGreaterThanOrEqual(4.5);
+        expect(pill.height,pill.status ?? "status pill").toBeGreaterThanOrEqual(28);
+        expect(pill.height,pill.status ?? "status pill").toBeLessThanOrEqual(32);
+        expect(pill.height,pill.status ?? "status pill").toBeLessThan(pill.dateHeight);
+        expect(pill.withinCard,pill.status ?? "status pill").toBe(true);
+        expect(pill.withinViewport,pill.status ?? "status pill").toBe(true);
+        expect(pill.inlineLayout,pill.status ?? "status pill").toBe(true);
+        expect(pill.fontSize,pill.status ?? "status pill").toBeLessThanOrEqual(12);
+        expect(pill.labelContrast,pill.status ?? "status pill").toBeGreaterThanOrEqual(4.5);
+        expect(pill.numberContrast,pill.status ?? "status pill").toBeGreaterThanOrEqual(4.5);
       }
     });
   }
