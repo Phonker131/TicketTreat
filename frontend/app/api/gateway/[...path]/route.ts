@@ -65,7 +65,7 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   // Evaluate every existing session/privilege guard against the same logical
   // handler path, regardless of the public API prefix used by the browser.
   const checked = relative.startsWith("/api/v1/") ? "/demo/" + relative.slice("/api/v1/".length) : relative;
-  if (checked === "/demo/auth/google/finish") return NextResponse.json({detail:"path_not_allowed"},{status:404});
+  if (checked === "/demo/auth/google/finish" || checked === "/demo/auth/telegram/finish") return NextResponse.json({detail:"path_not_allowed"},{status:404});
   if (!checked.startsWith("/demo/") && checked !== "/events" && !/^\/events\/\d+$/.test(checked) && checked !== "/") {
     return NextResponse.json({detail:"path_not_allowed"},{status:404});
   }
@@ -101,6 +101,14 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   }else if(auth){
     // Legacy website sessions may not be forwarded: they must log in again.
     return NextResponse.json({detail:"please_login_again"},{status:401});
+  }
+  if (checked === "/demo/auth/telegram/browser/complete") {
+    // Do not forward any user-supplied browser proof header. The secret
+    // exists exclusively in this site's HttpOnly cookie.
+    const verifier=req.cookies.get("tt_telegram_browser_flow")?.value;
+    if(!verifier || !/^[A-Za-z0-9_-]{30,128}$/.test(verifier))
+      return NextResponse.json({detail:"telegram_browser_proof_required"},{status:401});
+    headers.set("X-Telegram-Browser-Token",verifier);
   }
   // HTML <img> cannot set an Authorization header. For exact media GET
   // paths only, forward the HttpOnly browser session so an event owner can
@@ -157,6 +165,67 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
     response.cookies.set("tt_google_flow",data.browser_token,{httpOnly:true,sameSite:"lax",
       secure:process.env.NODE_ENV==="production" || req.nextUrl.protocol==="https:",
       path:"/api/auth/google",maxAge:600});
+    return response;
+  }
+  if (checked === "/demo/auth/telegram/start" && upstream.ok) {
+    const data = await upstream.json().catch(() => null);
+    if (!data || typeof data.browser_token !== "string" ||
+        typeof data.url !== "string" || data.browser_token.length < 20 ||
+        data.browser_token.length > 128)
+      return NextResponse.json({detail:"malformed_telegram_login_response"},{status:502});
+    let authUrl:URL;
+    try {authUrl = new URL(data.url);} catch {
+      return NextResponse.json({detail:"malformed_telegram_login_response"},{status:502});
+    }
+    if(authUrl.origin!=="https://oauth.telegram.org" || authUrl.pathname!=="/auth")
+      return NextResponse.json({detail:"malformed_telegram_login_response"},{status:502});
+    const response = NextResponse.json({url:data.url},{headers:{"Cache-Control":"private, no-store"}});
+    response.cookies.set("tt_telegram_flow",data.browser_token,{
+      httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production" || req.nextUrl.protocol==="https:",
+      path:"/api/auth/telegram",maxAge:600
+    });
+    return response;
+  }
+  if (checked === "/demo/auth/telegram/browser/start" && upstream.ok) {
+    const data=await upstream.json().catch(()=>null);
+    if (!data || typeof data.browser_token!=="string" ||
+        !/^[A-Za-z0-9_-]{30,128}$/.test(data.browser_token) ||
+        typeof data.challenge!=="string" ||
+        !/^[A-Za-z0-9_-]{30,100}$/.test(data.challenge) ||
+        typeof data.pin!=="string" || !/^[0-9]{6}$/.test(data.pin) ||
+        typeof data.bot_link!=="string" ||
+        data.bot_link!=="https://t.me/TicketTreatBot?start=login_"+data.challenge)
+      return NextResponse.json({detail:"malformed_telegram_browser_login"},{status:502});
+    const response=NextResponse.json({
+      challenge:data.challenge,bot_link:data.bot_link,pin:data.pin,expires_in_seconds:600
+    },{headers:{"Cache-Control":"private, no-store"}});
+    response.cookies.set("tt_telegram_browser_flow",data.browser_token,{
+      httpOnly:true,sameSite:"strict",
+      secure:process.env.NODE_ENV==="production"||req.nextUrl.protocol==="https:",
+      path:"/api/gateway",maxAge:600
+    });
+    return response;
+  }
+  if (checked === "/demo/auth/telegram/browser/complete" && upstream.ok) {
+    const data=await upstream.json().catch(()=>null);
+    if(data?.status==="pending")
+      return NextResponse.json({status:"pending"},{headers:{"Cache-Control":"private, no-store"}});
+    if(data?.status!=="authenticated" || typeof data.token!=="string" ||
+       data.token.length<30)
+      return NextResponse.json({detail:"malformed_telegram_browser_session"},{status:502});
+    const response=NextResponse.json({...data,token:MARKER},{
+      headers:{"Cache-Control":"private, no-store"}
+    });
+    response.cookies.set(COOKIE,data.token,{
+      httpOnly:true,sameSite:"strict",
+      secure:process.env.NODE_ENV==="production"||req.nextUrl.protocol==="https:",
+      path:"/api/gateway",maxAge:7*24*3600
+    });
+    response.cookies.set("tt_telegram_browser_flow","",{
+      httpOnly:true,sameSite:"strict",
+      secure:process.env.NODE_ENV==="production"||req.nextUrl.protocol==="https:",
+      path:"/api/gateway",maxAge:0
+    });
     return response;
   }
   const shouldSave=sessionPaths.has(checked) && upstream.ok;

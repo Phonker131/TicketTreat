@@ -488,6 +488,27 @@ export function authenticateTelegram(initData: string): Promise<TelegramAuthResu
 
 
 /** Confirmation of an already authenticated website account. */
+/** Bot-approved browser login uses separate browser-only cookie proof; the
+ * Telegram Mini App never learns the website session or verifier. */
+export function approveTelegramBrowserLogin(challenge:string,initData:string,pin:string):Promise<{status:"approved"}> {
+  return request("/demo/auth/telegram/browser/claim",{
+    method:"POST",body:JSON.stringify({challenge,init_data:initData,pin})
+  });
+}
+
+/** Telegram-first identities can add an email after proving its ownership.
+ * If the address already belongs to a website account, require two-proof linking. */
+export function requestTelegramEmailAttach(token:string,email:string):Promise<{status:string}> {
+  return request("/demo/auth/email/attach/request",{
+    method:"POST",headers:{Authorization:`Bearer ${token}`},body:JSON.stringify({email})
+  });
+}
+export function confirmTelegramEmailAttach(token:string,email:string,code:string):Promise<{email_verified:boolean}> {
+  return request("/demo/auth/email/attach/confirm",{
+    method:"POST",headers:{Authorization:`Bearer ${token}`},body:JSON.stringify({email,code})
+  });
+}
+
 export function requestEmailVerification(token:string):Promise<{status:string}> {
   return request("/demo/auth/email/request-verification",{method:"POST",headers:{Authorization:`Bearer ${token}`}});
 }

@@ -98,7 +98,7 @@ export type AdminEventTickets = {
 
 export type WebAccount = {
   id: number;
-  email: string;
+  email: string | null;
   first_name: string;
   last_name: string;
   phone: string | null;

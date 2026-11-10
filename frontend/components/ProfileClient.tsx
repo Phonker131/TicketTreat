@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import {GoogleSignIn} from "@/components/GoogleSignIn";
+import {TelegramSignIn} from "@/components/TelegramSignIn";
+import {getTelegramWebApp} from "@/lib/telegram";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { getVerifiedTelegramSession } from "@/lib/session";
 import { useLanguage } from "@/components/LanguageProvider";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink, elevateMFA } from "@/lib/api";
+import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink, elevateMFA, requestTelegramEmailAttach, confirmTelegramEmailAttach, approveTelegramBrowserLogin } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -109,7 +111,7 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
     "signOutEverywhere": "Sign out everywhere",
     "telegramVerified": "Telegram verified",
     "telegramSignedIn": "You are signed in through Telegram and can book events in Mini App. Existing bot registrations appear in My tickets.",
-    "telegramSeparate": "Email accounts are separate. To use TicketTreat on the web, sign up or log in below; accounts are not automatically merged.",
+    "telegramSeparate": "Your Telegram tickets already belong to your TicketTreat identity. To access them on the website, use Continue with Telegram. If you also have an older email/Google account, sign into it below to securely connect the two.",
     "passwordRecovery": "Password recovery",
     "recoveryHint": "If the account exists, a reset code will be sent to this address. This also verifies the email.",
     "mailUnavailable": "We can't send verification emails right now. Please try later. You can contact TicketTreat Support if you need help.",
@@ -172,7 +174,7 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
     "signOutEverywhere": "Odhlásit všechna zařízení",
     "telegramVerified": "Telegram ověřen",
     "telegramSignedIn": "Jste přihlášeni přes Telegram a můžete se registrovat na akce v Mini App. Registrace přes bota najdete v sekci Moje vstupenky.",
-    "telegramSeparate": "Účty s e-mailem jsou samostatné. Chcete-li používat TicketTreat na webu, níže se zaregistrujte nebo přihlaste; účty se automaticky neslučují.",
+    "telegramSeparate": "Vstupenky z Telegramu už patří tvému účtu TicketTreat. Na webu použij Pokračovat přes Telegram. Pokud máš starší účet přes e-mail či Google, přihlas se níže a bezpečně oba účty propoj.",
     "passwordRecovery": "Obnovení hesla",
     "recoveryHint": "Pokud účet existuje, odešleme na tuto adresu kód pro obnovení hesla, který také ověří e-mail.",
     "mailUnavailable": "Ověřovací e-maily teď nelze odeslat. Zkuste to později nebo kontaktujte podporu TicketTreat.",
@@ -235,7 +237,7 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
     "signOutEverywhere": "Выйти на всех устройствах",
     "telegramVerified": "Telegram подтверждён",
     "telegramSignedIn": "Ты уже авторизован через Telegram и можешь записываться на ивенты в Mini App. Твои записи через бота доступны в разделе билетов.",
-    "telegramSeparate": "Веб-аккаунт с email существует отдельно. Для доступа с компьютера используй регистрацию или вход ниже; автоматического объединения аккаунтов пока нет.",
+    "telegramSeparate": "Билеты из Telegram уже привязаны к твоему TicketTreat-профилю. На сайте используй «Продолжить с Telegram». Для старого email/Google аккаунта войди ниже и подтверди объединение.",
     "passwordRecovery": "Восстановление пароля",
     "recoveryHint": "Если аккаунт существует, на эту почту придёт код для сброса пароля. Код также подтверждает владение почтой.",
     "mailUnavailable": "Сейчас не получается отправить письмо с кодом. Попробуй позже или обратись в поддержку TicketTreat.",
@@ -298,7 +300,7 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
     "signOutEverywhere": "Вийти на всіх пристроях",
     "telegramVerified": "Telegram підтверджено",
     "telegramSignedIn": "Ти вже ввійшов через Telegram і можеш реєструватися на події в Mini App. Реєстрації через бота доступні в розділі «Мої квитки».",
-    "telegramSeparate": "Вебакаунт з email існує окремо. Для доступу через сайт зареєструйся або ввійди нижче; акаунти автоматично не об’єднуються.",
+    "telegramSeparate": "Квитки з Telegram вже належать твоєму профілю TicketTreat. На сайті обери «Продовжити через Telegram». Якщо маєш старий email/Google акаунт, увійди нижче й підтвердь об’єднання.",
     "passwordRecovery": "Відновлення пароля",
     "recoveryHint": "Якщо акаунт існує, на цю адресу надійде код для скидання пароля, який також підтвердить пошту.",
     "mailUnavailable": "Зараз не вдається надіслати лист із кодом. Спробуй пізніше або звернися до підтримки TicketTreat.",
@@ -355,12 +357,20 @@ export function ProfileClient() {
   const [accountRole, setAccountRole] = useState<"participant"|"organizer">("participant");
   const [linkRequest, setLinkRequest] = useState<{challenge:string;bot_link:string}|null>(null);
   const [incomingLink, setIncomingLink] = useState("");
+  const [incomingBrowserLogin,setIncomingBrowserLogin]=useState("");
+  const [browserLoginApproved,setBrowserLoginApproved]=useState(false);
+  const [browserLoginPin,setBrowserLoginPin]=useState("");
   const [linkConfirmed, setLinkConfirmed] = useState(false);
   const [linkBusy, setLinkBusy] = useState(false);
   const [mfaLinkAction, setMfaLinkAction] = useState<"current"|"browser"|null>(null);
   const [mfaLinkSetup, setMfaLinkSetup] = useState(false);
   const [mfaLinkCode, setMfaLinkCode] = useState("");
   const [mfaLinkBusy, setMfaLinkBusy] = useState(false);
+  const [connectOnLogin,setConnectOnLogin]=useState(true);
+  const [pendingTelegramConnect,setPendingTelegramConnect]=useState(false);
+  const [newTelegramEmail,setNewTelegramEmail]=useState("");
+  const [newTelegramEmailCode,setNewTelegramEmailCode]=useState("");
+  const [emailAttachSent,setEmailAttachSent]=useState(false);
 
 
   useEffect(() => {
@@ -371,11 +381,13 @@ export function ProfileClient() {
     void getMailStatus().then(data=>{if(mounted)setMailReady(data.available===true);}).catch(()=>{if(mounted)setMailReady(false);});
     const pendingLink = new URLSearchParams(window.location.search).get("telegram_link") || "";
     if (/^[a-zA-Z0-9_-]{24,100}$/.test(pendingLink)) setIncomingLink(pendingLink);
+    const browserLogin=new URLSearchParams(window.location.search).get("telegram_browser_login")||"";
+    if(/^[A-Za-z0-9_-]{40,100}$/.test(browserLogin)) setIncomingBrowserLogin(browserLogin);
     // The Google OAuth callback writes an HttpOnly cookie and redirects here.
     // The browser-session marker is not a credential; it merely asks the
     // gateway to validate that cookie. A missing/invalid cookie is rejected
     // server-side and restoreWebProfile() clears the marker on 401.
-    if (new URLSearchParams(window.location.search).get("google") === "success") {
+    if (["google","telegram"].some(provider => new URLSearchParams(window.location.search).get(provider) === "success")) {
       window.localStorage.setItem("tickettreat_web_auth", "browser-session");
     }
     restoreWebProfile()
@@ -471,6 +483,21 @@ export function ProfileClient() {
     finally{setLinkBusy(false);}
   }
 
+  async function approveBrowserLogin(){
+    const initData=getTelegramWebApp()?.initData;
+    if(!initData||!telegramProfile||!incomingBrowserLogin||!/^[0-9]{6}$/.test(browserLoginPin)){
+      setError("ui:telegramOpenBot");return;
+    }
+    setLinkBusy(true);setError("");
+    try{
+      await approveTelegramBrowserLogin(incomingBrowserLogin,initData,browserLoginPin);
+      setBrowserLoginApproved(true);
+      setBrowserLoginPin("");
+      setNotice("");
+    }catch(err){setError(readableError(err));}
+    finally{setLinkBusy(false);}
+  }
+
   async function approveTelegramLink(){
     const initData=(await import("@/lib/telegram")).getTelegramWebApp()?.initData;
     if(!initData||!incomingLink||!telegramProfile) {
@@ -491,7 +518,7 @@ export function ProfileClient() {
   function loadProfile(p: WebProfile) {
     setProfile(p);
     storeGuest(p.guest);
-    setEmail(p.account.email);
+    setEmail(p.account.email || "");
     setFirstName(p.account.first_name);
     setLastName(p.account.last_name);
     setPhone(p.account.phone || "");
@@ -532,6 +559,23 @@ export function ProfileClient() {
       loadProfile(result.profile);
       setNotice(mode === "signup" ? "ui:accountCreated" : "ui:welcome");
       setPassword("");
+      // Explicit checkbox consent + independently proven website credentials
+      // and signed Telegram initData: link during first sign-in to Mini App.
+      if (connectOnLogin && getTelegramWebApp()?.initData) {
+        const tg=await getVerifiedTelegramSession().catch(()=>null);
+        if (tg && !tg.accounts_linked) {
+          if (result.profile.email_verified) {
+            try {
+              await linkTelegramToWebsite(result.token,getTelegramWebApp()!.initData!);
+              loadProfile(await getWebProfile(result.token));
+              setTelegramProfile({...tg,accounts_linked:true});
+              setNotice("ui:telegramSuccessfullyLinked");
+            } catch (err) { setError(readableError(err)); }
+          } else {
+            setPendingTelegramConnect(true);
+          }
+        }
+      }
     } catch(err) { setError(readableError(err)); }
     finally { setBusy(false); }
   }
@@ -621,6 +665,21 @@ export function ProfileClient() {
       <AppHeader />
       <main className="page auth-container">
         <Link href="/" className="back-link">← {tr.back}</Link>
+        {incomingBrowserLogin && <section className="panel form-stack" aria-label="Approve browser login">
+          <h2>{language==="cs"?"Potvrzení přihlášení k webu":language==="en"?"Approve website sign-in":language==="ru"?"Подтвердить вход на сайт":"Підтвердити вхід на сайт"}</h2>
+          <p className="form-note">{language==="cs"?"Potvrď pouze přihlášení, které jsi sám/sama zahájil(a) na tickettreat.eu. Cizí žádosti zamítni.":language==="en"?"Only approve if you personally started this sign-in on tickettreat.eu. Never approve an unexpected request.":language==="ru"?"Подтверждай, только если сам начал вход на tickettreat.eu. Чужие запросы не подтверждай.":"Підтверджуй лише власний запит входу на tickettreat.eu."}</p>
+          {!browserLoginApproved && <label>
+            {language==="cs"?"Šestimístný kód ze stránky tickettreat.eu":language==="en"?"Six-digit code from tickettreat.eu":language==="ru"?"Шестизначный код с сайта":"Шестизначний код із сайту"}
+            <input type="text" inputMode="numeric" autoComplete="off"
+              pattern="[0-9]{6}" maxLength={6} minLength={6} required
+              value={browserLoginPin} onChange={e=>setBrowserLoginPin(e.target.value)}/>
+          </label>}
+          {browserLoginApproved ? <p role="status">{language==="cs"?"Schváleno. Vrať se do prohlížeče.":language==="en"?"Approved. Return to your browser.":language==="ru"?"Подтверждено. Вернись в браузер.":"Підтверджено. Повернись у браузер."}</p> :
+            <button type="button" className="button button-primary"
+              disabled={!telegramProfile||linkBusy||!/^[0-9]{6}$/.test(browserLoginPin)} onClick={()=>void approveBrowserLogin()}>
+              {linkBusy?"…":language==="cs"?"Potvrdit přihlášení":language==="en"?"Approve sign-in":language==="ru"?"Подтвердить вход":"Підтвердити вхід"}
+            </button>}
+        </section>}
         {incomingLink && <section className="panel form-stack" aria-label="Telegram account linking">
           <h2>{ui.confirmTelegram}</h2>
           {linkConfirmed ? <p role="status">{ui.linkConfirmed}</p> : <>
@@ -638,7 +697,7 @@ export function ProfileClient() {
                 <div className="profile-avatar">{profile.account.first_name.charAt(0).toUpperCase()}</div>
                 <div className="profile-identity">
                   <h1>{profile.account.first_name} {profile.account.last_name}</h1>
-                  <p>{profile.account.email}</p>
+                  <p>{profile.account.email || "Telegram · @TicketTreatBot"}</p>
                 </div>
               </div>
               <div className="profile-identity-meta">
@@ -682,17 +741,33 @@ export function ProfileClient() {
                   <Link href="/security/mfa" className="button button-outline">{ui.mfaManage}</Link>
                 </form>}
               </section>}
-              {!profile.email_verified && <div className="panel form-stack">
+              {!profile.email_verified && profile.account.email && <div className="panel form-stack">
                 <h3>{ui.verifyEmailTitle}</h3>
                 <p className="form-note">{ui.verifyEmailHelp}</p>
                 <button type="button" className="button button-outline" disabled={busy||mailReady===false}
                   onClick={async()=>{const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await requestEmailVerification(token);setNotice("ui:verificationSent");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
                   {ui.sendCode}</button>
-                <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await confirmAccountEmail(token,profile.account.email,verificationCode);loadProfile(await getWebProfile(token));setVerificationCode("");setNotice("ui:emailVerifiedNotice");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
+                <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{if(!profile.account.email)return;await confirmAccountEmail(token,profile.account.email,verificationCode);loadProfile(await getWebProfile(token));setVerificationCode("");setNotice("ui:emailVerifiedNotice");if(pendingTelegramConnect&&getTelegramWebApp()?.initData){try{await linkTelegramToWebsite(token,getTelegramWebApp()!.initData!);loadProfile(await getWebProfile(token));setTelegramProfile(tg=>tg?{...tg,accounts_linked:true}:tg);setPendingTelegramConnect(false);setNotice("ui:telegramSuccessfullyLinked");}catch(linkErr){setError(readableError(linkErr));}}}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
                   <label>{ui.emailCode}<input type="text" autoComplete="one-time-code" name="one-time-code" inputMode="numeric" pattern="[0-9]{8}" required minLength={8} maxLength={8} value={verificationCode} onChange={e=>setVerificationCode(e.target.value)}/></label>
                   <button type="submit" className="button button-primary" disabled={busy}>{ui.confirmEmail}</button>
                 </form>
               </div>}
+              {!profile.account.email && <section className="panel form-stack" aria-label="Optional email for Telegram account">
+                <h3>{language==="cs"?"Přidat e-mail (volitelné)":"Add an email (optional)"}</h3>
+                <p className="form-note">{language==="cs"?"Vstupenky už patří tvému účtu Telegram. E-mail je volitelný pro přihlašování, obnovu účtu a upozornění.":"Your Telegram tickets already belong to this account. Email is optional for email sign-in, recovery and notifications."}</p>
+                <label>{tr.email}<input type="email" required maxLength={255} autoComplete="email"
+                  value={newTelegramEmail} onChange={e=>{setNewTelegramEmail(e.target.value);setEmailAttachSent(false);}}/></label>
+                <button type="button" className="button button-outline" disabled={busy||mailReady===false||!newTelegramEmail.includes("@")}
+                  onClick={async()=>{const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await requestTelegramEmailAttach(token,newTelegramEmail.trim());setEmailAttachSent(true);setNotice("ui:verificationSent");}catch(err){setError(err instanceof Error&&err.message==="email_already_registered_link_accounts"?(language==="cs"?"E-mail již patří jinému účtu. Přihlas se k němu a propoj jej s Telegramem.":"This email belongs to another account. Sign in there and use the existing Telegram link."):readableError(err));}finally{setBusy(false);}}}>
+                  {ui.sendCode}
+                </button>
+                {emailAttachSent && <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();const token=getWebToken();if(!token)return;setBusy(true);setError("");try{await confirmTelegramEmailAttach(token,newTelegramEmail.trim(),newTelegramEmailCode);loadProfile(await getWebProfile(token));setNewTelegramEmailCode("");setEmailAttachSent(false);setNotice("ui:emailVerifiedNotice");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
+                  <label>{ui.emailCode}<input type="text" inputMode="numeric" autoComplete="one-time-code"
+                    pattern="[0-9]{8}" minLength={8} maxLength={8} required
+                    value={newTelegramEmailCode} onChange={e=>setNewTelegramEmailCode(e.target.value)}/></label>
+                  <button type="submit" className="button button-primary" disabled={busy}>{ui.confirmEmail}</button>
+                </form>}
+              </section>}
               {profile.email_verified&&<p className="form-note">✓ {ui.emailVerified}</p>}
               <p className="form-note">{tr.note}</p>
               {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary"> {ui.organizerDashboard} →</Link>}
@@ -708,7 +783,7 @@ export function ProfileClient() {
             <section className="panel form-stack">
               <h2>{ui.accountSecurity}</h2>
               <p className="form-note">{ui.passwordWarning}</p>
-              <form className="form-stack" onSubmit={updatePassword}>
+              {profile.account.email && <form className="form-stack" onSubmit={updatePassword}>
                 <label>{ui.currentPassword}
                   <input required type="password" autoComplete="current-password" value={oldPassword}
                     onChange={e=>setOldPassword(e.target.value)}/></label>
@@ -720,8 +795,9 @@ export function ProfileClient() {
                     value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)}/></label>
                 <button type="submit" className="button button-primary" disabled={busy}>
                   {ui.changePassword}</button>
-              </form>
+              </form>}
               <GoogleSignIn link />
+              {!profile.guest.telegram_id && <TelegramSignIn link />}
               <p className="form-note">{ui.googlePasswordHint}</p>
               <Link href="/security/mfa" className="button button-outline">{ui.twoFactor}</Link>
               {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
@@ -750,7 +826,7 @@ export function ProfileClient() {
             </section>}
             <p className="form-note">{tr.need}</p>
             <div className="auth-tabs" role="tablist">
-              <button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setError("");}}>{tr.signup}</button>
+              {!telegramProfile && <button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setError("");}}>{tr.signup}</button>}
               <button type="button" className={mode==="login"?"active":""} onClick={()=>{setMode("login");setError("");}}>{tr.login}</button>
             </div>
             {error && <div className="state-card state-error" role="alert">{error.startsWith("ui:")?displayMessage(error):userFacingError(error,language)}</div>}
@@ -758,6 +834,11 @@ export function ProfileClient() {
             <form className="panel form-stack" onSubmit={submitAuth}>
               <h2>{mode==="signup"?tr.create:tr.login}</h2>
               <GoogleSignIn />
+              <TelegramSignIn />
+              {telegramProfile && !telegramProfile.accounts_linked && mode==="login" && <label className="form-note">
+                <input type="checkbox" checked={connectOnLogin} onChange={e=>setConnectOnLogin(e.target.checked)}/>
+                {" "}{language==="cs"?"Po přihlášení propojit tento ověřený Telegram s mým stávajícím TicketTreat účtem.":language==="en"?"After signing in, connect this verified Telegram to my existing TicketTreat account.":language==="ru"?"После входа связать этот подтверждённый Telegram с моим существующим аккаунтом TicketTreat.":"Після входу з'єднати цей підтверджений Telegram із моїм акаунтом TicketTreat."}
+              </label>}
               {mode==="signup" && (
                 <fieldset className="event-language-fieldset">
                   <legend>{language==="en"?"Register as":language==="cs"?"Typ účtu":language==="uk"?"Зареєструватися як":"Зарегистрироваться как"}</legend>
