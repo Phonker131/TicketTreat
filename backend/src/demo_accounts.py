@@ -92,6 +92,9 @@ class WebSession(Base):
 
 class SignupData(BaseModel):
     email: str = Field(min_length=5, max_length=255)
+    # Proof of control of the email address comes from /auth/quick/request.
+    # Optional only for a staged rollout; production will require it.
+    email_code: str | None = Field(default=None, pattern=r"^\d{8}$")
     password: str = Field(min_length=12, max_length=128)
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
@@ -300,6 +303,29 @@ def install_demo_accounts(
         email = normalize_email(payload.email)
         if db.query(WebAccount.id).filter(WebAccount.email == email).first():
             raise HTTPException(status_code=409, detail="email_already_registered")
+        require_otp = os.getenv("REQUIRE_SIGNUP_EMAIL_OTP", "false").lower() in {"1", "true", "yes"}
+        if require_otp and not payload.email_code:
+            raise HTTPException(status_code=409, detail="email_verification_code_required")
+        verified_email = False
+        pending_email_claim = None
+        if payload.email_code:
+            # The existing quick-signup request already enforces send limits,
+            # HMAC-signed one-time codes, 10-minute expiry and privacy version.
+            # Reserve/consume the same code inside the account transaction.
+            from demo_quick_signup import QuickSignupPending, digest, utc
+            pending_email_claim = db.query(QuickSignupPending).filter(
+                QuickSignupPending.email == email,
+            ).with_for_update().first()
+            if (pending_email_claim is None
+                    or utc(pending_email_claim.expires_at) <= datetime.now(timezone.utc)
+                    or pending_email_claim.attempts >= 5):
+                raise HTTPException(400, "invalid_or_expired_code")
+            pending_email_claim.attempts += 1
+            if not secrets.compare_digest(
+                    pending_email_claim.code_hash, digest(email, payload.email_code)):
+                db.commit()
+                raise HTTPException(400, "invalid_or_expired_code")
+            verified_email = True
         contact = normal_contact(payload.contact_preference)
         country_code, city = clean_location(payload.country_code, payload.city)
         first = payload.first_name.strip()
@@ -328,6 +354,17 @@ def install_demo_accounts(
             guest.first_name, guest.last_name, guest.email = first, last, email
             db.add(account)
             db.flush()
+            if verified_email:
+                from demo_account_recovery import VerifiedEmail
+                from demo_identity_registry import mirror_verified_identity
+                db.add(VerifiedEmail(
+                    account_id=account.id,
+                    verified_at=datetime.now(timezone.utc),
+                ))
+                mirror_verified_identity(db, account_id=account.id,
+                                         provider="email", verified_subject=email)
+                if pending_email_claim is not None:
+                    db.delete(pending_email_claim)
             # Never grant organizer powers from a public signup form.
             db.add(WebAccountRole(account_id=account.id, role="participant"))
             if payload.account_role=="organizer":
