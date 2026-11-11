@@ -106,7 +106,7 @@ def check_protected(cur):
             "roles":tuple((x["role"] for x in rows(cur,
                 "SELECT role FROM demo_web_account_roles WHERE account_id=%s",
                 (account_id,)))),
-            "claims":tuple((x["id"],x["provider"] for x in id_claims(cur,account_id))),
+            "claims":tuple((x["id"],x["provider"]) for x in id_claims(cur,account_id)),
             "tickets":tuple(x["id"] for x in ticket_rows(cur,acct["guest_id"])),
         }
     return result
