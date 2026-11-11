@@ -360,9 +360,13 @@ def install_email_account_security(app, get_db):
         if not configured():
             raise HTTPException(503, "email_provider_unavailable")
         account = db.query(WebAccount).filter(WebAccount.email == email).first()
-        # A completed password reset itself proves mailbox ownership. Let
-        # users recover accounts even if they never completed verification.
-        if account:
+        # Mailbox ownership alone is insufficient to transfer a password
+        # and all tickets/sessions from an unverified historic account:
+        # someone else may have registered with that email without owning it.
+        # Existing unverified accounts must first sign in with their password
+        # and verify email, or use support-mediated recovery with both proofs.
+        # Return the same response for known, unknown and unverified emails.
+        if account and email_is_verified(db, account.id):
             try:
                 create_challenge(db, account, "reset")
             except HTTPException as exc:
@@ -381,7 +385,10 @@ def install_email_account_security(app, get_db):
         record_rate(db, "password_reset_submit_ip", ip, 3600)
         validate_new_password(payload.new_password)
         account = db.query(WebAccount).filter(WebAccount.email == email).first()
-        if not account:
+        if not account or not email_is_verified(db, account.id):
+            # Also reject reset challenges issued before the hardening rollout:
+            # they prove mailbox control, but not ownership of an account
+            # created without verifying that mailbox.
             raise HTTPException(400, "invalid_or_expired_code")
         consume_challenge(db, account, "reset", payload.code)
         account.password_hash = hash_password(payload.new_password)
