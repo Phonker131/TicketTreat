@@ -8,7 +8,6 @@ import {BrandIcon} from "@/components/BrandIcon";
 import {premium} from "@/components/premium/copy";
 import type {LanguageCode} from "@/lib/types";
 
-const KEY="tt4-story";
 const GLOW=["blu","yel","tom"] as const;
 
 /** Three-slide welcome tour for guests: find, reserve, arrive. It explains what TicketTreat gives a guest, not an organizer. */
@@ -24,15 +23,11 @@ export function WelcomeStory({language}:{language:LanguageCode}){
   const params=new URLSearchParams(location.search);
   const show=()=>{setState([0,1]);setOpen(true)};
   window.addEventListener("tickettreat-open-story",show);
-  if(!params.has("nostory")){
-   let seen=false;try{seen=localStorage.getItem(KEY)==="1"}catch{}
-   if(params.has("story")||!seen)setOpen(true);
-  }
+  if(params.has("story") && !params.has("nostory")) show();
   return()=>window.removeEventListener("tickettreat-open-story",show);
  },[]);
 
  const close=useCallback(()=>{
-  try{localStorage.setItem(KEY,"1")}catch{}
   setOpen(false);
   previous.current?.focus();
  },[]);

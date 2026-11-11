@@ -17,7 +17,7 @@ const copy={
  ru:{mood:"Настроение",mode:"Режим поиска",all:"Любое",swipe:"Свайп",list:"Лента",savedMode:"Избранное",want:"Хочу",pass:"Мимо",view:"Смотреть",saved:"Сохранено в избранное",done:"Афиши закончились",hint:"Свайп влево / вправо / вверх или стрелки клавиатуры. «Хочу» сохраняет ивент в избранное, но не бронирует билет.",noMatch:"Нет событий с выбранным настроением.",noSaved:"В избранном пока пусто",noSavedText:"Свайпни вправо или нажми сердечко на карточке: ивент появится здесь и на странице «Мои билеты».",toSwipe:"К свайпу",savedCount:"в избранном"},
  cs:{mood:"Nálada",mode:"Režim hledání",all:"Cokoliv",swipe:"Karty",list:"Seznam",savedMode:"Uložené",want:"Chci",pass:"Přeskočit",view:"Zobrazit",saved:"Uloženo",done:"Žádné další plakáty",hint:"Přejeď doleva / doprava / nahoru, nebo použij šipky na klávesnici. «Chci» akci uloží, neprovádí rezervaci.",noMatch:"Pro tuto náladu nemáme akce.",noSaved:"Zatím nic uloženého",noSavedText:"Přejeď doprava nebo klepni na srdíčko: akce se objeví tady a v «Moje vstupenky».",toSwipe:"Ke kartám",savedCount:"uložených"},
  uk:{mood:"Настрій",mode:"Режим пошуку",all:"Будь-який",swipe:"Свайп",list:"Стрічка",savedMode:"Обране",want:"Хочу",pass:"Пропустити",view:"Переглянути",saved:"Збережено в обране",done:"Афіші закінчилися",hint:"Свайп ліворуч / праворуч / угору або клавіші зі стрілками. «Хочу» зберігає подію, але не бронює квиток.",noMatch:"Немає подій з таким настроєм.",noSaved:"В обраному поки порожньо",noSavedText:"Свайпни праворуч або натисни сердечко: подія з'явиться тут і в «Мої квитки».",toSwipe:"До свайпу",savedCount:"в обраному"},
- en:{mood:"Mood",mode:"Browse mode",all:"Anything",swipe:"Swipe",list:"Feed",savedMode:"Saved",want:"Want",pass:"Pass",view:"View",saved:"Saved to your list",done:"No more posters",hint:"Swipe left / right / up or use arrow keys. Want saves an event to your list, it does not book a ticket.",noMatch:"No events match this mood.",noSaved:"Nothing saved yet",noSavedText:"Swipe right or tap the heart on a card: the event shows up here and under My tickets.",toSwipe:"Back to swipe",savedCount:"saved"}
+ en:{mood:"Mood",mode:"Browse mode",all:"Anything",swipe:"Swipe",list:"List",savedMode:"Saved",want:"Want",pass:"Pass",view:"View",saved:"Saved to your list",done:"No more posters",hint:"Swipe left / right / up or use arrow keys. Want saves an event to your list, it does not book a ticket.",noMatch:"No events match this mood.",noSaved:"Nothing saved yet",noSavedText:"Swipe right or tap the heart on a card: the event shows up here and under My tickets.",toSwipe:"Back to swipe",savedCount:"saved"}
 } as const;
 
 function dateLabel(value:string|null,lang:LanguageCode){
@@ -39,7 +39,7 @@ const MODE_ICON:Record<Mode,React.ReactNode>={
 
 export function EventDiscovery({events,language}:{events:TicketTreatEvent[];language:LanguageCode}){
  const tr=copy[language];
- const [mode,setMode]=useState<Mode>("swipe");
+ const [mode,setMode]=useState<Mode>("list");
  const [mood,setMood]=useState<Mood>("all");
  const [index,setIndex]=useState(0);
  const [feedback,setFeedback]=useState("");
@@ -55,7 +55,7 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
  };
  useEffect(()=>{setIndex(0);setFeedback("");},[mood,mode]);
  const moodButtons:Mood[]=["all",...EVENT_TAGS];
- const modeButtons:Mode[]=["swipe","list","saved"];
+ const modeButtons:Mode[]=["list","saved","swipe"];
  return <div className="tt-discovery">
    <div className="tt-discovery-controls tp-filterbar">
      <div className="tp-seg" role="group" aria-label={tr.mode}>
