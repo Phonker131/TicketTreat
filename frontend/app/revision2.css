@@ -272,11 +272,46 @@ html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admi
 html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .panel a:not(.button){
  color:var(--paper)!important
 }
-html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .tt-printed-code-form{
- background:var(--paper)!important;color:var(--ink)!important;border-color:var(--ink)!important
+/* The printed-code widget is a functional form, NOT a paper ticket.
+   In dark mode its entire surface, labels, hint, input and disabled CTA
+   must follow the same contrast tokens. */
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form{
+ background:var(--surface-2)!important;color:var(--fg)!important;
+ border:2px solid var(--theme-line)!important;
 }
-html[data-theme="dark"] .app-shell:has(.admin-event-actions) .tt-printed-code-form input{
- background:#fff!important;color:var(--ink)!important;border-color:var(--ink)!important
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form :is(label,small){
+ color:var(--fg)!important;opacity:1!important;
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form small{
+ color:var(--fg-mute)!important;
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form input{
+ background:var(--surface)!important;color:var(--fg)!important;
+ border-color:var(--theme-line)!important;
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form input::placeholder{
+ color:var(--fg-mute)!important;opacity:1!important;
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form .button-primary:disabled{
+ background:var(--surface)!important;color:var(--fg-mute)!important;
+ border:2px solid var(--theme-line)!important;
+ opacity:1!important;box-shadow:none!important;
+}
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form{
+ background:var(--surface-2)!important;color:var(--fg)!important;
+ border:2px solid var(--edge)!important;
+}
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form :is(label,small){
+ color:var(--fg)!important;opacity:1!important;
+}
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form input{
+ background:var(--surface)!important;color:var(--fg)!important;
+ border-color:var(--edge)!important;
+}
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form .button-primary:disabled{
+ background:var(--surface)!important;color:var(--fg-mute)!important;
+ border:2px solid var(--edge)!important;
+ opacity:1!important;box-shadow:none!important;
 }
 html[data-theme="dark"] .app-shell:has(.admin-event-actions) .stats-grid .stat-card,
 html[data-theme="dark"] .app-shell:has(.admin-event-actions) .panel .stat-card{
