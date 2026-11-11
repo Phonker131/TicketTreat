@@ -195,6 +195,35 @@ class TelegramBrowserLinkTests(unittest.TestCase):
                 self.assertEqual(db.get(main.DemoGuest,web_id).telegram_id,telegram_id)
                 self.assertIsNone(db.get(main.DemoGuest,old).telegram_id)
 
+    def test_google_linked_telegram_account_keeps_both_providers(self):
+        from datetime import datetime, timezone
+        from demo_google import GoogleIdentity
+
+        telegram_id = secrets.randbelow(10**12) + 10**10
+        signed = signed_init_data(telegram_id)
+        _, _, bearer = website_account()
+        with TestClient(main.app) as client:
+            auth = client.post("/demo/telegram/auth", json={"init_data": signed})
+            self.assertEqual(auth.status_code, 200, auth.text)
+            guest_id = auth.json()["guest"]["id"]
+            subject = "google-ci-" + secrets.token_hex(10)
+            with SessionLocal() as db:
+                account = db.query(WebAccount).filter_by(guest_id=guest_id).one()
+                account_id = account.id
+                db.add(GoogleIdentity(subject=subject, account_id=account_id,
+                                      created_at=datetime.now(timezone.utc)))
+                db.commit()
+            start = client.post("/demo/telegram/link/start",
+                                headers={"Authorization": "Bearer " + bearer})
+            self.assertEqual(start.status_code, 200, start.text)
+            claim = client.post("/demo/telegram/link/claim", json={
+                "challenge": start.json()["challenge"], "init_data": signed,
+            })
+            self.assertEqual(claim.status_code, 409, claim.text)
+            with SessionLocal() as db:
+                self.assertEqual(db.get(DemoTelegramIdentity, telegram_id).guest_id, guest_id)
+                self.assertEqual(db.get(GoogleIdentity, subject).account_id, account_id)
+
     def test_duplicate_free_passes_are_reconciled_without_double_booking(self):
         from datetime import datetime, timezone
         from decimal import Decimal
