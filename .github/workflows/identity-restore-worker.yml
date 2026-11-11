@@ -1,0 +1,36 @@
+name: Isolated identity restore worker
+on:
+  pull_request:
+    branches: [release/tickettreat-production]
+    paths:
+      - "ops/identity-restore/**"
+      - "scripts/audit_auth_identities.py"
+      - "scripts/backfill_auth_identities.py"
+      - "backend/migrations/20261111_auth_identities.sql"
+      - ".github/workflows/identity-restore-worker.yml"
+  push:
+    branches: [release/tickettreat-production]
+    paths:
+      - "ops/identity-restore/**"
+      - ".github/workflows/identity-restore-worker.yml"
+permissions:
+  contents: read
+jobs:
+  image:
+    name: Build isolated audit container (no credentials)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile scripts
+        run: |
+          python -m py_compile ops/identity-restore/restore_audit.py
+          python -m py_compile scripts/audit_auth_identities.py scripts/backfill_auth_identities.py scripts/restore_offsite_backup.py
+      - name: Build PostgreSQL 18 + verified restore tools
+        run: docker build --file ops/identity-restore/Dockerfile --tag tickettreat-identity-restore-ci .
+      - name: Verify worker contains only a local PostgreSQL test, never a production DB URL
+        run: |
+          docker run --rm --entrypoint sh tickettreat-identity-restore-ci -c \
+            "test -f /identity-worker/restore_audit.py && test -f /identity-worker/identity-migration.sql && python -m py_compile /identity-worker/restore_audit.py"
