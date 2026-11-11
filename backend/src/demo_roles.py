@@ -1439,6 +1439,9 @@ def install_account_moderation(app, get_db):
         import re
         from demo_accounts import AuthIdentity, WebSession
         from demo_telegram import DemoTelegramIdentity
+        # install_account_moderation does not receive the main module;
+        # resolve this model only when a completed merge audit exists.
+        from main import DemoTicket
         result:dict[int,int]={}
         audits=db.query(AccountAdminAudit).filter(
             AccountAdminAudit.action.like("manual_tg_shadow_%")
@@ -1464,8 +1467,8 @@ def install_account_moderation(app, get_db):
                 db.query(WebSession.id).filter(WebSession.account_id==source_id).first(),
                 db.query(DemoTelegramIdentity.telegram_id).filter(
                     DemoTelegramIdentity.guest_id==source.guest_id).first(),
-                db.query(main.DemoTicket.id).filter(
-                    main.DemoTicket.guest_id==source.guest_id).first(),
+                db.query(DemoTicket.id).filter(
+                    DemoTicket.guest_id==source.guest_id).first(),
                 db.query(EventOwnership.event_id).filter(
                     EventOwnership.owner_account_id==source_id).first(),
                 db.query(GlobalAdminDelegation.account_id).filter(
