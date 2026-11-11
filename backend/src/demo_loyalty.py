@@ -111,8 +111,10 @@ def passport_for(db: Session, guest_id: int, main, *, now: datetime | None = Non
             ],
         })
     result.sort(key=lambda s: (-s["season_visits"], s["organizer_name"].casefold(), s["organizer_id"]))
+    from demo_rewards import awards_for_guest
     return {"season": season, "season_starts_at": start.isoformat(), "season_ends_at": end.isoformat(),
-            "scope": "per_organizer", "studios": result, "total_lifetime_visits": sum(x["lifetime_visits"] for x in result)}
+            "scope": "per_organizer", "studios": result, "total_lifetime_visits": sum(x["lifetime_visits"] for x in result),
+            "awards": awards_for_guest(db, guest_id, main)}
 
 
 def priority_waitlist_entry(db: Session, event, main):
