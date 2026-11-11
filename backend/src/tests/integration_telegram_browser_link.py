@@ -65,6 +65,53 @@ class TelegramBrowserLinkTests(unittest.TestCase):
         else:
             os.environ["TELEGRAM_MINIAPP_BOT_TOKEN"]=self.previous_token
 
+    def test_authenticated_browser_cannot_create_second_account(self):
+        # Valid HttpOnly browser sessions must add a provider to the existing
+        # account; signing up again must not create an unrelated ticket owner.
+        account_id, guest_id, token = website_account()
+        new_email = f"second-account-{secrets.token_hex(12)}@example.invalid"
+        headers = {"Authorization": "Bearer " + token}
+        with TestClient(main.app) as client:
+            with SessionLocal() as db:
+                from sqlalchemy import func
+                guests_before = db.query(func.count(main.DemoGuest.id)).scalar()
+                accounts_before = db.query(func.count(WebAccount.id)).scalar()
+            cases = [
+                ("/demo/auth/signup", {
+                    "email": new_email, "password": "unique-long-password-2026",
+                    "first_name": "Second", "last_name": "Account",
+                }),
+                ("/demo/auth/quick/request", {
+                    "email": new_email, "first_name": "Second",
+                    "privacy_accepted": True, "privacy_version": "2026-10",
+                }),
+                ("/demo/auth/quick/confirm", {
+                    "email": new_email, "code": "12345678",
+                }),
+            ]
+            for path, body in cases:
+                with self.subTest(path=path):
+                    blocked = client.post(path, headers=headers, json=body)
+                    self.assertEqual(blocked.status_code, 409, blocked.text)
+                    self.assertEqual(
+                        blocked.json()["detail"],
+                        "already_authenticated_use_account_settings",
+                    )
+            # Invalid credentials must fail closed instead of starting a new
+            # account flow, even if they look syntactically like a bearer.
+            invalid = client.post("/demo/auth/signup",
+                headers={"Authorization": "Bearer " + secrets.token_urlsafe(36)},
+                json=cases[0][1])
+            self.assertEqual(invalid.status_code, 401, invalid.text)
+            active = client.get("/demo/auth/me", headers=headers)
+            self.assertEqual(active.status_code, 200, active.text)
+            self.assertEqual(active.json()["account"]["id"], account_id)
+            self.assertEqual(active.json()["guest"]["id"], guest_id)
+            with SessionLocal() as db:
+                self.assertEqual(db.query(func.count(main.DemoGuest.id)).scalar(), guests_before)
+                self.assertEqual(db.query(func.count(WebAccount.id)).scalar(), accounts_before)
+                self.assertIsNone(db.query(WebAccount).filter(WebAccount.email == new_email).first())
+
     def test_signed_miniapp_cannot_create_duplicate_email_accounts(self):
         telegram_id=secrets.randbelow(10**12)+10**10
         signed=signed_init_data(telegram_id)
