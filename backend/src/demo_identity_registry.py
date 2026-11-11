@@ -9,8 +9,10 @@ transfer a verified identity between accounts.
 """
 from __future__ import annotations
 
+import hashlib
 import os
 from datetime import datetime, timezone
+from sqlalchemy import text as sql_text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -148,3 +150,19 @@ def transfer_verified_telegram(
         db.flush()
     else:
         raise HTTPException(status_code=409, detail="verified_identity_conflict")
+
+
+def serialize_telegram_principal(db: Session, telegram_user_id: int) -> None:
+    """Serialize first-time Telegram guest/account provisioning on PostgreSQL.
+
+    A unique constraint prevents duplicate identities, but without this lock a
+    second real login may get a 409 after the first wins. Use an advisory
+    transaction lock *before* loading/creating provider identity rows; no
+    external network calls may occur while holding it.
+    """
+    subject = canonical_subject("telegram", str(telegram_user_id))
+    # Dedicated namespace derived from SHA-256; no user identifier is logged,
+    # and a signed int64 key is accepted by PostgreSQL advisory locks.
+    raw = hashlib.sha256(("tickettreat:telegram-principal:v1:" + subject).encode()).digest()
+    lock_key = int.from_bytes(raw[:8], byteorder="big", signed=True)
+    db.execute(sql_text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})

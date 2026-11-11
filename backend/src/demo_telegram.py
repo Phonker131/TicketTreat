@@ -144,6 +144,8 @@ def _telegram_link(db: Session, main, account, user: dict, background_tasks: Bac
     from demo_paid_reservations import PaidReservation
 
     telegram_id = user["id"]
+    from demo_identity_registry import serialize_telegram_principal
+    serialize_telegram_principal(db, telegram_id)
     link = db.query(DemoTelegramIdentity).filter(
         DemoTelegramIdentity.telegram_id == telegram_id
     ).with_for_update().first()
@@ -427,6 +429,8 @@ def install_telegram_auth(app, get_db, main) -> None:
             raise HTTPException(status_code=503, detail="telegram_miniapp_requires_isolated_api")
         user = verified_telegram_user(payload.init_data, token)
         telegram_id = user["id"]
+        from demo_identity_registry import serialize_telegram_principal
+        serialize_telegram_principal(db, telegram_id)
         link = db.query(DemoTelegramIdentity).filter(DemoTelegramIdentity.telegram_id == telegram_id).first()
         if link is None:
             # No trust in legacy DemoGuest.telegram_id: only signed identity creates mapping.

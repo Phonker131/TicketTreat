@@ -237,6 +237,8 @@ def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict, *,
     from demo_roles import WebAccountRole
 
     telegram_id = int(claims["id"])
+    from demo_identity_registry import serialize_telegram_principal
+    serialize_telegram_principal(db, telegram_id)
     link = db.query(DemoTelegramIdentity).filter(
         DemoTelegramIdentity.telegram_id == telegram_id).with_for_update().first()
     if link is None:
