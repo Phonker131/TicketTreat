@@ -1924,6 +1924,16 @@ def register_to_event(
     db: Session = Depends(get_db),
     x_event_invite: str | None = Header(default=None),
 ):
+    use_canonical = not DEMO_ISOLATED_API and _canonical_bot_registration_enabled()
+    if use_canonical:
+        if payload.telegram_id <= 0:
+            raise HTTPException(422, "invalid_telegram_user_id")
+        # Both explicit Telegram link and bot registration must take locks in
+        # the SAME ORDER: provider transaction lock, THEN event capacity row.
+        # Taking the event lock first deadlocks with simultaneous two-proof
+        # Telegram linking / legacy ticket reconciliation.
+        from demo_identity_registry import serialize_telegram_principal
+        serialize_telegram_principal(db, payload.telegram_id)
     # Serialize capacity-changing operations on the same event row.
     event = (
         db.query(Event)
@@ -1985,7 +1995,6 @@ def register_to_event(
     # The private Bot API is authenticated with X-Bot-Api-Key, not with
     # user-supplied email or name. Every verified Telegram numeric user ID
     # must resolve to the same ticket owner on both website and bot.
-    use_canonical = not DEMO_ISOLATED_API and _canonical_bot_registration_enabled()
     canonical_account = None
     if use_canonical and price_decimal(event.price) == 0:
         canonical_account = _ensure_canonical_private_bot_account(

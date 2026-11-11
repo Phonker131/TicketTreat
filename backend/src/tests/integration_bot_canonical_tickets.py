@@ -10,6 +10,8 @@ from datetime import datetime,timedelta,timezone
 from decimal import Decimal
 from unittest.mock import patch
 from fastapi.testclient import TestClient
+from sqlalchemy import event as sql_event
+from db.session import engine
 
 if not os.getenv("DATABASE_URL","").endswith("/tickettreat_ci"):
     raise RuntimeError("Refusing bot integration against non-CI PostgreSQL")
@@ -131,6 +133,27 @@ class CanonicalBotTicketTests(unittest.TestCase):
                 for tid in (first_id,second_id):
                     self.assertLessEqual(db.query(DemoTelegramIdentity).filter(
                         DemoTelegramIdentity.telegram_id==tid).count(),1)
+
+    def test_telegram_lock_is_acquired_before_event_row_lock(self):
+        telegram_id,event_id=self.seed_user_event()
+        observed=[]
+        def capture(_conn,_cursor,statement,_params,_context,_many):
+            sql=statement.lower()
+            if "pg_advisory_xact_lock" in sql:
+                observed.append("telegram")
+            elif "from events" in sql and "for update" in sql:
+                observed.append("event")
+        sql_event.listen(engine,"before_cursor_execute",capture)
+        try:
+            with TestClient(main.app) as client:
+                response=client.post(f"/events/{event_id}/register",
+                    headers=self.key,json={"telegram_id":telegram_id})
+            self.assertEqual(response.status_code,200,response.text)
+        finally:
+            sql_event.remove(engine,"before_cursor_execute",capture)
+        self.assertIn("telegram",observed)
+        self.assertIn("event",observed)
+        self.assertLess(observed.index("telegram"),observed.index("event"))
 
     def test_old_paid_registration_stays_legacy_not_fake_confirmed(self):
         telegram_id,event_id=self.seed_user_event(paid=True)
