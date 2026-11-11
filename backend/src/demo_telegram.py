@@ -167,7 +167,9 @@ def _telegram_link(db: Session, main, account, user: dict, background_tasks: Bac
             main.DemoGuest.id == link.guest_id
         ).with_for_update().first()
 
-    existing_web = db.query(WebAccount).filter(WebAccount.guest_id == link.guest_id).first()
+    existing_web = db.query(WebAccount).filter(
+        WebAccount.guest_id == link.guest_id
+    ).with_for_update().first()
     # An OIDC-first Telegram identity has a passwordless shadow web account.
     # Its creation must NOT make a later two-proof website account merge
     # impossible. This exception never applies to an email/Google account or
@@ -178,6 +180,14 @@ def _telegram_link(db: Session, main, account, user: dict, background_tasks: Bac
         if (existing_web.email is not None
                 or existing_web.password_hash != "!telegram-only"
                 or role_for(db, existing_web) != "participant"):
+            raise HTTPException(409, "telegram_already_linked_to_another_account")
+        from demo_accounts import AuthIdentity
+        from demo_google import GoogleIdentity
+        if (db.query(GoogleIdentity.subject).filter_by(account_id=existing_web.id).first()
+                or db.query(AuthIdentity.id).filter(
+                    AuthIdentity.account_id == existing_web.id,
+                    AuthIdentity.provider != "telegram",
+                ).first()):
             raise HTTPException(409, "telegram_already_linked_to_another_account")
         telegram_shadow = existing_web
     other_telegram = db.query(DemoTelegramIdentity).filter(
@@ -429,71 +439,23 @@ def install_telegram_auth(app, get_db, main) -> None:
             raise HTTPException(status_code=503, detail="telegram_miniapp_requires_isolated_api")
         user = verified_telegram_user(payload.init_data, token)
         telegram_id = user["id"]
-        from demo_identity_registry import serialize_telegram_principal
-        serialize_telegram_principal(db, telegram_id)
-        link = db.query(DemoTelegramIdentity).filter(DemoTelegramIdentity.telegram_id == telegram_id).first()
-        if link is None:
-            # No trust in legacy DemoGuest.telegram_id: only signed identity creates mapping.
-            guest = main.DemoGuest(
-                access_token=secrets.token_urlsafe(32),
-                telegram_id=telegram_id,
-                username=str(user.get("username") or "")[:255] or None,
-                first_name=user["first_name"].strip()[:100],
-                last_name=str(user.get("last_name") or "")[:100] or None,
-                email=None,
-            )
-            try:
-                db.add(guest)
-                db.flush()
-                db.add(DemoTelegramIdentity(telegram_id=telegram_id, guest_id=guest.id))
-                db.commit()
-                db.refresh(guest)
-            except IntegrityError:
-                # Concurrent Mini App tabs can authenticate the same Telegram ID.
-                db.rollback()
-                link = db.query(DemoTelegramIdentity).filter(DemoTelegramIdentity.telegram_id == telegram_id).first()
-                if link is None:
-                    raise HTTPException(status_code=503, detail="telegram_login_retry")
-                guest = db.query(main.DemoGuest).filter(main.DemoGuest.id == link.guest_id).first()
-                if guest is None:
-                    raise HTTPException(status_code=503, detail="telegram_identity_incomplete")
-        else:
-            guest = db.query(main.DemoGuest).filter(main.DemoGuest.id == link.guest_id).first()
-            if guest is None:
-                raise HTTPException(status_code=503, detail="telegram_identity_incomplete")
-            # Keep Telegram display name current, never touch user's web account/email.
-            guest.username = str(user.get("username") or "")[:255] or None
-            # A linked website account owns its canonical profile name.
-            from demo_accounts import WebAccount
-            if not db.query(WebAccount.id).filter(WebAccount.guest_id == guest.id).first():
-                guest.first_name = user["first_name"].strip()[:100]
-                guest.last_name = str(user.get("last_name") or "")[:100] or None
-            db.commit()
-            db.refresh(guest)
-
-        # One verified Telegram identity => one canonical web account from
-        # the first signed Mini App launch, not only from browser OIDC login.
-        # Provisioning reuses the same guest and never copies unverified email.
         from demo_telegram_oidc import ensure_telegram_web_account
+        from demo_legacy import reconcile_free_legacy
+        from demo_account_recovery import email_is_verified
         try:
-            ensure_telegram_web_account(db, main.DemoGuest, {
+            web_account = ensure_telegram_web_account(db, main.DemoGuest, {
                 "id": telegram_id,
                 "given_name": user["first_name"],
                 "family_name": user.get("last_name") or "",
                 "preferred_username": user.get("username") or "",
-            }, reconcile=False)
+            }, reconcile=False, commit=False)
+            guest = db.get(main.DemoGuest, web_account.guest_id)
+            guest.username = str(user.get("username") or "")[:255] or None
+            legacy = reconcile_free_legacy(db, main, telegram_id, guest.id)
+            db.commit()  # Reconciliation may return early for a first-time user.
         except IntegrityError:
             db.rollback()
             raise HTTPException(409, "telegram_login_retry") from None
-        from demo_legacy import reconcile_free_legacy
-        legacy = reconcile_free_legacy(db,main,telegram_id,guest.id)
-        # A Telegram-only passwordless shadow WebAccount must not be treated
-        # as an already-linked email/Google identity: the Mini App still needs
-        # to offer two-proof onboarding to the holder of a *different* existing
-        # website account.
-        from demo_accounts import WebAccount
-        from demo_account_recovery import email_is_verified
-        web_account = db.query(WebAccount).filter(WebAccount.guest_id == guest.id).first()
         verified_web_link = bool(
             web_account and web_account.email and email_is_verified(db, web_account.id)
         )
