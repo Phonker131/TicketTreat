@@ -265,6 +265,9 @@ def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict):
         db.add(account)
         db.flush()
         db.add(WebAccountRole(account_id=account.id, role="participant"))
+    from demo_identity_registry import mirror_verified_identity
+    mirror_verified_identity(db, account_id=account.id, provider="telegram",
+                             verified_subject=str(telegram_id))
     db.commit()
     # The older /myevents bot created legacy registrations before the
     # canonical Mini App existed. The first *website* Telegram login must
