@@ -261,6 +261,16 @@ def install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict):
             if (account.email == email and (email.endswith("@gmail.com") or claims.get("hd"))
                     and db.get(VerifiedEmail, account.id) is None):
                 db.add(VerifiedEmail(account_id=account.id, verified_at=datetime.now(timezone.utc)))
+            # Optional dual-write: verified Google subject never auto-merges by
+            # email. A previously OTP-verified account may also claim its email
+            # identity, but only after the existing verified-email row is read.
+            from demo_identity_registry import mirror_verified_identity
+            db.flush()
+            mirror_verified_identity(db, account_id=account.id,
+                                     provider="google", verified_subject=claims["sub"])
+            if account.email and db.get(VerifiedEmail, account.id) is not None:
+                mirror_verified_identity(db, account_id=account.id,
+                                         provider="email", verified_subject=account.email)
             db.commit()
         except IntegrityError:
             db.rollback()

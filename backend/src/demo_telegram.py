@@ -186,9 +186,12 @@ def _telegram_link(db: Session, main, account, user: dict, background_tasks: Bac
         raise HTTPException(409, "website_account_has_another_telegram")
 
     if link.guest_id == account.guest_id:
+        from demo_identity_registry import mirror_verified_identity
+        mirror_verified_identity(db, account_id=account.id, provider="telegram",
+                                 verified_subject=str(telegram_id))
         if challenge is not None:
             challenge.status, challenge.telegram_id = "linked", telegram_id
-            db.commit()
+        db.commit()
         return {"linked": True, "already_linked": True, "migrated_tickets": 0}
 
     guest = db.query(main.DemoGuest).filter(
@@ -281,6 +284,16 @@ def _telegram_link(db: Session, main, account, user: dict, background_tasks: Bac
     if challenge is not None:
         challenge.status, challenge.telegram_id = "linked", telegram_id
 
+    # A Telegram-only shadow profile may already have a verified provider
+    # registry row. Rebind it only after proof of *both* Telegram and website
+    # account; revocation and ticket migration must commit with the binding.
+    from demo_identity_registry import transfer_verified_telegram
+    transfer_verified_telegram(
+        db,
+        previous_account_id=telegram_shadow.id if telegram_shadow else None,
+        target_account_id=account.id,
+        telegram_user_id=telegram_id,
+    )
     try:
         db.commit()
     except IntegrityError:
@@ -454,6 +467,20 @@ def install_telegram_auth(app, get_db, main) -> None:
             db.commit()
             db.refresh(guest)
 
+        # One verified Telegram identity => one canonical web account from
+        # the first signed Mini App launch, not only from browser OIDC login.
+        # Provisioning reuses the same guest and never copies unverified email.
+        from demo_telegram_oidc import ensure_telegram_web_account
+        try:
+            ensure_telegram_web_account(db, main.DemoGuest, {
+                "id": telegram_id,
+                "given_name": user["first_name"],
+                "family_name": user.get("last_name") or "",
+                "preferred_username": user.get("username") or "",
+            }, reconcile=False)
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(409, "telegram_login_retry") from None
         from demo_legacy import reconcile_free_legacy
         legacy = reconcile_free_legacy(db,main,telegram_id,guest.id)
         # A Telegram-only passwordless shadow WebAccount must not be treated

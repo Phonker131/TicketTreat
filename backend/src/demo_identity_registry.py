@@ -9,6 +9,7 @@ transfer a verified identity between accounts.
 """
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
@@ -82,3 +83,68 @@ def claim_verified_identity(
         # Fail closed. A provider credential must never silently change owner.
         raise IdentityConflict("verified_identity_already_claimed")
     return identity
+
+
+def registry_enabled() -> bool:
+    """Explicit opt-in only after restored-database preflight and backfill."""
+    return os.getenv("TICKETTREAT_IDENTITY_REGISTRY_MODE", "off") in {"shadow", "enforce"}
+
+
+def mirror_verified_identity(
+    db: Session, *,
+    account_id: int,
+    provider: str,
+    verified_subject: str,
+) -> None:
+    """Write independently proven claims beside legacy data, in caller's TX.
+
+    No registry access when the feature is off; never derive proof from a
+    user-submitted email or a Telegram display name.
+    """
+    if not registry_enabled():
+        return
+    from fastapi import HTTPException
+    try:
+        claim_verified_identity(db, account_id=account_id,
+                                provider=provider, verified_subject=verified_subject)
+    except IdentityConflict:
+        raise HTTPException(status_code=409, detail="verified_identity_conflict") from None
+
+
+def transfer_verified_telegram(
+    db: Session, *,
+    previous_account_id: int | None,
+    target_account_id: int,
+    telegram_user_id: int,
+) -> None:
+    """Transfer ONLY with verified Telegram proof and authenticated target.
+
+    The caller must independently verify the target web session and signed
+    Telegram identity, and must have checked the previous account is an
+    email-less, participant-only Telegram shadow before this function.
+    """
+    if not registry_enabled():
+        return
+    from fastapi import HTTPException
+    subject = canonical_subject("telegram", str(telegram_user_id))
+    row = db.query(AuthIdentity).filter(
+        AuthIdentity.provider == "telegram",
+        AuthIdentity.provider_subject == subject,
+    ).with_for_update().first()
+    if row is None:
+        mirror_verified_identity(db, account_id=target_account_id,
+                                 provider="telegram", verified_subject=subject)
+    elif row.account_id == target_account_id:
+        return
+    elif previous_account_id is not None and row.account_id == previous_account_id:
+        # Existing shadow sessions have been revoked by the caller.
+        other = db.query(AuthIdentity.id).filter(
+            AuthIdentity.provider == "telegram",
+            AuthIdentity.account_id == target_account_id,
+        ).first()
+        if other is not None:
+            raise HTTPException(409, "website_account_has_another_telegram")
+        row.account_id = target_account_id
+        db.flush()
+    else:
+        raise HTTPException(status_code=409, detail="verified_identity_conflict")

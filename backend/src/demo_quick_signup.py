@@ -117,6 +117,10 @@ def install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict,reject_
                            contact_preference="email")
         db.add(account);db.flush()
         db.add(VerifiedEmail(account_id=account.id,verified_at=datetime.now(timezone.utc)))
+        # The successful one-use OTP, not the submitted email text, is proof.
+        from demo_identity_registry import mirror_verified_identity
+        mirror_verified_identity(db, account_id=account.id,
+                                 provider="email", verified_subject=email)
         db.add(WebAccountRole(account_id=account.id,role="participant"))
         # Consent is persisted with immutable acceptance timestamp.
         db.add(QuickPrivacyConsent(account_id=account.id,version=row.privacy_version,

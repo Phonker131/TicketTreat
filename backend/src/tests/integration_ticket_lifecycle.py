@@ -160,12 +160,26 @@ class QRWaitlistE2E(unittest.TestCase):
                 attendee=db.get(main.DemoGuest,promoted.json()[0]["guest_id"])
                 email=f"notice-{secrets.token_hex(8)}@example.invalid"
                 attendee.email=email
-                account=WebAccount(email=email,first_name="Notified",
-                    last_name="Participant",guest_id=attendee.id,
-                    password_hash=hash_password("notice-test-password-2026"),
-                    contact_preference="email")
-                db.add(account);db.flush()
-                db.add(VerifiedEmail(account_id=account.id,verified_at=now()))
+                # Signed Telegram attendance now provisions a canonical web
+                # account on first launch. Upgrade that verified holder in the
+                # fixture instead of attempting a duplicate guest_id insert.
+                account=db.query(WebAccount).filter(
+                    WebAccount.guest_id==attendee.id).first()
+                if account is None:
+                    account=WebAccount(guest_id=attendee.id,
+                        email=email,first_name="Notified",
+                        last_name="Participant",contact_preference="email",
+                        password_hash=hash_password("notice-test-password-2026"))
+                    db.add(account)
+                else:
+                    account.email=email
+                    account.first_name="Notified"
+                    account.last_name="Participant"
+                    account.contact_preference="email"
+                    account.password_hash=hash_password("notice-test-password-2026")
+                db.flush()
+                if db.get(VerifiedEmail,account.id) is None:
+                    db.add(VerifiedEmail(account_id=account.id,verified_at=now()))
                 db.commit()
 
             with patch("demo_email.configured",return_value=True):
