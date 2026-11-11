@@ -165,38 +165,56 @@ export function CheckoutClient() {
                   {({en:"Sign in",cs:"Přihlásit se",ru:"Войти",uk:"Увійти"})[language]}
                 </Link>
               {bookingConfig?.verified_accounts_required&&<details className="form-stack"><summary>{({en:"Continue by email",cs:"Pokračovat e-mailem",ru:"Продолжить по email",uk:"Продовжити через email"})[language]}</summary>
-                <p className="form-note">{txt.quickIntro}</p>
-                <label>{t(language,"firstName")}<input required value={firstName} maxLength={100}
-                  autoComplete="given-name" onChange={e=>setFirstName(e.target.value)}/></label>
-                <label>Email<input type="email" required value={email} autoComplete="email"
-                  onChange={e=>{setEmail(e.target.value);setQuickSent(false);}}/></label>
-                <label style={{display:"flex",alignItems:"start",gap:10}}>
-                  <input type="checkbox" checked={privacyAccepted} onChange={e=>setPrivacyAccepted(e.target.checked)}/>
-                  <span>{txt.accept}
-                    <Link href="/terms">{language==="ru"?"условиями использования":language==="cs"?"obchodními podmínkami":language==="uk"?"умовами користування":"Terms of Service"}</Link>
-                    {" "}{txt.and}
-                    <Link href="/privacy-policy">{language==="ru"?"политикой конфиденциальности":language==="cs"?"zásadami ochrany osobních údajů":language==="uk"?"політикою конфіденційності":"Privacy Policy"}</Link>.
-                  </span>
-                </label>
-                <button className="button button-outline" type="button"
-                  disabled={busy||!email.includes("@")||!firstName.trim()||!privacyAccepted}
-                  onClick={async()=>{setBusy(true);setMessage(null);try{
-                    await requestQuickSignup(email,firstName,privacyAccepted);
-                    setQuickSent(true);setMessage("msg:codeSent");
-                  }catch(e){setMessage(userFacingError(e,language));}finally{setBusy(false);}}}>
-                  {txt.getCode}
-                </button>
+                {!quickSent && <form className="form-stack" onSubmit={async e=>{
+                  e.preventDefault();
+                  setBusy(true);
+                  setMessage(null);
+                  try {
+                    await requestQuickSignup(email, firstName, privacyAccepted);
+                    setQuickSent(true);
+                    setMessage("msg:codeSent");
+                  } catch (err) {
+                    setMessage(userFacingError(err,language));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}>
+                  <p className="form-note">{txt.quickIntro}</p>
+                  <label>{t(language,"firstName")}<input required value={firstName} maxLength={100}
+                    autoComplete="given-name" onChange={e=>setFirstName(e.target.value)}/></label>
+                  <label>Email<input type="email" required value={email} autoComplete="email"
+                    onChange={e=>setEmail(e.target.value)}/></label>
+                  <label style={{display:"flex",alignItems:"start",gap:10}}>
+                    <input type="checkbox" checked={privacyAccepted} onChange={e=>setPrivacyAccepted(e.target.checked)}/>
+                    <span>{txt.accept}
+                      <Link href="/terms">{language==="ru"?"условиями использования":language==="cs"?"obchodními podmínkami":language==="uk"?"умовами користування":"Terms of Service"}</Link>
+                      {" "}{txt.and}
+                      <Link href="/privacy-policy">{language==="ru"?"политикой конфиденциальности":language==="cs"?"zásadami ochrany osobních údajů":language==="uk"?"політикою конфіденційності":"Privacy Policy"}</Link>.
+                    </span>
+                  </label>
+                  <button className="button button-primary" disabled={busy || !firstName.trim() || !privacyAccepted}>
+                    {txt.getCode}
+                  </button>
+                </form>}
                 {quickSent&&<form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setMessage(null);
                   try{const auth=await confirmQuickSignup(email,quickCode);setWebAuth(auth);
                     setGuest(auth.profile.guest);setQuickCode("");setQuickSent(false);
                     setMessage("msg:confirmed");
                   }catch(err){setMessage(userFacingError(err,language));}finally{setBusy(false);}}}>
+                  <p className="form-note">{email}</p>
                   <label>{txt.oneTime}
-                    <input type="text" name="one-time-code" autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{8}" maxLength={8}
+                    <input autoFocus type="text" name="one-time-code" autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{8}" maxLength={8}
                       required value={quickCode} onChange={e=>setQuickCode(e.target.value)}/>
                   </label>
                   <button className="button button-primary" disabled={busy||quickCode.length!==8}>
                     {txt.verify}
+                  </button>
+                  <button type="button" className="button button-outline" disabled={busy} onClick={()=>{
+                    setQuickSent(false);
+                    setQuickCode("");
+                    setMessage(null);
+                  }}>
+                    {({en:"Edit email or request a new code",cs:"Upravit e-mail nebo požádat o nový kód",ru:"Изменить почту или запросить новый код",uk:"Змінити пошту або запросити новий код"})[language]}
                   </button>
                 </form>}
               </details>}
