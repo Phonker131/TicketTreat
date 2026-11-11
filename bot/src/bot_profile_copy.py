@@ -25,16 +25,7 @@ What I do:
 
 Press "Start".""",
         "about": "Events in Prague: booking, QR ticket and reminders in one place.",
-        "start": """Hi, {name}! This is TicketTreat.
-
-Book a spot at events in Prague, get your ticket and don't forget to show up.
-
-/events  upcoming events
-/tickets  my tickets
-/passport  my passport and level
-/help  how it works
-
-Pick an event, tap "Book a spot" and your ticket arrives here.""",
+        "start": """Hi, {name}! Tap Show events to choose an event and book a place. Already booked? Tap My tickets and open your ticket to show the QR code at the door.""",
         "buttons": ("Show events", "My tickets"),
         "start_actions": "Choose what to open:",
         "commands": (
@@ -105,16 +96,7 @@ Co umím:
 
 Stiskni „Start“.""",
         "about": "Akce v Praze: rezervace, QR vstupenky a připomínky na jednom místě.",
-        "start": """Ahoj, {name}! Tady TicketTreat.
-
-Rezervuj si místo na akcích v Praze, získej vstupenku a nenech si ujít začátek.
-
-/events  nadcházející akce
-/tickets  moje vstupenky
-/passport  můj návštěvnický pas a úroveň
-/help  jak to funguje
-
-Vyber akci, klepni na „Rezervovat místo“ a vstupenku najdeš přímo tady.""",
+        "start": """Ahoj, {name}! Klepni na Zobrazit akce, vyber si akci a rezervuj si místo. Už máš rezervaci? V části Moje vstupenky otevři svou vstupenku a u vstupu ukaž QR kód.""",
         "buttons": ("Zobrazit akce", "Moje vstupenky"),
         "start_actions": "Vyber, co chceš otevřít:",
         "commands": (
