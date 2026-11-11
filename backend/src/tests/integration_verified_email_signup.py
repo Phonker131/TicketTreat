@@ -17,7 +17,7 @@ import main
 from db.session import SessionLocal
 from demo_accounts import WebAccount, AuthIdentity
 from demo_account_recovery import VerifiedEmail
-from demo_quick_signup import QuickSignupPending
+from demo_quick_signup import QuickSignupPending, QuickPrivacyConsent
 
 
 class VerifiedPasswordSignupTests(unittest.TestCase):
@@ -68,6 +68,9 @@ class VerifiedPasswordSignupTests(unittest.TestCase):
             with SessionLocal() as db:
                 account=db.query(WebAccount).filter(WebAccount.email==self.email).one()
                 self.assertIsNotNone(db.get(VerifiedEmail,account.id))
+                consent=db.get(QuickPrivacyConsent,account.id)
+                self.assertIsNotNone(consent)
+                self.assertEqual(consent.version,"2026-10")
                 self.assertIsNone(db.get(QuickSignupPending,self.email))
                 self.assertEqual(db.query(AuthIdentity).filter(
                     AuthIdentity.provider=="email",
