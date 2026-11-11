@@ -999,6 +999,127 @@ def install_demo_roles(app, get_db, main):
             } for w in result["waitlist"]],
         }
 
+    @app.post("/demo/manage/events/{event_id}/participants/{ticket_id}/remove")
+    def remove_event_participant(
+        event_id:int,ticket_id:int,payload:RemoveParticipantRequest,
+        account:WebAccount=Depends(managing),db:Session=Depends(get_db),
+    ):
+        """Organizer removes an unscanned ticket, retaining history and seats.
+
+        Lock order is Event -> Ticket, matching checkout and cancellation.
+        A completed check-in must not be erased; nor does this process money.
+        """
+        ensure_owner(db,event_id,account)
+        reason=payload.reason.strip()
+        if len(reason)<8:
+            raise HTTPException(status_code=422,detail="participant_removal_reason_required")
+        event=(db.query(main.Event).filter(main.Event.id==event_id)
+               .with_for_update().first())
+        if event is None:
+            raise HTTPException(status_code=404,detail="event_not_found")
+        if event.is_cancelled:
+            raise HTTPException(status_code=409,detail="event_cancelled")
+        ticket=(db.query(main.DemoTicket)
+                .filter(main.DemoTicket.id==ticket_id,
+                        main.DemoTicket.event_id==event_id)
+                .with_for_update().first())
+        if ticket is None:
+            raise HTTPException(status_code=404,detail="ticket_not_found")
+        if ticket.ticket_status!="active":
+            raise HTTPException(status_code=409,detail="ticket_not_active")
+        if ticket.checked_in_at is not None:
+            raise HTTPException(status_code=409,detail="checked_in_ticket_cannot_be_removed")
+        # A paid reservation or external payment must be handled separately;
+        # TicketTreat never claims a refund was issued.
+        if ticket.payment_provider not in {"free","legacy_free","registration_only","demo"}:
+            raise HTTPException(status_code=409,detail="payment_requires_manual_review")
+        ticket.ticket_status="cancelled"
+        ticket.payment_status=(
+            "not_required" if ticket.payment_provider in {"free","legacy_free"}
+            else "not_collected" if ticket.payment_provider=="registration_only"
+            else "cancelled_demo"
+        )
+        ticket.cancelled_at=datetime.now(timezone.utc)
+        db.flush()
+        promoted=main.promote_demo_waitlist(db,event_id)
+        if promoted is not None:
+            db.flush()
+            promoted_guest=db.get(main.DemoGuest,promoted.guest_id)
+            from demo_email import queue_email
+            queue_email(db,kind="ticket",
+                event_key=f"ticket:{promoted.id}:issue:{hashlib.sha256(promoted.qr_token.encode()).hexdigest()[:20]}",
+                recipient=promoted_guest.email if promoted_guest else None,
+                guest_id=promoted.guest_id,ticket_id=promoted.id)
+        # Only independently verified email/Telegram identities may receive
+        # an individualized operational notification. No raw guest email proof.
+        from demo_email import queue_email,ticket_language
+        from demo_account_recovery import email_is_verified
+        from demo_telegram_notifications import queue_ticket_removed
+        guest=db.get(main.DemoGuest,ticket.guest_id)
+        owner=db.query(WebAccount).filter(WebAccount.guest_id==ticket.guest_id).first()
+        if owner is not None and owner.email and email_is_verified(db,owner.id):
+            queue_email(db,kind="ticket_removed",
+                event_key=f"ticket_removed:{ticket.id}:{int(ticket.cancelled_at.timestamp()*1000000)}",
+                recipient=owner.email,guest_id=ticket.guest_id,
+                ticket_id=ticket.id,language=ticket_language(db,ticket.id))
+        queue_ticket_removed(db,event,ticket,main)
+        audit(db,event_id,account.id,"remove_guest",
+              f"ticket:{ticket.id};guest:{ticket.guest_id};reason:{reason}")
+        db.commit()
+        return {"status":"removed","ticket_id":ticket_id,"event_id":event_id,
+                "promoted_ticket_id":promoted.id if promoted is not None else None}
+
+    @app.post("/demo/manage/events/{event_id}/waitlist/{entry_id}/remove")
+    def remove_event_waitlist_entry(
+        event_id:int,entry_id:int,payload:RemoveParticipantRequest,
+        account:WebAccount=Depends(managing),db:Session=Depends(get_db),
+    ):
+        """Withdraw an owned event's unclaimed waitlist entry or timed offer."""
+        ensure_owner(db,event_id,account)
+        reason=payload.reason.strip()
+        if len(reason)<8:
+            raise HTTPException(status_code=422,detail="participant_removal_reason_required")
+        event=(db.query(main.Event).filter(main.Event.id==event_id)
+               .with_for_update().first())
+        if event is None:
+            raise HTTPException(status_code=404,detail="event_not_found")
+        entry=(db.query(main.DemoWaitlist)
+               .filter(main.DemoWaitlist.id==entry_id,
+                       main.DemoWaitlist.event_id==event_id)
+               .with_for_update().first())
+        if entry is None:
+            raise HTTPException(status_code=404,detail="waitlist_entry_not_found")
+        if entry.status not in {"waiting","offered"}:
+            raise HTTPException(status_code=409,detail="waitlist_entry_not_active")
+        active=db.query(main.DemoTicket.id).filter(
+            main.DemoTicket.event_id==event_id,
+            main.DemoTicket.guest_id==entry.guest_id,
+            main.DemoTicket.ticket_status=="active").first()
+        if active is not None:
+            raise HTTPException(status_code=409,detail="participant_has_active_ticket")
+        from demo_waitlist_offers import WaitlistOffer
+        offer=(db.query(WaitlistOffer)
+               .filter(WaitlistOffer.waitlist_id==entry.id)
+               .with_for_update().first())
+        if offer is not None and offer.status=="offered":
+            offer.status="revoked"
+        entry.status="cancelled"
+        db.flush()
+        promoted=main.promote_demo_waitlist(db,event_id)
+        if promoted is not None:
+            db.flush()
+            promoted_guest=db.get(main.DemoGuest,promoted.guest_id)
+            from demo_email import queue_email
+            queue_email(db,kind="ticket",
+                event_key=f"ticket:{promoted.id}:issue:{hashlib.sha256(promoted.qr_token.encode()).hexdigest()[:20]}",
+                recipient=promoted_guest.email if promoted_guest else None,
+                guest_id=promoted.guest_id,ticket_id=promoted.id)
+        audit(db,event_id,account.id,"remove_waiting",
+              f"entry:{entry.id};guest:{entry.guest_id};reason:{reason}")
+        db.commit()
+        return {"status":"removed","waitlist_id":entry_id,"event_id":event_id,
+                "promoted_ticket_id":promoted.id if promoted is not None else None}
+
     @app.get("/demo/manage/events/{event_id}/participants.csv")
     def participant_export(event_id:int,account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
         ensure_owner(db,event_id,account)
@@ -1097,6 +1218,9 @@ class AccountAdminAudit(Base):
 class OrganizerDecision(BaseModel):
     approve: bool
 
+
+class RemoveParticipantRequest(BaseModel):
+    reason: str = Field(min_length=8, max_length=500)
 
 class ScanTicketPayload(BaseModel):
     qr_token: str = Field(min_length=24,max_length=80)
