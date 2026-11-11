@@ -366,7 +366,8 @@ export function ProfileClient() {
   const [mfaLinkSetup, setMfaLinkSetup] = useState(false);
   const [mfaLinkCode, setMfaLinkCode] = useState("");
   const [mfaLinkBusy, setMfaLinkBusy] = useState(false);
-  const [connectOnLogin,setConnectOnLogin]=useState(true);
+  // Linking two independently verified identities is opt-in, never implicit.
+  const [connectOnLogin,setConnectOnLogin]=useState(false);
   const [pendingTelegramConnect,setPendingTelegramConnect]=useState(false);
   const [newTelegramEmail,setNewTelegramEmail]=useState("");
   const [newTelegramEmailCode,setNewTelegramEmailCode]=useState("");
