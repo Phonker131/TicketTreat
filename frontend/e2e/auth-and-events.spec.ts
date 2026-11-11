@@ -13,9 +13,12 @@ test("catalogue renders upcoming events through the live FastAPI gateway",async(
 test("Telegram account linking requires unchecked-by-default consent",async({page})=>{
   // The provider response is mocked here; no forged initData is sent to an API
   // outside the disposable Playwright environment.
-  await page.addInitScript(()=>{
-    Object.assign(window,{Telegram:{WebApp:{initData:"ci-placeholder-signed-launch"}}});
-  });
+  // Next.js loads the official Telegram SDK before hydration. Replace that
+  // script in this isolated E2E test; a window init-script gets overwritten.
+  await page.route("**/telegram-web-app.js",route=>route.fulfill({
+    status:200,contentType:"application/javascript",
+    body:"window.Telegram={WebApp:{initData:'ci-placeholder-signed-launch',ready:function(){},expand:function(){},setHeaderColor:function(){},setBackgroundColor:function(){}}};",
+  }));
   await page.route("**/api/gateway/api/v1/telegram/auth",route=>
     route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({
       guest:{id:888,access_token:"",first_name:"CI Telegram",email:null,telegram_id:888},
