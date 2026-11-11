@@ -26,7 +26,8 @@ class LegacyTicketClaim(Base):
     source = Column(String(24), nullable=False, default="telegram")
 
 
-def reconcile_free_legacy(db: Session, main, telegram_id: int, guest_id: int) -> dict:
+def reconcile_free_legacy(db: Session, main, telegram_id: int, guest_id: int, *,
+                          commit: bool = True) -> dict:
     user=db.query(main.User).filter(main.User.telegram_id==telegram_id).first()
     if user is None:
         return {"converted":0,"held_for_review":0}
@@ -62,7 +63,8 @@ def reconcile_free_legacy(db: Session, main, telegram_id: int, guest_id: int) ->
         db.add(LegacyTicketClaim(registration_id=reg.id,event_id=reg.event_id,ticket_id=ticket.id))
         db.flush()
         converted+=1
-    db.commit()
+    if commit:
+        db.commit()
     return {"converted":converted,"held_for_review":held}
 
 
