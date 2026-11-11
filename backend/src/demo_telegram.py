@@ -451,25 +451,27 @@ def install_telegram_auth(app, get_db, main) -> None:
             }, reconcile=False, commit=False)
             guest = db.get(main.DemoGuest, web_account.guest_id)
             guest.username = str(user.get("username") or "")[:255] or None
-            legacy = reconcile_free_legacy(db, main, telegram_id, guest.id)
-            db.commit()  # Reconciliation may return early for a first-time user.
+            legacy = reconcile_free_legacy(db, main, telegram_id, guest.id, commit=False)
+            verified_web_link = bool(
+                web_account and web_account.email and email_is_verified(db, web_account.id)
+            )
+            result = {
+                "legacy_reconciliation": legacy,
+                "guest": main.demo_guest_to_dict(guest, db),
+                "telegram": {
+                    "id": telegram_id,
+                    "first_name": guest.first_name,
+                    "username": guest.username,
+                },
+                "bot_registrations": bot_user_registrations(db, telegram_id, main),
+                "accounts_linked": verified_web_link,
+            }
+            db.commit()
+            return result
         except IntegrityError:
             db.rollback()
             raise HTTPException(409, "telegram_login_retry") from None
-        verified_web_link = bool(
-            web_account and web_account.email and email_is_verified(db, web_account.id)
-        )
-        return {
-            "legacy_reconciliation": legacy,
-            "guest": main.demo_guest_to_dict(guest, db),
-            "telegram": {
-                "id": telegram_id,
-                "first_name": guest.first_name,
-                "username": guest.username,
-            },
-            "bot_registrations": bot_user_registrations(db, telegram_id, main),
-            "accounts_linked": verified_web_link,
-        }
+
 
 def send_miniapp_ticket_notice(
     telegram_id: int, event_title: str, ticket_id: int, is_free: bool, language: str = "en",
