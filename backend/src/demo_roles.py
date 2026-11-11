@@ -1428,17 +1428,68 @@ def install_account_moderation(app, get_db):
                  "action":r.action,"created_at":r.created_at} for r in records]
 
 
+    def merged_account_archives(db: Session) -> dict[int,int]:
+        """The original Telegram-only principals remain as audit history.
+
+        Only acknowledge a *completed* administrative merge if the immutable
+        action names the source and target, and the source no longer owns
+        credentials, sessions, event rights or tickets. This is not fuzzy
+        matching by display names and never hides any unmerged account.
+        """
+        import re
+        from demo_accounts import AuthIdentity, WebSession
+        from demo_telegram import DemoTelegramIdentity
+        result:dict[int,int]={}
+        audits=db.query(AccountAdminAudit).filter(
+            AccountAdminAudit.action.like("manual_tg_shadow_%")
+        ).all()
+        for record in audits:
+            match=re.fullmatch(r"manual_tg_shadow_(\d+)_to_(\d+)",record.action)
+            if not match:
+                continue
+            source_id,target_id=map(int,match.groups())
+            if (record.target_account_id!=target_id or source_id==target_id
+                    or source_id in global_admin_ids()):
+                continue
+            source=db.get(WebAccount,source_id)
+            target=db.get(WebAccount,target_id)
+            if (source is None or target is None or source.email is not None
+                    or source.password_hash!="!telegram-only"):
+                continue
+            old_role=db.get(WebAccountRole,source_id)
+            if old_role is not None and old_role.role!="participant":
+                continue
+            if any((
+                db.query(AuthIdentity.id).filter(AuthIdentity.account_id==source_id).first(),
+                db.query(WebSession.id).filter(WebSession.account_id==source_id).first(),
+                db.query(DemoTelegramIdentity.telegram_id).filter(
+                    DemoTelegramIdentity.guest_id==source.guest_id).first(),
+                db.query(main.DemoTicket.id).filter(
+                    main.DemoTicket.guest_id==source.guest_id).first(),
+                db.query(EventOwnership.event_id).filter(
+                    EventOwnership.owner_account_id==source_id).first(),
+                db.query(GlobalAdminDelegation.account_id).filter(
+                    GlobalAdminDelegation.account_id==source_id,
+                    GlobalAdminDelegation.revoked_at.is_(None)).first(),
+            )):
+                continue
+            result[source_id]=target_id
+        return result
+
     @app.get("/demo/manage/accounts")
     def accounts(
+        include_merged: bool=False,
         _admin: WebAccount=Depends(admin_account),
         db: Session=Depends(get_db),
     ):
+        archives=merged_account_archives(db)
         rows=db.query(WebAccount).order_by(WebAccount.id.desc()).limit(300).all()
         return [{
             "account_id":a.id,"email":a.email,
             "name":f"{a.first_name} {a.last_name}",
             "role":role_for(db,a),
-        } for a in rows]
+            "merged_into_account_id":archives.get(a.id),
+        } for a in rows if include_merged or a.id not in archives]
 
     @app.put("/demo/manage/accounts/{account_id}/role")
     def change_role(
@@ -1449,6 +1500,8 @@ def install_account_moderation(app, get_db):
         target=db.query(WebAccount).filter(WebAccount.id==account_id).first()
         if target is None:
             raise HTTPException(status_code=404,detail="account_not_found")
+        if account_id in merged_account_archives(db):
+            raise HTTPException(status_code=409,detail="merged_account_role_locked")
         if account_id in global_admin_ids():
             raise HTTPException(status_code=403,detail="cannot_change_global_admin")
         if payload.role=="participant":
