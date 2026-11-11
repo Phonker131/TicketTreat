@@ -71,6 +71,7 @@ class OrganizerRemovalIntegration(unittest.TestCase):
             db.add_all([active,scanned,outside,first,last]);db.flush()
             active_id,scanned_id,outside_id=active.id,scanned.id,outside.id
             first_id,last_id=first.id,last.id
+            next_guest_id=next_guest.id
             old_qr=active.qr_token
             scanned_at=scanned.checked_in_at
             db.commit()
@@ -124,7 +125,7 @@ class OrganizerRemovalIntegration(unittest.TestCase):
             self.assertEqual(last_entry.status,"cancelled")
             promoted=db.query(main.DemoTicket).filter(
                 main.DemoTicket.event_id==event_id,
-                main.DemoTicket.guest_id==next_guest.id).one()
+                main.DemoTicket.guest_id==next_guest_id).one()
             self.assertEqual(promoted.ticket_status,"active")
             self.assertEqual(main.get_registered_count(db,event_id),2)
             log=db.query(EventModerationLog).filter(
