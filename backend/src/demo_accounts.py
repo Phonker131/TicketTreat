@@ -196,6 +196,18 @@ def install_demo_accounts(
             raise HTTPException(status_code=401, detail="invalid_session")
         return account
 
+    def reject_authenticated_signup(authorization: str | None, db: Session) -> None:
+        """A valid website session must extend its account, never mint another.
+
+        The same check protects password and OTP signup; an invalid supplied
+        Authorization header fails closed rather than silently creating a user.
+        Telegram Mini App signatures are guarded independently at each route.
+        """
+        if authorization is None:
+            return
+        get_current_account(authorization=authorization, db=db)
+        raise HTTPException(status_code=409, detail="already_authenticated_use_account_settings")
+
     def profile_dict(account: WebAccount, db: Session) -> dict:
         guest = db.query(DemoGuest).filter(DemoGuest.id == account.guest_id).first()
         if guest is None:
@@ -240,17 +252,20 @@ def install_demo_accounts(
     from demo_telegram_oidc import install_telegram_oidc
     from demo_telegram_browser_login import install_browser_telegram_login
     from demo_quick_signup import install_quick_signup
-    install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict)
+    install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict,reject_authenticated_signup)
     install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict)
     install_telegram_oidc(app, get_db, DemoGuest, issue_session, profile_dict)
     install_browser_telegram_login(app, get_db, DemoGuest, issue_session, profile_dict)
 
     @app.post("/demo/auth/signup", status_code=201)
-    def signup(payload: SignupData, request: Request, db: Session = Depends(get_db)):
+    def signup(payload: SignupData, request: Request,
+               authorization: str | None = Header(default=None),
+               db: Session = Depends(get_db)):
         # A signed Mini App user already has a canonical Telegram guest.
         # Do not let legacy signup UIs mint a second guest/email account.
         from demo_telegram import reject_parallel_signup_inside_telegram
         reject_parallel_signup_inside_telegram(request)
+        reject_authenticated_signup(authorization, db)
         source_ip = request.client.host if request.client else "unknown"
         guard_rate(db, "signup_ip", source_ip, 40, 600)
         record_rate(db, "signup_ip", source_ip, 600)
