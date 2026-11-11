@@ -1,4 +1,5 @@
 "use client";
+import {takeBooking} from "@/lib/booking-return";
 
 import {useEffect,useState} from "react";
 import {useLanguage} from "@/components/LanguageProvider";
@@ -98,7 +99,7 @@ export function TelegramSignIn({link=false,compact=false}:{link?:boolean;compact
             data.token==="browser-session" && data.profile) {
           setWebAuth(data);
           setBrowserFlow(null);
-          window.location.assign("/tickets");
+          window.location.assign(takeBooking() || "/tickets");
         }else if(!response.ok && response.status!==429){
           setMessage("failed");setBrowserFlow(null);
         }

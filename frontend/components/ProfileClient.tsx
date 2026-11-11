@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {takeBooking} from "@/lib/booking-return";
 import {GoogleSignIn} from "@/components/GoogleSignIn";
 import {TelegramSignIn} from "@/components/TelegramSignIn";
 import {getTelegramWebApp} from "@/lib/telegram";
@@ -335,7 +336,7 @@ const profileTabLabels = {
   uk: {overview:"Огляд", details:"Особисті дані", connections:"Пов’язані акаунти", security:"Безпека"}
 };
 
-export function ProfileClient() {
+export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"recovery"}) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
   const {language} = useLanguage();
   const tr = COPY[language];
@@ -363,7 +364,7 @@ export function ProfileClient() {
   const [instagram, setInstagram] = useState("");
   const [contact, setContact] = useState<ContactPreference>("email");
   const [verificationCode,setVerificationCode]=useState("");
-  const [resetOpen,setResetOpen]=useState(false);
+
   const [mailReady,setMailReady]=useState<boolean|null>(null);
   const [resetCode,setResetCode]=useState("");
   const [resetPassword,setResetPassword]=useState("");
@@ -416,6 +417,10 @@ export function ProfileClient() {
         if (!mounted) return;
         if (p) {
           loadProfile(p);
+          if (screen==="login" || ["google","telegram"].some(provider=>callbackUrl.searchParams.get(provider)==="success")) {
+            const next=takeBooking();
+            if(next || screen==="login"){window.location.replace(next || "/profile");return;}
+          }
           if (telegramResult === "success") {
             // Clear one-use status before any future logout, refresh or back-navigation.
             clearTelegramCallback();
@@ -430,6 +435,8 @@ export function ProfileClient() {
               setNotice("ui:telegramSuccessfullyLinked");
             }
           }
+        } else if (screen==="profile" && !callbackUrl.search && !getTelegramWebApp()?.initData) {
+          window.location.replace("/login");
         } else if (telegramResult === "success") {
           // A success redirect without a valid server-side cookie must never
           // claim the user is authenticated.
@@ -634,12 +641,14 @@ export function ProfileClient() {
               loadProfile(await getWebProfile(result.token));
               setTelegramProfile({...tg,accounts_linked:true});
               setNotice("ui:telegramSuccessfullyLinked");
-            } catch (err) { setError(readableError(err)); }
+            } catch (err) { setError(readableError(err)); return; }
           } else {
-            setPendingTelegramConnect(true); setActiveTab("connections");
+            setPendingTelegramConnect(true); setActiveTab("connections"); return;
           }
         }
       }
+      const next=takeBooking();
+      if(next || screen==="login")window.location.replace(next || "/profile");
     } catch(err) { setError(readableError(err)); }
     finally { setBusy(false); }
   }
@@ -755,7 +764,28 @@ export function ProfileClient() {
           </>}
         </section>}
 
-        {loading ? <div className="state-card">{tr.loading}</div> : profile ? (
+        {screen==="recovery" ? <>
+            {error && <p role="alert">{error.startsWith("ui:")?displayMessage(error):userFacingError(error,language)}</p>}
+            {notice && <p role="status">{displayMessage(notice)}</p>}
+            <section className="panel form-stack">
+              <h3>{ui.passwordRecovery}</h3>
+              <p className="form-note">{ui.recoveryHint}</p>
+              {mailReady===false&&<p role="alert" className="state-card state-error">{
+                ui.mailUnavailable
+              }</p>}
+              <label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
+              <button type="button" className="button button-outline" disabled={busy||mailReady===false||!email.includes("@")} onClick={async()=>{setBusy(true);setError("");try{await requestPasswordReset(email);setNotice("ui:resetSent");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
+                {ui.sendResetCode}
+              </button>
+              <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setError("");try{await confirmPasswordReset(email,resetCode,resetPassword);setResetCode("");setResetPassword("");setNotice("ui:resetComplete");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
+                <label>{ui.emailCode}<input required minLength={8} maxLength={8} pattern="[0-9]{8}" autoComplete="one-time-code" name="one-time-code" inputMode="numeric" value={resetCode} onChange={e=>setResetCode(e.target.value)}/></label>
+                <label>{ui.newPassword}<input type="password" required minLength={12} maxLength={128} value={resetPassword} onChange={e=>setResetPassword(e.target.value)}/></label>
+                <button type="submit" className="button button-primary" disabled={busy}>{ui.resetPassword}</button>
+              </form>
+            </section>
+
+            <Link href="/login" className="button button-outline">{tr.login}</Link>
+          </> : loading ? <div className="state-card">{tr.loading}</div> : profile ? (
           <>
             <section className="panel profile-overview">
               <div className="profile-top">
@@ -914,7 +944,7 @@ export function ProfileClient() {
           </>
         ) : (
           <>
-            <h1>{tr.title}</h1>
+            <h1>{screen==="login" ? (mode==="signup" ? tr.signup : tr.login) : tr.title}</h1>
             {telegramProfile && <section className="panel telegram-verified-profile">
               <span className="status status-success">✓ {ui.telegramVerified}</span>
               <h2>{telegramProfile.telegram.first_name}</h2>
@@ -1008,25 +1038,9 @@ export function ProfileClient() {
                 {language==="cs"?"Poslat kód znovu":language==="en"?"Resend code":language==="ru"?"Отправить код ещё раз":"Надіслати код повторно"}
               </button>}
             </form>
-            <button type="button" className="button button-outline" onClick={()=>setResetOpen(v=>!v)}>
+            <Link href="/password-recovery" className="button button-outline">
               {language==="ru"?"Забыли пароль?":language==="uk"?"Забули пароль?":language==="cs"?"Zapomenuté heslo?":"Forgot password?"}
-            </button>
-            {resetOpen&&<section className="panel form-stack">
-              <h3>{ui.passwordRecovery}</h3>
-              <p className="form-note">{ui.recoveryHint}</p>
-              {mailReady===false&&<p role="alert" className="state-card state-error">{
-                ui.mailUnavailable
-              }</p>}
-              <label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
-              <button type="button" className="button button-outline" disabled={busy||mailReady===false||!email.includes("@")} onClick={async()=>{setBusy(true);setError("");try{await requestPasswordReset(email);setNotice("ui:resetSent");}catch(e){setError(readableError(e));}finally{setBusy(false);}}}>
-                {ui.sendResetCode}
-              </button>
-              <form className="form-stack" onSubmit={async(e)=>{e.preventDefault();setBusy(true);setError("");try{await confirmPasswordReset(email,resetCode,resetPassword);setResetOpen(false);setResetCode("");setResetPassword("");setNotice("ui:resetComplete");}catch(err){setError(readableError(err));}finally{setBusy(false);}}}>
-                <label>{ui.emailCode}<input required minLength={8} maxLength={8} pattern="[0-9]{8}" autoComplete="one-time-code" name="one-time-code" inputMode="numeric" value={resetCode} onChange={e=>setResetCode(e.target.value)}/></label>
-                <label>{ui.newPassword}<input type="password" required minLength={12} maxLength={128} value={resetPassword} onChange={e=>setResetPassword(e.target.value)}/></label>
-                <button type="submit" className="button button-primary" disabled={busy}>{ui.resetPassword}</button>
-              </form>
-            </section>}
+            </Link>
             <p className="form-note">{tr.note}</p>
           </>
         )}

@@ -25,12 +25,18 @@ const words = {
     qr:"Show this QR code at the entrance",invalid:"This ticket was cancelled",downloadError:"Unable to add ticket to Apple Wallet."}
 };
 
+function admissionReady(ticket:DemoTicket) {
+  return ticket.ticket_status==="active" && !ticket.event?.is_cancelled && ticket.payment_status!=="pending";
+}
+
 export function TicketClient() {
   const {language} = useLanguage();
   const tr = words[language];
   const params = useParams<{id: string}>();
   const search = useSearchParams();
   const [ticket, setTicket] = useState<DemoTicket | null>(null);
+  const pendingText=({en:"Awaiting organizer confirmation",cs:"Čeká na potvrzení pořadatele",ru:"Ожидаем подтверждения организатора",uk:"Очікуємо підтвердження організатора"})[language];
+  const unavailableText=ticket?.payment_status==="pending" && !ticket.cancelled_at && !ticket.event?.is_cancelled ? pendingText : tr.invalid;
   const [qr, setQr] = useState("");
   // Deep links from the bot open the specific ticket with its QR side visible.
   const [flipped,setFlipped] = useState(search.get("show")==="qr");
@@ -79,7 +85,7 @@ export function TicketClient() {
       const guest = await restoreGuest();
       if (!guest || !params?.id) throw new Error("login_required");
       const data = await getDemoTicket(guest.access_token, params.id);
-      const image = data.ticket_status==="active"
+      const image = admissionReady(data)
         ? await QRCode.toDataURL(`TICKETTREAT:TICKET:${data.qr_token}`, {width: 360, margin: 2})
         : "";
       if (mounted) {setTicket(data);setQr(image);}
@@ -103,7 +109,7 @@ export function TicketClient() {
   }
 
   async function addToWallet() {
-    if (!ticket || ticket.ticket_status!=="active" || walletBusy) return;
+    if (!ticket || !admissionReady(ticket) || walletBusy) return;
     const url=`/api/gateway/demo/me/tickets/${ticket.id}/wallet`;
     const webSession=getWebToken()==="browser-session";
     // Native iOS Safari can directly handle the application/vnd.apple.pkpass MIME type.
@@ -132,7 +138,7 @@ export function TicketClient() {
     <AppHeader/>
     <main className="page narrow-page">
       <Link href="/tickets" className="back-link">← {t(language,"tickets")}</Link>
-      {message&&<div className="success-banner" role="status">{translateMessage(message)}</div>}
+      {message && (message!=="registered" || ticket) && <div className="success-banner" role="status">{message==="registered" && ticket && !admissionReady(ticket) ? unavailableText : translateMessage(message)}</div>}
       {loading?<div className="state-card">{t(language,"loading")}</div>:
        !ticket?<div className="state-card state-error">{t(language,"loadError")}</div>:
        <article className={`ticket-card tt-pass tt-interactive-ticket ${flipped?"is-flipped":""} ${ticket.ticket_status==="cancelled"?"ticket-card-cancelled":""}`}>
@@ -162,16 +168,16 @@ export function TicketClient() {
                 <span><strong>{digits(countdown.seconds)}</strong><small>{ticketText.seconds}</small></span>
               </div>}
            </div>
-           {ticket.ticket_status==="active"&&qr?
+           {admissionReady(ticket)&&qr?
              <button type="button" className="button button-primary button-wide" onClick={()=>setFlipped(true)}>{ticketText.back} ↗</button>:
-             <div className="tt-pass-revoked" role="status">{tr.invalid}</div>}
+             <div className="tt-pass-revoked" role="status">{unavailableText}</div>}
            <div className="ticket-status-grid tt-pass-status">
-             <span className={`status ${ticket.ticket_status==="active"?"status-success":"status-danger"}`}>{ticket.ticket_status==="active"?(language==="ru"?"ДЕЙСТВИТЕЛЕН":language==="cs"?"PLATNÁ":language==="uk"?"ДІЙСНИЙ":"VALID"):tr.invalid}</span>
+             <span className={`status ${admissionReady(ticket)?"status-success":"status-danger"}`}>{admissionReady(ticket)?(language==="ru"?"ДЕЙСТВИТЕЛЕН":language==="cs"?"PLATNÁ":language==="uk"?"ДІЙСНИЙ":"VALID"):unavailableText}</span>
              <span className={`status ${ticket.checked_in_at?"status-success":"status-muted"}`}>
                {ticket.checked_in_at?t(language,"checkedIn"):t(language,"notCheckedIn")}
              </span>
            </div>
-           {walletEnabled&&ticket.ticket_status==="active"&&
+           {walletEnabled&&admissionReady(ticket)&&
              <button type="button" className="button button-primary button-wide tt-pass-wallet"
                disabled={walletBusy} onClick={()=>void addToWallet()}>
                <span aria-hidden="true"></span> {tr.wallet}
@@ -183,9 +189,9 @@ export function TicketClient() {
          <div className="tt-ticket-back" aria-hidden={!flipped} inert={!flipped}>
            <div className="tt-ticket-back-header"><strong>TICKETTREAT</strong><span>{ticket.code}</span></div>
            <h2>{ticket.event?.title||"TicketTreat"}</h2>
-           {ticket.ticket_status==="active"&&qr?
+           {admissionReady(ticket)&&qr?
              <div className="tt-pass-qr"><img src={qr} alt="QR code for TicketTreat check-in"/><strong>{ticket.code}</strong><p>{tr.qr}</p></div>:
-             <div className="tt-pass-revoked" role="status">{tr.invalid}</div>}
+             <div className="tt-pass-revoked" role="status">{unavailableText}</div>}
            <p className="tt-ticket-guest"><small>{ticketText.guest}</small><strong>{[ticket.guest?.first_name,ticket.guest?.last_name].filter(Boolean).join(" ")||"—"}</strong></p>
            <div className="tt-ticket-barcode" aria-hidden="true"/><small>{ticket.code}</small>
            <button type="button" className="button button-secondary button-wide" onClick={()=>setFlipped(false)}>{ticketText.front} ↗</button>

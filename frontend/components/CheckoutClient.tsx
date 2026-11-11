@@ -1,5 +1,6 @@
 "use client";
 
+import {rememberBooking} from "@/lib/booking-return";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -111,7 +112,8 @@ export function CheckoutClient() {
           const next=await getWaitlistOfferStatus(event.id);setOffer(next);
           setMessage("msg:reserved");
         }else{
-          setMessage(`${t(language, "waitlistJoined")}${result.position ? ` #${result.position}` : ""}`);
+          setOffer({status:"waiting",expires_at:null,position:result.position ?? null});
+          setMessage(null);
         }
         return;
       }
@@ -157,15 +159,12 @@ export function CheckoutClient() {
             {!isFree&&<p className="state-card" role="status">{paidNotice}</p>}
             {!guest ? (
               <>
-              <section className="panel account-signup-banner">
-                <h2>{language === "en" ? "Create your TicketTreat profile" : language === "cs" ? "Vytvoř si profil TicketTreat" : language === "uk" ? "Створи профіль TicketTreat" : "Создай профиль TicketTreat"}</h2>
-                <p>{language === "en" ? "Sign up or log in to save your tickets and access them from any device." : language === "cs" ? "Přihlas se nebo zaregistruj, abys měl vstupenky na všech zařízeních." : language === "uk" ? "Зареєструйся або увійди, щоб квитки були доступні з будь-якого пристрою." : "Зарегистрируйся или войди, чтобы билеты сохранялись в профиле и были доступны с любого устройства."}</p>
-                <Link href="/profile" className="button button-primary">
-                  {language === "en" ? "Sign up / Log in" : language === "cs" ? "Registrovat / Přihlásit se" : language === "uk" ? "Реєстрація / Вхід" : "Регистрация / Вход"}
+              <div className="panel form-stack">
+                <h2>{({en:"Sign in to book", cs:"Přihlášení k rezervaci", ru:"Войди для записи", uk:"Увійди для реєстрації"})[language]}</h2>
+                <Link href="/login" onClick={rememberBooking} className="button button-primary">
+                  {({en:"Sign in",cs:"Přihlásit se",ru:"Войти",uk:"Увійти"})[language]}
                 </Link>
-              </section>
-              {bookingConfig?.verified_accounts_required&&<section className="panel form-stack">
-                <h3>{language==="ru"?"Быстрая регистрация":language==="cs"?"Rychlá registrace":language==="uk"?"Швидка реєстрація":"Quick signup"}</h3>
+              {bookingConfig?.verified_accounts_required&&<details className="form-stack"><summary>{({en:"Continue by email",cs:"Pokračovat e-mailem",ru:"Продолжить по email",uk:"Продовжити через email"})[language]}</summary>
                 <p className="form-note">{txt.quickIntro}</p>
                 <label>{t(language,"firstName")}<input required value={firstName} maxLength={100}
                   autoComplete="given-name" onChange={e=>setFirstName(e.target.value)}/></label>
@@ -200,9 +199,9 @@ export function CheckoutClient() {
                     {txt.verify}
                   </button>
                 </form>}
-              </section>}
-              {!bookingConfig?.verified_accounts_required && <form className="panel form-stack" onSubmit={submitGuest}>
-                <h2>{language === "en" ? "Or continue as a demo guest" : language === "cs" ? "Nebo pokračuj jako demo host" : language === "uk" ? "Або продовж як демо-гість" : "Или продолжить как демо-гость"}</h2>
+              </details>}
+              </div>
+              {bookingConfig && !bookingConfig?.verified_accounts_required && <form className="panel form-stack" onSubmit={submitGuest}>
                 <h2>{t(language, "yourDetails")}</h2>
                 <label>{t(language, "firstName")}<input required value={firstName} onChange={(e) => setFirstName(e.target.value)} /></label>
                 <label>{t(language, "lastName")}<input value={lastName} onChange={(e) => setLastName(e.target.value)} /></label>
@@ -239,6 +238,8 @@ export function CheckoutClient() {
                       finally{setBusy(false);}
                     }}>{language==="ru"?"Отказаться от места":language==="cs"?"Odmítnout místo":language==="uk"?"Відмовитись від місця":"Decline offer"}</button>
                   </section>
+                ) : offer?.status==="waiting" ? (
+                  <p role="status">{t(language,"waitlistJoined")}{offer.position ? ` #${offer.position}` : ""}</p>
                 ) : wantsWaitlist || event.spots_left === 0 ? (
                   <>
                     <h2>{t(language, "waitlist")}</h2>

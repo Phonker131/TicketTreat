@@ -3,13 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
-import {ExampleTickets} from "@/components/ExampleTickets";
 import { useLanguage } from "@/components/LanguageProvider";
-import { getDemoTickets, getEvents, getMyAttendance } from "@/lib/api";
-import {BrandIcon} from "@/components/BrandIcon";
-import {useWanted} from "@/lib/wanted";
+import { getDemoTickets, getMyAttendance } from "@/lib/api";
 import type {AttendanceHistory} from "@/lib/api";
-import { formatDate, formatPrice } from "@/lib/format";
+import { eventDisplayDate, formatDate } from "@/lib/format";
 import { t, localeForLanguage } from "@/lib/i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { getVerifiedTelegramSession, restoreGuest } from "@/lib/session";
@@ -24,21 +21,26 @@ export function TicketsClient() {
   const [loading, setLoading] = useState(true);
   const [botEvents, setBotEvents] = useState<TicketTreatEvent[]>([]);
   const [error, setError] = useState("");
-  const [wanted,setWanted]=useWanted();
-  const [catalogue,setCatalogue]=useState<TicketTreatEvent[]>([]);
-  useEffect(()=>{
-    if(!wanted.length||catalogue.length)return;
-    const controller=new AbortController();
-    getEvents(controller.signal).then(setCatalogue).catch(()=>{});
-    return()=>controller.abort();
-  },[wanted.length,catalogue.length]);
-  const savedEvents=catalogue.filter(event=>wanted.includes(event.id)&&!event.is_cancelled);
-  const savedWords={
-    ru:{title:"Хочу пойти",hint:"Ивенты, которые ты сохранил свайпом или сердечком. Это ещё не билеты.",remove:"Убрать из избранного"},
-    cs:{title:"Chci jít",hint:"Akce uložené přejetím doprava nebo srdíčkem. Zatím to nejsou vstupenky.",remove:"Odebrat z uložených"},
-    uk:{title:"Хочу піти",hint:"Події, збережені свайпом або сердечком. Це ще не квитки.",remove:"Прибрати з обраного"},
-    en:{title:"Want to go",hint:"Events you saved with a swipe or the heart. These are not tickets yet.",remove:"Remove from saved"}
+  const [history, setHistory] = useState(false);
+  const words = {
+    cs:["Nadcházející","Historie","Zobrazit QR kód","Zatím tu nejsou žádné vstupenky.","Prohlédnout akce","Zatím žádné minulé rezervace.","Čeká na potvrzení pořadatele","Registrace přes Telegram","Přihlásit se"],
+    en:["Upcoming","History","Show QR code","No upcoming tickets yet.","Find an event","No past bookings yet.","Awaiting organizer confirmation","Telegram registration","Sign in"],
+    ru:["Предстоящие","История","Показать QR-код","Пока нет предстоящих билетов.","Найти событие","Пока нет прошлых записей.","Ожидает подтверждения организатора","Запись через Telegram","Войти"],
+    uk:["Майбутні","Історія","Показати QR-код","Поки немає майбутніх квитків.","Знайти подію","Поки немає минулих записів.","Очікує підтвердження організатора","Реєстрація через Telegram","Увійти"]
   }[language];
+  const day = (date:Date, timeZone:string) => new Intl.DateTimeFormat("sv-SE", {timeZone}).format(date);
+  const today = day(new Date(), "Europe/Prague");
+  const ticketEvents = new Set(tickets.filter(ticket => ticket.ticket_status === "active").map(ticket => ticket.event_id));
+  const rows = [
+    ...tickets.map(ticket => ({event:ticket.event, ticket})),
+    ...botEvents.filter(event => !ticketEvents.has(event.id)).map(event => ({event, ticket:null}))
+  ].map(({event, ticket}) => {
+    const start = event?.starts_at ? eventDisplayDate(event.starts_at) : null;
+    const dated = start && Number.isFinite(start.date.getTime()) ? start : null;
+    const cancelled = Boolean(event?.is_cancelled || ticket?.ticket_status === "cancelled");
+    const past = Boolean(cancelled || ticket?.checked_in_at || (dated && day(dated.date, dated.timeZone) < today));
+    return {event, ticket, cancelled, past, time:dated?.date.getTime() ?? Infinity};
+  }).filter(row => row.past === history).sort((a,b) => history ? b.time-a.time : a.time-b.time);
 
   useEffect(() => {
     let live = true;
@@ -76,46 +78,25 @@ export function TicketsClient() {
         {loading ? <div className="state-card">{t(language, "loading")}</div> :
           <>
           {error && <div className="state-card state-error" role="alert">{userFacingError(error,language)}</div>}
-          {tickets.length === 0 && botEvents.length === 0 && !error && <ExampleTickets language={language}/>}
-          {tickets.length > 0 && <div className="ticket-list">
-            {tickets.map((ticket) => (
-              <Link className={`ticket-row ${ticket.ticket_status === "cancelled" ? "ticket-cancelled" : ""}`} href={`/tickets/${ticket.id}`} key={ticket.id}>
-                <div>
-                  <small>{ticket.code}</small>
-                  <h3>{ticket.event?.title || t(language, "ticket")}</h3>
-                  <p>{formatDate(ticket.event?.starts_at || null, language)}</p>
-                </div>
-                <div className="ticket-row-right">
-                  <strong>{ticket.event ? formatPrice(ticket.event, language) : `${ticket.payment_amount} ${ticket.currency}`}</strong>
-                  <span className={`status ${ticket.checked_in_at ? "status-success" : "status-demo"}`}>
-                    {ticket.ticket_status === "cancelled" ? t(language, "cancelledTicket") : ticket.checked_in_at ? t(language, "checkedIn") : (ticket.payment_provider==="registration_only" ?
-                      (language==="ru"?"Записан":language==="cs"?"Registrován":language==="uk"?"Записано":"Registered") :
-                      ticket.payment_provider==="free" ?
-                      (language==="ru"?"Бесплатно":language==="cs"?"Zdarma":language==="uk"?"Безкоштовно":"Free") :
-                      t(language, "paid"))}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>}
-          {savedEvents.length>0&&<section className="section tp-saved-section" aria-labelledby="tp-saved-title">
-            <div className="section-heading"><div><h2 id="tp-saved-title">{savedWords.title}</h2><p>{savedWords.hint}</p></div></div>
-            <div className="ticket-list">
-              {savedEvents.map(event=><div className="ticket-row tp-saved-row" key={event.id}>
-                <Link href={`/events/${event.id}`} className="tp-saved-main">
-                  <small>{event.location||"Praha"}</small>
-                  <h3>{event.title}</h3>
-                  <p>{formatDate(event.starts_at,language)}</p>
-                </Link>
-                <div className="ticket-row-right">
-                  <strong>{formatPrice(event,language)}</strong>
-                  <button type="button" className="tp-heart is-inline" aria-pressed="true" aria-label={savedWords.remove} onClick={()=>setWanted(event.id,false)}><BrandIcon name="heart" size={20}/></button>
-                </div>
-              </div>)}
-            </div>
+          <div className="profile-actions" role="group" aria-label={t(language,"tickets")}>
+            {[false,true].map((past,i)=><button type="button" key={words[i]} aria-pressed={past===history}
+              className={past===history?"button button-primary":"button button-outline"} onClick={()=>setHistory(past)}>{words[i]}</button>)}
+          </div>
+          {!error && !rows.length && <section className="panel"><p>{history ? words[5] : words[3]}</p>
+            {!history && <Link className="button button-primary" href="/#events">{words[4]}</Link>}
+            {!guest && !history && <Link className="button button-outline" href="/login">{words[8]}</Link>}
           </section>}
-          <p><Link href="/loyalty" className="button button-outline">{language==="ru"?"Мои награды и уровни":language==="cs"?"Moje odměny a úrovně":language==="uk"?"Мої нагороди та рівні":"My rewards and tiers"}</Link></p>
-          {attendance&&<section className="panel" style={{marginTop:20}}>
+          <div className="ticket-list">{rows.map(({event,ticket,cancelled})=>{
+            const qr = ticket?.ticket_status==="active" && !history && !cancelled && ticket.payment_status!=="pending";
+            const label = cancelled ? t(language,"cancelledTicket") : ticket?.checked_in_at ? t(language,"checkedIn")
+              : (ticket?.payment_status ?? event?.payment_status)==="pending" ? words[6] : ticket ? t(language,"ticket") : words[7];
+            return <Link className="ticket-row" key={ticket ? "ticket-"+ticket.id : "event-"+event?.id}
+              href={ticket ? `/tickets/${ticket.id}${qr?"?show=qr":""}` : `/events/${event?.id}`}>
+              <div><small>{label}</small><h3>{event?.title || t(language,"ticket")}</h3><p>{formatDate(event?.starts_at ?? null,language)}</p></div>
+              <span className="button button-outline">{qr ? words[2] : t(language,"details")}</span>
+            </Link>;
+          })}</div>
+          {history&&attendance&&<section className="panel" style={{marginTop:20}}>
             <h2>{language==="ru"?"История посещений":language==="cs"?"Historie návštěv":language==="uk"?"Історія відвідувань":"Attendance history"}</h2>
             <p>{attendance.visit_count} {language==="cs"?"návštěv":language==="ru"?"посещений":language==="uk"?"відвідувань":"check-ins"} {attendance.visit_count>=attendance.limited_to?(language==="cs"?"(posledních 100)":language==="ru"?"(последние 100)":language==="uk"?"(останні 100)":"(last 100)"):""}</p>
             {attendance.history.map((item,i)=><div key={`${item.event_id}-${i}`} className="participant-row">
@@ -123,29 +104,7 @@ export function TicketsClient() {
               <small>{new Date(item.checked_in_at).toLocaleString(localeForLanguage(language))}</small>
             </div>)}
           </section>}
-          {botEvents.length > 0 && <section className="section telegram-bot-events">
-            <div className="section-heading">
-              <div><h2>{language==="ru"?"Записи через Telegram-бота":language==="uk"?"Реєстрації через Telegram-бота":language==="cs"?"Registrace přes Telegram bota":"Telegram bot registrations"}</h2>
-              <p>{language==="ru"?"Существующие записи из бота. Это не QR-билеты.":language==="cs"?"Dřívější registrace z bota; nejde o QR vstupenky.":language==="uk"?"Попередні реєстрації з бота. Це не QR-квитки.":"Existing bot registrations are shown separately from QR tickets."}</p></div>
-            </div>
-            <div className="ticket-list">
-              {botEvents.map(event => (
-                <Link href={`/events/${event.id}`} className="ticket-row" key={event.id}>
-                  <div>
-                    <small>Telegram, #{event.id}</small>
-                    <h3>{event.title}</h3>
-                    <p>{formatDate(event.starts_at,language)}</p>
-                  </div>
-                  <div className="ticket-row-right">
-                    <span className="status status-demo">{event.is_cancelled ?
-                      t(language,"cancelledTicket") : event.payment_status === "pending" ?
-                      (language==="ru"?"Ожидает оплаты":language==="uk"?"Очікує оплати":language==="cs"?"Čeká na platbu":"Payment pending") :
-                      (language==="ru"?"Записан":language==="uk"?"Зареєстровано":language==="cs"?"Přihlášen":"Registered")}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>}
+
           </>}
 <PageFaq topic="tickets"/>
       </main>
