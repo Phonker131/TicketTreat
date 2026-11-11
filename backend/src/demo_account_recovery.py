@@ -387,6 +387,13 @@ def install_email_account_security(app, get_db):
         account.password_hash = hash_password(payload.new_password)
         if not email_is_verified(db, account.id):
             db.add(VerifiedEmail(account_id=account.id, verified_at=now()))
+        # A successful password-reset code independently proves mailbox
+        # ownership. A previously unverified email must now be recorded in
+        # the canonical provider registry within the same transaction.
+        from demo_identity_registry import mirror_verified_identity
+        db.flush()
+        mirror_verified_identity(db, account_id=account.id,
+                                 provider="email", verified_subject=email)
         db.query(WebSession).filter(WebSession.account_id == account.id).delete(synchronize_session=False)
         db.commit()
         return {"status": "password_reset", "sessions_revoked": True}
