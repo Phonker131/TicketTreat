@@ -418,6 +418,11 @@ def install_demo_accounts(
             record_rate(db, "login_ip", source_ip, 900)
             record_rate(db, "login_email", email, 900)
             raise HTTPException(status_code=401, detail="invalid_credentials")
+        if _verified_email(db, account.id):
+            from demo_identity_registry import require_registry_owner
+            require_registry_owner(db, provider="email",
+                                   verified_subject=email,
+                                   legacy_account_id=account.id)
         # Rehash the stored PBKDF2 password only after a successful login.
         if needs_rehash(account.password_hash):
             account.password_hash = hash_password(payload.password)
@@ -466,6 +471,10 @@ def install_demo_accounts(
         if not account or not email_is_verified(db, account.id):
             raise HTTPException(400, "invalid_or_expired_code")
         consume_challenge(db, account, "login", payload.code)
+        from demo_identity_registry import require_registry_owner
+        require_registry_owner(db, provider="email",
+                               verified_subject=email,
+                               legacy_account_id=account.id)
         token = issue_session(db, account)
         return {"token": token, "profile": profile_dict(account, db)}
 

@@ -166,3 +166,51 @@ def serialize_telegram_principal(db: Session, telegram_user_id: int) -> None:
     raw = hashlib.sha256(("tickettreat:telegram-principal:v1:" + subject).encode()).digest()
     lock_key = int.from_bytes(raw[:8], byteorder="big", signed=True)
     db.execute(sql_text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
+
+
+def enforce_registry_mode() -> bool:
+    """Active only after production source/ledger reconciliation and canary."""
+    return os.getenv("TICKETTREAT_IDENTITY_REGISTRY_MODE", "off") == "enforce"
+
+
+def authenticated_provider_account(db: Session, provider: str,
+                                   verified_subject: str):
+    """Resolve a proved provider subject from the constrained identity ledger.
+
+    In shadow/off mode callers continue to use the existing legacy owner.
+    In enforce mode a previously verified provider row is the account source
+    of truth. A missing row can denote a brand-new identity, but if the legacy
+    provider table already knows that subject, the caller MUST fail closed.
+    """
+    if not enforce_registry_mode():
+        return None
+    from fastapi import HTTPException
+    from demo_accounts import WebAccount
+    subject = canonical_subject(provider, verified_subject)
+    row = db.query(AuthIdentity).filter(
+        AuthIdentity.provider == provider,
+        AuthIdentity.provider_subject == subject,
+    ).first()
+    if row is None:
+        return None
+    account = db.get(WebAccount, row.account_id)
+    if account is None:
+        raise HTTPException(409, "verified_identity_registry_incomplete")
+    return account
+
+
+def require_registry_owner(db: Session, *, provider: str,
+                           verified_subject: str, legacy_account_id: int) -> None:
+    """Verify an existing signed/OTP credential resolves to the same owner.
+
+    Missing ledger claims are not guessed or migrated on the login path.
+    They require the explicitly controlled, separately audited backfill.
+    """
+    if not enforce_registry_mode():
+        return
+    from fastapi import HTTPException
+    account = authenticated_provider_account(db, provider, verified_subject)
+    if account is None:
+        raise HTTPException(409, "verified_identity_registry_backfill_required")
+    if account.id != legacy_account_id:
+        raise HTTPException(409, "verified_identity_owner_mismatch")

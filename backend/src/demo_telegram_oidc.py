@@ -237,11 +237,20 @@ def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict, *,
     from demo_roles import WebAccountRole
 
     telegram_id = int(claims["id"])
-    from demo_identity_registry import serialize_telegram_principal
+    from demo_identity_registry import (
+        serialize_telegram_principal, authenticated_provider_account,
+        enforce_registry_mode,
+    )
     serialize_telegram_principal(db, telegram_id)
+    registry_account = authenticated_provider_account(db, "telegram", str(telegram_id))
     link = db.query(DemoTelegramIdentity).filter(
         DemoTelegramIdentity.telegram_id == telegram_id).with_for_update().first()
     if link is None:
+        if registry_account is not None:
+            # A proven Telegram credential already belongs to one canonical
+            # account. Missing legacy mapping is a migration inconsistency,
+            # not permission to create a second guest or move tickets.
+            raise HTTPException(409, "verified_identity_registry_incomplete")
         name = str(claims.get("given_name") or claims.get("name") or "Telegram user").strip()[:100]
         name = name or "Telegram user"
         guest = DemoGuest(
@@ -259,6 +268,15 @@ def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict, *,
         if guest is None:
             raise HTTPException(409, "telegram_identity_incomplete")
     account = db.query(WebAccount).filter(WebAccount.guest_id == guest.id).first()
+    if enforce_registry_mode() and registry_account is not None:
+        # A registry binding is authoritative even when the legacy mapping is
+        # stale. Never silently reassign its tickets to a different account.
+        if account is None or registry_account.id != account.id:
+            raise HTTPException(409, "verified_identity_owner_mismatch")
+    # If the registry row is missing, independent signed Telegram proof and
+    # the same existing unique Telegram->guest mapping permit a safe, atomic
+    # first-time/legacy shadow claim below. This also handles the Mini App
+    # flow that creates a guest mapping immediately before calling us.
     if account is None:
         account = WebAccount(
             email=None, password_hash="!telegram-only", guest_id=guest.id,

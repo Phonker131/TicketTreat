@@ -106,6 +106,17 @@ def audit(database_url: str) -> dict[str, int | bool]:
             has_registry = "auth_identities" in tables
             result["registry_present"] = has_registry
             if has_registry:
+                # A safe backfill and a safe enforcement cutover require
+                # different gates. Enforcement additionally requires that
+                # EVERY independently verified legacy provider claim already
+                # exists in the canonical ledger with the same account owner.
+                count("registry_missing_verified_candidates", CANDIDATES + """
+                    SELECT count(*) FROM candidates c
+                    LEFT JOIN auth_identities ai ON ai.provider=c.provider
+                        AND ai.provider_subject=c.provider_subject
+                        AND ai.account_id=c.account_id
+                    WHERE ai.id IS NULL
+                """)
                 count("registry_binding_conflicts", CANDIDATES + """
                     SELECT count(DISTINCT ai.id)
                     FROM auth_identities ai JOIN candidates c ON ai.provider=c.provider
@@ -123,6 +134,7 @@ def audit(database_url: str) -> dict[str, int | bool]:
             else:
                 result["registry_binding_conflicts"] = 0
                 result["registry_orphan_bindings"] = 0
+                result["registry_missing_verified_candidates"] = 0
 
             blockers = (
                 "normalized_email_collision_groups", "orphan_web_guests",
@@ -131,6 +143,13 @@ def audit(database_url: str) -> dict[str, int | bool]:
                 "registry_binding_conflicts", "registry_orphan_bindings",
             )
             result["safe_to_backfill"] = has_registry and all(result[k] == 0 for k in blockers)
+            # Existing legitimate unverified email accounts are NOT upgraded
+            # implicitly and do not block cutover for verified identities.
+            result["safe_to_enforce"] = (
+                result["safe_to_backfill"]
+                and result["telegram_guests_without_web_account"] == 0
+                and result["registry_missing_verified_candidates"] == 0
+            )
             return result
     finally:
         engine.dispose()
