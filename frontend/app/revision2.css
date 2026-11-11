@@ -308,6 +308,9 @@ html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form in
  background:var(--surface)!important;color:var(--fg)!important;
  border-color:var(--edge)!important;
 }
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form input::placeholder{
+ color:var(--fg-mute)!important;opacity:1!important;
+}
 html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form .button-primary:disabled{
  background:var(--surface)!important;color:var(--fg-mute)!important;
  border:2px solid var(--edge)!important;
