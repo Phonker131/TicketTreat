@@ -81,5 +81,7 @@ def main():
 if __name__=="__main__":
  try:main()
  except Exception as exc:
-  print("Account 20 audit failed:"+type(exc).__name__,file=sys.stderr)
+  import traceback
+  where=traceback.extract_tb(exc.__traceback__)[-1]
+  print("Account 20 audit failed:"+type(exc).__name__+" line="+str(where.lineno),file=sys.stderr)
   raise SystemExit(1)
