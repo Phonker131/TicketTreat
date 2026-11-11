@@ -186,9 +186,12 @@ def _telegram_link(db: Session, main, account, user: dict, background_tasks: Bac
         raise HTTPException(409, "website_account_has_another_telegram")
 
     if link.guest_id == account.guest_id:
+        from demo_identity_registry import mirror_verified_identity
+        mirror_verified_identity(db, account_id=account.id, provider="telegram",
+                                 verified_subject=str(telegram_id))
         if challenge is not None:
             challenge.status, challenge.telegram_id = "linked", telegram_id
-            db.commit()
+        db.commit()
         return {"linked": True, "already_linked": True, "migrated_tickets": 0}
 
     guest = db.query(main.DemoGuest).filter(
@@ -281,6 +284,16 @@ def _telegram_link(db: Session, main, account, user: dict, background_tasks: Bac
     if challenge is not None:
         challenge.status, challenge.telegram_id = "linked", telegram_id
 
+    # A Telegram-only shadow profile may already have a verified provider
+    # registry row. Rebind it only after proof of *both* Telegram and website
+    # account; revocation and ticket migration must commit with the binding.
+    from demo_identity_registry import transfer_verified_telegram
+    transfer_verified_telegram(
+        db,
+        previous_account_id=telegram_shadow.id if telegram_shadow else None,
+        target_account_id=account.id,
+        telegram_user_id=telegram_id,
+    )
     try:
         db.commit()
     except IntegrityError:
