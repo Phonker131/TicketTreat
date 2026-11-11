@@ -268,13 +268,15 @@ def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict, *,
         if guest is None:
             raise HTTPException(409, "telegram_identity_incomplete")
     account = db.query(WebAccount).filter(WebAccount.guest_id == guest.id).first()
-    if enforce_registry_mode() and link is not None:
-        # Existing signed Telegram mapping must already be represented in the
-        # verified provider ledger before enforce cutover is enabled.
-        if registry_account is None:
-            raise HTTPException(409, "verified_identity_registry_backfill_required")
+    if enforce_registry_mode() and registry_account is not None:
+        # A registry binding is authoritative even when the legacy mapping is
+        # stale. Never silently reassign its tickets to a different account.
         if account is None or registry_account.id != account.id:
             raise HTTPException(409, "verified_identity_owner_mismatch")
+    # If the registry row is missing, independent signed Telegram proof and
+    # the same existing unique Telegram->guest mapping permit a safe, atomic
+    # first-time/legacy shadow claim below. This also handles the Mini App
+    # flow that creates a guest mapping immediately before calling us.
     if account is None:
         account = WebAccount(
             email=None, password_hash="!telegram-only", guest_id=guest.id,
