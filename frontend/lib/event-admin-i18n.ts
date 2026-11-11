@@ -49,6 +49,12 @@ const messages: Array<[string,string,string,string]> = [
     "Зміни збережено."
   ],
   [
+    "Сохранить изменения",
+    "Save changes",
+    "Uložit změny",
+    "Зберегти зміни"
+  ],
+  [
     "Сессия завершилась. Войди в профиль и повтори попытку.",
     "Session expired. Sign in again.",
     "Relace vypršela. Přihlas se znovu.",

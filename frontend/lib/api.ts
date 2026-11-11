@@ -443,11 +443,13 @@ export function getManageAudit(token:string,eventId:number):Promise<{action:stri
 }
 
 export type ManagedAccount = {
-  account_id: number; email: string; name: string;
+  account_id: number; email: string|null; name: string;
   role: "participant" | "organizer" | "global_admin";
+  merged_into_account_id?:number|null;
 };
-export function getManagedAccounts(token:string):Promise<ManagedAccount[]> {
-  return request("/demo/manage/accounts",{headers:accountHeaders(token)});
+export function getManagedAccounts(token:string,includeMerged=false):Promise<ManagedAccount[]> {
+  return request(`/demo/manage/accounts${includeMerged?"?include_merged=true":""}`,
+    {headers:accountHeaders(token)});
 }
 export function setManagedAccountRole(token:string,accountId:number,role:"participant"|"organizer"):Promise<{account_id:number;role:string}> {
   return request(`/demo/manage/accounts/${accountId}/role`,{

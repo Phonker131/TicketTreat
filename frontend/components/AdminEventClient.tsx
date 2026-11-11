@@ -575,7 +575,7 @@ export function AdminEventClient(){
           onChange={e=>setPoster(e.target.files?.[0]||null)}/>
           <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
         {event.image_url&&<img src={event.image_url} alt="Event poster" className="event-poster-preview"/>}
-        <button className="button button-primary" disabled={busy}>{busy?tr("Сохраняем…"):"Сохранить изменения"}</button>
+        <button className="button button-primary" disabled={busy}>{busy?tr("Сохраняем…"):tr("Сохранить изменения")}</button>
       </form>}
       </div>}
       {tab==="media"&&<div className="tp-tabpanel">
