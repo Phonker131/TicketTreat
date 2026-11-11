@@ -45,7 +45,21 @@ class HistoricalTelegramShadowBackfillTests(unittest.TestCase):
             guest_id=guest.id
             ticket_id=ticket.id
 
-        with patch.dict(os.environ,{"TICKETTREAT_IDENTITY_REGISTRY_MODE":"shadow"}):
+        # Other integration tests seed synthetic AuthIdentity rows without
+        # source-provider records. That intentionally makes the global audit
+        # reject this shared CI DB, unlike a clean restored production snapshot.
+        # Stub ONLY the operator preflight aggregates here; all backfill
+        # writes, row locks, owner and ticket assertions use real PostgreSQL.
+        def clean_ci_audit(_database_url):
+            with SessionLocal() as db:
+                unmapped=(db.query(DemoTelegramIdentity)
+                    .outerjoin(WebAccount, WebAccount.guest_id==DemoTelegramIdentity.guest_id)
+                    .filter(WebAccount.id.is_(None)).count())
+            return {"safe_to_backfill":True,
+                    "telegram_guests_without_web_account":unmapped}
+
+        with patch.dict(os.environ,{"TICKETTREAT_IDENTITY_REGISTRY_MODE":"shadow"}), \
+                patch("backfill_verified_telegram_shadows.audit",side_effect=clean_ci_audit):
             dry=run(os.environ["DATABASE_URL"],apply=False)
             self.assertEqual(dry["status"],"dry_run_only")
             self.assertGreaterEqual(dry["eligible_verified_telegram_guests"],1)
