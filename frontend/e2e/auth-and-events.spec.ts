@@ -10,6 +10,26 @@ test("catalogue renders upcoming events through the live FastAPI gateway",async(
   await expect(page.getByRole("heading",{level:1})).toBeVisible();
 });
 
+test("Telegram account linking requires unchecked-by-default consent",async({page})=>{
+  // The provider response is mocked here; no forged initData is sent to an API
+  // outside the disposable Playwright environment.
+  await page.addInitScript(()=>{
+    Object.assign(window,{Telegram:{WebApp:{initData:"ci-placeholder-signed-launch"}}});
+  });
+  await page.route("**/api/gateway/api/v1/telegram/auth",route=>
+    route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({
+      guest:{id:888,access_token:"",first_name:"CI Telegram",email:null,telegram_id:888},
+      telegram:{id:888,first_name:"CI Telegram",username:null},
+      accounts_linked:false,bot_registrations:[],legacy_reconciliation:{},
+    })}));
+  await page.goto("/profile?lang=en");
+  await expect(page.locator(".telegram-verified-profile")).toBeVisible();
+  const consent=page.getByRole("checkbox",{name:/After signing in, connect this verified Telegram/i});
+  await expect(consent).not.toBeChecked();
+  await consent.check();
+  await expect(consent).toBeChecked();
+});
+
 test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({page})=>{
   await page.goto("/profile");
   await page.locator(".auth-tabs button").last().click();
