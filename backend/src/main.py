@@ -1175,6 +1175,64 @@ def root():
 # =========================================================
 # Profiles / users
 # =========================================================
+def _canonical_bot_registration_enabled() -> bool:
+    # The legacy private bot service is the only caller. New creation remains
+    # gated until verified on staging and both API/Backend deployments.
+    return os.getenv("BOT_CANONICAL_REGISTRATION", "false").lower() in {"1", "true", "yes"}
+
+
+def _ensure_canonical_private_bot_account(db: Session, user: User, *,
+                                          commit: bool, reconcile: bool):
+    """Private bot-key-authenticated Telegram user -> existing canonical guest.
+
+    The old bot's User row remains a compatibility record, never an
+    independent credential. Never treat phone/email/name as identity proof.
+    """
+    from demo_telegram_oidc import ensure_telegram_web_account
+    return ensure_telegram_web_account(db, DemoGuest, {
+        "id": int(user.telegram_id),
+        "given_name": user.first_name or "Telegram user",
+        "family_name": user.last_name or "",
+        "preferred_username": user.username or "",
+    }, commit=commit, reconcile=reconcile)
+
+
+def _claim_bot_registration_as_ticket(db: Session, event: Event,
+                                      registration: Registration,
+                                      account: WebAccount) -> None:
+    """Create a single free QR ticket and claim inside the event row lock."""
+    if price_decimal(event.price) > 0:
+        raise HTTPException(409, "paid_events_disabled")
+    guest_id = account.guest_id
+    existing = db.query(DemoTicket).filter(
+        DemoTicket.guest_id == guest_id,
+        DemoTicket.event_id == event.id,
+    ).first()
+    if existing is None:
+        existing = DemoTicket(
+            event_id=event.id, guest_id=guest_id,
+            qr_token=secrets.token_urlsafe(32),
+            ticket_status="active", payment_status="not_required",
+            payment_provider="legacy_free", payment_amount="0",
+            currency=event.currency or "CZK",
+            acquisition_source="telegram",
+        )
+        db.add(existing)
+        db.flush()
+    elif existing.ticket_status != "active":
+        raise HTTPException(409, "registration_cancelled_use_website")
+    claim = db.get(LegacyTicketClaim, registration.id)
+    if claim is None:
+        db.add(LegacyTicketClaim(
+            registration_id=registration.id,
+            event_id=event.id,
+            ticket_id=existing.id,
+        ))
+    elif claim.ticket_id != existing.id:
+        raise HTTPException(409, "legacy_ticket_conflict")
+    db.flush()
+
+
 @app.post("/profile")
 def save_profile(
     payload: ProfileCreate,
@@ -1224,6 +1282,9 @@ def save_profile(
 
     db.commit()
     db.refresh(user)
+
+    if not DEMO_ISOLATED_API and _canonical_bot_registration_enabled():
+        _ensure_canonical_private_bot_account(db, user, commit=True, reconcile=True)
 
     return {
         "status": "saved",
@@ -1921,6 +1982,16 @@ def register_to_event(
     ):
         user.first_name = payload.first_name
 
+    # The private Bot API is authenticated with X-Bot-Api-Key, not with
+    # user-supplied email or name. Every verified Telegram numeric user ID
+    # must resolve to the same ticket owner on both website and bot.
+    use_canonical = not DEMO_ISOLATED_API and _canonical_bot_registration_enabled()
+    canonical_account = None
+    if use_canonical and price_decimal(event.price) == 0:
+        canonical_account = _ensure_canonical_private_bot_account(
+            db, user, commit=False, reconcile=False,
+        )
+
     existing_registration = (
         db.query(Registration)
         .filter(
@@ -1935,14 +2006,29 @@ def register_to_event(
     verified_guest = db.query(DemoTelegramIdentity).filter(
         DemoTelegramIdentity.telegram_id == user.telegram_id,
     ).first()
-    if verified_guest and db.query(DemoTicket.id).filter(
+    active_ticket = db.query(DemoTicket).filter(
         DemoTicket.guest_id == verified_guest.guest_id,
         DemoTicket.event_id == event.id,
         DemoTicket.ticket_status == "active",
-    ).first():
+    ).first() if verified_guest else None
+    if active_ticket is not None:
+        if (canonical_account is not None and existing_registration is not None
+                and db.get(LegacyTicketClaim, existing_registration.id) is None):
+            # An earlier bot registration and a website QR count as one seat.
+            db.add(LegacyTicketClaim(
+                registration_id=existing_registration.id,
+                event_id=event.id, ticket_id=active_ticket.id,
+            ))
+            db.commit()
         return {"status": "already_registered", "registration_source": "ticket"}
 
     if existing_registration is not None:
+        if (canonical_account is not None
+                and db.get(LegacyTicketClaim, existing_registration.id) is None):
+            _claim_bot_registration_as_ticket(
+                db, event, existing_registration, canonical_account,
+            )
+            db.commit()
         # After canonical QR cancellation the original legacy Registration
         # stays as historical evidence, but it is no longer a valid pass.
         # Do not tell the Bot that a cancelled ticket is still registered.
@@ -1961,6 +2047,11 @@ def register_to_event(
                 event.id,
             ),
         )
+
+    if use_canonical and price_decimal(event.price) > 0:
+        # Never grant a new paid pass based on unverifiable off-platform
+        # payment: that must be confirmed by an organizer separately.
+        return {"error": "paid_events_disabled"}
 
     registered_count = get_registered_count(
         db,
@@ -1982,6 +2073,11 @@ def register_to_event(
     )
 
     db.add(registration)
+    if canonical_account is not None:
+        # Legacy compatibility row + authoritative QR ticket + reconciliation
+        # record are written in one transaction while the event is locked.
+        db.flush()
+        _claim_bot_registration_as_ticket(db, event, registration, canonical_account)
 
     db.commit()
 
@@ -2193,6 +2289,10 @@ def unsubscribe_from_event(
     telegram_id: int,
     db: Session = Depends(get_db),
 ):
+    # The same event lock serializes legacy-bot cancellation with QR ticket
+    # checkout and waitlist promotion. A claimed bot registration MUST cancel
+    # its canonical ticket, not merely delete the compatibility User row.
+    event = db.query(Event).filter(Event.id == event_id).with_for_update().first()
     user = (
         db.query(User)
         .filter(
@@ -2219,6 +2319,44 @@ def unsubscribe_from_event(
         return {
             "status": "not_registered",
         }
+
+    claim = db.get(LegacyTicketClaim, registration.id)
+    if claim is not None:
+        ticket = db.query(DemoTicket).filter(
+            DemoTicket.id == claim.ticket_id,
+            DemoTicket.event_id == event_id,
+        ).with_for_update().first()
+        if ticket is None:
+            raise HTTPException(409, "legacy_ticket_conflict")
+        verified = db.query(DemoTelegramIdentity).filter(
+            DemoTelegramIdentity.telegram_id == telegram_id,
+            DemoTelegramIdentity.guest_id == ticket.guest_id,
+        ).first()
+        if verified is None:
+            raise HTTPException(409, "telegram_identity_incomplete")
+        if ticket.ticket_status == "active":
+            ticket.ticket_status = "cancelled"
+            ticket.payment_status = (
+                "not_required" if ticket.payment_provider in {"free", "legacy_free"}
+                else "not_collected" if ticket.payment_provider == "registration_only"
+                else "cancelled_demo"
+            )
+            ticket.cancelled_at = utc_now()
+            db.flush()
+            promoted = promote_demo_waitlist(db, event_id)
+            if promoted is not None:
+                db.flush()
+                promoted_guest = db.get(DemoGuest, promoted.guest_id)
+                queue_email(
+                    db, kind="ticket",
+                    event_key=f"ticket:{promoted.id}:issue:{hashlib.sha256(promoted.qr_token.encode()).hexdigest()[:20]}",
+                    recipient=promoted_guest.email if promoted_guest else None,
+                    guest_id=promoted.guest_id, ticket_id=promoted.id,
+                )
+        # Leave historical bot registration + claim for audit, with its
+        # cancelled QR pass no longer appearing as a live registration.
+        db.commit()
+        return {"status": "unsubscribed"}
 
     payment = get_registration_payment(
         db,
