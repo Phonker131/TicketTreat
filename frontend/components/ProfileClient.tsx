@@ -342,6 +342,7 @@ export function ProfileClient() {
   const [password, setPassword] = useState("");
   const [signupCodeSent,setSignupCodeSent]=useState(false);
   const [signupEmailCode,setSignupEmailCode]=useState("");
+  const [signupPrivacyAccepted,setSignupPrivacyAccepted]=useState(false);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -584,7 +585,7 @@ export function ProfileClient() {
       if (mode==="signup" && !signupCodeSent) {
         // No account is reserved until mailbox control is proved. The same
         // quick-signup OTP is rate-limited and expires after ten minutes.
-        await requestQuickSignup(email.trim(),firstName.trim(),true);
+        await requestQuickSignup(email.trim(),firstName.trim(),signupPrivacyAccepted);
         setSignupCodeSent(true);
         setNotice(language==="cs"
           ?"Pokud lze tento e-mail použít, odeslali jsme osmimístný ověřovací kód."
@@ -928,6 +929,12 @@ export function ProfileClient() {
                   aria-label={language==="cs"?"Osmimístný ověřovací kód":language==="en"?"8-digit email verification code":language==="ru"?"Восьмизначный код email":"Восьмизначний код email"} />
               </label>}
               <label>{mode==="signup"?tr.password:language==="cs"?"Heslo":language==="en"?"Password":language==="ru"?"Пароль":"Пароль"}<input type="password" required minLength={mode==="signup"?12:1} maxLength={128} autoComplete={mode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} /></label>
+              {mode==="signup" && <label className="form-note">
+                <input type="checkbox" checked={signupPrivacyAccepted} required
+                  aria-label={language==="cs"?"Souhlasím s podmínkami registrace":language==="en"?"I accept registration terms":language==="ru"?"Я согласен с условиями регистрации":"Я погоджуюся з умовами реєстрації"}
+                  onChange={e=>setSignupPrivacyAccepted(e.target.checked)} />
+                {" "}{language==="cs"?"Souhlasím s podmínkami používání a beru na vědomí zásady ochrany osobních údajů.":language==="en"?"I accept the Terms of Service and acknowledge the Privacy Policy.":language==="ru"?"Я принимаю условия использования и ознакомился с политикой конфиденциальности.":"Я приймаю умови користування та ознайомився з політикою конфіденційності."}
+              </label>}
               {mode==="signup" && <p className="tt-legal-at-collection">
                 {language==="ru"?"Перед регистрацией ознакомься с ":language==="uk"?"Перед реєстрацією ознайомся з ":language==="cs"?"Před registrací si přečti ":"Before creating an account, read the "}
                 <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">{language==="ru"?"политикой конфиденциальности":language==="uk"?"політикою конфіденційності":language==="cs"?"zásady ochrany osobních údajů":"Privacy Policy"}</Link>
@@ -945,7 +952,7 @@ export function ProfileClient() {
                 onClick={async()=>{
                   setBusy(true);setError("");setNotice("");
                   try {
-                    await requestQuickSignup(email.trim(),firstName.trim(),true);
+                    await requestQuickSignup(email.trim(),firstName.trim(),signupPrivacyAccepted);
                     setNotice(language==="cs"?"Pokud lze e-mail použít, byl odeslán nový kód.":language==="en"?"If eligible, a new verification code was sent.":language==="ru"?"Если адрес доступен, отправлен новый код.":"Якщо адреса доступна, надіслано новий код.");
                     setSignupEmailCode("");
                   } catch(err) { setError(readableError(err)); }
