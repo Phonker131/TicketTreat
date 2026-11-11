@@ -1242,47 +1242,15 @@ def require_admin_message(message) -> bool:
     return False
 
 
-# Bounded cache: get_main_menu() is called by many message handlers,
-# so avoid a database request on every keyboard refresh.
-_menu_registration_cache: dict[int, tuple[float, bool]] = {}
-MENU_REGISTRATION_TTL_SECONDS = 90
-
-
-def menu_profile_complete(user_id: int) -> bool:
-    now = time.monotonic()
-    cached = _menu_registration_cache.get(int(user_id))
-    if cached is not None and now - cached[0] < MENU_REGISTRATION_TTL_SECONDS:
-        return cached[1]
-    try:
-        data = backend_request("GET", f"/profile/{int(user_id)}", timeout=4)
-        complete = bool(data.get("complete"))
-        _menu_registration_cache[int(user_id)] = (now, complete)
-        return complete
-    except Exception:
-        # A temporary API issue should not erase a known registered state.
-        return cached[1] if cached is not None else False
-
-
 def get_main_menu(user_id: int, *, private: bool = True):
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    registered = menu_profile_complete(user_id)
-
-    if registered:
-        # Telegram supports reply-keyboard Web Apps only in private chats.
-        # Opening tickets should take one tap, not an extra legacy bot menu.
-        tickets_button = KeyboardButton("🎟 My tickets")
-        if private and WEB_APP_URL.startswith("https://"):
-            tickets_button = KeyboardButton(
-                "🎟 My tickets", web_app=WebAppInfo(url=f"{WEB_APP_URL}/tickets"))
-        keyboard.row(KeyboardButton("📅 Events"), tickets_button)
-        keyboard.row(KeyboardButton("👤 My profile"), KeyboardButton("🏅 Passport"))
-        keyboard.row(KeyboardButton("🆘 Client service"))
-    else:
-        keyboard.row(KeyboardButton("🏠 Start"), KeyboardButton("📅 Events"))
-        keyboard.row(KeyboardButton("📝 Registration"), KeyboardButton("🆘 Client service"))
-
-    # The global blue Telegram menu button already launches TicketTreat Mini App.
-    # Keep only ONE app entry rather than duplicating it in the reply keyboard.
+    events = KeyboardButton("📅 Events")
+    tickets = KeyboardButton("🎟 My tickets")
+    if private and WEB_APP_URL.startswith("https://"):
+        events = KeyboardButton("📅 Events", web_app=WebAppInfo(url=f"{WEB_APP_URL}/"))
+        tickets = KeyboardButton("🎟 My tickets", web_app=WebAppInfo(url=f"{WEB_APP_URL}/tickets"))
+    keyboard.row(events, tickets)
+    keyboard.row(KeyboardButton("🆘 Client service"))
     if is_admin(user_id):
         keyboard.row(KeyboardButton("⚙️ Admin"))
     return keyboard
@@ -1721,7 +1689,6 @@ def save_profile_to_backend(message):
 
     user_state.pop(telegram_id, None)
     user_temp.pop(telegram_id, None)
-    _menu_registration_cache[telegram_id] = (time.monotonic(), True)
 
     bot.send_message(
         message.chat.id,
@@ -1957,27 +1924,6 @@ def copy_send(message, text: str, buttons):
     bot.send_message(message.chat.id, preserve_custom(text), reply_markup=keyboard)
 
 
-def send_start_shortcuts(message, language_copy: dict) -> None:
-    """Show the two BotFather onboarding actions without replacing the reply menu.
-
-    Telegram accepts only one reply_markup per message: keep the persistent
-    reply keyboard on the welcome text, then send compact inline shortcuts.
-    """
-    if not WEB_APP_URL.startswith("https://"):
-        return
-    private = getattr(message.chat, "type", "") == "private"
-    keyboard = InlineKeyboardMarkup(row_width=2)
-    keyboard.row(
-        copy_webapp_button(language_copy["buttons"][0], "/", private=private),
-        copy_webapp_button(language_copy["buttons"][1], "/tickets", private=private),
-    )
-    bot.send_message(
-        message.chat.id,
-        preserve_custom(language_copy["start_actions"]),
-        reply_markup=keyboard,
-    )
-
-
 @bot.message_handler(commands=["start"])
 def start(message):
     lang = remember_telegram_language(message.from_user)
@@ -2057,9 +2003,7 @@ def start(message):
             )
             return
 
-    # One branded welcome photo carries the persistent reply menu; the
-    # second message below keeps compact Mini App actions as inline buttons.
-    # An inaccessible asset or Telegram media failure must never block /start.
+    # The welcome photo carries the navigation keyboard.
     from brand_avatar import send_branded_welcome
     send_branded_welcome(
         bot, message.chat.id,
@@ -2067,7 +2011,6 @@ def start(message):
         get_main_menu(message.from_user.id, private=message.chat.type == "private"),
         language=lang,
     )
-    send_start_shortcuts(message, copy)
 
 @bot.message_handler(commands=["app", "tickets"])
 def open_tickettreat_mini_app(message):
@@ -2292,10 +2235,8 @@ def begin_registration(
         bot.send_message(chat_id, "⚠️ TicketTreat is temporarily unavailable. Please try again later.", reply_markup=get_main_menu(telegram_id))
         return
     if profile_data.get("complete"):
-        _menu_registration_cache[telegram_id] = (time.monotonic(), True)
         bot.send_message(chat_id, "✅ Ты уже зарегистрирован. Данные можно изменить в профиле.", reply_markup=get_main_menu(telegram_id))
         return
-    _menu_registration_cache[telegram_id] = (time.monotonic(), False)
     user_state[telegram_id] = "WAIT_LANGUAGE"
     user_temp[telegram_id] = {}
 
@@ -3060,7 +3001,7 @@ def handle_register(call):
                  "вопросы оплаты решаются напрямую с организатором."
                  if float(data.get("price") or 0) > 0
                  else "✅ Ты записан на ивент. Оплата не требуется."),
-                reply_markup=get_main_menu(telegram_id),
+                reply_markup=get_main_menu(telegram_id, private=call.message.chat.type == "private"),
             )
         return
 
@@ -3076,9 +3017,8 @@ def handle_register(call):
         else:
             bot.send_message(
                 call.message.chat.id,
-                "ℹ️ Ты уже записан на этот ивент.\n"
-                "💳 Оплата: ✅ подтверждена.",
-                reply_markup=get_main_menu(telegram_id),
+                "Ты уже записан на этот ивент.",
+                reply_markup=get_main_menu(telegram_id, private=call.message.chat.type == "private"),
             )
         return
 

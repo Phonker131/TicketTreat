@@ -25,7 +25,7 @@ What I do:
 
 Press "Start".""",
         "about": "Events in Prague: booking, QR ticket and reminders in one place.",
-        "start": """Hi, {name}! Tap Show events to choose an event and book a place. Already booked? Tap My tickets and open your ticket to show the QR code at the door.""",
+        "start": """Hi, {name}! Tap Events to choose an event and book a place. Already booked? Tap My tickets and open your ticket to show the QR code at the door.""",
         "buttons": ("Show events", "My tickets"),
         "start_actions": "Choose what to open:",
         "commands": (
@@ -96,7 +96,7 @@ Co umím:
 
 Stiskni „Start“.""",
         "about": "Akce v Praze: rezervace, QR vstupenky a připomínky na jednom místě.",
-        "start": """Ahoj, {name}! Klepni na Zobrazit akce, vyber si akci a rezervuj si místo. Už máš rezervaci? V části Moje vstupenky otevři svou vstupenku a u vstupu ukaž QR kód.""",
+        "start": """Ahoj, {name}! Klepni na Akce, vyber si akci a rezervuj si místo. Už máš rezervaci? V části Moje vstupenky otevři svou vstupenku a u vstupu ukaž QR kód.""",
         "buttons": ("Zobrazit akce", "Moje vstupenky"),
         "start_actions": "Vyber, co chceš otevřít:",
         "commands": (
