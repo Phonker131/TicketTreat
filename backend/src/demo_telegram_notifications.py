@@ -129,6 +129,31 @@ def queue_notice(db: Session, *, notice, event, main) -> int:
     return len(rows)
 
 
+def queue_ticket_removed(db: Session, event, ticket, main) -> bool:
+    """Queue individual removal notification only for signed Telegram linkage.
+
+    Unlike the event-wide audience, the removed person is no longer an
+    attendee. Resolve their existing verified Telegram identity directly.
+    """
+    if not configured():
+        return False
+    from demo_telegram import DemoTelegramIdentity
+    identity=db.query(DemoTelegramIdentity).filter(
+        DemoTelegramIdentity.guest_id==ticket.guest_id).first()
+    if identity is None:
+        return False
+    now=datetime.now(timezone.utc)
+    langs=_recipient_languages(db,[int(identity.telegram_id)],main)
+    _insert_rows(db,[{
+        "event_key":f"tg:ticket_removed:{ticket.id}:{int(now.timestamp()*1000000)}",
+        "kind":"ticket_removed","telegram_id":int(identity.telegram_id),
+        "event_id":int(event.id),"notice_id":None,
+        "language":langs.get(int(identity.telegram_id),"en"),
+        "state":"pending","attempts":0,"next_attempt_at":now,
+    }])
+    return True
+
+
 def reminder_offsets(db: Session, event) -> list[int]:
     """Use modern multi-offset settings, preserving legacy bot custom reminders."""
     from demo_pilot_ops import EventPilotSettings, effective_settings
@@ -249,7 +274,21 @@ def render_message(row: TelegramNotificationOutbox, event, notice) -> tuple[str,
     lang = row.language if row.language in COPY else "en"
     cancel, change, announcement, reminder, reason, message, date, location, button = COPY[lang]
     title = html.escape(str(event.title or "Event")[:180])
-    if row.kind == "event_notice":
+    if row.kind == "ticket_removed":
+        heading={
+            "en":"Your registration was cancelled",
+            "cs":"Vaše registrace byla zrušena",
+            "ru":"Ваша регистрация отменена",
+            "uk":"Вашу реєстрацію скасовано",
+        }[lang]
+        body={
+            "en":"The organizer removed your registration. The ticket is no longer valid. If you paid the organizer directly, contact them about a refund.",
+            "cs":"Pořadatel zrušil vaši registraci. Vstupenka již neplatí. Pokud jste zaplatili přímo pořadateli, obraťte se na něj kvůli vrácení platby.",
+            "ru":"Организатор отменил вашу регистрацию. Билет больше недействителен. Если вы платили напрямую организатору, уточните возврат у него.",
+            "uk":"Організатор скасував вашу реєстрацію. Квиток більше не дійсний. Якщо ви платили організатору напряму, зверніться щодо повернення коштів.",
+        }[lang]
+        label=message
+    elif row.kind == "event_notice":
         if notice is None or notice.event_id != event.id:
             raise ValueError("notice_missing")
         if notice.kind not in {"cancel", "change", "announcement"}:
@@ -340,6 +379,10 @@ def _deliver_one(db: Session, main) -> bool:
                 text, keyboard = render_message(row, event, None)
                 _send_message(int(row.telegram_id), text, keyboard)
                 row.state = "sent"
+        elif row.kind == "ticket_removed":
+            text, keyboard = render_message(row, event, None)
+            _send_message(int(row.telegram_id), text, keyboard)
+            row.state = "sent"
         elif row.kind == "event_notice":
             from demo_email import EventNotice
             notice = db.get(EventNotice, row.notice_id)
