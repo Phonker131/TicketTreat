@@ -71,10 +71,14 @@ def grant_json(row,reward,event,guest=None):
             "revoked_at":row.revoked_at.isoformat() if row.revoked_at else None}
 
 def awards_for_guest(db:Session,guest_id:int,main)->list[dict]:
+    # Follow the ticket's current owner after an independently approved
+    # account/guest merge. RewardGrant.guest_id retains the original audit
+    # provenance; it must not strand the award in a retired guest profile.
     results=(db.query(RewardGrant,OrganizerReward,main.Event)
         .join(OrganizerReward,OrganizerReward.id==RewardGrant.reward_id)
         .join(main.Event,main.Event.id==RewardGrant.event_id)
-        .filter(RewardGrant.guest_id==guest_id,RewardGrant.revoked_at.is_(None))
+        .join(main.DemoTicket,main.DemoTicket.id==RewardGrant.ticket_id)
+        .filter(main.DemoTicket.guest_id==guest_id,RewardGrant.revoked_at.is_(None))
         .order_by(RewardGrant.granted_at.desc(),RewardGrant.id.desc()).limit(80).all())
     return [grant_json(grant,reward,event) for grant,reward,event in results]
 
