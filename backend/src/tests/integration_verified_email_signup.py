@@ -22,7 +22,10 @@ from demo_quick_signup import QuickSignupPending
 
 class VerifiedPasswordSignupTests(unittest.TestCase):
     def setUp(self):
-        self.env=patch.dict(os.environ,{"REQUIRE_SIGNUP_EMAIL_OTP":"true"})
+        self.env=patch.dict(os.environ,{
+            "REQUIRE_SIGNUP_EMAIL_OTP":"true",
+            "TICKETTREAT_IDENTITY_REGISTRY_MODE":"shadow",
+        })
         self.env.start()
         self.email="verified-signup-ci-"+secrets.token_hex(9)+"@example.invalid"
         self.payload={
@@ -70,7 +73,7 @@ class VerifiedPasswordSignupTests(unittest.TestCase):
                     AuthIdentity.provider=="email",
                     AuthIdentity.provider_subject==self.email,
                     AuthIdentity.account_id==account.id,
-                ).count(),1) if os.getenv("TICKETTREAT_IDENTITY_REGISTRY_MODE") else None
+                ).count(),1)
             reuse=client.post("/demo/auth/signup",json={**self.payload,"email_code":"12345678"})
             self.assertIn(reuse.status_code,(400,409),reuse.text)
             with SessionLocal() as db:
