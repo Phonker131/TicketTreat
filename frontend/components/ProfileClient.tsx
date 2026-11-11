@@ -326,7 +326,17 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
 
 type ContactPreference = "email" | "phone" | "telegram" | "instagram";
 
+const profileTabs = ["overview", "details", "connections", "security"] as const;
+type ProfileTab = typeof profileTabs[number];
+const profileTabLabels = {
+  cs: {overview:"Přehled", details:"Osobní údaje", connections:"Propojené účty", security:"Zabezpečení"},
+  en: {overview:"Overview", details:"Personal details", connections:"Linked accounts", security:"Security"},
+  ru: {overview:"Обзор", details:"Личные данные", connections:"Связанные аккаунты", security:"Безопасность"},
+  uk: {overview:"Огляд", details:"Особисті дані", connections:"Пов’язані акаунти", security:"Безпека"}
+};
+
 export function ProfileClient() {
+  const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
   const {language} = useLanguage();
   const tr = COPY[language];
   const ui = PROFILE_UI[language];
@@ -469,6 +479,7 @@ export function ProfileClient() {
   function handleTelegramLinkError(err:unknown, action:"current"|"browser"){
     const detail=err instanceof Error ? err.message : String(err);
     if(detail==="mfa_challenge_required" || detail==="mfa_enrollment_required"){
+      setActiveTab("connections");
       setMfaLinkAction(action);
       setMfaLinkSetup(detail==="mfa_enrollment_required");
       setMfaLinkCode("");
@@ -625,7 +636,7 @@ export function ProfileClient() {
               setNotice("ui:telegramSuccessfullyLinked");
             } catch (err) { setError(readableError(err)); }
           } else {
-            setPendingTelegramConnect(true);
+            setPendingTelegramConnect(true); setActiveTab("connections");
           }
         }
       }
@@ -688,6 +699,7 @@ export function ProfileClient() {
   }
 
   async function logOut() {
+    setActiveTab("overview");
     const token = getWebToken();
     clearWebAuth(); setProfile(null); setMode("login"); setNotice("");
     if (token) { try { await logoutWebAccount(token); } catch { /* local logout already complete */ } }
@@ -758,11 +770,53 @@ export function ProfileClient() {
                   {profile.account.role === "participant" ? ui.roleParticipant : profile.account.role === "global_admin" ? (language==="ru"?"Главный администратор":language==="cs"?"Hlavní administrátor":language==="uk"?"Головний адміністратор":"Global administrator") : ui.roleOrganizer}
                 </span>
               </div>
+            </section>
+            <div role="tablist" aria-label={tr.profile} style={{display:"flex",flexWrap:"wrap",gap:".5rem"}}>
+              {profileTabs.map((tab, index) => (
+                <button key={tab} type="button" role="tab" id={`profile-tab-${tab}`}
+                  aria-selected={activeTab === tab} aria-controls={`profile-panel-${tab}`}
+                  tabIndex={activeTab === tab ? 0 : -1}
+                  className={activeTab === tab ? "button button-primary" : "button button-outline"}
+                  onClick={() => setActiveTab(tab)}
+                  onKeyDown={event => {
+                    let next = index;
+                    switch (event.key) {
+                      case "ArrowRight": next = (index + 1) % profileTabs.length; break;
+                      case "ArrowLeft": next = (index + profileTabs.length - 1) % profileTabs.length; break;
+                      case "Home": next = 0; break;
+                      case "End": next = profileTabs.length - 1; break;
+                      default: return;
+                    }
+                    event.preventDefault();
+                    setActiveTab(profileTabs[next]);
+                    document.getElementById(`profile-tab-${profileTabs[next]}`)?.focus();
+                  }}>{profileTabLabels[language][tab]}</button>
+              ))}
+            </div>
+            {error && <div className="state-card state-error" role="alert">{error.startsWith("ui:")?displayMessage(error):userFacingError(error,language)}</div>}
+            {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
+            <div id="profile-panel-overview" role="tabpanel" aria-labelledby="profile-tab-overview" hidden={activeTab !== "overview"}>
+              <section className="panel form-stack">
               <div className="profile-facts">
                 <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
                 <div className="profile-fact"><span>{language==="ru"?"Мои награды":language==="cs"?"Moje odměny":language==="uk"?"Мої нагороди":"My rewards"}</span><Link href="/loyalty" className="button button-outline">→ {language==="ru"?"Паспорт":language==="cs"?"Pas":language==="uk"?"Паспорт":"Passport"}</Link></div>
                 <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">→ {tr.tickets}</Link></div>
               </div>
+              <p className="form-note">{tr.note}</p>
+              {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary"> {ui.organizerDashboard} →</Link>}
+
+              {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
+              </section>
+            </div>
+            <div id="profile-panel-details" role="tabpanel" aria-labelledby="profile-tab-details" hidden={activeTab !== "details"}>
+            <form className="panel form-stack" onSubmit={submitProfile}>
+              <h2>{tr.profile}</h2>
+              <label>{tr.email}<input type="email" autoComplete="email" value={email} disabled readOnly /></label>
+              {details}
+              <button type="submit" className="button button-primary" disabled={busy}>{busy ? tr.saving : tr.save}</button>
+            </form>
+            </div>
+            <div id="profile-panel-connections" role="tabpanel" aria-labelledby="profile-tab-connections" hidden={activeTab !== "connections"}>
               {profile.email_verified && <section className="panel form-stack">
                 <h3>{ui.telegramTitle}</h3>
                 {profile.guest.telegram_id ? <p className="form-note">✓ {ui.telegramLinked}</p> : <>
@@ -822,17 +876,13 @@ export function ProfileClient() {
                 </form>}
               </section>}
               {profile.email_verified&&<p className="form-note">✓ {ui.emailVerified}</p>}
-              <p className="form-note">{tr.note}</p>
-              {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary"> {ui.organizerDashboard} →</Link>}
-            </section>
-            {error && <div className="state-card state-error" role="alert">{error.startsWith("ui:")?displayMessage(error):userFacingError(error,language)}</div>}
-            {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
-            <form className="panel form-stack" onSubmit={submitProfile}>
-              <h2>{tr.profile}</h2>
-              <label>{tr.email}<input type="email" autoComplete="email" value={email} disabled readOnly /></label>
-              {details}
-              <button type="submit" className="button button-primary" disabled={busy}>{busy ? tr.saving : tr.save}</button>
-            </form>
+              <div className="panel form-stack">
+              <GoogleSignIn link />
+              {!profile.guest.telegram_id && <TelegramSignIn link />}
+              <p className="form-note">{ui.googlePasswordHint}</p>
+              </div>
+            </div>
+            <div id="profile-panel-security" role="tabpanel" aria-labelledby="profile-tab-security" hidden={activeTab !== "security"}>
             <section className="panel form-stack">
               <h2>{ui.accountSecurity}</h2>
               <p className="form-note">{ui.passwordWarning}</p>
@@ -849,11 +899,7 @@ export function ProfileClient() {
                 <button type="submit" className="button button-primary" disabled={busy}>
                   {ui.changePassword}</button>
               </form>}
-              <GoogleSignIn link />
-              {!profile.guest.telegram_id && <TelegramSignIn link />}
-              <p className="form-note">{ui.googlePasswordHint}</p>
               <Link href="/security/mfa" className="button button-outline">{ui.twoFactor}</Link>
-              {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
               <Link href="/privacy" className="button button-outline">
                 {language==="ru"?"Мои данные и запрос на удаление":language==="uk"?"Мої дані та запит на видалення":language==="cs"?"Moje údaje a žádost o výmaz":"My data and erasure request"}
               </Link>
@@ -863,6 +909,7 @@ export function ProfileClient() {
                   disabled={busy}>{ui.signOutEverywhere}</button>
               </div>
             </section>
+            </div>
             <div className="profile-actions"><button type="button" className="button button-outline" onClick={logOut}>{tr.logout}</button></div>
           </>
         ) : (

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
-
+import {ExampleTickets} from "@/components/ExampleTickets";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getDemoTickets, getEvents, getMyAttendance } from "@/lib/api";
 import {BrandIcon} from "@/components/BrandIcon";
@@ -33,12 +33,6 @@ export function TicketsClient() {
     return()=>controller.abort();
   },[wanted.length,catalogue.length]);
   const savedEvents=catalogue.filter(event=>wanted.includes(event.id)&&!event.is_cancelled);
-  const guidance = {
-    en: {empty:"No tickets here yet", find:"Browse events", book:"Choose an event and complete your booking. Confirmed tickets appear here.", login:"Already booked? Sign in with the account you used.", profile:"Open my profile", qr:"Open your event ticket to show the QR code at the door."},
-    cs: {empty:"Zatím tu nejsou žádné vstupenky", find:"Prohlédnout akce", book:"Vyber si akci a dokonči rezervaci. Potvrzené vstupenky najdeš tady.", login:"Už máš rezervaci? Přihlas se stejným účtem.", profile:"Otevřít můj profil", qr:"U vstupu otevři vstupenku na svou akci a ukaž QR kód."},
-    ru: {empty:"Здесь пока нет билетов", find:"Найти событие", book:"Выбери событие и заверши запись. Подтверждённые билеты появятся здесь.", login:"Уже записался? Войди в аккаунт, с которого оформил билет.", profile:"Открыть мой профиль", qr:"Открой билет на своё событие и покажи QR-код на входе."},
-    uk: {empty:"Тут поки немає квитків", find:"Знайти подію", book:"Обери подію та заверши реєстрацію. Підтверджені квитки з’являться тут.", login:"Уже маєш квиток? Увійди в обліковий запис, з якого його оформив.", profile:"Відкрити мій профіль", qr:"Відкрий квиток на свою подію та покажи QR-код на вході."}
-  }[language];
   const savedWords={
     ru:{title:"Хочу пойти",hint:"Ивенты, которые ты сохранил свайпом или сердечком. Это ещё не билеты.",remove:"Убрать из избранного"},
     cs:{title:"Chci jít",hint:"Akce uložené přejetím doprava nebo srdíčkem. Zatím to nejsou vstupenky.",remove:"Odebrat z uložených"},
@@ -76,13 +70,13 @@ export function TicketsClient() {
       <AppHeader />
       <main className="page">
         <section className="section-heading">
-          <div><h1>{t(language, "tickets")}</h1>{tickets.length > 0 && <p>{guidance.qr}</p>}</div>
+          <div><h1>{t(language, "tickets")}</h1>{guest && <p>{guest.first_name}, {guest.visits} {language==="cs"?"návštěv":language==="ru"?"посещений":language==="uk"?"відвідувань":"check-ins"}</p>}</div>
         </section>
 
         {loading ? <div className="state-card">{t(language, "loading")}</div> :
           <>
           {error && <div className="state-card state-error" role="alert">{userFacingError(error,language)}</div>}
-          {tickets.length === 0 && botEvents.length === 0 && !error && (<section className="panel"><h2>{guidance.empty}</h2><p>{guidance.book}</p><Link href="/#events" className="button button-primary">{guidance.find}</Link>{!guest && <p>{guidance.login} <Link href="/profile">{guidance.profile}</Link></p>}</section>)}
+          {tickets.length === 0 && botEvents.length === 0 && !error && <ExampleTickets language={language}/>}
           {tickets.length > 0 && <div className="ticket-list">
             {tickets.map((ticket) => (
               <Link className={`ticket-row ${ticket.ticket_status === "cancelled" ? "ticket-cancelled" : ""}`} href={`/tickets/${ticket.id}`} key={ticket.id}>

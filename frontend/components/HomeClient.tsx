@@ -5,7 +5,10 @@ import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
 import {EventDiscovery} from "@/components/EventDiscovery";
 import {WelcomeStory} from "@/components/WelcomeStory";
+import {PhoneFrame} from "@/components/premium/Device";
 import {EventsSkeleton,EventsEmpty} from "@/components/premium/EventsPlaceholders";
+import {PhoneScreen} from "@/components/premium/Screens";
+import {BrandPhoto} from "@/components/premium/BrandPhoto";
 import dynamic from "next/dynamic";
 import {useLanguage} from "@/components/LanguageProvider";
 import {getEvents} from "@/lib/api";
@@ -36,25 +39,39 @@ export function HomeClient({initialEvents=null,forcedLanguage}:{initialEvents?:T
     return()=>controller.abort();
   },[]);
 
-  const copy = {
-    en: {title:"Upcoming events", intro:"Choose an event to see the time, place and how to book.", tickets:"My tickets", help:"How booking works"},
-    cs: {title:"Nadcházející akce", intro:"Vyber si akci. Najdeš u ní čas, místo i možnost rezervace.", tickets:"Moje vstupenky", help:"Jak rezervace funguje"},
-    ru: {title:"Ближайшие события", intro:"Выбери событие, чтобы узнать время, место и условия записи.", tickets:"Мои билеты", help:"Как записаться"},
-    uk: {title:"Найближчі події", intro:"Обери подію, щоб дізнатися час, місце та умови реєстрації.", tickets:"Мої квитки", help:"Як зареєструватися"}
+  const copy={
+    ru:{eyebrow:"PRAHA / TICKETTREAT",headline:["БИЛЕТ ЗА","ТРИ КАСАНИЯ"],intro:"Выбери ивент, запишись и покажи QR на входе. Все билеты в одном месте.",browse:"Смотреть ивенты",tickets:"Мои билеты",city:"БЛИЖАЙШИЕ В ЧЕХИИ",subtitle:"Живые встречи, настоящие места. Выбирай свой вечер.",empty:"Афиши скоро появятся",poster:"АФИША / СКОРО",details:"Подробнее"},
+    cs:{eyebrow:"PRAHA / TICKETTREAT",headline:["VSTUPENKA NA","TŘI KROKY"],intro:"Vyber si akci, zarezervuj místo a u vstupu ukaž QR. Vstupenky máš na jednom místě.",browse:"Zobrazit akce",tickets:"Moje vstupenky",city:"NEJBLIŽŠÍ AKCE V ČESKU",subtitle:"Skuteční lidé a večery, na které se těšíš.",empty:"Plakáty se tu brzy objeví",poster:"PLAKÁT / BRZY",details:"Podrobnosti"},
+    uk:{eyebrow:"PRAHA / TICKETTREAT",headline:["КВИТОК ЗА","ТРИ КРОКИ"],intro:"Обери подію, забронюй місце та покажи QR на вході. Усі квитки в одному місці.",browse:"Переглянути події",tickets:"Мої квитки",city:"НАЙБЛИЖЧІ ПОДІЇ В ЧЕХІЇ",subtitle:"Живі зустрічі та справжні події.",empty:"Афіші незабаром з’являться",poster:"АФІША / СКОРО",details:"Докладніше"},
+    en:{eyebrow:"PRAHA / TICKETTREAT",headline:["YOUR TICKET","IN THREE STEPS"],intro:"Find an event, book a spot and show your QR at the door. Keep all tickets in one place.",browse:"Explore events",tickets:"My tickets",city:"UPCOMING IN CZECHIA",subtitle:"Real people, real nights out. Find your next event.",empty:"New posters are coming soon",poster:"POSTER / SOON",details:"View event"}
   }[language];
   return <div className="app-shell tt-night-home">
     <AppHeader/>
     <WelcomeStory language={language}/>
     <main className="page tt-night-home-page" lang={language} id="main-content">
-      <section className="section" id="events" aria-labelledby="tt-events-heading">
-        <div className="section-heading" style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:"1rem",marginBlock:"1.5rem"}}>
-          <div><h1 id="tt-events-heading">{copy.title}</h1><p>{copy.intro}</p></div>
-          <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:".75rem"}}>
-            <Link className="button button-primary" href="/tickets">{copy.tickets}</Link>
-            <button type="button" className="button button-secondary" disabled={!storyReady}
-              onClick={()=>window.dispatchEvent(new Event("tickettreat-open-story"))}>{copy.help}</button>
+      <section className="tt-night-hero" aria-labelledby="tt-night-title">
+        <div className="tt-night-hero-copy">
+          <p className="tt-night-kicker">{copy.eyebrow}</p>
+          <h1 id="tt-night-title"><span>{copy.headline[0]}</span><span>{copy.headline[1]}</span></h1>
+          <p className="tt-night-intro">{copy.intro}</p>
+          <div className="tt-night-actions">
+            <a className="button button-primary tt-night-action" href="#events">{copy.browse}</a>
+            <Link className="button button-secondary tt-night-action-secondary tp-hide-m" href="/tickets">{copy.tickets}</Link>
+            <button type="button" className="button button-secondary tt-night-action-secondary" disabled={!storyReady}
+              onClick={()=>window.dispatchEvent(new Event("tickettreat-open-story"))}>
+              {language==="ru"?"Как это работает":language==="cs"?"Jak to funguje":language==="uk"?"Як це працює":"How it works"}
+            </button>
           </div>
         </div>
+        <div className="tp-hero-art" role="img" aria-label="TicketTreat live-event interface preview">
+          <BrandPhoto name="sd" className="tp-hero-photo" sizes="(max-width: 900px) 92vw, 460px" priority/>
+          <PhoneFrame glow="tom" className="tp-hero-phone"><PhoneScreen kind="discover" language={language}/></PhoneFrame>
+        </div>
+      </section>
+      <section className="section tt-v12-screen tt-night-events" id="events" aria-labelledby="tt-events-heading">
+        <div className="section-heading"><div>
+          <h2 id="tt-events-heading">{copy.city}</h2>
+        </div></div>
         {loading&&<EventsSkeleton/>}
         {!loading&&error&&<div className="state-card state-error" role="alert">{t(language,"loadError")}<small>{error}</small></div>}
         {!loading&&!error&&events.length===0&&<EventsEmpty language={language}/>}
