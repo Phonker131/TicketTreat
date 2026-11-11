@@ -36,14 +36,14 @@ test("Telegram account linking requires unchecked-by-default consent",async({pag
 test("password signup requests OTP and never creates account without mailbox proof",async({page})=>{
   let requests=0;
   let submittedCode="";
-  await page.route("**/api/gateway/demo/auth/quick/request",route=>{
+  await page.route("**/api/gateway/api/v1/auth/quick/request",route=>{
     requests++;
     return route.fulfill({
       status:200,contentType:"application/json",
       body:JSON.stringify({status:"if_eligible_code_sent"}),
     });
   });
-  await page.route("**/api/gateway/demo/auth/signup",route=>{
+  await page.route("**/api/gateway/api/v1/auth/signup",route=>{
     submittedCode=(route.request().postDataJSON() as {email_code:string}).email_code;
     return route.fulfill({
       status:400,contentType:"application/json",
