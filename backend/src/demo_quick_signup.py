@@ -6,7 +6,7 @@ One-time HMAC tokens, consent acknowledgement, expiry and rate limits.
 from __future__ import annotations
 import hashlib,hmac,os,secrets
 from datetime import datetime,timedelta,timezone
-from fastapi import Depends,HTTPException,Request
+from fastapi import Depends,Header,HTTPException,Request
 from pydantic import BaseModel,Field
 from sqlalchemy import Column,DateTime,Integer,String
 from sqlalchemy.orm import Session
