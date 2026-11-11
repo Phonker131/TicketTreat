@@ -10,7 +10,7 @@ import { getVerifiedTelegramSession } from "@/lib/session";
 import { useLanguage } from "@/components/LanguageProvider";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { getStoredGuestToken, clearWebAuth, getWebToken, restoreWebProfile, setWebAuth, storeGuest } from "@/lib/session";
-import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink, elevateMFA, requestTelegramEmailAttach, confirmTelegramEmailAttach, approveTelegramBrowserLogin } from "@/lib/api";
+import { getWebProfile, loginWebAccount, logoutWebAccount, signupWebAccount, updateWebProfile, changeWebPassword, logoutAllWebSessions, getWebSessions, requestEmailVerification, confirmAccountEmail, requestPasswordReset, confirmPasswordReset, getMailStatus, requestQuickSignup, linkTelegramToWebsite, startTelegramAccountLink, getTelegramAccountLinkStatus, claimTelegramAccountLink, elevateMFA, requestTelegramEmailAttach, confirmTelegramEmailAttach, approveTelegramBrowserLogin } from "@/lib/api";
 import type { LanguageCode, TelegramAuthResult, WebProfile } from "@/lib/types";
 
 const COPY: Record<LanguageCode, Record<string, string>> = {
@@ -340,6 +340,8 @@ export function ProfileClient() {
   const [notice, setNotice] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [signupCodeSent,setSignupCodeSent]=useState(false);
+  const [signupEmailCode,setSignupEmailCode]=useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -579,9 +581,21 @@ export function ProfileClient() {
     e.preventDefault();
     setError(""); setNotice(""); setBusy(true);
     try {
+      if (mode==="signup" && !signupCodeSent) {
+        // No account is reserved until mailbox control is proved. The same
+        // quick-signup OTP is rate-limited and expires after ten minutes.
+        await requestQuickSignup(email.trim(),firstName.trim(),true);
+        setSignupCodeSent(true);
+        setNotice(language==="cs"
+          ?"Pokud lze tento e-mail použít, odeslali jsme osmimístný ověřovací kód."
+          :language==="en"?"If this email is eligible, we have sent an 8-digit verification code."
+          :language==="ru"?"Если адрес доступен, мы отправили восьмизначный код подтверждения."
+          :"Якщо адреса доступна, ми надіслали восьмизначний код підтвердження.");
+        return;
+      }
       const result = mode === "signup"
         ? await signupWebAccount({
-            email: email.trim(), password,
+            email: email.trim(), email_code: signupEmailCode.trim(), password,
             first_name: firstName.trim(), last_name: lastName.trim(),
             phone: phone.trim() || null, instagram: instagram.trim() || null,
             contact_preference: contact,
@@ -595,6 +609,8 @@ export function ProfileClient() {
       loadProfile(result.profile);
       setNotice(mode === "signup" ? "ui:accountCreated" : "ui:welcome");
       setPassword("");
+      setSignupEmailCode("");
+      setSignupCodeSent(false);
       // Explicit checkbox consent + independently proven website credentials
       // and signed Telegram initData: link during first sign-in to Mini App.
       if (connectOnLogin && getTelegramWebApp()?.initData) {
@@ -867,8 +883,8 @@ export function ProfileClient() {
               :"Твій обліковий запис TicketTreat уже існує в Telegram. Нижче можна увійти в наявний email/Google-акаунт для зв'язування."
               :tr.need}</p>
             <div className={telegramProfile?"auth-tabs auth-tabs--single":"auth-tabs"} role="tablist">
-              {!telegramProfile && <button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setError("");}}>{tr.signup}</button>}
-              <button type="button" className={mode==="login"?"active":""} onClick={()=>{setMode("login");setError("");}}>{tr.login}</button>
+              {!telegramProfile && <button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setError("");setSignupCodeSent(false);setSignupEmailCode("");}}>{tr.signup}</button>}
+              <button type="button" className={mode==="login"?"active":""} onClick={()=>{setMode("login");setError("");setSignupCodeSent(false);setSignupEmailCode("");}}>{tr.login}</button>
             </div>
             {error && <div className="state-card state-error" role="alert">{error.startsWith("ui:")?displayMessage(error):userFacingError(error,language)}</div>}
             {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
@@ -903,7 +919,14 @@ export function ProfileClient() {
                 </fieldset>
               )}
               {mode==="signup" && details}
-              <label>{tr.email}<input type="email" required maxLength={255} autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} /></label>
+              <label>{tr.email}<input type="email" required maxLength={255} autoComplete="email" value={email} onChange={e=>{setEmail(e.target.value);setSignupCodeSent(false);setSignupEmailCode("");}} /></label>
+              {mode==="signup" && signupCodeSent && <label>
+                {language==="cs"?"Ověřovací kód z e-mailu":language==="en"?"Email verification code":language==="ru"?"Код подтверждения email":"Код підтвердження email"}
+                <input type="text" inputMode="numeric" pattern="[0-9]{8}" minLength={8} maxLength={8}
+                  autoComplete="one-time-code" required value={signupEmailCode}
+                  onChange={e=>setSignupEmailCode(e.target.value.replace(/[^0-9]/g,"").slice(0,8))}
+                  aria-label={language==="cs"?"Osmimístný ověřovací kód":language==="en"?"8-digit email verification code":language==="ru"?"Восьмизначный код email":"Восьмизначний код email"} />
+              </label>}
               <label>{mode==="signup"?tr.password:language==="cs"?"Heslo":language==="en"?"Password":language==="ru"?"Пароль":"Пароль"}<input type="password" required minLength={mode==="signup"?12:1} maxLength={128} autoComplete={mode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} /></label>
               {mode==="signup" && <p className="tt-legal-at-collection">
                 {language==="ru"?"Перед регистрацией ознакомься с ":language==="uk"?"Перед реєстрацією ознайомся з ":language==="cs"?"Před registrací si přečti ":"Before creating an account, read the "}
@@ -913,7 +936,23 @@ export function ProfileClient() {
                 {" "}{language==="ru"?"Создание аккаунта не означает согласия на маркетинговые рассылки.":language==="uk"?"Створення акаунта не означає згоди на маркетингові розсилки.":language==="cs"?"Registrace neznamená souhlas s marketingovým zasíláním.":"Creating an account does not consent to marketing."}
               </p>}
               <p className="form-note">{mode==="signup"?tr.passwordHint:tr.note}</p>
-              <button className="button button-primary" type="submit" disabled={busy}>{busy?tr.loading:mode==="signup"?tr.create:tr.login}</button>
+              <button className="button button-primary" type="submit" disabled={busy}>{busy?tr.loading:mode==="signup" && signupCodeSent
+                ?(language==="cs"?"Ověřit e-mail a vytvořit účet":language==="en"?"Verify email and create account":language==="ru"?"Подтвердить email и создать аккаунт":"Підтвердити email і створити акаунт")
+                :mode==="signup"
+                  ?(language==="cs"?"Odeslat ověřovací kód":language==="en"?"Send verification code":language==="ru"?"Отправить код подтверждения":"Надіслати код підтвердження")
+                  :tr.login}</button>
+              {mode==="signup" && signupCodeSent && <button className="button button-outline" type="button" disabled={busy}
+                onClick={async()=>{
+                  setBusy(true);setError("");setNotice("");
+                  try {
+                    await requestQuickSignup(email.trim(),firstName.trim(),true);
+                    setNotice(language==="cs"?"Pokud lze e-mail použít, byl odeslán nový kód.":language==="en"?"If eligible, a new verification code was sent.":language==="ru"?"Если адрес доступен, отправлен новый код.":"Якщо адреса доступна, надіслано новий код.");
+                    setSignupEmailCode("");
+                  } catch(err) { setError(readableError(err)); }
+                  finally { setBusy(false); }
+                }}>
+                {language==="cs"?"Poslat kód znovu":language==="en"?"Resend code":language==="ru"?"Отправить код ещё раз":"Надіслати код повторно"}
+              </button>}
             </form>
             <button type="button" className="button button-outline" onClick={()=>setResetOpen(v=>!v)}>
               {language==="ru"?"Забыли пароль?":language==="uk"?"Забули пароль?":language==="cs"?"Zapomenuté heslo?":"Forgot password?"}
