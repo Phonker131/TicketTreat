@@ -467,6 +467,20 @@ def install_telegram_auth(app, get_db, main) -> None:
             db.commit()
             db.refresh(guest)
 
+        # One verified Telegram identity => one canonical web account from
+        # the first signed Mini App launch, not only from browser OIDC login.
+        # Provisioning reuses the same guest and never copies unverified email.
+        from demo_telegram_oidc import ensure_telegram_web_account
+        try:
+            ensure_telegram_web_account(db, main.DemoGuest, {
+                "id": telegram_id,
+                "given_name": user["first_name"],
+                "family_name": user.get("last_name") or "",
+                "preferred_username": user.get("username") or "",
+            }, reconcile=False)
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(409, "telegram_login_retry") from None
         from demo_legacy import reconcile_free_legacy
         legacy = reconcile_free_legacy(db,main,telegram_id,guest.id)
         # A Telegram-only passwordless shadow WebAccount must not be treated
