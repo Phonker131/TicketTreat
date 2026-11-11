@@ -265,7 +265,7 @@ def orphan_guest(cur,guest_id,dest_id,label,apply):
     if source is None:
         return {"label":label,"source":"guest_"+str(guest_id),"target":"web_"+str(dest_id),"status":"already_archived"}
     require(guest_id!=target["guest_id"],"orphan_already_target")
-    require(str(source["first_name"] or "").casefold()=="amber events",
+    require(" ".join(x for x in (str(source["first_name"] or "").strip(), str(source["last_name"] or "").strip()) if x).casefold()=="amber events",
             "orphan_guest_is_not_amber")
     require(source["telegram_id"] is None,"guest_has_telegram_unverified")
     require(not one(cur,"SELECT 1 FROM demo_web_accounts WHERE guest_id=%s",(guest_id,)),
