@@ -230,7 +230,7 @@ def _utc(value: datetime) -> datetime:
 
 
 def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict, *,
-                                reconcile: bool = True):
+                                reconcile: bool = True, commit: bool = True):
     """A signed Mini App or OIDC Telegram user reuses the SAME guest ID."""
     from demo_telegram import DemoTelegramIdentity
     from demo_accounts import WebAccount
@@ -269,7 +269,14 @@ def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict, *,
     from demo_identity_registry import mirror_verified_identity
     mirror_verified_identity(db, account_id=account.id, provider="telegram",
                              verified_subject=str(telegram_id))
-    db.commit()
+    if not commit and reconcile:
+        raise ValueError("legacy_reconciliation_requires_commit")
+    if commit:
+        db.commit()
+    else:
+        # For legacy registration, keep the event row lock until the QR
+        # ticket, legacy claim and canonical principal commit together.
+        db.flush()
     # The older /myevents bot created legacy registrations before the
     # canonical Mini App existed. The first *website* Telegram login must
     # reconcile eligible free passes too; otherwise these users see an
