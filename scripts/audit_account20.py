@@ -56,7 +56,7 @@ def main():
   sig=[]
   if a["email"] and row["email"] and a["email"].lower()==row["email"].lower():sig.append("same_contact_email")
   if a["phone"] and row["phone"] and re.sub(r"\D","",a["phone"])[-9:]==re.sub(r"\D","",row["phone"])[-9:]:sig.append("same_phone")
-  if sim>=76 or sig:matches.append({"type":"web","id":row["id"],"name":" ".join([row["first_name"],row["last_name"]]),"name_similarity":sim,"signals":sig})
+  if sim>=76 or sig:matches.append({"type":"web","id":row["id"],"name":" ".join(filter(None,[row["first_name"],row["last_name"]])),"name_similarity":sim,"signals":sig})
  for row in all_guest:
   sim=similarity(row["first_name"],row["last_name"])
   if sim>=88:matches.append({"type":"guest","id":row["id"],"name":" ".join([row["first_name"],row["last_name"]]),"name_similarity":sim,"signals":[]})
@@ -65,8 +65,8 @@ def main():
   if sim>=88:matches.append({"type":"bot","id":row["id"],"name":" ".join([row["first_name"],row["last_name"]]),"name_similarity":sim,"signals":[]})
  matches.sort(key=lambda x:(-len(x["signals"]),-x["name_similarity"]))
  print(json.dumps({"exists":True,"id":20,"guest_id":gid,
-   "name":" ".join([a["first_name"],a["last_name"]]),
-   "guest_name":" ".join([guests[0]["first_name"],guests[0]["last_name"]]) if guests else None,
+   "name":" ".join(filter(None,[a["first_name"],a["last_name"]])),
+   "guest_name":" ".join(filter(None,[guests[0]["first_name"],guests[0]["last_name"]])) if guests else None,
    "email_masked":mask(a["email"]),"email_verified":bool(verified),
    "phone_masked":mask(a["phone"]),"instagram_present":bool(a["instagram"]),
    "contact_preference":a["contact_preference"],
