@@ -22,7 +22,7 @@ def main():
         conn.set_session(readonly=True,autocommit=False)
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SET TRANSACTION READ ONLY")
-            a=safe_query(cur,"SELECT id,guest_id,first_name,last_name,email,created_at FROM demo_web_accounts WHERE id=ANY(%s)",(list(WEB_IDS),))
+            a=safe_query(cur,"SELECT id,guest_id,first_name,last_name,email,password_hash,created_at FROM demo_web_accounts WHERE id=ANY(%s)",(list(WEB_IDS),))
             v={x["account_id"] for x in safe_query(cur,"SELECT account_id FROM demo_verified_emails WHERE account_id=ANY(%s)",(list(WEB_IDS),))}
             ids=safe_query(cur,"SELECT account_id,provider FROM auth_identities WHERE account_id=ANY(%s)",(list(WEB_IDS),))
             byid={}
@@ -46,6 +46,13 @@ def main():
                     "email_verified":x["id"] in v,
                     "provider_types":sorted(byid.get(x["id"],[])),
                     "role":roles.get(x["id"],"unknown"),
+                    "email_present":bool(x["email"]),
+                    "telegram_shadow_eligible":(
+                        x["email"] is None
+                        and x["password_hash"]=="!telegram-only"
+                        and roles.get(x["id"])=="participant"
+                        and x["guest_id"] in verified_tg
+                    ),
                     "global_admin":x["id"] in admin,
                     "organizer_event_owner":x["id"] in owners,
                     "telegram_verified":x["guest_id"] in verified_tg,
