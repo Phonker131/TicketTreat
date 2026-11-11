@@ -63,6 +63,18 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
     "ru": "Аккаунт с таким email уже существует. Войди или восстанови пароль.",
     "uk": "Акаунт із цією поштою вже існує. Увійди або віднови пароль."
   },
+  "already_authenticated_use_account_settings": {
+    "en": "You're already signed in. Add an email or connect another sign-in method in your existing TicketTreat profile instead of creating a second account.",
+    "cs": "Již jsi přihlášený/á. Přidej e-mail nebo další způsob přihlášení ve svém stávajícím profilu TicketTreat, nevytvářej nový účet.",
+    "ru": "Ты уже вошёл в TicketTreat. Добавь email или привяжи другой способ входа в существующем профиле вместо создания второго аккаунта.",
+    "uk": "Ти вже увійшов до TicketTreat. Додай email або прив'яжи інший спосіб входу в наявному профілі замість створення другого акаунта."
+  },
+  "telegram_identity_exists_use_sign_in": {
+    "en": "Your Telegram already has a TicketTreat identity. Sign in with Telegram, then add a verified email to that account.",
+    "cs": "K tvému Telegramu už existuje účet TicketTreat. Přihlas se přes Telegram a přidej do něj ověřený e-mail.",
+    "ru": "У тебя уже есть аккаунт TicketTreat через Telegram. Войди через Telegram и добавь подтверждённый email к этому аккаунту.",
+    "uk": "У тебе вже є акаунт TicketTreat через Telegram. Увійди через Telegram і додай підтверджений email до нього."
+  },
   "email_verification_required": {
     "en": "Verify your email in Profile first. Check your inbox and spam folder for the code.",
     "cs": "Nejprve ověřte e-mail v Profilu. Kód hledejte i ve spamu.",

@@ -18,6 +18,7 @@ if (!base || !/^https?:\/\//.test(base)) {
   throw new Error("BACKEND_API_URL must be explicitly configured");
 }
 const sessionPaths = new Set(["/demo/auth/login", "/demo/auth/signup", "/demo/auth/change-password", "/demo/auth/magic/confirm", "/demo/auth/quick/confirm"]);
+const signupPaths = new Set(["/demo/auth/signup", "/demo/auth/quick/request", "/demo/auth/quick/confirm"]);
 const logoutPaths = new Set(["/demo/auth/logout", "/demo/auth/logout-all"]);
 const supported = new Set(["GET","POST","PATCH","PUT","DELETE"]);
 const MAX_REQUEST_BYTES = 6_000_000;
@@ -101,6 +102,15 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   }else if(auth){
     // Legacy website sessions may not be forwarded: they must log in again.
     return NextResponse.json({detail:"please_login_again"},{status:401});
+  }
+  // Signing up cannot evade an existing website identity merely by omitting
+  // the optional client-side marker. The browser session is held in an
+  // HttpOnly cookie; forward it on the three account-creation endpoints so
+  // FastAPI can verify and reject a second registration with a stable 409.
+  // Never trust the cookie's presence alone as proof of authentication.
+  if (signupPaths.has(checked) && !headers.has("Authorization")) {
+    const existing=req.cookies.get(COOKIE)?.value;
+    if (existing) headers.set("Authorization","Bearer "+existing);
   }
   if (checked === "/demo/auth/telegram/browser/complete") {
     // Do not forward any user-supplied browser proof header. The secret
