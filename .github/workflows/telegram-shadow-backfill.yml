@@ -1,0 +1,26 @@
+name: Verified Telegram historical shadow backfill
+on:
+  pull_request:
+    branches: [release/tickettreat-production]
+    paths:
+      - "ops/identity-shadow/**"
+      - "scripts/backfill_verified_telegram_shadows.py"
+      - "backend/src/tests/integration_telegram_shadow_backfill.py"
+      - ".github/workflows/telegram-shadow-backfill.yml"
+permissions:
+  contents: read
+jobs:
+  worker:
+    name: Build guarded one-shot shadow worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate syntax without a production DB
+        run: python -m py_compile scripts/backfill_verified_telegram_shadows.py
+      - name: Build worker without production secrets
+        run: docker build -f ops/identity-shadow/Dockerfile -t tickettreat-telegram-shadow-ci .
+      - name: Verify the worker entrypoint exists
+        run: docker run --rm --entrypoint sh tickettreat-telegram-shadow-ci -c "test -f /work/scripts/backfill_verified_telegram_shadows.py"
