@@ -16,6 +16,7 @@ import {
   setManagePublication,setManageVisibility,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
   getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
+  removeManageParticipant,removeManageWaitlistGuest,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
@@ -49,6 +50,11 @@ export function AdminEventClient(){
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
   const [event,setEvent]=useState<ManageEvent|null>(null);
   const [data,setData]=useState<AdminEventTickets|null>(null);
+  type RemoveTarget={kind:"ticket"|"waitlist";id:number;name:string;paid:boolean};
+  const [removeTarget,setRemoveTarget]=useState<RemoveTarget|null>(null);
+  const [removeReason,setRemoveReason]=useState("");
+  const [removeError,setRemoveError]=useState("");
+  const removeDialogRef=useRef<HTMLDialogElement>(null);
   const [manualCode,setManualCode]=useState("");
   const [codeError,setCodeError]=useState("");
   function normalizePrintedTicketCode(raw:string):string {
@@ -286,6 +292,35 @@ export function AdminEventClient(){
       setNotice(result.status==="already_checked_in"?tr("Этот билет уже отмечен."):tr("Участник отмечен на входе."));}
     catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
+  function askRemoveParticipant(kind:"ticket"|"waitlist",id:number,name:string,paid=false){
+    setRemoveTarget({kind,id,name,paid});
+    setRemoveReason("");setRemoveError("");
+    window.requestAnimationFrame(()=>{if(!removeDialogRef.current?.open)removeDialogRef.current?.showModal();});
+  }
+  async function confirmRemoveParticipant(e:FormEvent<HTMLFormElement>){
+    e.preventDefault();
+    if(!removeTarget||removeReason.trim().length<8)return;
+    const token=getWebToken();
+    if(!token){setRemoveError(tr("Сессия завершилась. Войди в профиль и повтори попытку."));return;}
+    setBusy(true);setRemoveError("");setError("");setNotice("");
+    try{
+      const result=removeTarget.kind==="ticket"
+        ?await removeManageParticipant(token,eventId,removeTarget.id,removeReason.trim())
+        :await removeManageWaitlistGuest(token,eventId,removeTarget.id,removeReason.trim());
+      removeDialogRef.current?.close();
+      setRemoveTarget(null);setRemoveReason("");
+      await reload();
+      setNotice(language==="cs"
+        ?result.promoted_ticket_id?"Registrace zrušena a místo bylo uvolněno dalšímu hostovi.":"Host byl odebrán z akce."
+        :language==="en"
+        ?result.promoted_ticket_id?"Registration cancelled; a waiting guest received the free spot.":"Participant removed from the event."
+        :language==="uk"
+        ?result.promoted_ticket_id?"Реєстрацію скасовано, вільне місце передано наступному гостю.":"Учасника видалено з події."
+        :result.promoted_ticket_id?"Регистрация отменена, свободное место передано следующему гостю.":"Участник отписан от мероприятия.");
+    }catch(cause){setRemoveError(formattedError(cause,language));}
+    finally{setBusy(false);}
+  }
+
   async function sendOperationalNotice(){
     const token=getWebToken();if(!token||!event||announcementText.trim().length<20)return;
     if(!window.confirm(tr("Отправить важное сообщение всем подтверждённым владельцам действующих билетов?")))return;
@@ -743,6 +778,31 @@ export function AdminEventClient(){
       </section>}
       </div>}
       {tab==="guests"&&<div className="tp-tabpanel">
+      <dialog ref={removeDialogRef} className="tt-event-cancel-dialog tt-participant-remove-dialog"
+        aria-labelledby="tt-participant-remove-title"
+        onClose={()=>{setRemoveTarget(null);setRemoveReason("");setRemoveError("");}}>
+        <form className="form-stack" onSubmit={confirmRemoveParticipant}>
+          <h2 id="tt-participant-remove-title">{language==="cs"?"Odebrat hosta":language==="en"?"Remove participant":language==="uk"?"Видалити учасника":"Отписать участника"}</h2>
+          <p>{language==="cs"?"Vybraný host:":language==="en"?"Selected guest:":language==="uk"?"Обраний учасник:":"Выбранный участник:"} <strong>{removeTarget?.name}</strong></p>
+          <p>{removeTarget?.kind==="ticket"
+            ?language==="cs"?"Registrace bude zrušena, vstupenka zneplatněna a volné místo nabídnuto čekajícím hostům. Záznam zůstane v historii.":language==="en"?"The registration will be cancelled, the QR ticket invalidated and the place made available to waiting guests. Audit history is kept.":language==="uk"?"Реєстрацію буде скасовано, QR-квиток анульовано, а місце звільнено для черги. Історія залишиться.":"Регистрация будет отменена, QR-билет аннулирован, а место освобождено для очереди. История сохранится."
+            :language==="cs"?"Host bude odebrán z čekací listiny. Historie zůstane zachována.":language==="en"?"The guest will be removed from the waitlist. History is retained.":language==="uk"?"Учасника буде видалено з черги. Історія збережеться.":"Гость будет удалён из листа ожидания. История сохранится."}</p>
+          {removeTarget?.paid&&<p className="form-note">{language==="cs"?"Přímé platby pořadateli se automaticky nevracejí.":language==="en"?"Payments made directly to the organizer are NOT automatically refunded.":language==="uk"?"Прямі платежі організатору автоматично не повертаються.":"Оплаты напрямую организатору автоматически НЕ возвращаются."}</p>}
+          <label>{language==="cs"?"Důvod (min. 8 znaků)":language==="en"?"Reason (at least 8 characters)":language==="uk"?"Причина (від 8 символів)":"Причина (минимум 8 символов)"}
+            <textarea required rows={3} minLength={8} maxLength={500} value={removeReason}
+              onChange={ev=>{setRemoveReason(ev.target.value);setRemoveError("");}}/>
+          </label>
+          {removeError&&<div className="state-card state-error" role="alert">{removeError}</div>}
+          <div className="tt-event-cancel-actions">
+            <button className="button button-outline" type="button" disabled={busy}
+              onClick={()=>removeDialogRef.current?.close()}>{language==="cs"?"Zpět":language==="en"?"Keep registration":language==="uk"?"Назад":"Не удалять"}</button>
+            <button className="button button-primary" type="submit"
+              disabled={busy||removeReason.trim().length<8}>{busy
+                ?language==="cs"?"Ukládám…":language==="en"?"Removing…":language==="uk"?"Видалення…":"Удаляем…"
+                :language==="cs"?"Odebrat hosta":language==="en"?"Remove guest":language==="uk"?"Видалити":"Отписать"}</button>
+          </div>
+        </form>
+      </dialog>
       {data&&<>
         <div className="stats-grid">
           <div className="stat-card"><strong>{data.tickets.filter(t=>t.ticket_status==="active").length}</strong><span>{tr("Билеты")}</span></div>
@@ -775,14 +835,29 @@ export function AdminEventClient(){
                 <span className="status status-muted">{tr("Awaiting QR scan")}</span>
                 <button className="button button-outline" type="button" disabled={busy}
                   onClick={()=>manualCheckIn(ticket.id)}>{tr("Отметить вручную")}</button>
+                <button className="button button-outline tt-remove-attendee-button" type="button" disabled={busy}
+                  onClick={()=>askRemoveParticipant("ticket",ticket.id,
+                    [ticket.guest?.first_name,ticket.guest?.last_name].filter(Boolean).join(" ")||`#${ticket.id}`,
+                    ticket.payment_provider!=="free"&&ticket.payment_provider!=="legacy_free")}>
+                  {language==="cs"?"Odebrat z akce":language==="en"?"Remove from event":language==="uk"?"Відписати":"Отписать от ивента"}
+                </button>
               </>}
             </div>
           </div>)}
         </div></section>
         <section className="panel"><h2>{tr("Лист ожидания")}</h2>
           {!data.waitlist.length&&<p>{tr("Пока пусто.")}</p>}
-          {data.waitlist.filter(w=>w.status==="waiting").map(w=><div key={w.id} className="participant-row">
-            <strong>{w.guest.first_name} {w.guest.last_name}</strong><span className="status status-muted">{tr("Waiting")}</span>
+          {data.waitlist.filter(w=>w.status==="waiting"||w.status==="offered").map(w=><div key={w.id} className="participant-row">
+            <strong>{w.guest.first_name} {w.guest.last_name}</strong>
+            <div className="participant-actions">
+              <span className="status status-muted">{w.status==="offered"
+                ?language==="cs"?"Nabídnuto":language==="en"?"Place offered":language==="uk"?"Місце запропоновано":"Место предложено"
+                :tr("Waiting")}</span>
+              <button className="button button-outline tt-remove-attendee-button" type="button" disabled={busy}
+                onClick={()=>askRemoveParticipant("waitlist",w.id,[w.guest.first_name,w.guest.last_name].filter(Boolean).join(" ")||`#${w.id}`)}>
+                {language==="cs"?"Odebrat z čekací listiny":language==="en"?"Remove from waitlist":language==="uk"?"Видалити з черги":"Убрать из ожидания"}
+              </button>
+            </div>
           </div>)}
         </section>
       </>}
