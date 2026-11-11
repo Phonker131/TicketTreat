@@ -400,6 +400,23 @@ export function deleteManageGalleryPhoto(token:string,eventId:number,imageId:num
 export function getManageParticipants(token:string, eventId:number): Promise<AdminEventTickets> {
   return request(`/demo/manage/events/${eventId}/participants`,{headers:accountHeaders(token)});
 }
+export type OrganizerParticipantRemoval = {
+  status:"removed";event_id:number;ticket_id?:number;waitlist_id?:number;
+  promoted_ticket_id:number|null;
+};
+/** Audited organizer/global-admin participant withdrawal; checked-in tickets are immutable. */
+export function removeManageParticipant(token:string,eventId:number,ticketId:number,reason:string):
+  Promise<OrganizerParticipantRemoval>{
+  return request(`/demo/manage/events/${eventId}/participants/${ticketId}/remove`,{
+    method:"POST",headers:accountHeaders(token),body:JSON.stringify({reason}),
+  });
+}
+export function removeManageWaitlistGuest(token:string,eventId:number,entryId:number,reason:string):
+  Promise<OrganizerParticipantRemoval>{
+  return request(`/demo/manage/events/${eventId}/waitlist/${entryId}/remove`,{
+    method:"POST",headers:accountHeaders(token),body:JSON.stringify({reason}),
+  });
+}
 export function checkInManagedTicket(token:string, qrToken:string, eventId:number):Promise<{status:"checked_in"|"already_checked_in";ticket:DemoTicket}> {
   return request(`/demo/manage/check-in`,{method:"POST",headers:accountHeaders(token),body:JSON.stringify({qr_token:qrToken,event_id:eventId})});
 }
