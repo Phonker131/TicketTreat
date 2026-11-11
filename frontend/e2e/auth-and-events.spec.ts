@@ -59,6 +59,9 @@ test("password signup requests OTP and never creates account without mailbox pro
   await form.locator('input[autocomplete="family-name"]').fill("Person");
   await form.locator('input[type="email"]').fill("signup-otp-ci@example.invalid");
   await form.locator('input[type="password"]').fill("strong-enough-ci-password-2026");
+  const privacy=form.getByRole("checkbox",{name:"I accept registration terms"});
+  await expect(privacy).not.toBeChecked();
+  await privacy.check();
   await form.getByRole("button",{name:"Send verification code"}).click();
   await expect.poll(()=>requests).toBe(1);
   const code=form.getByRole("textbox",{name:"8-digit email verification code"});
