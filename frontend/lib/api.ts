@@ -737,6 +737,43 @@ export function scanPilotTicket(token:string,qrToken:string):Promise<{status:"ch
   return request("/demo/pilot/check-in",{method:"POST",headers:accountHeaders(token),
     body:JSON.stringify({qr_token:qrToken})});
 }
+export type OrganizerReward = {
+  id:number; owner_account_id:number;title:string;description:string;
+  kind:"badge"|"recognition"|"perk";active:boolean;created_at:string|null;
+};
+export type OrganizerRewardGrant = {
+  id:number;reward_id:number;title:string;description:string;
+  kind:"badge"|"recognition"|"perk";ticket_id:number;event_id:number;
+  event_title:string|null;guest_name:string|null;note:string;
+  granted_at:string|null;revoked_at:string|null;
+};
+export type OrganizerRewardsDashboard = {
+  events:{id:number;title:string;owner_account_id:number}[];
+  rewards:OrganizerReward[];
+  attendees:{ticket_id:number;guest_id:number;guest_name:string;event_id:number;
+    event_title:string;owner_account_id:number;checked_in_at:string}[];
+  grants:OrganizerRewardGrant[];
+};
+export function getOrganizerRewards():Promise<OrganizerRewardsDashboard>{
+  return request("/demo/manage/rewards");
+}
+export function createOrganizerReward(data:{event_id:number;title:string;description:string;
+  kind:"badge"|"recognition"|"perk"}):Promise<OrganizerReward>{
+  return request("/demo/manage/rewards",{method:"POST",body:JSON.stringify(data)});
+}
+export function grantOrganizerReward(rewardId:number,ticketId:number,note:string):Promise<OrganizerRewardGrant>{
+  return request(`/demo/manage/rewards/${rewardId}/grants`,{
+    method:"POST",body:JSON.stringify({ticket_id:ticketId,note}),
+  });
+}
+export function revokeOrganizerReward(grantId:number):Promise<{status:"revoked";grant_id:number}>{
+  return request(`/demo/manage/rewards/grants/${grantId}/revoke`,{method:"POST"});
+}
+export type ManualVisitAward = {
+  id:number; reward_id:number;title:string;description:string;
+  kind:"badge"|"recognition"|"perk"; ticket_id:number;event_id:number;
+  event_title:string|null;note:string;granted_at:string|null;
+};
 export type LoyaltyTier = "newcomer"|"regular"|"insider"|"vip";
 export type LoyaltyStudio = {
   organizer_id:number;organizer_name:string;
@@ -748,6 +785,7 @@ export type LoyaltyStudio = {
 export type LoyaltyPassport = {
   season:string;season_starts_at:string;season_ends_at:string;
   scope:"per_organizer";total_lifetime_visits:number;studios:LoyaltyStudio[];
+  awards?:ManualVisitAward[];
 };
 export function getMyLoyalty():Promise<LoyaltyPassport>{
   return request("/demo/me/loyalty");

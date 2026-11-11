@@ -75,6 +75,15 @@ export function LoyaltyClient(){
   !passport?<RewardsPreview language={language} mode="guest"/>:
   <>
    {passport.studios.length>0&&<div className="panel loyalty-overview"><strong>{tr.season}: {passport.season}</strong><span>{tr.total}: {passport.total_lifetime_visits}</span></div>}
+   {(passport.awards?.length||0)>0&&<section className="panel tt-guest-manual-awards" aria-label={language==="cs"?"Ocenění od pořadatelů":language==="en"?"Organizer awards":language==="ru"?"Награды от организаторов":"Нагороди від організаторів"}>
+     <h2>{language==="cs"?"Ocenění od pořadatelů":language==="en"?"Awards from organizers":language==="ru"?"Награды от организаторов":"Нагороди від організаторів"}</h2>
+     <div className="tt-award-passport-grid">{passport.awards!.map(a=><article key={a.id} className="tt-award-passport-item">
+       <span aria-hidden="true" className="tt-award-passport-icon">✦</span>
+       <div><strong>{a.title}</strong><p className="form-note">{a.event_title}</p>
+         {a.description&&<p>{a.description}</p>}
+         {a.note&&<p className="form-note">{a.note}</p>}</div>
+     </article>)}</div>
+   </section>}
    {passport.studios.length===0?<RewardsPreview language={language} mode="empty"/>:
    <div className="loyalty-grid">{passport.studios.map(s=><PassportCard key={s.organizer_id} studio={s} language={language}/>)}</div>}
    <p className="form-note loyalty-explanation">{tr.detail}</p>

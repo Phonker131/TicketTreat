@@ -4,6 +4,11 @@ import type {LanguageCode} from "@/lib/types";
  * Keep operational errors separate from mistakes the visitor can correct.
  */
 const MESSAGES: Record<string,Record<LanguageCode,string>> = {
+  "confirmed_checkin_required":{"en":"You can award a guest only after a verified QR check-in.","cs":"Hosta lze odměnit až po potvrzeném QR odbavení.","ru":"Выдать награду можно только после подтверждённого QR check-in.","uk":"Нагороду можна видати лише після підтвердженого QR check-in."},
+  "reward_already_awarded_for_ticket":{"en":"This reward has already been granted for that ticket.","cs":"Tato odměna již byla pro vstupenku udělena.","ru":"Эта награда уже выдана по данному билету.","uk":"Цю нагороду вже видано за цим квитком."},
+  "reward_not_owned_by_event_organizer":{"en":"The reward and event belong to different organizers.","cs":"Odměna a akce patří různým pořadatelům.","ru":"Награда и событие относятся к разным организаторам.","uk":"Нагорода та подія належать різним організаторам."},
+  "reward_already_revoked":{"en":"This award was already revoked.","cs":"Tato odměna již byla odebrána.","ru":"Эта награда уже была отменена.","uk":"Цю нагороду вже було скасовано."},
+
   "poster_read_failed": {"en":"Couldn't read the poster file. Choose the image again or use another JPG, PNG or WebP.","cs":"Obrázek plakátu se nepodařilo načíst. Vyberte jej znovu nebo použijte jiný soubor JPG, PNG či WebP.","ru":"Не удалось прочитать изображение постера. Выбери файл заново или попробуй другой JPG, PNG либо WebP.","uk":"Не вдалося прочитати афішу. Обери файл ще раз або спробуй інший JPG, PNG чи WebP."},
   "poster_too_large": {"en":"The poster exceeds 4 MB. Compress the image and upload it again.","cs":"Plakát přesahuje 4 MB. Zmenšete soubor a nahrajte jej znovu.","ru":"Постер больше 4 МБ. Сожми изображение и загрузи его заново.","uk":"Афіша більша за 4 МБ. Стисни зображення та завантаж його знову."},
   "invalid_poster_type": {"en":"Choose a JPG, PNG or WebP poster. Other file formats aren't supported.","cs":"Vyberte plakát JPG, PNG nebo WebP. Jiné formáty nejsou podporovány.","ru":"Выбери постер в формате JPG, PNG или WebP. Другие форматы не поддерживаются.","uk":"Обери афішу у форматі JPG, PNG або WebP. Інші формати не підтримуються."},
