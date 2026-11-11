@@ -220,6 +220,8 @@ export function verifyDemoAdminKey(adminKey: string): Promise<{authenticated: bo
 
 export type WebRegistration = {
   email: string;
+  /** One-time email code independently proved by the recipient. */
+  email_code?: string;
   password: string;
   first_name: string;
   last_name: string;

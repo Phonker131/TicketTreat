@@ -33,6 +33,45 @@ test("Telegram account linking requires unchecked-by-default consent",async({pag
   await expect(consent).toBeChecked();
 });
 
+test("password signup requests OTP and never creates account without mailbox proof",async({page})=>{
+  let requests=0;
+  let submittedCode="";
+  await page.route("**/api/gateway/api/v1/auth/quick/request",route=>{
+    requests++;
+    return route.fulfill({
+      status:200,contentType:"application/json",
+      body:JSON.stringify({status:"if_eligible_code_sent"}),
+    });
+  });
+  await page.route("**/api/gateway/api/v1/auth/signup",route=>{
+    submittedCode=(route.request().postDataJSON() as {email_code:string}).email_code;
+    return route.fulfill({
+      status:400,contentType:"application/json",
+      body:JSON.stringify({detail:"invalid_or_expired_code"}),
+    });
+  });
+  await page.goto("/profile?lang=en");
+  await page.locator(".auth-tabs button").first().click();
+  const form=page.locator("form.panel.form-stack").filter({
+    has:page.locator('input[autocomplete="new-password"]'),
+  }).first();
+  await form.locator('input[autocomplete="given-name"]').fill("Verified");
+  await form.locator('input[autocomplete="family-name"]').fill("Person");
+  await form.locator('input[type="email"]').fill("signup-otp-ci@example.invalid");
+  await form.locator('input[type="password"]').fill("strong-enough-ci-password-2026");
+  const privacy=form.getByRole("checkbox",{name:"I accept registration terms"});
+  await expect(privacy).not.toBeChecked();
+  await privacy.check();
+  await form.getByRole("button",{name:"Send verification code"}).click();
+  await expect.poll(()=>requests).toBe(1);
+  const code=form.getByRole("textbox",{name:"8-digit email verification code"});
+  await expect(code).toBeVisible();
+  await code.fill("12345678");
+  await form.getByRole("button",{name:"Verify email and create account"}).click();
+  await expect.poll(()=>submittedCode).toBe("12345678");
+});
+
+
 test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({page})=>{
   await page.goto("/profile");
   await page.locator(".auth-tabs button").last().click();
