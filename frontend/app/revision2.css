@@ -272,11 +272,49 @@ html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admi
 html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .panel a:not(.button){
  color:var(--paper)!important
 }
-html[data-theme="dark"] .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .tt-printed-code-form{
- background:var(--paper)!important;color:var(--ink)!important;border-color:var(--ink)!important
+/* The printed-code widget is a functional form, NOT a paper ticket.
+   In dark mode its entire surface, labels, hint, input and disabled CTA
+   must follow the same contrast tokens. */
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form{
+ background:var(--surface-2)!important;color:var(--fg)!important;
+ border:2px solid var(--theme-line)!important;
 }
-html[data-theme="dark"] .app-shell:has(.admin-event-actions) .tt-printed-code-form input{
- background:#fff!important;color:var(--ink)!important;border-color:var(--ink)!important
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form :is(label,small){
+ color:var(--fg)!important;opacity:1!important;
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form small{
+ color:var(--fg-mute)!important;
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form input{
+ background:var(--surface)!important;color:var(--fg)!important;
+ border-color:var(--theme-line)!important;
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form input::placeholder{
+ color:var(--fg-mute)!important;opacity:1!important;
+}
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-printed-code-form .button-primary:disabled{
+ background:var(--surface)!important;color:var(--fg-mute)!important;
+ border:2px solid var(--theme-line)!important;
+ opacity:1!important;box-shadow:none!important;
+}
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form{
+ background:var(--surface-2)!important;color:var(--fg)!important;
+ border:2px solid var(--edge)!important;
+}
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form :is(label,small){
+ color:var(--fg)!important;opacity:1!important;
+}
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form input{
+ background:var(--surface)!important;color:var(--fg)!important;
+ border-color:var(--edge)!important;
+}
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form input::placeholder{
+ color:var(--fg-mute)!important;opacity:1!important;
+}
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-printed-code-form .button-primary:disabled{
+ background:var(--surface)!important;color:var(--fg-mute)!important;
+ border:2px solid var(--edge)!important;
+ opacity:1!important;box-shadow:none!important;
 }
 html[data-theme="dark"] .app-shell:has(.admin-event-actions) .stats-grid .stat-card,
 html[data-theme="dark"] .app-shell:has(.admin-event-actions) .panel .stat-card{
@@ -419,3 +457,51 @@ html[data-theme="dark"] .wordmark-logo-dark{display:block!important}
 .topbar .wordmark{background:transparent!important;border:0!important;padding:0!important;border-radius:0!important;line-height:0}
 .topbar .wordmark:focus-visible{outline:3px solid var(--fg,var(--paper));outline-offset:5px}
 .tt-business-logo{background:transparent!important}
+
+/* Owner-scoped participant removal controls and confirmation dialog. */
+.tt-participant-remove-dialog {
+  box-sizing:border-box;
+  width:min(94vw,540px);
+  max-height:min(86dvh,740px);
+  overflow-y:auto;
+  margin:auto;
+  padding:clamp(18px,4vw,30px);
+  background:var(--surface);
+  color:var(--fg);
+  border:2px solid var(--theme-line);
+  border-radius:22px;
+  box-shadow:0 20px 70px rgba(0,0,0,.35);
+}
+.tt-participant-remove-dialog::backdrop {background:rgba(0,0,0,.70)}
+.tt-participant-remove-dialog :is(h2,p,label) {color:var(--fg)!important;opacity:1}
+.tt-participant-remove-dialog .form-note {color:var(--fg-mute)!important}
+.tt-participant-remove-dialog textarea{
+  width:100%;min-width:0;max-width:100%;
+  background:var(--surface-2)!important;
+  color:var(--fg)!important;
+  border:2px solid var(--theme-line)!important;
+  border-radius:12px;padding:12px;resize:vertical;
+}
+.tt-participant-remove-dialog .tt-event-cancel-actions{
+  display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;margin-top:18px;
+}
+.tt-participant-remove-dialog .button {min-height:44px;max-width:100%;white-space:normal}
+html[data-theme="dark"] .app-shell:has(.admin-heading) .tt-remove-attendee-button{
+  color:var(--fg)!important;
+  background:var(--surface)!important;
+  border:2px solid var(--theme-line)!important;
+}
+html[data-theme="light"] .app-shell:has(.admin-heading) .tt-remove-attendee-button{
+  color:var(--fg)!important;
+  background:var(--surface)!important;
+  border:2px solid var(--edge)!important;
+}
+.tt-remove-attendee-button:focus-visible,
+.tt-participant-remove-dialog :is(button,textarea):focus-visible{
+  outline:3px solid var(--btn-plate);outline-offset:3px;
+}
+@media(max-width:760px) {
+  .tt-participant-remove-dialog .tt-event-cancel-actions>*{
+    flex:1 1 145px;
+  }
+}

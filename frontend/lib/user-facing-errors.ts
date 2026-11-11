@@ -3,7 +3,44 @@ import type {LanguageCode} from "@/lib/types";
 /** User-facing text only: never expose raw backend error codes or internal details.
  * Keep operational errors separate from mistakes the visitor can correct.
  */
-const MESSAGES: Record<string,Record<LanguageCode,string>> = {
+const MESSAGES: Record<string,Record<LanguageCode,string>> = { 
+  "checked_in_ticket_cannot_be_removed":{
+    "en":"This guest has already checked in. Their visit must stay in the event history.",
+    "cs":"Host již prošel odbavením. Jeho návštěva musí zůstat v historii akce.",
+    "ru":"Гость уже прошёл check-in. Его посещение должно остаться в истории мероприятия.",
+    "uk":"Гість уже пройшов check-in. Його відвідування має залишитися в історії події."
+  },
+  "participant_removal_reason_required":{
+    "en":"Explain the removal in at least eight characters.",
+    "cs":"Uveďte důvod odebrání alespoň osmi znaky.",
+    "ru":"Укажи причину отписки минимум из восьми символов.",
+    "uk":"Укажи причину видалення щонайменше з восьми символів."
+  },
+  "waitlist_entry_not_active":{
+    "en":"This guest is no longer waiting. Refresh the event participants.",
+    "cs":"Host již nečeká. Obnovte seznam účastníků.",
+    "ru":"Гость больше не находится в очереди. Обнови список участников.",
+    "uk":"Гість більше не перебуває в черзі. Онови список учасників."
+  },
+  "participant_has_active_ticket":{
+    "en":"This guest already has an active ticket. Remove their ticket instead of the waitlist entry.",
+    "cs":"Host již má platnou vstupenku. Odeberte registraci podle vstupenky.",
+    "ru":"У гостя уже есть активный билет. Отпиши его через билет, а не лист ожидания.",
+    "uk":"Гість уже має активний квиток. Видали його реєстрацію через квиток."
+  },
+  "payment_requires_manual_review":{
+    "en":"This ticket has a payment provider that requires manual review before cancellation.",
+    "cs":"Tato vstupenka využívá platební systém, který před zrušením vyžaduje ruční kontrolu.",
+    "ru":"У билета есть платёжный провайдер, для удаления требуется ручная проверка.",
+    "uk":"Квиток має платіжного провайдера, перед скасуванням потрібна ручна перевірка."
+  },
+  "ticket_not_active":{
+    "en":"This ticket is already inactive. Refresh the participants list.",
+    "cs":"Vstupenka již není aktivní. Obnovte seznam účastníků.",
+    "ru":"Этот билет уже неактивен. Обнови список участников.",
+    "uk":"Цей квиток уже неактивний. Онови список учасників."
+  },
+
   "confirmed_checkin_required":{"en":"You can award a guest only after a verified QR check-in.","cs":"Hosta lze odměnit až po potvrzeném QR odbavení.","ru":"Выдать награду можно только после подтверждённого QR check-in.","uk":"Нагороду можна видати лише після підтвердженого QR check-in."},
   "reward_already_awarded_for_ticket":{"en":"This reward has already been granted for that ticket.","cs":"Tato odměna již byla pro vstupenku udělena.","ru":"Эта награда уже выдана по данному билету.","uk":"Цю нагороду вже видано за цим квитком."},
   "reward_not_owned_by_event_organizer":{"en":"The reward and event belong to different organizers.","cs":"Odměna a akce patří různým pořadatelům.","ru":"Награда и событие относятся к разным организаторам.","uk":"Нагорода та подія належать різним організаторам."},
