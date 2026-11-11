@@ -88,9 +88,9 @@ def queue_email(
     """
     if not configured() or not recipient:
         return
-    if kind not in {"welcome", "ticket", "checkin", "reminder", "event_notice", "waitlist_offer", "broadcast_notice", "support_reply"}:
+    if kind not in {"welcome", "ticket", "ticket_removed", "checkin", "reminder", "event_notice", "waitlist_offer", "broadcast_notice", "support_reply"}:
         raise ValueError("unknown_email_kind")
-    if kind in {"ticket", "checkin", "reminder", "event_notice", "waitlist_offer"}:
+    if kind in {"ticket", "ticket_removed", "checkin", "reminder", "event_notice", "waitlist_offer"}:
         # Only mail registered website accounts during the public demo.
         # Anonymous checkout emails are unverified and could be used for spam.
         from demo_accounts import WebAccount
@@ -479,6 +479,24 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
                 subject=d[f"{notice.kind}_subject"].format(event=name)
                 title=subject
                 lead=d[f"{notice.kind}_body"]+"\n"+notice.message
+        elif row.kind == "ticket_removed":
+            messages = {
+                "en": ("Your event registration was cancelled: {event}",
+                       "Your registration was removed by the organizer. Your ticket is no longer valid. "
+                       "If you paid directly to the organizer, contact them about any refund."),
+                "cs": ("Vaše registrace byla zrušena: {event}",
+                       "Pořadatel zrušil vaši registraci. Vstupenka již není platná. "
+                       "Pokud jste platili přímo pořadateli, obraťte se na něj kvůli vrácení platby."),
+                "ru": ("Ваша регистрация отменена: {event}",
+                       "Организатор удалил вашу регистрацию, билет больше недействителен. "
+                       "Если вы платили организатору напрямую, уточните возврат у него."),
+                "uk": ("Вашу реєстрацію скасовано: {event}",
+                       "Організатор видалив вашу реєстрацію, квиток більше не дійсний. "
+                       "Якщо ви платили організатору напряму, зверніться до нього щодо повернення коштів."),
+            }
+            template = messages.get(row.language, messages["en"])
+            subject = template[0].format(event=name)
+            title, lead = subject, template[1]
         else:
             subject = d[f"{row.kind}_subject"].format(event=name)
             title = d[f"{row.kind}_title"].format(event=name)
@@ -568,6 +586,12 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
                        else registration_notice if ticket.payment_provider == "registration_only"
                        else "")
 
+    if row.kind == "ticket_removed":
+        link = f"{web_url}/events/{ticket.event_id}"
+        button = {
+            "en":"View event","cs":"Zobrazit akci","ru":"Открыть мероприятие","uk":"Переглянути подію",
+        }.get(row.language,"View event")
+        caption = ""
     return {
         "from": os.environ["EMAIL_FROM"].strip(),
         "to": [row.recipient],
