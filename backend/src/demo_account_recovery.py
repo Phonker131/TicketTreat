@@ -282,6 +282,9 @@ def install_email_account_security(app, get_db):
         if guest is not None:
             guest.email = email
         db.delete(row)
+        from demo_identity_registry import mirror_verified_identity
+        mirror_verified_identity(db, account_id=account.id,
+                                 provider="email", verified_subject=email)
         try:
             db.commit()
         except Exception:
@@ -335,6 +338,9 @@ def install_email_account_security(app, get_db):
                 ).all()
                 for ticket, event in rows:
                     queue_event_reminder(db, event=event, guest=guest, ticket=ticket)
+        from demo_identity_registry import mirror_verified_identity
+        mirror_verified_identity(db, account_id=account.id,
+                                 provider="email", verified_subject=account.email)
         db.commit()
         return {"email_verified": True}
 
