@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import BigInteger, CheckConstraint, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -50,6 +50,33 @@ class WebAccount(Base):
     instagram = Column(String(100), nullable=True)
     contact_preference = Column(String(20), nullable=False, default="email")
     guest_id = Column(Integer, unique=True, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class AuthIdentity(Base):
+    """Additive provider registry; not an authentication source until cutover.
+
+    Existing account, Google, Telegram and email tables remain authoritative.
+    Only independently verified credentials may be registered here.
+    """
+
+    __tablename__ = "auth_identities"
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_subject", name="uq_auth_identities_provider_subject"),
+        UniqueConstraint("account_id", "provider", name="uq_auth_identities_account_provider"),
+        CheckConstraint("provider IN ('email', 'google', 'telegram')", name="ck_auth_identities_provider"),
+        CheckConstraint("length(btrim(provider_subject)) > 0", name="ck_auth_identities_nonempty"),
+        CheckConstraint(
+            "provider <> 'email' OR provider_subject = lower(btrim(provider_subject))",
+            name="ck_auth_identities_canonical_email",
+        ),
+    )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    account_id = Column(Integer, ForeignKey("demo_web_accounts.id", ondelete="CASCADE"), nullable=False)
+    provider = Column(String(16), nullable=False)
+    provider_subject = Column(String(255), nullable=False)
+    verified_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
