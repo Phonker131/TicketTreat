@@ -229,8 +229,9 @@ def _utc(value: datetime) -> datetime:
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 
 
-def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict):
-    """An OIDC-proven Telegram user gets a website login for the SAME guest ID."""
+def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict, *,
+                                reconcile: bool = True):
+    """A signed Mini App or OIDC Telegram user reuses the SAME guest ID."""
     from demo_telegram import DemoTelegramIdentity
     from demo_accounts import WebAccount
     from demo_roles import WebAccountRole
@@ -274,9 +275,10 @@ def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict):
     # reconcile eligible free passes too; otherwise these users see an
     # apparently empty ticket list until they separately open Mini App.
     # Paid/past/conflicting legacy registrations stay untouched for review.
-    from demo_legacy import reconcile_free_legacy
-    from importlib import import_module
-    reconcile_free_legacy(db, import_module("main"), telegram_id, guest.id)
+    if reconcile:
+        from demo_legacy import reconcile_free_legacy
+        from importlib import import_module
+        reconcile_free_legacy(db, import_module("main"), telegram_id, guest.id)
     return account
 
 
