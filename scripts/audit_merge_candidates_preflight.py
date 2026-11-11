@@ -30,7 +30,7 @@ def main():
             roles={x["account_id"]:x["role"] for x in safe_query(cur,"SELECT account_id,role FROM demo_web_account_roles WHERE account_id=ANY(%s)",(list(WEB_IDS),))}
             admin={x["account_id"] for x in safe_query(cur,"SELECT account_id FROM demo_global_admin_bindings WHERE account_id=ANY(%s)",(list(WEB_IDS),))}
             owners={x["owner_account_id"] for x in safe_query(cur,"SELECT owner_account_id FROM demo_event_ownership WHERE owner_account_id=ANY(%s)",(list(WEB_IDS),))}
-            g_all={x["id"]:x for x in safe_query(cur,"SELECT id,email,first_name,last_name,created_at FROM demo_guests WHERE id=ANY(%s)",(list(set(GUEST_IDS+[x["guest_id"] for x in a])),))}
+            g_all={x["id"]:x for x in safe_query(cur,"SELECT id,email,first_name,last_name,created_at FROM demo_guests WHERE id=ANY(%s)",(list(set(list(GUEST_IDS)+[x["guest_id"] for x in a])),))}
             tg=safe_query(cur,"SELECT guest_id FROM demo_telegram_identities WHERE guest_id=ANY(%s)",(list(g_all),))
             verified_tg={x["guest_id"] for x in tg}
             def refs(gid):
