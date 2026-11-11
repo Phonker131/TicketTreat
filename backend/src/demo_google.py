@@ -224,7 +224,21 @@ def install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict):
         claims = exchange_code(payload.code, payload.browser_token, nonce)
         email = normalize_email(claims["email"])
         try:
+            from demo_identity_registry import (
+                authenticated_provider_account, enforce_registry_mode,
+            )
+            # The Google sub is independently proven by the OIDC token.
+            # In enforce mode, resolve this identity using its constrained
+            # registry owner, not a mutable/unverified email field.
+            registry_account = authenticated_provider_account(
+                db, "google", claims["sub"],
+            )
             identity = db.get(GoogleIdentity, claims["sub"])
+            if (enforce_registry_mode() and identity and registry_account is None):
+                raise HTTPException(409, "verified_identity_registry_backfill_required")
+            if (registry_account is not None and identity is not None
+                    and identity.account_id != registry_account.id):
+                raise HTTPException(409, "verified_identity_owner_mismatch")
             if linked_id is not None:
                 session = db.query(WebSession).filter(WebSession.token_hash == session_hash).first()
                 if session is None or session.account_id != linked_id or utc(session.expires_at) <= datetime.now(timezone.utc):
@@ -235,9 +249,13 @@ def install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict):
                 require_privileged_mfa(db, account, session)
                 if identity and identity.account_id != account.id:
                     raise HTTPException(409, "google_already_linked")
+                if registry_account is not None and registry_account.id != account.id:
+                    raise HTTPException(409, "google_already_linked")
                 other = db.query(GoogleIdentity).filter(GoogleIdentity.account_id == account.id).first()
                 if other and other.subject != claims["sub"]:
                     raise HTTPException(409, "google_already_linked")
+            elif registry_account is not None:
+                account = registry_account
             elif identity:
                 account = db.get(WebAccount, identity.account_id)
                 if account is None:
