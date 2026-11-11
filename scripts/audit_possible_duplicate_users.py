@@ -50,7 +50,9 @@ def name_pair(first, last):
 def create_node(kind, ident, *names):
     node = {"kind": kind, "id": int(ident), "names": [], "email": set(),
             "phones": set(), "instagrams": set(), "verified_provider": set(),
-            "unverified_telegram_ids": set(), "events": set(), "ticket_count": 0}
+            "unverified_telegram_ids": set(), "events": set(), "ticket_count": 0,
+            "created_at": None, "linked_guest_id": None, "email_verified": False,
+            "telegram_verified": False}
     for p in names:
         if p is not None:
             node["names"].append(p)
@@ -115,6 +117,8 @@ def audit():
     for a in accounts:
         key = ("web", int(a["id"]))
         node = create_node("web", a["id"])
+        node["created_at"] = a["created_at"]
+        node["linked_guest_id"] = int(a["guest_id"])
         add_fields(node, a)
         nodes[key] = node
         guest_to_node[int(a["guest_id"])] = key
@@ -126,6 +130,8 @@ def audit():
         if gid not in guest_to_node:
             key = ("guest", gid)
             node = create_node("guest_without_web", gid)
+            node["created_at"] = g["created_at"]
+            node["linked_guest_id"] = gid
             add_fields(node, g)
             nodes[key] = node
             guest_to_node[gid] = key
@@ -138,6 +144,7 @@ def audit():
         if key is not None:
             tg_to_node[tid] = key
             nodes[key]["verified_provider"].add(("telegram", str(tid)))
+            nodes[key]["telegram_verified"] = True
     for u in bot_users:
         uid, tid = int(u["id"]), int(u["telegram_id"])
         if tid in tg_to_node:
@@ -157,6 +164,7 @@ def audit():
             nodes[key]["verified_provider"].add((r["provider"], str(r["provider_subject"])))
     for a in accounts:
         key = ("web", int(a["id"]))
+        nodes[key]["email_verified"] = int(a["id"]) in verified_accounts
         if int(a["id"]) not in verified_accounts:
             continue
         # Email verification is a strong ownership signal but equality
@@ -201,7 +209,13 @@ def audit():
         preferred = chosen or (node["names"][0] if node["names"] else None)
         return {"type":node["kind"], "id":node["id"],
                 "name": " ".join(preferred) if preferred else "(имя/фамилия неполные)",
-                "tickets":node["ticket_count"]}
+                "other_names": sorted({" ".join(n) for n in node["names"] if n != preferred}),
+                "tickets":node["ticket_count"],
+                "created": node["created_at"].date().isoformat() if node["created_at"] else None,
+                "linked_guest_id": node["linked_guest_id"],
+                "verified_providers": sorted({p for p, _ in node["verified_provider"]}),
+                "email_verified": node["email_verified"],
+                "telegram_verified": node["telegram_verified"]}
 
     candidates = []
     exact_name_pairs = 0
