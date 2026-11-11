@@ -357,9 +357,17 @@ def install_demo_accounts(
             if verified_email:
                 from demo_account_recovery import VerifiedEmail
                 from demo_identity_registry import mirror_verified_identity
+                from demo_quick_signup import QuickPrivacyConsent
                 db.add(VerifiedEmail(
                     account_id=account.id,
                     verified_at=datetime.now(timezone.utc),
+                ))
+                # The explicit privacy/terms acceptance was recorded when the
+                # OTP was requested and must survive the password registration.
+                db.add(QuickPrivacyConsent(
+                    account_id=account.id,
+                    version=pending_email_claim.privacy_version,
+                    accepted_at=datetime.now(timezone.utc),
                 ))
                 mirror_verified_identity(db, account_id=account.id,
                                          provider="email", verified_subject=email)
