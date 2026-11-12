@@ -53,7 +53,6 @@ export function AdminEventClient(){
   type RemoveTarget={kind:"ticket"|"waitlist";id:number;name:string;paid:boolean};
   const [removeTarget,setRemoveTarget]=useState<RemoveTarget|null>(null);
   const [removeReason,setRemoveReason]=useState("");
-  const [manualPaymentReviewConfirmed,setManualPaymentReviewConfirmed]=useState(false);
   const [removeError,setRemoveError]=useState("");
   const removeDialogRef=useRef<HTMLDialogElement>(null);
   const [manualCode,setManualCode]=useState("");
@@ -295,21 +294,21 @@ export function AdminEventClient(){
   }
   function askRemoveParticipant(kind:"ticket"|"waitlist",id:number,name:string,paid=false){
     setRemoveTarget({kind,id,name,paid});
-    setRemoveReason("");setManualPaymentReviewConfirmed(false);setRemoveError("");
+    setRemoveReason("");setRemoveError("");
     window.requestAnimationFrame(()=>{if(!removeDialogRef.current?.open)removeDialogRef.current?.showModal();});
   }
   async function confirmRemoveParticipant(e:FormEvent<HTMLFormElement>){
     e.preventDefault();
-    if(!removeTarget||removeReason.trim().length<8||(removeTarget.paid&&!manualPaymentReviewConfirmed))return;
+    if(!removeTarget||removeReason.trim().length<8)return;
     const token=getWebToken();
     if(!token){setRemoveError(tr("Сессия завершилась. Войди в профиль и повтори попытку."));return;}
     setBusy(true);setRemoveError("");setError("");setNotice("");
     try{
       const result=removeTarget.kind==="ticket"
-        ?await removeManageParticipant(token,eventId,removeTarget.id,removeReason.trim(),removeTarget.paid&&manualPaymentReviewConfirmed)
+        ?await removeManageParticipant(token,eventId,removeTarget.id,removeReason.trim())
         :await removeManageWaitlistGuest(token,eventId,removeTarget.id,removeReason.trim());
       removeDialogRef.current?.close();
-      setRemoveTarget(null);setRemoveReason("");setManualPaymentReviewConfirmed(false);
+      setRemoveTarget(null);setRemoveReason("");
       await reload();
       setNotice(language==="cs"
         ?result.promoted_ticket_id?"Registrace zrušena a místo bylo uvolněno dalšímu hostovi.":"Host byl odebrán z akce."
@@ -786,24 +785,14 @@ export function AdminEventClient(){
       {tab==="guests"&&<div className="tp-tabpanel">
       <dialog ref={removeDialogRef} className="tt-event-cancel-dialog tt-participant-remove-dialog"
         aria-labelledby="tt-participant-remove-title"
-        onClose={()=>{setRemoveTarget(null);setRemoveReason("");setManualPaymentReviewConfirmed(false);setRemoveError("");}}>
+        onClose={()=>{setRemoveTarget(null);setRemoveReason("");setRemoveError("");}}>
         <form className="form-stack" onSubmit={confirmRemoveParticipant}>
           <h2 id="tt-participant-remove-title">{language==="cs"?"Odebrat hosta":language==="en"?"Remove participant":language==="uk"?"Видалити учасника":"Отписать участника"}</h2>
           <p>{language==="cs"?"Vybraný host:":language==="en"?"Selected guest:":language==="uk"?"Обраний учасник:":"Выбранный участник:"} <strong>{removeTarget?.name}</strong></p>
           <p>{removeTarget?.kind==="ticket"
             ?language==="cs"?"Registrace bude zrušena, vstupenka zneplatněna a volné místo nabídnuto čekajícím hostům. Záznam zůstane v historii.":language==="en"?"The registration will be cancelled, the QR ticket invalidated and the place made available to waiting guests. Audit history is kept.":language==="uk"?"Реєстрацію буде скасовано, QR-квиток анульовано, а місце звільнено для черги. Історія залишиться.":"Регистрация будет отменена, QR-билет аннулирован, а место освобождено для очереди. История сохранится."
             :language==="cs"?"Host bude odebrán z čekací listiny. Historie zůstane zachována.":language==="en"?"The guest will be removed from the waitlist. History is retained.":language==="uk"?"Учасника буде видалено з черги. Історія збережеться.":"Гость будет удалён из листа ожидания. История сохранится."}</p>
-          {removeTarget?.paid&&<>
-            <p className="form-note">{language==="cs"?"Platba byla vyřízena mimo TicketTreat. Zrušení vstupenky nevrátí peníze automaticky.":language==="en"?"This payment was handled outside TicketTreat. Cancelling the ticket will not refund money automatically.":language==="uk"?"Оплату проведено поза TicketTreat. Скасування квитка не поверне гроші автоматично.":"Оплата прошла вне TicketTreat. Отмена билета не возвращает деньги автоматически."}</p>
-            <label className="tt-manual-payment-confirmation">
-              <input type="checkbox" checked={manualPaymentReviewConfirmed}
-                onChange={ev=>{setManualPaymentReviewConfirmed(ev.target.checked);setRemoveError("");}} required/>
-              <span>{language==="cs"?"Potvrzuji, že jsem platbu ručně prověřil(a) a případné vrácení peněz vyřeším přímo s hostem."
-                :language==="en"?"I have manually reviewed this payment and will handle any refund directly with the guest."
-                :language==="uk"?"Підтверджую, що вручну перевірив(ла) оплату й вирішу питання можливого повернення коштів безпосередньо з гостем."
-                :"Подтверждаю, что вручную проверил(а) оплату и решу вопрос возможного возврата напрямую с гостем."}</span>
-            </label>
-          </>}
+          {removeTarget?.paid&&<p className="form-note">{language==="cs"?"Vstupenku můžete zrušit bez ověření platby. Peníze TicketTreat nevrací; platbu a případné vrácení řešíte přímo s hostem.":language==="en"?"You can cancel this ticket without checking payment. TicketTreat does not refund money; any payment or refund is handled directly with the guest.":language==="uk"?"Квиток можна скасувати без перевірки оплати. TicketTreat не повертає гроші; питання оплати вирішуються безпосередньо з гостем.":"Билет можно отменить без проверки оплаты. TicketTreat не возвращает деньги; оплату и возможный возврат организатор решает напрямую с гостем."}</p>}
           <label>{language==="cs"?"Důvod (min. 8 znaků)":language==="en"?"Reason (at least 8 characters)":language==="uk"?"Причина (від 8 символів)":"Причина (минимум 8 символов)"}
             <textarea required rows={3} minLength={8} maxLength={500} value={removeReason}
               onChange={ev=>{setRemoveReason(ev.target.value);setRemoveError("");}}/>
@@ -813,7 +802,7 @@ export function AdminEventClient(){
             <button className="button button-outline" type="button" disabled={busy}
               onClick={()=>removeDialogRef.current?.close()}>{language==="cs"?"Zpět":language==="en"?"Keep registration":language==="uk"?"Назад":"Не удалять"}</button>
             <button className="button button-primary" type="submit"
-              disabled={busy||removeReason.trim().length<8||(Boolean(removeTarget?.paid)&&!manualPaymentReviewConfirmed)}>{busy
+              disabled={busy||removeReason.trim().length<8}>{busy
                 ?language==="cs"?"Ukládám…":language==="en"?"Removing…":language==="uk"?"Видалення…":"Удаляем…"
                 :language==="cs"?"Odebrat hosta":language==="en"?"Remove guest":language==="uk"?"Видалити":"Отписать"}</button>
           </div>
@@ -853,13 +842,10 @@ export function AdminEventClient(){
                 <span className="status status-muted">{tr("Awaiting QR scan")}</span>
                 <button className="button button-outline" type="button" disabled={busy}
                   onClick={()=>manualCheckIn(ticket.id)}>{tr("Отметить вручную")}</button>
-                {!["free","legacy_free","registration_only","demo","organizer_direct"].includes(ticket.payment_provider)&&
-                  <small>{language==="cs"?"Tato platební metoda vyžaduje kontrolu podpory.":language==="en"?"Contact support to review this payment provider.":language==="uk"?"Зверніться до підтримки для перевірки цього способу оплати.":"Обратись в поддержку для проверки этого способа оплаты."}</small>}
-                <button className="button button-outline tt-remove-attendee-button" type="button"
-                  disabled={busy||!["free","legacy_free","registration_only","demo","organizer_direct"].includes(ticket.payment_provider)}
+                <button className="button button-outline tt-remove-attendee-button" type="button" disabled={busy}
                   onClick={()=>askRemoveParticipant("ticket",ticket.id,
                     [ticket.guest?.first_name,ticket.guest?.last_name].filter(Boolean).join(" ")||`#${ticket.id}`,
-                    ticket.payment_provider==="organizer_direct")}>
+                    !["free","legacy_free","registration_only","demo"].includes(ticket.payment_provider))}>
                   {language==="cs"?"Odebrat z akce":language==="en"?"Remove from event":language==="uk"?"Відписати":"Отписать от ивента"}
                 </button>
               </>}
