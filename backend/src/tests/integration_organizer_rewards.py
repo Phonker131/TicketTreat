@@ -45,9 +45,14 @@ class OrganizerAwardIntegration(unittest.TestCase):
             outsider=main.Event(title="Recognition outside event "+secrets.token_hex(4),
                          starts_at=when,price=Decimal("0"),currency="CZK",
                          max_participants=15,is_cancelled=False)
-            db.add_all([ev,outsider]);db.flush()
+            repeat_event=main.Event(title=ev.title,
+                         starts_at=when+timedelta(days=7),
+                         price=Decimal("0"),currency="CZK",
+                         max_participants=15,is_cancelled=False)
+            db.add_all([ev,outsider,repeat_event]);db.flush()
             db.add_all([
                 EventOwnership(event_id=ev.id,owner_account_id=organizer.id),
+                EventOwnership(event_id=repeat_event.id,owner_account_id=organizer.id),
                 EventOwnership(event_id=outsider.id,owner_account_id=other.id),
             ])
             ticket=main.DemoTicket(event_id=ev.id,guest_id=guest.id,
@@ -55,7 +60,7 @@ class OrganizerAwardIntegration(unittest.TestCase):
                 payment_status="not_required",payment_provider="free",
                 payment_amount="0",currency="CZK")
             db.add(ticket);db.flush()
-            event_id,ticket_id,guest_id=ev.id,ticket.id,guest.id
+            event_id,repeat_event_id,ticket_id,guest_id=ev.id,repeat_event.id,ticket.id,guest.id
             db.commit()
 
         with TestClient(main.app) as client:
@@ -69,7 +74,13 @@ class OrganizerAwardIntegration(unittest.TestCase):
             self.assertEqual(view.status_code,200,view.text)
             self.assertNotIn("qr_token",view.text)
             self.assertNotIn("access_token",view.text)
-            self.assertTrue(any(e["id"]==event_id for e in view.json()["events"]))
+            event_rows={item["id"]:item for item in view.json()["events"]}
+            self.assertIn(event_id,event_rows)
+            self.assertIn(repeat_event_id,event_rows)
+            self.assertEqual(event_rows[event_id]["title"],event_rows[repeat_event_id]["title"])
+            self.assertNotEqual(event_rows[event_id]["starts_at"],
+                                event_rows[repeat_event_id]["starts_at"])
+            self.assertTrue(event_rows[event_id]["starts_at"].startswith(when.date().isoformat()))
             self.assertFalse(any(a["ticket_id"]==ticket_id for a in view.json()["attendees"]))
             other_view=client.get("/demo/manage/rewards",headers=other_auth)
             self.assertNotIn(str(ticket_id)+"_secret",other_view.text)
@@ -103,6 +114,7 @@ class OrganizerAwardIntegration(unittest.TestCase):
             self.assertEqual(grant.status_code,201,grant.text)
             grant_id=grant.json()["id"]
             self.assertEqual(grant.json()["ticket_id"],ticket_id)
+            self.assertEqual(grant.json()["event_starts_at"],event_rows[event_id]["starts_at"])
             self.assertNotIn("qr_token",grant.text)
             again=client.post(f"/demo/manage/rewards/{reward_id}/grants",
                 headers=auth,json={"ticket_id":ticket_id})
