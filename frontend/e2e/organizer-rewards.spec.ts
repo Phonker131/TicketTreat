@@ -71,3 +71,30 @@ test("organizer reward panel creates badge and awards only a checked-in attendee
   await expect(awardForm.getByRole("button",{name:"Award guest"})).toBeDisabled();
   await expect(page.getByText("Visitor Star").first()).toBeVisible();
 });
+
+test("Czech rewards picker shows the date for two same-title events",async({page})=>{
+  await page.addInitScript(()=>{
+    window.localStorage.setItem("tickettreat_web_auth","browser-session");
+  });
+  await page.route("**/api/gateway/api/v1/manage/rewards",async route=>{
+    await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({
+      events:[
+        {id:91,title:"Liar's Bar",starts_at:"2026-11-11T19:30:00",owner_account_id:42},
+        {id:92,title:"Liar's Bar",starts_at:"2026-11-18T20:00:00",owner_account_id:42},
+      ],rewards:[],attendees:[],grants:[],
+    })});
+  });
+  await page.goto("/admin/rewards?lang=cs");
+  await expect(page.getByRole("heading",{name:"Odměny za návštěvu"})).toBeVisible();
+  const pickers=page.locator(".tt-reward-admin-grid form select").filter({
+    has:page.locator('option[value="91"]'),
+  });
+  await expect(pickers).toHaveCount(2);
+  for(const picker of await pickers.all()){
+    await expect(picker.locator('option[value="91"]')).toContainText(/11.*11.*2026.*19:30/);
+    await expect(picker.locator('option[value="92"]')).toContainText(/18.*11.*2026.*20:00/);
+    await expect(picker.locator('option[value="91"]')).toContainText("#91");
+    await expect(picker.locator('option[value="92"]')).toContainText("#92");
+  }
+  await expect(page.locator(".tt-reward-event-selected").first()).toContainText("19:30");
+});
