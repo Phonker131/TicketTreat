@@ -402,7 +402,7 @@ export function getManageParticipants(token:string, eventId:number): Promise<Adm
 }
 export type OrganizerParticipantRemoval = {
   status:"removed";event_id:number;ticket_id?:number;waitlist_id?:number;
-  promoted_ticket_id:number|null;
+  promoted_ticket_id:number|null;manual_payment_followup_required?:boolean;
 };
 /** Audited organizer/global-admin participant withdrawal; checked-in tickets are immutable. */
 export function removeManageParticipant(token:string,eventId:number,ticketId:number,reason:string):

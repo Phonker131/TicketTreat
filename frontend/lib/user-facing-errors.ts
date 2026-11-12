@@ -28,12 +28,6 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
     "ru":"У гостя уже есть активный билет. Отпиши его через билет, а не лист ожидания.",
     "uk":"Гість уже має активний квиток. Видали його реєстрацію через квиток."
   },
-  "payment_requires_manual_review":{
-    "en":"This ticket has a payment provider that requires manual review before cancellation.",
-    "cs":"Tato vstupenka využívá platební systém, který před zrušením vyžaduje ruční kontrolu.",
-    "ru":"У билета есть платёжный провайдер, для удаления требуется ручная проверка.",
-    "uk":"Квиток має платіжного провайдера, перед скасуванням потрібна ручна перевірка."
-  },
   "ticket_not_active":{
     "en":"This ticket is already inactive. Refresh the participants list.",
     "cs":"Vstupenka již není aktivní. Obnovte seznam účastníků.",

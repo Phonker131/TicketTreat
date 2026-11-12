@@ -317,6 +317,11 @@ export function AdminEventClient(){
         :language==="uk"
         ?result.promoted_ticket_id?"Реєстрацію скасовано, вільне місце передано наступному гостю.":"Учасника видалено з події."
         :result.promoted_ticket_id?"Регистрация отменена, свободное место передано следующему гостю.":"Участник отписан от мероприятия.");
+      if(result.manual_payment_followup_required)setNotice(
+        language==="cs"?"Vstupenka zrušena. Zkontrolujte platbu a případné vrácení peněz přímo s hostem; TicketTreat peníze nevrací automaticky."
+        :language==="en"?"Ticket cancelled. Review the payment and any refund directly with the guest; TicketTreat does not automatically refund money."
+        :language==="uk"?"Квиток скасовано. Перевірте оплату й можливе повернення коштів напряму з гостем; TicketTreat не повертає гроші автоматично."
+        :"Билет отменён. Проверь оплату и возможный возврат напрямую с гостем; TicketTreat не возвращает деньги автоматически.");
     }catch(cause){setRemoveError(formattedError(cause,language));}
     finally{setBusy(false);}
   }
@@ -787,7 +792,7 @@ export function AdminEventClient(){
           <p>{removeTarget?.kind==="ticket"
             ?language==="cs"?"Registrace bude zrušena, vstupenka zneplatněna a volné místo nabídnuto čekajícím hostům. Záznam zůstane v historii.":language==="en"?"The registration will be cancelled, the QR ticket invalidated and the place made available to waiting guests. Audit history is kept.":language==="uk"?"Реєстрацію буде скасовано, QR-квиток анульовано, а місце звільнено для черги. Історія залишиться.":"Регистрация будет отменена, QR-билет аннулирован, а место освобождено для очереди. История сохранится."
             :language==="cs"?"Host bude odebrán z čekací listiny. Historie zůstane zachována.":language==="en"?"The guest will be removed from the waitlist. History is retained.":language==="uk"?"Учасника буде видалено з черги. Історія збережеться.":"Гость будет удалён из листа ожидания. История сохранится."}</p>
-          {removeTarget?.paid&&<p className="form-note">{language==="cs"?"Přímé platby pořadateli se automaticky nevracejí.":language==="en"?"Payments made directly to the organizer are NOT automatically refunded.":language==="uk"?"Прямі платежі організатору автоматично не повертаються.":"Оплаты напрямую организатору автоматически НЕ возвращаются."}</p>}
+          {removeTarget?.paid&&<p className="form-note">{language==="cs"?"Vstupenku můžete zrušit bez ověření platby. Peníze TicketTreat nevrací; platbu a případné vrácení řešíte přímo s hostem.":language==="en"?"You can cancel this ticket without checking payment. TicketTreat does not refund money; any payment or refund is handled directly with the guest.":language==="uk"?"Квиток можна скасувати без перевірки оплати. TicketTreat не повертає гроші; питання оплати вирішуються безпосередньо з гостем.":"Билет можно отменить без проверки оплаты. TicketTreat не возвращает деньги; оплату и возможный возврат организатор решает напрямую с гостем."}</p>}
           <label>{language==="cs"?"Důvod (min. 8 znaků)":language==="en"?"Reason (at least 8 characters)":language==="uk"?"Причина (від 8 символів)":"Причина (минимум 8 символов)"}
             <textarea required rows={3} minLength={8} maxLength={500} value={removeReason}
               onChange={ev=>{setRemoveReason(ev.target.value);setRemoveError("");}}/>
@@ -827,7 +832,9 @@ export function AdminEventClient(){
           {!data.tickets.length&&<p>{tr("Пока нет билетов.")}</p>}
           {data.tickets.map(ticket=><div className="participant-row" key={ticket.id}>
             <div><strong>{ticket.guest?.first_name} {ticket.guest?.last_name}</strong>
-              <small>{ticket.guest?.email}</small><small>{ticket.code} · {ticket.payment_provider==="registration_only"?(language==="cs"?"Registrace (platba neověřena)":language==="en"?"Registered (payment not verified)":language==="uk"?"Записано (оплату не перевірено)":"Записан (оплата не проверена)"):ticket.payment_status === "paid"?tr("Paid"):ticket.payment_status === "not_required"?tr("Free"):ticket.payment_status === "pending"?tr("Ожидает оплаты"):ticket.payment_status}</small></div>
+              <small>{ticket.guest?.email}</small><small>{ticket.code} · {ticket.payment_provider==="registration_only"?(language==="cs"?"Registrace (platba neověřena)":language==="en"?"Registered (payment not verified)":language==="uk"?"Записано (оплату не перевірено)":"Записан (оплата не проверена)"):ticket.payment_status === "paid"?tr("Paid"):ticket.payment_status === "not_required"?tr("Free"):ticket.payment_status === "pending"?tr("Ожидает оплаты"):ticket.payment_status}</small>
+              {ticket.ticket_status==="cancelled"&&!["free","legacy_free","registration_only","demo"].includes(ticket.payment_provider)&&
+                <small>{language==="cs"?"Externí platba – případné vrácení peněz řešte ručně":language==="en"?"External payment – verify any refund manually":language==="uk"?"Зовнішня оплата – перевірте можливе повернення коштів вручну":"Внешняя оплата — проверь возможный возврат вручную"}</small>}</div>
             <div className="participant-actions">
               <span className={ticket.checked_in_at?"status status-success":"status status-demo"}>
                 {ticket.ticket_status==="cancelled"?tr("Cancelled"):ticket.checked_in_at?tr("Checked in"):(language==="cs"?"Registrován":language==="en"?"Registered":language==="uk"?"Записано":"Записан")}</span>
@@ -838,7 +845,7 @@ export function AdminEventClient(){
                 <button className="button button-outline tt-remove-attendee-button" type="button" disabled={busy}
                   onClick={()=>askRemoveParticipant("ticket",ticket.id,
                     [ticket.guest?.first_name,ticket.guest?.last_name].filter(Boolean).join(" ")||`#${ticket.id}`,
-                    ticket.payment_provider!=="free"&&ticket.payment_provider!=="legacy_free")}>
+                    !["free","legacy_free","registration_only","demo"].includes(ticket.payment_provider))}>
                   {language==="cs"?"Odebrat z akce":language==="en"?"Remove from event":language==="uk"?"Відписати":"Отписать от ивента"}
                 </button>
               </>}
