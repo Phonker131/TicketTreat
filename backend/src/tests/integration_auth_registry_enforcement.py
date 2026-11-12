@@ -78,6 +78,28 @@ class RegistryEnforcementTests(unittest.TestCase):
                 self.assertEqual(resolved.id,account.id)
                 self.assertEqual(db.get(DemoTelegramIdentity,telegram_id).guest_id,guest_id)
 
+    def test_missing_telegram_mapping_leaves_no_new_guest(self):
+        account_id, _, _ = website_account()
+        telegram_id = secrets.randbelow(10**12) + 10**10
+        with SessionLocal() as db:
+            claim_verified_identity(db, account_id=account_id,
+                                    provider="telegram", verified_subject=str(telegram_id))
+            db.commit()
+        with patch.dict(os.environ, {
+            "TELEGRAM_MINIAPP_BOT_TOKEN": BOT_TOKEN,
+            "TICKETTREAT_IDENTITY_REGISTRY_MODE": "enforce",
+        }), TestClient(main.app) as client:
+            response = client.post("/demo/telegram/auth", json={
+                "init_data": signed_init_data(telegram_id),
+            })
+            self.assertEqual(response.status_code, 409, response.text)
+            with SessionLocal() as db:
+                self.assertIsNone(db.get(DemoTelegramIdentity, telegram_id))
+                self.assertIsNone(db.query(main.DemoGuest.id).filter_by(
+                    telegram_id=telegram_id).first())
+                self.assertEqual(authenticated_provider_account(
+                    db, "telegram", str(telegram_id)).id, account_id)
+
     def test_google_registry_subject_resolves_to_one_proved_owner(self):
         account_id,_,_=website_account()
         subject="google-ci-"+secrets.token_hex(10)
