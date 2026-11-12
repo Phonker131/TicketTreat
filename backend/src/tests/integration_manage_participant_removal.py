@@ -142,9 +142,10 @@ class OrganizerRemovalIntegration(unittest.TestCase):
             owner,_,password,headers=account_with_session(db,"organizer")
             _,guest,_,_=account_with_session(db)
             _,checked,_,_=account_with_session(db)
+            _,unknown_guest,_,_=account_with_session(db)
             future=(datetime.now(timezone.utc)+timedelta(days=4)).replace(tzinfo=None)
             event=main.Event(title="External payment cancellation "+secrets.token_hex(4),
-                price=Decimal("250"),starts_at=future,max_participants=2,
+                price=Decimal("250"),starts_at=future,max_participants=3,
                 currency="CZK",is_cancelled=False)
             db.add(event);db.flush()
             db.add(EventOwnership(event_id=event.id,owner_account_id=owner.id))
@@ -157,8 +158,12 @@ class OrganizerRemovalIntegration(unittest.TestCase):
                 payment_provider="organizer_direct",payment_status="paid",
                 payment_amount="250",currency="CZK",
                 checked_in_at=datetime.now(timezone.utc)-timedelta(hours=1))
-            db.add_all([paid,scanned]);db.flush()
-            event_id,ticket_id,checked_id=event.id,paid.id,scanned.id
+            unknown_provider=main.DemoTicket(event_id=event.id,guest_id=unknown_guest.id,
+                qr_token=secrets.token_urlsafe(32),ticket_status="active",
+                payment_provider="external_psp",payment_status="paid",
+                payment_amount="250",currency="CZK")
+            db.add_all([paid,scanned,unknown_provider]);db.flush()
+            event_id,ticket_id,checked_id,unknown_id=event.id,paid.id,scanned.id,unknown_provider.id
             original_qr=paid.qr_token
             db.commit()
 
@@ -176,6 +181,11 @@ class OrganizerRemovalIntegration(unittest.TestCase):
             self.assertEqual(still_scanned.status_code,409,still_scanned.text)
             self.assertEqual(still_scanned.json()["detail"],
                 "checked_in_ticket_cannot_be_removed")
+            unsupported=client.post(
+                f"/demo/manage/events/{event_id}/participants/{unknown_id}/remove",
+                headers=headers,json={**body,"manual_payment_review_confirmed":True})
+            self.assertEqual(unsupported.status_code,409,unsupported.text)
+            self.assertEqual(unsupported.json()["detail"],"payment_requires_manual_review")
             result=client.post(url,headers=headers,
                 json={**body,"manual_payment_review_confirmed":True})
             self.assertEqual(result.status_code,200,result.text)
@@ -195,6 +205,7 @@ class OrganizerRemovalIntegration(unittest.TestCase):
             self.assertEqual(ticket.payment_status,"paid")
             self.assertEqual(ticket.payment_amount,"250")
             self.assertEqual(db.get(main.DemoTicket,checked_id).ticket_status,"active")
+            self.assertEqual(db.get(main.DemoTicket,unknown_id).ticket_status,"active")
             action=db.query(EventModerationLog).filter(
                 EventModerationLog.event_id==event_id,
                 EventModerationLog.action=="remove_guest").one()
