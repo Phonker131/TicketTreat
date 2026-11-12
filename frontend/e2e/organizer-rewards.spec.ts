@@ -6,7 +6,10 @@ test("organizer reward panel creates badge and awards only a checked-in attendee
   });
   let created=0,granted=0;
   const dashboard={
-    events:[{id:91,title:"Test creator event",owner_account_id:42}],
+    events:[
+      {id:91,title:"Test creator event",starts_at:"2026-11-11T19:30:00",owner_account_id:42},
+      {id:92,title:"Test creator event",starts_at:"2026-11-18T20:00:00",owner_account_id:42},
+    ],
     rewards:[] as Array<{id:number;owner_account_id:number;title:string;description:string;kind:string;active:boolean;created_at:string}>,
     attendees:[{ticket_id:77,guest_id:101,guest_name:"Guest With Check-in",
       event_id:91,event_title:"Test creator event",owner_account_id:42,
@@ -39,6 +42,23 @@ test("organizer reward panel creates badge and awards only a checked-in attendee
   });
   await page.goto("/admin/rewards");
   await expect(page.getByRole("heading",{name:"Attendance rewards"})).toBeVisible();
+  // Two occurrences with identical titles must have distinct date/time and IDs.
+  const eventPickers=page.locator(".tt-reward-admin-grid form select").filter({
+    has:page.locator('option[value="91"]'),
+  });
+  await expect(eventPickers).toHaveCount(2);
+  for(const picker of await eventPickers.all()){
+    const first=picker.locator('option[value="91"]');
+    const second=picker.locator('option[value="92"]');
+    await expect(first).toContainText("Test creator event");
+    await expect(first).toContainText("11 Nov 2026");
+    await expect(first).toContainText("19:30");
+    await expect(first).toContainText("#91");
+    await expect(second).toContainText("18 Nov 2026");
+    await expect(second).toContainText("20:00");
+    await expect(second).toContainText("#92");
+  }
+  await expect(page.locator(".tt-reward-event-selected")).toHaveCount(2);
   await page.getByLabel("Reward name").fill("Visitor Star");
   await page.getByRole("button",{name:"Save reward"}).click();
   await expect.poll(()=>created).toBe(1);
