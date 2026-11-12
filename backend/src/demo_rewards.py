@@ -66,6 +66,7 @@ def grant_json(row,reward,event,guest=None):
             "title":reward.title,"description":reward.description,"kind":reward.kind,
             "ticket_id":int(row.ticket_id),"event_id":int(row.event_id),
             "event_title":event.title if event else None,
+            "event_starts_at":event.starts_at.isoformat() if event and event.starts_at else None,
             "guest_name":" ".join(filter(None,[guest.first_name, guest.last_name])) if guest else None,
             "note":row.note,"granted_at":row.granted_at.isoformat() if row.granted_at else None,
             "revoked_at":row.revoked_at.isoformat() if row.revoked_at else None}
@@ -115,7 +116,9 @@ def dashboard(db:Session,account,main)->dict:
             .order_by(RewardGrant.granted_at.desc(),RewardGrant.id.desc())
             .limit(200).all())
     return {
-        "events":[{"id":e.id,"title":e.title,"owner_account_id":owners.get(e.id)}
+        "events":[{"id":e.id,"title":e.title,
+                   "starts_at":e.starts_at.isoformat() if e.starts_at else None,
+                   "owner_account_id":owners.get(e.id)}
                   for e in events if e.id in owners],
         "rewards":[reward_json(r) for r in defs],
         "attendees":[{"ticket_id":t.id,"guest_id":guest.id,
