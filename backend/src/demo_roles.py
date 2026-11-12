@@ -1032,9 +1032,12 @@ def install_demo_roles(app, get_db, main):
         # Payments collected outside TicketTreat cannot be refunded here.
         # Require explicit organizer acknowledgment before invalidating the QR.
         # Retain the actual payment state for later manual reconciliation.
-        manual_payment_followup_required = ticket.payment_provider not in {
-            "free", "legacy_free", "registration_only", "demo"
-        }
+        manual_payment_followup_required = ticket.payment_provider == "organizer_direct"
+        # Unknown/future PSP integrations must keep their own refund workflow.
+        if ticket.payment_provider not in {
+            "free", "legacy_free", "registration_only", "demo", "organizer_direct"
+        }:
+            raise HTTPException(status_code=409,detail="payment_requires_manual_review")
         if manual_payment_followup_required and not payload.manual_payment_review_confirmed:
             raise HTTPException(status_code=409,detail="manual_payment_review_confirmation_required")
         ticket.ticket_status="cancelled"
