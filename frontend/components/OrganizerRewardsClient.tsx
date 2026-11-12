@@ -94,7 +94,7 @@ const labels={
  * Format the same clock time in every browser (including iPhones abroad).
  */
 function occurrenceDate(startsAt:string|null|undefined,language:LanguageCode):string|null{
-  const match=startsAt?.match(/^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})/);
+  const match=startsAt?.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   if(!match)return null;
   const [,year,month,day,hour,minute]=match;
   const date=new Date(Date.UTC(Number(year),Number(month)-1,Number(day),Number(hour),Number(minute)));
