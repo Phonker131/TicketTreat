@@ -853,10 +853,13 @@ export function AdminEventClient(){
                 <span className="status status-muted">{tr("Awaiting QR scan")}</span>
                 <button className="button button-outline" type="button" disabled={busy}
                   onClick={()=>manualCheckIn(ticket.id)}>{tr("Отметить вручную")}</button>
-                <button className="button button-outline tt-remove-attendee-button" type="button" disabled={busy}
+                {!["free","legacy_free","registration_only","demo","organizer_direct"].includes(ticket.payment_provider)&&
+                  <small>{language==="cs"?"Tato platební metoda vyžaduje kontrolu podpory.":language==="en"?"Contact support to review this payment provider.":language==="uk"?"Зверніться до підтримки для перевірки цього способу оплати.":"Обратись в поддержку для проверки этого способа оплаты."}</small>}
+                <button className="button button-outline tt-remove-attendee-button" type="button"
+                  disabled={busy||!["free","legacy_free","registration_only","demo","organizer_direct"].includes(ticket.payment_provider)}
                   onClick={()=>askRemoveParticipant("ticket",ticket.id,
                     [ticket.guest?.first_name,ticket.guest?.last_name].filter(Boolean).join(" ")||`#${ticket.id}`,
-                    !["free","legacy_free","registration_only","demo"].includes(ticket.payment_provider))}>
+                    ticket.payment_provider==="organizer_direct")}>
                   {language==="cs"?"Odebrat z akce":language==="en"?"Remove from event":language==="uk"?"Відписати":"Отписать от ивента"}
                 </button>
               </>}
