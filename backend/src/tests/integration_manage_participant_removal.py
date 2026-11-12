@@ -137,5 +137,80 @@ class OrganizerRemovalIntegration(unittest.TestCase):
             self.assertIn(f"entry:{last_id}",next(x.details for x in log if x.action=="remove_waiting"))
 
 
+    def test_any_external_payment_allows_organizer_removal_without_fake_refund(self):
+        with SessionLocal() as db:
+            owner,_,password,headers=account_with_session(db,"organizer")
+            _,guest,_,_=account_with_session(db)
+            _,checked,_,_=account_with_session(db)
+            _,unknown_guest,_,_=account_with_session(db)
+            future=(datetime.now(timezone.utc)+timedelta(days=4)).replace(tzinfo=None)
+            event=main.Event(title="External payment cancellation "+secrets.token_hex(4),
+                price=Decimal("250"),starts_at=future,max_participants=3,
+                currency="CZK",is_cancelled=False)
+            db.add(event);db.flush()
+            db.add(EventOwnership(event_id=event.id,owner_account_id=owner.id))
+            paid=main.DemoTicket(event_id=event.id,guest_id=guest.id,
+                qr_token=secrets.token_urlsafe(32),ticket_status="active",
+                payment_provider="organizer_direct",payment_status="paid",
+                payment_amount="250",currency="CZK")
+            scanned=main.DemoTicket(event_id=event.id,guest_id=checked.id,
+                qr_token=secrets.token_urlsafe(32),ticket_status="active",
+                payment_provider="organizer_direct",payment_status="paid",
+                payment_amount="250",currency="CZK",
+                checked_in_at=datetime.now(timezone.utc)-timedelta(hours=1))
+            unknown_provider=main.DemoTicket(event_id=event.id,guest_id=unknown_guest.id,
+                qr_token=secrets.token_urlsafe(32),ticket_status="active",
+                payment_provider="external_psp",payment_status="paid",
+                payment_amount="250",currency="CZK")
+            db.add_all([paid,scanned,unknown_provider]);db.flush()
+            event_id,ticket_id,checked_id,unknown_id=event.id,paid.id,scanned.id,unknown_provider.id
+            original_qr=paid.qr_token
+            db.commit()
+
+        url=f"/demo/manage/events/{event_id}/participants/{ticket_id}/remove"
+        body={"reason":"Attendee cannot come, organizer released seat"}
+        with TestClient(main.app) as client:
+            unlock_mfa(client,headers,password)
+            removed=client.post(url,headers=headers,json=body)
+            self.assertEqual(removed.status_code,200,removed.text)
+            self.assertEqual(removed.json()["status"],"removed")
+            self.assertTrue(removed.json()["manual_payment_followup_required"])
+            still_scanned=client.post(
+                f"/demo/manage/events/{event_id}/participants/{checked_id}/remove",
+                headers=headers,json=body)
+            self.assertEqual(still_scanned.status_code,409,still_scanned.text)
+            self.assertEqual(still_scanned.json()["detail"],
+                "checked_in_ticket_cannot_be_removed")
+            unsupported=client.post(
+                f"/demo/manage/events/{event_id}/participants/{unknown_id}/remove",
+                headers=headers,json=body)
+            self.assertEqual(unsupported.status_code,200,unsupported.text)
+            self.assertTrue(unsupported.json()["manual_payment_followup_required"])
+            repeated=client.post(url,headers=headers,json=body)
+            self.assertEqual(repeated.status_code,409,repeated.text)
+
+        with SessionLocal() as db:
+            ticket=db.get(main.DemoTicket,ticket_id)
+            self.assertEqual(ticket.ticket_status,"cancelled")
+            self.assertIsNotNone(ticket.cancelled_at)
+            self.assertEqual(ticket.qr_token,original_qr)
+            # Historical payment remains recorded as paid: no automated refund.
+            self.assertEqual(ticket.payment_provider,"organizer_direct")
+            self.assertEqual(ticket.payment_status,"paid")
+            self.assertEqual(ticket.payment_amount,"250")
+            self.assertEqual(db.get(main.DemoTicket,checked_id).ticket_status,"active")
+            unknown=db.get(main.DemoTicket,unknown_id)
+            self.assertEqual(unknown.ticket_status,"cancelled")
+            self.assertEqual(unknown.payment_status,"paid")
+            self.assertEqual(unknown.payment_provider,"external_psp")
+            actions=db.query(EventModerationLog).filter(
+                EventModerationLog.event_id==event_id,
+                EventModerationLog.action=="remove_guest").all()
+            self.assertEqual(len(actions),2)
+            self.assertTrue(all("payment_refund_handling:external" in log.details for log in actions))
+            self.assertTrue(any("payment_provider:organizer_direct" in log.details for log in actions))
+            self.assertTrue(any("payment_provider:external_psp" in log.details for log in actions))
+
+
 if __name__=="__main__":
     unittest.main()

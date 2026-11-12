@@ -1029,16 +1029,21 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(status_code=409,detail="ticket_not_active")
         if ticket.checked_in_at is not None:
             raise HTTPException(status_code=409,detail="checked_in_ticket_cannot_be_removed")
-        # A paid reservation or external payment must be handled separately;
-        # TicketTreat never claims a refund was issued.
-        if ticket.payment_provider not in {"free","legacy_free","registration_only","demo"}:
-            raise HTTPException(status_code=409,detail="payment_requires_manual_review")
+        # With no TicketTreat payment processing, organizers can release an
+        # unscanned place regardless of the ticket's recorded payment provider.
+        # Never claim a refund: preserve paid/external payment state for audit.
+        provider = ticket.payment_provider
+        external_payment = provider not in {"free","legacy_free","registration_only","demo"}
+        payment_followup_required = external_payment and ticket.payment_status not in {
+            "not_required", "not_collected", "refunded"
+        }
         ticket.ticket_status="cancelled"
-        ticket.payment_status=(
-            "not_required" if ticket.payment_provider in {"free","legacy_free"}
-            else "not_collected" if ticket.payment_provider=="registration_only"
-            else "cancelled_demo"
-        )
+        if not external_payment:
+            ticket.payment_status=(
+                "not_required" if provider in {"free","legacy_free"}
+                else "not_collected" if provider=="registration_only"
+                else "cancelled_demo"
+            )
         ticket.cancelled_at=datetime.now(timezone.utc)
         db.flush()
         promoted=main.promote_demo_waitlist(db,event_id)
@@ -1064,10 +1069,14 @@ def install_demo_roles(app, get_db, main):
                 ticket_id=ticket.id,language=ticket_language(db,ticket.id))
         queue_ticket_removed(db,event,ticket,main)
         audit(db,event_id,account.id,"remove_guest",
-              f"ticket:{ticket.id};guest:{ticket.guest_id};reason:{reason}")
+              f"ticket:{ticket.id};guest:{ticket.guest_id};"
+              f"payment_provider:{ticket.payment_provider};"
+              f"payment_refund_handling:{'external' if external_payment else 'not_applicable'};"
+              f"reason:{reason}")
         db.commit()
         return {"status":"removed","ticket_id":ticket_id,"event_id":event_id,
-                "promoted_ticket_id":promoted.id if promoted is not None else None}
+                "promoted_ticket_id":promoted.id if promoted is not None else None,
+                "manual_payment_followup_required":payment_followup_required}
 
     @app.post("/demo/manage/events/{event_id}/waitlist/{entry_id}/remove")
     def remove_event_waitlist_entry(
