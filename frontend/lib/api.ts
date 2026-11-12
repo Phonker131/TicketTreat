@@ -763,11 +763,12 @@ export type OrganizerReward = {
 export type OrganizerRewardGrant = {
   id:number;reward_id:number;title:string;description:string;
   kind:"badge"|"recognition"|"perk";ticket_id:number;event_id:number;
-  event_title:string|null;guest_name:string|null;note:string;
+  event_title:string|null;event_starts_at?:string|null;
+  guest_name:string|null;note:string;
   granted_at:string|null;revoked_at:string|null;
 };
 export type OrganizerRewardsDashboard = {
-  events:{id:number;title:string;owner_account_id:number}[];
+  events:{id:number;title:string;starts_at:string|null;owner_account_id:number}[];
   rewards:OrganizerReward[];
   attendees:{ticket_id:number;guest_id:number;guest_name:string;event_id:number;
     event_title:string;owner_account_id:number;checked_in_at:string}[];

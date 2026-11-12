@@ -8,6 +8,8 @@ import {
   revokeOrganizerReward,type OrganizerRewardsDashboard,
 } from "@/lib/api";
 import {userFacingError} from "@/lib/user-facing-errors";
+import {localeForLanguage} from "@/lib/i18n";
+import type {LanguageCode} from "@/lib/types";
 
 const labels={
   en:{
@@ -88,6 +90,30 @@ const labels={
   }
 } as const;
 
+/** The event's starts_at is stored as venue-local wall time, not UTC.
+ * Format the same clock time in every browser (including iPhones abroad).
+ */
+function occurrenceDate(startsAt:string|null|undefined,language:LanguageCode):string|null{
+  const match=startsAt?.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if(!match)return null;
+  const [,year,month,day,hour,minute]=match;
+  const date=new Date(Date.UTC(Number(year),Number(month)-1,Number(day),Number(hour),Number(minute)));
+  if(Number.isNaN(date.getTime())
+    || date.getUTCFullYear()!==Number(year)
+    || date.getUTCMonth()+1!==Number(month)
+    || date.getUTCDate()!==Number(day))return null;
+  return new Intl.DateTimeFormat(localeForLanguage(language),{
+    day:"2-digit",month:language==="en"?"short":"2-digit",
+    year:"numeric",hour:"2-digit",minute:"2-digit",
+    hour12:false,timeZone:"UTC",
+  }).format(date);
+}
+
+function eventOptionLabel(e:{id:number;title:string;starts_at:string|null},language:LanguageCode):string{
+  const date=occurrenceDate(e.starts_at,language);
+  return [e.title,date,`#${e.id}`].filter(Boolean).join(" · ");
+}
+
 export function OrganizerRewardsClient(){
   const {language}=useLanguage();
   const t=labels[language];
@@ -118,6 +144,7 @@ export function OrganizerRewardsClient(){
   useEffect(()=>{void reload();},[]);
 
   const event=data?.events.find(e=>String(e.id)===awardEvent);
+  const createSelectedEvent=data?.events.find(e=>String(e.id)===createEvent);
   const attendees=useMemo(()=>data?.attendees.filter(a=>String(a.event_id)===awardEvent)||[],[data,awardEvent]);
   const rewards=useMemo(()=>data?.rewards.filter(r=>r.active && event?.owner_account_id===r.owner_account_id)||[],[data,event?.owner_account_id]);
   const chosenReward=rewards.find(r=>String(r.id)===rewardId);
@@ -177,8 +204,9 @@ export function OrganizerRewardsClient(){
           {data.events.length===0?<p>{t.noEvents}</p>:
           <form className="form-stack" onSubmit={create}>
             <label>{t.event}<select value={createEvent} required onChange={e=>setCreateEvent(e.target.value)}>
-              {data.events.map(e=><option key={e.id} value={e.id}>{e.title}</option>)}
+              {data.events.map(e=><option key={e.id} value={e.id}>{eventOptionLabel(e,language)}</option>)}
             </select></label>
+            {createSelectedEvent&&<p className="form-note tt-reward-event-selected">{eventOptionLabel(createSelectedEvent,language)}</p>}
             <label>{t.rewardTitle}<input value={title} required minLength={3} maxLength={80}
               onChange={e=>setTitle(e.target.value)} placeholder="VIP · Thank you"/></label>
             <label>{t.description}<textarea value={description} maxLength={300} rows={3}
@@ -198,8 +226,9 @@ export function OrganizerRewardsClient(){
           {data.events.length===0?<p>{t.noEvents}</p>:
           <form className="form-stack" onSubmit={grant}>
             <label>{t.event}<select value={awardEvent} onChange={e=>{setAwardEvent(e.target.value);setRewardId("");setTicketId("");}}>
-              {data.events.map(e=><option key={e.id} value={e.id}>{e.title}</option>)}
+              {data.events.map(e=><option key={e.id} value={e.id}>{eventOptionLabel(e,language)}</option>)}
             </select></label>
+            {event&&<p className="form-note tt-reward-event-selected">{eventOptionLabel(event,language)}</p>}
             {attendees.length===0?<p className="form-note">{t.noCheckins}</p>:
             <label>{t.attendee}<select value={ticketId} required onChange={e=>setTicketId(e.target.value)}>
               <option value="">{t.selectGuest}</option>
@@ -222,7 +251,11 @@ export function OrganizerRewardsClient(){
         <h2>{t.issued} ({data.grants.length})</h2>
         {data.grants.length===0?<p className="form-note">—</p>:
         <div className="tt-rewards-history">{data.grants.map(grant=><div key={grant.id} className="tt-reward-history-row">
-          <div><strong>{grant.title}</strong><p>{grant.guest_name||"#"+grant.ticket_id} · {grant.event_title}</p>
+          <div><strong>{grant.title}</strong><p>{grant.guest_name||"#"+grant.ticket_id} · {
+              [grant.event_title,
+               occurrenceDate(grant.event_starts_at??data.events.find(e=>e.id===grant.event_id)?.starts_at,language),
+               `#${grant.event_id}`].filter(Boolean).join(" · ")
+            }</p>
             {grant.note&&<p className="form-note">{grant.note}</p>}</div>
           <div className="tt-reward-history-actions">
             <span className={"status "+(grant.revoked_at?"status-demo":"status-success")}>{grant.revoked_at?t.revoked:t.earned}</span>
