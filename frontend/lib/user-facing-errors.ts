@@ -28,18 +28,6 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
     "ru":"У гостя уже есть активный билет. Отпиши его через билет, а не лист ожидания.",
     "uk":"Гість уже має активний квиток. Видали його реєстрацію через квиток."
   },
-  "payment_requires_manual_review":{
-    "en":"An external payment is linked to this ticket. Review the payment with the organizer before cancelling.",
-    "cs":"Vstupenka má externí platbu. Před zrušením prověřte platbu s pořadatelem.",
-    "ru":"К билету привязана внешняя оплата. Перед отменой проверь её с организатором.",
-    "uk":"До квитка прив'язана зовнішня оплата. Перед скасуванням перевірте її з організатором."
-  },
-  "manual_payment_review_confirmation_required":{
-    "en":"Confirm that you reviewed the external payment and will handle any refund manually.",
-    "cs":"Potvrďte, že jste prověřili externí platbu a případné vrácení peněz vyřešíte ručně.",
-    "ru":"Подтверди, что проверил внешнюю оплату и возможный возврат обработаешь вручную.",
-    "uk":"Підтвердьте, що перевірили зовнішню оплату й можливе повернення коштів опрацюєте вручну."
-  },
   "ticket_not_active":{
     "en":"This ticket is already inactive. Refresh the participants list.",
     "cs":"Vstupenka již není aktivní. Obnovte seznam účastníků.",
