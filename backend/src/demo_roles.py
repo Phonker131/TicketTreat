@@ -1029,22 +1029,19 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(status_code=409,detail="ticket_not_active")
         if ticket.checked_in_at is not None:
             raise HTTPException(status_code=409,detail="checked_in_ticket_cannot_be_removed")
-        # Payments collected outside TicketTreat cannot be refunded here.
-        # Require explicit organizer acknowledgment before invalidating the QR.
-        # Retain the actual payment state for later manual reconciliation.
-        manual_payment_followup_required = ticket.payment_provider == "organizer_direct"
-        # Unknown/future PSP integrations must keep their own refund workflow.
-        if ticket.payment_provider not in {
-            "free", "legacy_free", "registration_only", "demo", "organizer_direct"
-        }:
-            raise HTTPException(status_code=409,detail="payment_requires_manual_review")
-        if manual_payment_followup_required and not payload.manual_payment_review_confirmed:
-            raise HTTPException(status_code=409,detail="manual_payment_review_confirmation_required")
+        # With no TicketTreat payment processing, organizers can release an
+        # unscanned place regardless of the ticket's recorded payment provider.
+        # Never claim a refund: preserve paid/external payment state for audit.
+        provider = ticket.payment_provider
+        external_payment = provider not in {"free","legacy_free","registration_only","demo"}
+        payment_followup_required = external_payment and ticket.payment_status not in {
+            "not_required", "not_collected", "refunded"
+        }
         ticket.ticket_status="cancelled"
-        if not manual_payment_followup_required:
+        if not external_payment:
             ticket.payment_status=(
-                "not_required" if ticket.payment_provider in {"free","legacy_free"}
-                else "not_collected" if ticket.payment_provider=="registration_only"
+                "not_required" if provider in {"free","legacy_free"}
+                else "not_collected" if provider=="registration_only"
                 else "cancelled_demo"
             )
         ticket.cancelled_at=datetime.now(timezone.utc)
@@ -1074,12 +1071,12 @@ def install_demo_roles(app, get_db, main):
         audit(db,event_id,account.id,"remove_guest",
               f"ticket:{ticket.id};guest:{ticket.guest_id};"
               f"payment_provider:{ticket.payment_provider};"
-              f"manual_payment_review:{'acknowledged' if manual_payment_followup_required else 'not_required'};"
+              f"payment_refund_handling:{'external' if external_payment else 'not_applicable'};"
               f"reason:{reason}")
         db.commit()
         return {"status":"removed","ticket_id":ticket_id,"event_id":event_id,
                 "promoted_ticket_id":promoted.id if promoted is not None else None,
-                "manual_payment_followup_required":manual_payment_followup_required}
+                "manual_payment_followup_required":payment_followup_required}
 
     @app.post("/demo/manage/events/{event_id}/waitlist/{entry_id}/remove")
     def remove_event_waitlist_entry(
@@ -1233,8 +1230,6 @@ class OrganizerDecision(BaseModel):
 
 class RemoveParticipantRequest(BaseModel):
     reason: str = Field(min_length=8, max_length=500)
-    # Paid/external-provider cancellations require an explicit organizer decision.
-    manual_payment_review_confirmed: bool = False
 
 class ScanTicketPayload(BaseModel):
     qr_token: str = Field(min_length=24,max_length=80)
