@@ -137,7 +137,7 @@ class OrganizerRemovalIntegration(unittest.TestCase):
             self.assertIn(f"entry:{last_id}",next(x.details for x in log if x.action=="remove_waiting"))
 
 
-    def test_organizer_direct_payment_requires_confirmation_but_not_fake_refund(self):
+    def test_any_external_payment_allows_organizer_removal_without_fake_refund(self):
         with SessionLocal() as db:
             owner,_,password,headers=account_with_session(db,"organizer")
             _,guest,_,_=account_with_session(db)
@@ -168,31 +168,25 @@ class OrganizerRemovalIntegration(unittest.TestCase):
             db.commit()
 
         url=f"/demo/manage/events/{event_id}/participants/{ticket_id}/remove"
-        body={"reason":"Organizer cancelled a paid reservation after manual review"}
+        body={"reason":"Attendee cannot come, organizer released seat"}
         with TestClient(main.app) as client:
             unlock_mfa(client,headers,password)
-            no_review=client.post(url,headers=headers,json=body)
-            self.assertEqual(no_review.status_code,409,no_review.text)
-            self.assertEqual(no_review.json()["detail"],
-                "manual_payment_review_confirmation_required")
+            removed=client.post(url,headers=headers,json=body)
+            self.assertEqual(removed.status_code,200,removed.text)
+            self.assertEqual(removed.json()["status"],"removed")
+            self.assertTrue(removed.json()["manual_payment_followup_required"])
             still_scanned=client.post(
                 f"/demo/manage/events/{event_id}/participants/{checked_id}/remove",
-                headers=headers,json={**body,"manual_payment_review_confirmed":True})
+                headers=headers,json=body)
             self.assertEqual(still_scanned.status_code,409,still_scanned.text)
             self.assertEqual(still_scanned.json()["detail"],
                 "checked_in_ticket_cannot_be_removed")
             unsupported=client.post(
                 f"/demo/manage/events/{event_id}/participants/{unknown_id}/remove",
-                headers=headers,json={**body,"manual_payment_review_confirmed":True})
-            self.assertEqual(unsupported.status_code,409,unsupported.text)
-            self.assertEqual(unsupported.json()["detail"],"payment_requires_manual_review")
-            result=client.post(url,headers=headers,
-                json={**body,"manual_payment_review_confirmed":True})
-            self.assertEqual(result.status_code,200,result.text)
-            self.assertEqual(result.json()["status"],"removed")
-            self.assertTrue(result.json()["manual_payment_followup_required"])
-            repeated=client.post(url,headers=headers,
-                json={**body,"manual_payment_review_confirmed":True})
+                headers=headers,json=body)
+            self.assertEqual(unsupported.status_code,200,unsupported.text)
+            self.assertTrue(unsupported.json()["manual_payment_followup_required"])
+            repeated=client.post(url,headers=headers,json=body)
             self.assertEqual(repeated.status_code,409,repeated.text)
 
         with SessionLocal() as db:
@@ -205,12 +199,17 @@ class OrganizerRemovalIntegration(unittest.TestCase):
             self.assertEqual(ticket.payment_status,"paid")
             self.assertEqual(ticket.payment_amount,"250")
             self.assertEqual(db.get(main.DemoTicket,checked_id).ticket_status,"active")
-            self.assertEqual(db.get(main.DemoTicket,unknown_id).ticket_status,"active")
-            action=db.query(EventModerationLog).filter(
+            unknown=db.get(main.DemoTicket,unknown_id)
+            self.assertEqual(unknown.ticket_status,"cancelled")
+            self.assertEqual(unknown.payment_status,"paid")
+            self.assertEqual(unknown.payment_provider,"external_psp")
+            actions=db.query(EventModerationLog).filter(
                 EventModerationLog.event_id==event_id,
-                EventModerationLog.action=="remove_guest").one()
-            self.assertIn("manual_payment_review:acknowledged",action.details)
-            self.assertIn("payment_provider:organizer_direct",action.details)
+                EventModerationLog.action=="remove_guest").all()
+            self.assertEqual(len(actions),2)
+            self.assertTrue(all("payment_refund_handling:external" in log.details for log in actions))
+            self.assertTrue(any("payment_provider:organizer_direct" in log.details for log in actions))
+            self.assertTrue(any("payment_provider:external_psp" in log.details for log in actions))
 
 
 if __name__=="__main__":
