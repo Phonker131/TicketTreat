@@ -8,6 +8,7 @@ TicketTreat's global support desk. No HTML, uploads or shared guest tokens.
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
@@ -234,7 +235,9 @@ def queue_chat_notification(db: Session, thread, msg, main):
         if msg.sender_kind == "organizer" else db.get(WebAccount, owner.owner_account_id))
     if recipient and recipient.email and email_is_verified(db, recipient.id):
         queue_email(db, kind="organizer_chat", event_key=f"chat:mail:{msg.id}",
-                    recipient=recipient.email, notice_id=msg.id)
+                    recipient=recipient.email)
+        # demo_email_outbox.notice_id has a database FK to demo_event_notices.
+        # Chat message IDs are a different entity; resolve by event_key in the worker.
     if msg.sender_kind == "organizer" and tg_configured():
         identity = db.query(DemoTelegramIdentity).filter(
             DemoTelegramIdentity.guest_id == thread.guest_id).first()
@@ -415,10 +418,14 @@ def render_chat_email(row, db: Session) -> dict | None:
     from demo_accounts import WebAccount
     from demo_account_recovery import email_is_verified
     from demo_email import email_shell, card
-    if (row.kind != "organizer_chat" or row.notice_id is None
-            or row.event_key != f"chat:mail:{row.notice_id}"):
+    # A chat notification has no event notice. Its message id is encoded in
+    # the idempotent event_key, not the FK-backed notice_id column.
+    if row.kind != "organizer_chat" or row.notice_id is not None:
         return None
-    msg = db.get(EventChatMessage, row.notice_id)
+    match = re.fullmatch(r"chat:mail:([1-9][0-9]*)", row.event_key or "")
+    if match is None:
+        return None
+    msg = db.get(EventChatMessage, int(match.group(1)))
     if msg is None:
         return None
     thread = db.get(EventChatThread, msg.thread_id)
