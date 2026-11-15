@@ -134,6 +134,12 @@ class EventChatIntegration(unittest.TestCase):
             denied=client.post(f"/demo/me/events/{private_id}/chat/messages",
                                headers=member_headers,json=message("A private question"))
             self.assertEqual(denied.status_code,404)
+            # The per-guest anti-spam rule applies across different events.
+            limited=client.post(f"/demo/me/events/{private_id}/chat/messages",
+                                headers={**member_headers,"X-Event-Invite":invite},
+                                json=message("A private question"))
+            self.assertEqual(limited.status_code,429,limited.text)
+            time.sleep(2.1)
             valid=client.post(f"/demo/me/events/{private_id}/chat/messages",
                               headers={**member_headers,"X-Event-Invite":invite},
                               json=message("A private question"))
