@@ -191,6 +191,7 @@ export function AdminClient() {
     {identity&&<ul className="tp-admin-nav" aria-label={x.nav}>
       <li><Link href="/admin/analytics">{x.analytics}</Link></li>
       <li><Link href="/admin/rewards">{x.rewards}</Link></li>
+      <li><Link href="/admin/messages">{language==="cs"?"Zprávy účastníků":"Attendee messages"}</Link></li>
       <li><Link href="/admin/promotions">{language==="cs"?"Kampaně":"Campaigns"}</Link></li>
       <li><Link href="/admin/organizer-profile">{x.profile}</Link></li>
       {identity.role==="global_admin"&&<>
