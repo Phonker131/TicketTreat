@@ -110,11 +110,34 @@ def passport_for(db: Session, guest_id: int, main, *, now: datetime | None = Non
                 {"key": "vip_companion", "required_visits": 12, "available": False, "operational": False},
             ],
         })
-    result.sort(key=lambda s: (-s["season_visits"], s["organizer_name"].casefold(), s["organizer_id"]))
+    # A new user can receive an organizer VIP promotion before attending any
+    # event. Show that organizer in the passport without inventing QR visits or
+    # increasing the attendance-based tier / queue priority.
     from demo_rewards import awards_for_guest
+    from demo_promotions import benefits_for_guest
+    campaign_perks = benefits_for_guest(db, guest_id, main)
+    for promotion in campaign_perks:
+        if promotion["reward_kind"] != "vip_perk":
+            continue
+        studio = next((s for s in result if s["organizer_id"] == promotion["organizer_id"]), None)
+        if studio is None:
+            studio = {
+                "organizer_id": promotion["organizer_id"],
+                "organizer_name": promotion["organizer_name"],
+                "season_visits": 0, "lifetime_visits": 0, **tier_for(0),
+                "perks": [
+                    {"key": "priority_waitlist", "required_visits": 3, "available": False, "operational": True},
+                    {"key": "early_access", "required_visits": 6, "available": False, "operational": False},
+                    {"key": "vip_companion", "required_visits": 12, "available": False, "operational": False},
+                ],
+            }
+            result.append(studio)
+        studio["promotional_vip"] = True
+    result.sort(key=lambda s: (-s["season_visits"], s["organizer_name"].casefold(), s["organizer_id"]))
     return {"season": season, "season_starts_at": start.isoformat(), "season_ends_at": end.isoformat(),
             "scope": "per_organizer", "studios": result, "total_lifetime_visits": sum(x["lifetime_visits"] for x in result),
-            "awards": awards_for_guest(db, guest_id, main)}
+            "awards": awards_for_guest(db, guest_id, main),
+            "campaign_perks": campaign_perks}
 
 
 def priority_waitlist_entry(db: Session, event, main):

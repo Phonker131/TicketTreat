@@ -70,6 +70,7 @@ from demo_waitlist_offers import WaitlistOffer, offer_count, maybe_offer_next, e
 from demo_pilot_ops import EventPilotSettings, EventCheckinStaff, booking_cutoff_reached, install_pilot_ops
 from demo_organizer_analytics import install_organizer_analytics
 from demo_rewards import OrganizerReward, RewardGrant, install_rewards_api
+from demo_promotions import Promotion, PromotionClaim, install_promotions_api
 
 
 # =========================================================
@@ -3524,6 +3525,7 @@ install_paid_expiry_worker(app, SessionLocal, __import__('sys').modules[__name__
 install_pilot_ops(app, get_db, __import__('sys').modules[__name__])
 install_organizer_analytics(app, get_db, __import__("sys").modules[__name__])
 install_rewards_api(app, get_db, __import__("sys").modules[__name__])
+install_promotions_api(app, get_db, __import__("sys").modules[__name__])
 install_broadcast_api(app, get_db, __import__("sys").modules[__name__])
 install_broadcast_worker(app, SessionLocal)
 # Operational cancellations, changes and reminders use a separate durable queue.
