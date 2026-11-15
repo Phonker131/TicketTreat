@@ -13,6 +13,7 @@ import "./brandbook-fidelity.css";
 import "./premium.css";
 import "./auth-providers.css";
 import "./promotions.css";
+import "./event-chat.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { MotionProvider } from "@/components/MotionProvider";

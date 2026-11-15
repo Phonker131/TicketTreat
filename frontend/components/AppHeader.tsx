@@ -83,6 +83,7 @@ export function AppHeader() {
         }}>
           <Link href={homepage} aria-current={isCurrent("/") ? "page" : undefined}>{t(language, "home")}</Link>
           <Link href="/tickets" aria-current={isCurrent("/tickets") ? "page" : undefined}>{t(language, "tickets")}</Link>
+          <Link href="/messages" aria-current={isCurrent("/messages") ? "page" : undefined}>{language==="cs"?"Zprávy":"Messages"}</Link>
            <Link href="/organizers" aria-current={isCurrent("/organizers") ? "page" : undefined}>{language==="ru"?"Организаторы":language==="cs"?"Pořadatelé":language==="uk"?"Організатори":"Organizers"}</Link>
           <Link href="/loyalty" aria-current={isCurrent("/loyalty") ? "page" : undefined}>{language==="ru"?"Награды":language==="cs"?"Odměny":language==="uk"?"Нагороди":"Rewards"}</Link>
           <Link href="/profile" aria-current={isCurrent("/profile") ? "page" : undefined}>{t(language, "profile")}</Link>

@@ -4,6 +4,13 @@ import type {LanguageCode} from "@/lib/types";
  * Keep operational errors separate from mistakes the visitor can correct.
  */
 const MESSAGES: Record<string,Record<LanguageCode,string>> = { 
+  "chat_daily_limit": {en:"You reached today's chat message limit. Try again tomorrow.",cs:"Dnes jste dosáhli limitu zpráv. Zkuste to zítra.",ru:"Вы достигли дневного лимита сообщений. Попробуйте завтра.",uk:"Ви досягли денного ліміту повідомлень. Спробуйте завтра."},
+  "chat_slow_down": {en:"You're sending messages too quickly. Try again in a moment.",cs:"Zprávy odesíláte příliš rychle. Zkuste to za chvíli.",ru:"Вы отправляете сообщения слишком часто. Повторите чуть позже.",uk:"Ви надсилаєте повідомлення надто часто. Спробуйте трохи пізніше."},
+  "chat_invalid_message": {en:"Write 2–2000 characters to send a message.",cs:"Napište zprávu dlouhou 2–2000 znaků.",ru:"Сообщение должно содержать от 2 до 2000 символов.",uk:"Повідомлення має містити від 2 до 2000 символів."},
+  "conversation_closed": {en:"This conversation is closed. The organizer can reopen it.",cs:"Konverzace je uzavřená. Pořadatel ji může znovu otevřít.",ru:"Диалог закрыт. Организатор может открыть его заново.",uk:"Діалог закрито. Організатор може відкрити його знову."},
+  "organizer_chat_unavailable": {en:"Chat is not available for this event yet.",cs:"Chat pro tuto akci zatím není dostupný.",ru:"Чат этого события пока недоступен.",uk:"Чат цієї події поки недоступний."},
+  "conversation_not_found": {en:"This conversation was not found or is no longer accessible.",cs:"Konverzace nebyla nalezena nebo k ní nemáte přístup.",ru:"Диалог не найден или больше недоступен.",uk:"Діалог не знайдено або він більше недоступний."},
+
   "checked_in_ticket_cannot_be_removed":{
     "en":"This guest has already checked in. Their visit must stay in the event history.",
     "cs":"Host již prošel odbavením. Jeho návštěva musí zůstat v historii akce.",
