@@ -119,6 +119,8 @@ def validate(payload: CreatePromotion, db: Session, account, main):
     title, reward_title = payload.title.strip(), payload.reward_title.strip()
     if len(title) < 3 or len(reward_title) < 3:
         raise HTTPException(422, "promotion_title_too_short")
+    if payload.reward_kind == "vip_perk" and not payload.reward_details.strip():
+        raise HTTPException(422, "promotion_vip_benefit_terms_required")
     start, end, expires = utc(payload.starts_at), utc(payload.ends_at), utc(payload.benefit_expires_at)
     if start is None or end is None or (end - start).total_seconds() <= 0 or (end - start).total_seconds() > 31 * 86400:
         raise HTTPException(422, "promotion_window_invalid")
