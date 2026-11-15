@@ -798,7 +798,7 @@ export type LoyaltyTier = "newcomer"|"regular"|"insider"|"vip";
 export type LoyaltyStudio = {
   organizer_id:number;organizer_name:string;
   season_visits:number;lifetime_visits:number;
-  tier:LoyaltyTier;threshold:number;next_threshold:number|null;
+  tier:LoyaltyTier;promotional_vip?:boolean;threshold:number;next_threshold:number|null;
   remaining:number;progress_percent:number;
   perks:{key:string;required_visits:number;available:boolean;operational:boolean}[];
 };
