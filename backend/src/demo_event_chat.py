@@ -42,6 +42,7 @@ class EventChatThread(Base):
     __table_args__ = (
         UniqueConstraint("event_id", "guest_id", name="uq_tt_event_chat_guest"),
         CheckConstraint("status IN ('open','closed')", name="ck_tt_chat_status"),
+        CheckConstraint("(status='open' AND closed_at IS NULL AND closed_by IS NULL) OR (status='closed' AND closed_at IS NOT NULL AND closed_by IS NOT NULL)", name="ck_tt_chat_closed"),
     )
 
     id = Column(Integer, primary_key=True)
@@ -64,6 +65,7 @@ class EventChatMessage(Base):
         UniqueConstraint("thread_id", "sender_kind", "client_nonce", name="uq_tt_event_chat_send"),
         CheckConstraint("sender_kind IN ('participant','organizer')", name="ck_tt_chat_sender"),
         CheckConstraint("length(btrim(body)) BETWEEN 2 AND 2000", name="ck_tt_chat_body"),
+        CheckConstraint("(sender_kind='participant' AND sender_account_id IS NULL) OR (sender_kind='organizer' AND sender_account_id IS NOT NULL)", name="ck_tt_chat_author"),
     )
 
     id = Column(Integer, primary_key=True)
@@ -406,3 +408,47 @@ def install_event_chat_api(app, get_db, main):
         locked.closed_by = staff.id if payload.closed else None
         db.commit()
         return {"status": locked.status}
+
+
+def render_chat_email(row, db: Session) -> dict | None:
+    """No user-entered chat body in email; sender, recipient and link rechecked."""
+    from demo_accounts import WebAccount
+    from demo_account_recovery import email_is_verified
+    from demo_email import email_shell, card
+    if (row.kind != "organizer_chat" or row.notice_id is None
+            or row.event_key != f"chat:mail:{row.notice_id}"):
+        return None
+    msg = db.get(EventChatMessage, row.notice_id)
+    if msg is None:
+        return None
+    thread = db.get(EventChatThread, msg.thread_id)
+    owner = db.get(EventOwnership, thread.event_id) if thread else None
+    if thread is None or owner is None:
+        return None
+    if msg.sender_kind == "organizer":
+        account = db.query(WebAccount).filter(WebAccount.guest_id == thread.guest_id).first()
+        url = f"https://tickettreat.eu/messages?thread={thread.id}"
+        title = "New reply from your event organizer"
+        lead = "The organizer replied to your TicketTreat event conversation."
+    else:
+        account = db.get(WebAccount, owner.owner_account_id)
+        url = f"https://tickettreat.eu/admin/messages?thread={thread.id}"
+        title = "New participant message"
+        lead = "A participant wrote to you about an event you manage."
+    if (account is None or not account.email or not email_is_verified(db, account.id)
+            or account.email.strip().casefold() != row.recipient.strip().casefold()):
+        return None
+    import main
+    event = db.get(main.Event, thread.event_id)
+    if event is None:
+        return None
+    details = card("Event", str(event.title or "Event")[:120])
+    return {
+        "from": os.environ["EMAIL_FROM"].strip(),
+        "to": [row.recipient],
+        "subject": "[TicketTreat] " + title,
+        "html": email_shell(title, lead, details, url, "Open conversation",
+                            "Sign in to respond. Do not share payment or account secrets in chat.",
+                            "TicketTreat event conversation notification."),
+        "text": f"{title}\n\n{lead}\nEvent: {str(event.title or 'Event')[:120]}\n\nOpen: {url}\n",
+    }
