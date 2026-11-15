@@ -69,6 +69,7 @@ class EventChatIntegration(unittest.TestCase):
             invite=invite_for(db,private.id).invite_token
             event_id,private_id,draft_id,foreign_id=event.id,private.id,draft.id,foreign.id
             guest_id=guest.id
+            member_email=member.email
             db.commit()
 
         with TestClient(main.app) as client:
@@ -104,7 +105,7 @@ class EventChatIntegration(unittest.TestCase):
             self.assertEqual(inbox.json()["unread"],1)
             self.assertNotIn("qr_token",inbox.text)
             self.assertNotIn("access_token",inbox.text)
-            self.assertNotIn(member.email,inbox.text)
+            self.assertNotIn(member_email,inbox.text)
             self.assertEqual(client.post(f"/demo/manage/chats/{thread_id}/read",headers=own_headers).status_code,200)
             self.assertFalse(client.get(f"/demo/manage/chats/{thread_id}",headers=own_headers).json()["thread"]["unread"])
             reply=client.post(f"/demo/manage/chats/{thread_id}/messages",headers=own_headers,
@@ -120,7 +121,7 @@ class EventChatIntegration(unittest.TestCase):
             self.assertFalse(client.get(f"/demo/me/chats/{thread_id}",headers=member_headers).json()["thread"]["unread"])
             # Each message idempotency key cannot be replayed to bypass daily quota.
             repeated=client.post(f"/demo/manage/chats/{thread_id}/messages",headers=own_headers,
-                                 json=reply.request.content and message("Another staff reply"))
+                                 json=message("Another staff reply"))
             self.assertIn(repeated.status_code,(201,429))
             closed=client.post(f"/demo/manage/chats/{thread_id}/status",
                                headers=own_headers,json={"closed":True})
