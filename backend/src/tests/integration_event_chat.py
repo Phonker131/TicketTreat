@@ -6,6 +6,7 @@ import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -38,6 +39,67 @@ def message(text):
 
 
 class EventChatIntegration(unittest.TestCase):
+    def test_email_outbox_chat_id_does_not_violate_event_notice_fk(self):
+        """Regression: real migrated email outbox has notice_id FK to event notices."""
+        from demo_email import EmailOutbox, render_email
+        with SessionLocal() as db:
+            owner, _, pw, owner_headers = account_with_session(db, "organizer")
+            guest_account, _, _, member_headers = account_with_session(db)
+            event = main.Event(
+                title="Chat FK regression " + secrets.token_hex(4),
+                organizer="Amber Events", location="Prague",
+                starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=5),
+                max_participants=10, currency="CZK", price=Decimal("0"),
+            )
+            db.add(event)
+            db.flush()
+            event_id = event.id
+            db.add(EventOwnership(event_id=event_id, owner_account_id=owner.id))
+            db.commit()
+
+        # Bypass Resend configuration checks for enqueue only, not live sending.
+        # The isolated test DB applies migrations including demo_email_outbox FK.
+        with TestClient(main.app) as client:
+            enroll_mfa(client, owner_headers, pw)
+            with patch("demo_email.configured", return_value=True):
+                first = client.post(
+                    f"/demo/me/events/{event_id}/chat/messages",
+                    headers=member_headers,
+                    json=message("I have a question about event tickets"),
+                )
+                self.assertEqual(first.status_code, 201, first.text)
+                mid = first.json()["message"]["id"]
+                thread_id = client.get("/demo/me/chats", headers=member_headers).json()["threads"][0]["id"]
+                with SessionLocal() as db:
+                    mail = db.query(EmailOutbox).filter(EmailOutbox.event_key == f"chat:mail:{mid}").one()
+                    self.assertIsNone(mail.notice_id)
+                    self.assertEqual(mail.kind, "organizer_chat")
+                    with patch.dict(os.environ, {"EMAIL_FROM": "notify@tickettreat.eu"}):
+                        rendered = render_email(mail, db)
+                    self.assertIsNotNone(rendered)
+                    self.assertIn("New participant message", rendered["subject"])
+                    self.assertIn(f"/admin/messages?thread={thread_id}", rendered["html"])
+                reply = client.post(
+                    f"/demo/manage/chats/{thread_id}/messages",
+                    headers=owner_headers,
+                    json=message("You are welcome, ask any question here"),
+                )
+                self.assertEqual(reply.status_code, 201, reply.text)
+                reply_id = reply.json()["message"]["id"]
+                with SessionLocal() as db:
+                    mail = db.query(EmailOutbox).filter(
+                        EmailOutbox.event_key == f"chat:mail:{reply_id}").one()
+                    self.assertIsNone(mail.notice_id)
+                    with patch.dict(os.environ, {"EMAIL_FROM": "notify@tickettreat.eu"}):
+                        rendered = render_email(mail, db)
+                    self.assertIsNotNone(rendered)
+                    self.assertIn("New reply", rendered["subject"])
+                    self.assertIn(f"/messages?thread={thread_id}", rendered["html"])
+                    # A forged/malformed email key cannot resolve an arbitrary message.
+                    mail.event_key = "chat:mail:invalid"
+                    self.assertIsNone(render_email(mail, db))
+                    db.rollback()
+
     def test_scope_private_invites_delivery_idempotency_read_close_and_history(self):
         with SessionLocal() as db:
             organizer, _, password, own_headers = account_with_session(db,"organizer")

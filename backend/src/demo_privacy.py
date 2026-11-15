@@ -225,9 +225,13 @@ def install_privacy_routes(app, get_db, main):
             message_ids=[mid for (mid,) in db.query(EventChatMessage.id).filter(
                 EventChatMessage.thread_id.in_(chat_ids)).all()]
             if message_ids:
-                db.query(EmailOutbox).filter(
-                    EmailOutbox.kind=="organizer_chat",
-                    EmailOutbox.notice_id.in_(message_ids)).delete(synchronize_session=False)
+                # Email notifications encode the chat message ID in event_key.
+                # notice_id is reserved by a database FK for event notices.
+                for offset in range(0,len(message_ids),300):
+                    keys=[f"chat:mail:{mid}" for mid in message_ids[offset:offset+300]]
+                    db.query(EmailOutbox).filter(
+                        EmailOutbox.kind=="organizer_chat",
+                        EmailOutbox.event_key.in_(keys)).delete(synchronize_session=False)
                 db.query(TelegramNotificationOutbox).filter(
                     TelegramNotificationOutbox.kind=="organizer_chat",
                     TelegramNotificationOutbox.notice_id.in_(message_ids)).delete(synchronize_session=False)
