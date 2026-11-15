@@ -11,6 +11,7 @@ import {
 const copy = {
   ru: {
     title:"Cookies и конфиденциальность",
+    summary:"Необходимые cookies помогают войти. Карты Google включаются только с разрешения; рекламы и аналитики нет.",
     intro:"Необходимые cookies помогают войти в аккаунт и пользоваться TicketTreat. Если разрешишь дополнительные cookies, на страницах событий смогут загружаться карты Google. Рекламных и аналитических cookies у нас нет.",
     accept:"Принять все", reject:"Только необходимые", settings:"Настроить",
     optionsTitle:"Настройки cookies",
@@ -22,6 +23,7 @@ const copy = {
   },
   en: {
     title:"Cookies and privacy",
+    summary:"Essential cookies help you sign in. Google Maps loads only with permission; no ads or analytics.",
     intro:"Essential cookies help you sign in and use TicketTreat. If you allow optional cookies, event pages can load Google Maps. We don't use advertising or analytics cookies.",
     accept:"Accept all", reject:"Essential only", settings:"Customize",
     optionsTitle:"Cookie preferences",
@@ -33,6 +35,7 @@ const copy = {
   },
   cs: {
     title:"Cookies a ochrana soukromí",
+    summary:"Nezbytné cookies slouží k přihlášení. Mapy Google se načtou jen se souhlasem; bez reklam a analytiky.",
     intro:"Nezbytné cookies slouží k přihlášení a používání TicketTreat. Pokud povolíte volitelné cookies, na stránkách akcí se mohou zobrazit Mapy Google. Reklamní ani analytické cookies nepoužíváme.",
     accept:"Přijmout vše",reject:"Jen nezbytné",settings:"Nastavit",
     optionsTitle:"Nastavení cookies",
@@ -44,6 +47,7 @@ const copy = {
   },
   uk: {
     title:"Cookies і конфіденційність",
+    summary:"Необхідні cookies потрібні для входу. Карти Google — лише з дозволу; реклами й аналітики немає.",
     intro:"Необхідні cookies допомагають входити в акаунт і користуватися TicketTreat. Якщо дозволиш додаткові cookies, на сторінках подій зможуть завантажуватися карти Google. Рекламних та аналітичних cookies у нас немає.",
     accept:"Прийняти всі",reject:"Лише необхідні",settings:"Налаштувати",
     optionsTitle:"Налаштування cookies",
@@ -102,13 +106,14 @@ export function CookieConsentBanner() {
     setEditing(false);
   };
   if (!loaded || (choice && !editing)) return null;
-  return <aside className="tt-consent-banner" aria-label={tr.title} data-testid="tt-cookie-banner">
+  return <aside className="tt-consent-banner" aria-label={tr.title} data-testid="tt-cookie-banner" data-editing={editing ? "true" : "false"}>
     <div className="tt-consent-inner">
       <div className="tt-consent-heading">
         <h2 id="tt-consent-title">{editing ? tr.optionsTitle : tr.title}</h2>
         {choice && editing && <button type="button" className="tt-consent-close" onClick={() => setEditing(false)} aria-label={tr.close}>×</button>}
       </div>
       <p className="tt-consent-description">{tr.intro}</p>
+      {!editing && <p className="tt-consent-mobile-summary">{tr.summary}</p>}
       {editing && <div className="tt-consent-categories">
         <div className="tt-consent-category">
           <div><strong>{tr.necessary}</strong><p>{tr.necessaryInfo}</p></div>
@@ -127,6 +132,7 @@ export function CookieConsentBanner() {
         <p className="tt-consent-no-trackers">{tr.noTracking}</p>
       </div>}
       <p className="tt-consent-hint">{tr.hint} <Link href="/cookie-policy">{tr.policy}</Link></p>
+      {!editing && <Link href="/cookie-policy" className="tt-consent-mobile-policy">{tr.policy}</Link>}
       <div className="tt-consent-actions">
         <button type="button" className="tt-consent-decision is-accept" onClick={() => decide(true)}>{tr.accept}</button>
         <button type="button" className="tt-consent-decision is-essential" onClick={() => decide(false)}>{tr.reject}</button>
