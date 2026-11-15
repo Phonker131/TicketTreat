@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -39,6 +39,14 @@ def iso(value: datetime | None) -> str | None:
 
 class Promotion(Base):
     __tablename__ = "demo_promo_campaigns"
+    __table_args__ = (
+        CheckConstraint("trigger IN ('account_signup','event_booking','instagram_follow')",name="ck_promo_trigger"),
+        CheckConstraint("reward_kind IN ('vip_perk','badge','other')",name="ck_promo_reward"),
+        CheckConstraint("status IN ('draft','active','paused')",name="ck_promo_status"),
+        CheckConstraint("ends_at > starts_at AND ends_at <= starts_at + interval '31 days'",name="ck_promo_window"),
+        CheckConstraint("benefit_expires_at IS NULL OR benefit_expires_at > ends_at",name="ck_promo_benefit_expiry"),
+        CheckConstraint("(trigger='event_booking' AND event_id IS NOT NULL) OR (trigger<>'event_booking' AND event_id IS NULL)",name="ck_promo_event_scope"),
+    )
 
     id = Column(Integer, primary_key=True)
     owner_account_id = Column(Integer, ForeignKey("demo_web_accounts.id"), nullable=False, index=True)
@@ -62,7 +70,11 @@ class Promotion(Base):
 
 class PromotionClaim(Base):
     __tablename__ = "demo_promo_claims"
-    __table_args__ = (UniqueConstraint("campaign_id", "account_id", name="uq_promo_claim_account"),)
+    __table_args__ = (
+        UniqueConstraint("campaign_id", "account_id", name="uq_promo_claim_account"),
+        CheckConstraint("status IN ('pending','approved','rejected')",name="ck_promo_claim_status"),
+        CheckConstraint("(status='pending' AND reviewed_at IS NULL AND reviewed_by IS NULL) OR (status<>'pending' AND reviewed_at IS NOT NULL AND reviewed_by IS NOT NULL)",name="ck_promo_claim_review"),
+    )
 
     id = Column(Integer, primary_key=True)
     campaign_id = Column(Integer, ForeignKey("demo_promo_campaigns.id"), nullable=False, index=True)
