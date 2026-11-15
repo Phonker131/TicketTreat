@@ -1,0 +1,51 @@
+/* Organizer campaigns: shared desktop, mobile browser and Telegram Mini App layout. */
+.tt-promo-page{max-width:1170px!important;min-width:0}
+.tt-promo-page .section-heading{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin:18px 0}
+.tt-promo-page .section-heading h1,.tt-promo-page .section-heading h2{line-height:1.04;overflow-wrap:anywhere}
+.tt-promo-page .section-heading p{margin:8px 0 0;max-width:70ch}
+.tt-promo-page .panel{background:var(--tp-surf,var(--surface))!important;color:var(--tp-fg,var(--fg))!important;border:1px solid var(--tp-line,var(--edge))!important;box-shadow:none!important;border-radius:20px!important;min-width:0}
+.tt-promo-note{max-width:880px;margin:0 0 22px!important;line-height:1.55!important}
+.tt-promo-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+.tt-promo-actions .button{max-width:100%;min-height:42px;white-space:normal;text-align:center;padding:9px 15px}
+.tt-promo-editor{margin:20px 0 28px;padding:clamp(18px,3vw,28px)!important}
+.tt-promo-editor h2{font-size:clamp(25px,4vw,38px);margin:0 0 18px}
+.tt-promo-editor .form-stack{display:grid;gap:14px}
+.tt-promo-editor label,.tt-promo-claim-form label{min-width:0;display:grid;gap:7px;font-weight:650;line-height:1.3}
+.tt-promo-editor input,.tt-promo-editor select,.tt-promo-editor textarea,
+.tt-promo-claim-form input{width:100%;min-width:0;max-width:100%;font:500 15px/1.35 var(--u,system-ui);padding:11px 12px;border-radius:12px;border:1px solid var(--tp-line,var(--edge));background:var(--tp-bg,var(--bg));color:var(--tp-fg,var(--fg));box-sizing:border-box}
+.tt-promo-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.tt-promo-editor textarea{resize:vertical}
+.tt-promo-editor .form-note{margin:0!important}
+.tt-promo-list{margin-top:28px}
+.tt-promo-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:15px}
+.tt-promo-card{padding:22px!important;display:flex;flex-direction:column;gap:13px}
+.tt-promo-card h2,.tt-promo-card h3{font:900 clamp(29px,4vw,40px)/.99 var(--d,system-ui);text-transform:uppercase;overflow-wrap:anywhere;margin:6px 0 0;color:var(--tp-fg,var(--fg))!important}
+.tt-promo-card>p{margin:0;color:var(--tp-mute,var(--muted));font:400 15px/1.5 var(--u,system-ui);overflow-wrap:anywhere}
+.tt-promo-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0}
+.tt-promo-card-top>div{min-width:0;flex:1}
+.tt-promo-card-top small,.tt-promo-kicker{color:var(--tp-mute,var(--muted));font:650 12px/1.3 var(--u,system-ui)}
+.tt-promo-card-top>.status{flex:none;max-width:36%;text-align:center;overflow-wrap:anywhere}
+.tt-promo-metrics{display:grid;gap:7px;padding:12px 0;border-top:1px solid var(--tp-line,var(--edge));border-bottom:1px solid var(--tp-line,var(--edge));font:500 13px/1.45 var(--u,system-ui);color:var(--tp-fg,var(--fg))}
+.tt-promo-metrics span{overflow-wrap:anywhere}
+.tt-promo-claims{display:grid;gap:11px;margin-top:4px;padding:14px;background:var(--tp-bg,var(--bg));border-radius:14px;min-width:0}
+.tt-promo-claims h4{margin:0}
+.tt-promo-claim{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--tp-line,var(--edge));padding-top:10px}
+.tt-promo-claim p{font:500 13px/1.35 var(--u,system-ui);margin:5px 0 0;overflow-wrap:anywhere}
+.tt-promo-claim-form{display:grid;gap:11px}
+.tt-promo-claim-form .form-note{margin:0}
+.tt-promo-claim-status{padding:11px 13px;border:1px solid var(--tp-line,var(--edge));border-radius:12px;font:650 14px/1.4 var(--u,system-ui)}
+.tt-promo-claim-status p{margin:5px 0 0}
+.tt-promo-passport{margin-bottom:24px}
+.tt-promo-passport-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}
+.tt-promo-passport-item{display:grid;gap:7px;min-width:0;padding:16px;border:1px solid var(--tp-line,var(--edge));border-radius:14px;background:var(--tp-bg,var(--bg))}
+.tt-promo-passport-item strong{font-size:17px;overflow-wrap:anywhere}
+.tt-promo-passport-item span,.tt-promo-passport-item p{font-size:13px;line-height:1.5;margin:0}
+@media(max-width:700px){
+ .tt-promo-page .section-heading{gap:10px}
+ .tt-promo-fields{grid-template-columns:minmax(0,1fr)}
+ .tt-promo-page{padding-inline:max(16px,env(safe-area-inset-left))!important}
+ .tt-promo-card{padding:17px!important}
+ .tt-promo-editor{padding:17px!important}
+ .tt-promo-actions{gap:7px}
+ .tt-promo-actions .button{font-size:13px;min-height:44px}
+}
