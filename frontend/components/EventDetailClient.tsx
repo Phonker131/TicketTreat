@@ -16,6 +16,7 @@ import { LANGUAGE_NAMES, t } from "@/lib/i18n";
 import {eventTags,TAG_LABELS} from "@/lib/event-tags";
 import type { TicketTreatEvent } from "@/lib/types";
 import {PageFaq} from "@/components/premium/PageFaq";
+import {EventOrganizerChat} from "@/components/EventChatClient";
 
 export function EventDetailClient({preview=false,initialEvent=null}:{preview?:boolean;initialEvent?:TicketTreatEvent|null}) {
   const params = useParams<{id: string}>();
