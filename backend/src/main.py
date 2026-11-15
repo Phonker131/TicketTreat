@@ -71,6 +71,7 @@ from demo_pilot_ops import EventPilotSettings, EventCheckinStaff, booking_cutoff
 from demo_organizer_analytics import install_organizer_analytics
 from demo_rewards import OrganizerReward, RewardGrant, install_rewards_api
 from demo_promotions import Promotion, PromotionClaim, install_promotions_api
+from demo_event_chat import EventChatThread, EventChatMessage, install_event_chat_api
 
 
 # =========================================================
@@ -3526,6 +3527,7 @@ install_pilot_ops(app, get_db, __import__('sys').modules[__name__])
 install_organizer_analytics(app, get_db, __import__("sys").modules[__name__])
 install_rewards_api(app, get_db, __import__("sys").modules[__name__])
 install_promotions_api(app, get_db, __import__("sys").modules[__name__])
+install_event_chat_api(app, get_db, __import__("sys").modules[__name__])
 install_broadcast_api(app, get_db, __import__("sys").modules[__name__])
 install_broadcast_worker(app, SessionLocal)
 # Operational cancellations, changes and reminders use a separate durable queue.
