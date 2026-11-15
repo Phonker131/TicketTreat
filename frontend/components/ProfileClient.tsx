@@ -1,4 +1,5 @@
 "use client";
+import {ProfileAwards} from "@/components/ProfileAwards";
 
 import Link from "next/link";
 import {takeBooking} from "@/lib/booking-return";
@@ -827,6 +828,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
             {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
             <div id="profile-panel-overview" role="tabpanel" aria-labelledby="profile-tab-overview" hidden={activeTab !== "overview"}>
               <section className="panel form-stack">
+              <ProfileAwards/>
               <div className="profile-facts">
                 <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
                 <div className="profile-fact"><span>{language==="ru"?"Мои награды":language==="cs"?"Moje odměny":language==="uk"?"Мої нагороди":"My rewards"}</span><Link href="/loyalty" className="button button-outline">→ {language==="ru"?"Паспорт":language==="cs"?"Pas":language==="uk"?"Паспорт":"Passport"}</Link></div>

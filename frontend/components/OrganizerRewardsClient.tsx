@@ -158,9 +158,10 @@ export function OrganizerRewardsClient(){
     if(!createEvent)return;
     setBusy(true);setError("");setNotice("");
     try{
-      await createOrganizerReward({
+      const created=await createOrganizerReward({
         event_id:Number(createEvent),title:title.trim(),description:description.trim(),kind,
       });
+      setAwardEvent(createEvent);setRewardId(String(created.id));setTicketId("");
       setTitle("");setDescription("");setNotice(t.saved);
       setData(await getOrganizerRewards());
     }catch(cause){setError(userFacingError(cause,language));}
@@ -198,9 +199,14 @@ export function OrganizerRewardsClient(){
     {notice&&<p className="success-banner" role="status">{notice}</p>}
     {loading?<div className="state-card" role="status">{t.loading}</div>:data&&<>
       <p className="form-note">{t.privacy}</p>
+      <section className="panel"><h2>{language==="cs"?"Jak odměny fungují":"How rewards work"}</h2><ol>
+        <li>{language==="cs"?"Vytvořte odznak, ocenění nebo výhodu pro svého pořadatele.":"Create a badge, recognition or benefit for your organizer."}</li>
+        <li>{language==="cs"?"Na akci odbavte hosta QR skenerem. Poté vyberte akci, hosta a odměnu.":"Check the guest in with the QR scanner. Then select the event, guest and reward."}</li>
+        <li>{language==="cs"?"Udělená odměna se objeví v profilu a pasu hosta.":"The award appears in the guest’s profile and passport."}</li>
+      </ol><p>{language==="cs"?"Úrovně za návštěvy se počítají automaticky: 3 / 6 / 12 QR návštěv za čtvrtletí u jednoho pořadatele. Ruční odměny tyto počty nemění.":"Attendance tiers are automatic: 3 / 6 / 12 QR check-ins per quarter with one organizer. Manual awards do not change these counts."}</p></section>
       <div className="tt-reward-admin-grid">
         <section className="panel">
-          <h2>{t.create}</h2><p className="form-note">{t.createHelp}</p>
+          <h2>1. {t.create}</h2><p className="form-note">{t.createHelp}</p>
           {data.events.length===0?<p>{t.noEvents}</p>:
           <form className="form-stack" onSubmit={create}>
             <label>{t.event}<select value={createEvent} required onChange={e=>setCreateEvent(e.target.value)}>
@@ -222,7 +228,7 @@ export function OrganizerRewardsClient(){
           </form>}
         </section>
         <section className="panel">
-          <h2>{t.issuing}</h2>
+          <h2>2. {t.issuing}</h2>
           {data.events.length===0?<p>{t.noEvents}</p>:
           <form className="form-stack" onSubmit={grant}>
             <label>{t.event}<select value={awardEvent} onChange={e=>{setAwardEvent(e.target.value);setRewardId("");setTicketId("");}}>

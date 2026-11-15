@@ -1,19 +1,21 @@
 "use client";
 import Link from "next/link";
+import {OrganizerRules} from "@/components/OrganizerRules";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {eventAdminText} from "@/lib/event-admin-i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { ReminderEditor } from "@/components/ReminderEditor";
-import { addManageEvent, getManageEvents, getManageMe, getSupportSummary } from "@/lib/api";
+import { uploadManageGalleryPhoto, addManageEvent, getManageEvents, getManageMe, getSupportSummary } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import {localeForLanguage} from "@/lib/i18n";
 import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag} from "@/lib/event-tags";
 import type { LanguageCode, ManageEvent, ManageIdentity } from "@/lib/types";
 
+class LocalValidationError extends Error {}
 function errorText(e: unknown,language:LanguageCode): string {
-  return userFacingError(e,language);
+  return e instanceof LocalValidationError?e.message:userFacingError(e,language);
 }
 function readPoster(file: File): Promise<string> {
   return new Promise((resolve,reject)=>{
@@ -131,6 +133,13 @@ export function AdminClient() {
       const starts=String(data.get("starts_at")||"");
       if(!starts)throw new Error("event_start_required");
       if(!reminderMinutes.length||!reminderMessage.trim())throw new Error("reminder_settings_required");
+      const photos=data.getAll("gallery_files").filter((f):f is File=>f instanceof File&&f.size>0);
+      const urls=String(data.get("gallery_urls")||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      if(photos.length+urls.length>8)throw new LocalValidationError(language==="cs"?"Maximálně 8 fotografií.":"Choose at most 8 photos in total.");
+      for(const f of photos){
+        if(f.size>2*1024*1024||!["image/jpeg","image/png","image/webp"].includes(f.type))
+          throw new LocalValidationError(language==="cs"?"Fotografie: JPG, PNG nebo WebP, do 2 MB.":"Photos must be JPG, PNG or WebP, up to 2 MB each.");
+      }
       const event=await addManageEvent(token,{
         title:String(data.get("title")||"").trim(),
         visibility:data.get("visibility")==="link_only"?"link_only":"public",
@@ -149,6 +158,16 @@ export function AdminClient() {
         reminder_minutes:reminderMinutes,reminder_text:reminderMessage.trim(),
       });
       setEvents(current=>[event,...current]);
+      // The draft already exists: never leave a create form that can duplicate it on retry.
+      let failedPhotos=0;
+      for(const photo of photos){
+        try{await uploadManageGalleryPhoto(token,event.id,await readPoster(photo));}
+        catch{failedPhotos++;}
+      }
+      if(failedPhotos){
+        window.location.assign(`/admin/events/${event.id}?photo_upload_failed=${failedPhotos}`);
+        return;
+      }
       form.reset();setPreview("");setShowForm(false);
       setReminderMinutes([10080,1440,180]);setReminderMessage(tr("Your TicketTreat event starts soon."));setNotice("msg:created");
     }catch(e){setError(errorText(e,language));}
@@ -265,11 +284,13 @@ export function AdminClient() {
               onChange={e=>{const f=e.target.files?.[0];if(!f){setPreview("");return;}if(f.size>4*1024*1024){setError("msg:tooBig");return;}const url=URL.createObjectURL(f);setPreview(url);}}/>
               <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
             {preview&&<img className="event-poster-preview" src={preview} alt="Poster preview"/>}
+            <label>{language==="cs"?"Nahrát fotografie z zařízení":"Upload photos from your device"}<input name="gallery_files" type="file" multiple accept="image/jpeg,image/png,image/webp"/>
+              <small className="tp-field-hint">{language==="cs"?"JPG, PNG, WebP · do 2 MB za fotografii · celkem nejvýše 8 fotografií včetně odkazů.":"JPG, PNG, WebP · up to 2 MB each · 8 photos total, including links."}</small></label>
             <label>{ui.photo}<textarea name="gallery_urls" rows={3} placeholder="https://example.com/event-photo.jpg"/></label>
             <label>{ui.video}<input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=…"/></label>
           </section>
           <section className="tp-form-section is-wide">
-            <h3>{x.access}</h3>
+            <h3>{x.access}</h3><OrganizerRules/>
             <label>{x.visibility}
               <select name="visibility" defaultValue="public">
                 <option value="public">{x.publicOpt}</option>

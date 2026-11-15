@@ -185,7 +185,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
           </section>
         )}
             {event.description && <p className="event-description">{event.description}</p>}
-        {(galleryUrls.length>0 || event.video_url) && <details className="panel"><summary>{({en:"Photos and video",cs:"Fotografie a video",ru:"Фото и видео",uk:"Фото та відео"})[language]}</summary>
+        {(galleryUrls.length>0 || event.video_url) && <details open className="panel"><summary>{({en:"Photos and video",cs:"Fotografie a video",ru:"Фото и видео",uk:"Фото та відео"})[language]}</summary>
           <div className="event-media-gallery">{galleryUrls.map((url,index)=><a key={url+index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Event gallery photo ${index+1}`} loading="lazy" referrerPolicy="no-referrer"/></a>)}</div>
         {event.video_url && <>
           <a className="button button-outline" href={event.video_url} target="_blank" rel="noopener noreferrer">

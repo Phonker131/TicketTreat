@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import {OrganizerRules} from "@/components/OrganizerRules";
 import {useRouter} from "next/navigation";
 import QRCode from "qrcode";
 import { useParams } from "next/navigation";
@@ -76,6 +77,10 @@ export function AdminEventClient(){
   const [organizers,setOrganizers]=useState<OrganizerIdentity[]>([]);
   const [audit,setAudit]=useState<{action:string;details:string;actor_account_id:number;at:string}[]>([]);
   const [error,setError]=useState(""),[notice,setNotice]=useState("");
+  useEffect(()=>{
+    if(new URLSearchParams(window.location.search).has("photo_upload_failed"))
+      setError(language==="cs"?"Koncept je uložen, ale některé fotografie se nepodařilo nahrát. Zkontrolujte galerii níže a nahrajte chybějící soubory znovu.":"Your draft is saved, but some photos could not be uploaded. Check the gallery below and upload the missing files again.");
+  },[language]);
   const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
   const [showCancel,setShowCancel]=useState(false);
   const [tab,setTab]=useState<Tab>("overview");
@@ -546,6 +551,7 @@ export function AdminEventClient(){
         <label>{tr("Ссылка на площадку")}<input type="url" inputMode="url" value={venueUrl} onChange={e=>setVenueUrl(e.target.value)} placeholder="https://…"/>
           <small className="tp-field-hint">{tr("Сайт, Instagram или страница места на карте. Гости увидят кнопку «Сайт площадки» на странице ивента.")}</small></label>
         <label>{tr("Описание")}<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>
+        <OrganizerRules/>
         <label>{tr("Фото мероприятия (HTTPS, по одной ссылке на строку, до 8)")}<textarea rows={4} value={gallery} onChange={e=>setGallery(e.target.value)}/></label>
         <label>{tr("Видео (YouTube/Vimeo)")}<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
         <div className="two-col"><label>{tr("Дата и время")}<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
