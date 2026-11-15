@@ -550,6 +550,7 @@ def install_demo_roles(app, get_db, main):
         from demo_email import EventNotice, EmailOutbox
         from demo_telegram_notifications import TelegramNotificationOutbox, TelegramReminderBatch
         from demo_broadcast import BroadcastCampaign
+        from demo_event_chat import EventChatThread
         # No existing or historical registrations, QR passes, waiting/expired
         # applications, paid holds, notifications or campaigns can be erased.
         # Checking *every* status prevents dropping cancelled/expired evidence.
@@ -557,7 +558,7 @@ def install_demo_roles(app, get_db, main):
             main.Registration, main.DemoTicket, main.DemoWaitlist,
             main.RegistrationPayment, LegacyTicketClaim, PaidReservation,
             WaitlistOffer, TelegramNotificationOutbox,
-            TelegramReminderBatch, BroadcastCampaign,
+            TelegramReminderBatch, BroadcastCampaign, EventChatThread,
         )
         for model in protected:
             event_column=model.__table__.c.event_id

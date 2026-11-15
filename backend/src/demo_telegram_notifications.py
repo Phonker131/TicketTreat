@@ -379,6 +379,32 @@ def _deliver_one(db: Session, main) -> bool:
                 text, keyboard = render_message(row, event, None)
                 _send_message(int(row.telegram_id), text, keyboard)
                 row.state = "sent"
+        elif row.kind == "organizer_chat":
+            from demo_event_chat import EventChatThread, EventChatMessage
+            from demo_telegram import DemoTelegramIdentity
+            message_row = db.get(EventChatMessage, row.notice_id) if row.notice_id else None
+            thread = db.get(EventChatThread, message_row.thread_id) if message_row else None
+            identity = (db.query(DemoTelegramIdentity).filter(
+                DemoTelegramIdentity.guest_id == thread.guest_id,
+                DemoTelegramIdentity.telegram_id == row.telegram_id).first()
+                if thread else None)
+            if (message_row is None or message_row.sender_kind != "organizer"
+                    or thread is None or thread.event_id != row.event_id or identity is None):
+                row.state = "skipped"
+            else:
+                link = (os.getenv("WEB_APP_URL", "").strip().rstrip("/")
+                        or "https://tickettreat.eu")
+                if not link.startswith("https://"):
+                    link = "https://tickettreat.eu"
+                label = ("Nová zpráva od pořadatele" if row.language == "cs"
+                         else "New message from your organizer")
+                title = html.escape(str(event.title or "Event")[:180])
+                body = f"<b>{html.escape(label)}</b>\n🎟 {title}"
+                keyboard = {"inline_keyboard": [[{
+                    "text": "Open chat", "url": f"{link}/messages?thread={thread.id}"
+                }]]}
+                _send_message(int(row.telegram_id), body, keyboard)
+                row.state = "sent"
         elif row.kind == "ticket_removed":
             text, keyboard = render_message(row, event, None)
             _send_message(int(row.telegram_id), text, keyboard)
