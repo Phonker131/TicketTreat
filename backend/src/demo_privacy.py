@@ -215,6 +215,26 @@ def install_privacy_routes(app, get_db, main):
                 SupportMessage.ticket_id.in_(support_ids)).delete(synchronize_session=False)
             db.query(SupportTicket).filter(
                 SupportTicket.id.in_(support_ids)).delete(synchronize_session=False)
+        # An erased guest cannot retain private event conversation content.
+        # Remove notification payload references before deleting the messages.
+        from demo_event_chat import EventChatThread, EventChatMessage
+        from demo_telegram_notifications import TelegramNotificationOutbox
+        chat_ids=[chat_id for (chat_id,) in db.query(EventChatThread.id).filter(
+            EventChatThread.guest_id==guest.id).all()]
+        if chat_ids:
+            message_ids=[mid for (mid,) in db.query(EventChatMessage.id).filter(
+                EventChatMessage.thread_id.in_(chat_ids)).all()]
+            if message_ids:
+                db.query(EmailOutbox).filter(
+                    EmailOutbox.kind=="organizer_chat",
+                    EmailOutbox.notice_id.in_(message_ids)).delete(synchronize_session=False)
+                db.query(TelegramNotificationOutbox).filter(
+                    TelegramNotificationOutbox.kind=="organizer_chat",
+                    TelegramNotificationOutbox.notice_id.in_(message_ids)).delete(synchronize_session=False)
+            db.query(EventChatMessage).filter(
+                EventChatMessage.thread_id.in_(chat_ids)).delete(synchronize_session=False)
+            db.query(EventChatThread).filter(
+                EventChatThread.id.in_(chat_ids)).delete(synchronize_session=False)
         # Delete Instagram usernames submitted to promotional campaigns on erasure.
         from demo_promotions import PromotionClaim
         db.query(PromotionClaim).filter(PromotionClaim.account_id==account.id).delete(synchronize_session=False)
