@@ -806,6 +806,7 @@ export type LoyaltyPassport = {
   season:string;season_starts_at:string;season_ends_at:string;
   scope:"per_organizer";total_lifetime_visits:number;studios:LoyaltyStudio[];
   awards?:ManualVisitAward[];
+  campaign_perks?:Promotion[];
 };
 export function getMyLoyalty():Promise<LoyaltyPassport>{
   return request("/demo/me/loyalty");
