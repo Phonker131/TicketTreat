@@ -155,6 +155,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
           <div className="detail-item"><span>{t(language, "spots")}</span><strong>{event.spots_left ?? "∞"}</strong></div>
           <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
         </section>
+        {!preview&&<EventOrganizerChat eventId={event.id} inviteToken={inviteToken}/>}
         {preview ? <section className="state-card"><h2>{previewWords.card}</h2><p>{previewWords.cardInfo}</p></section> : event.is_cancelled ? (
           <section className="state-card state-error">
             <h2>{t(language,"cancelled")}</h2>
