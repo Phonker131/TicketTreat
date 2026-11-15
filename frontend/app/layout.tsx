@@ -12,6 +12,7 @@ import "./revision2.css";
 import "./brandbook-fidelity.css";
 import "./premium.css";
 import "./auth-providers.css";
+import "./promotions.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { MotionProvider } from "@/components/MotionProvider";

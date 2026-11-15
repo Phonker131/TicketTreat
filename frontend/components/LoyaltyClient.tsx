@@ -33,7 +33,8 @@ function PassportCard({studio,language}:{studio:LoyaltyStudio;language:LanguageC
  ];
  return <section className="panel loyalty-card">
   <div className="loyalty-card-head"><div><h2>{studio.organizer_name}</h2><p className="form-note">{tr.total}: {studio.lifetime_visits}</p></div>
-   <strong className={"loyalty-badge loyalty-"+studio.tier}>{names[language][studio.tier]}</strong></div>
+   <strong className={"loyalty-badge loyalty-"+studio.tier}>{names[language][studio.tier]}</strong>
+   {studio.promotional_vip&&<span className="tt-promo-vip-label">VIP promo</span>}</div>
   <div className="tt-tier-gallery" role="list" aria-label={tr.title}>
     {levels.map(([name,amount],idx)=><div key={name} className={"tt-tier-print tt-tier-"+name+(idx<=reached?" is-earned":"")} role="listitem" aria-current={idx===reached?"step":undefined}>
       <div className="tt-tier-print-head"><span>LV.{idx+1}</span><span className="tt-tier-signal" aria-hidden="true">{[1,2,3,4].map((signal)=><i key={signal} style={{height:(8+signal*6)+"px",opacity:signal<=idx+1?1:.3}}/>)}</span></div>
@@ -75,6 +76,15 @@ export function LoyaltyClient(){
   !passport?<RewardsPreview language={language} mode="guest"/>:
   <>
    {passport.studios.length>0&&<div className="panel loyalty-overview"><strong>{tr.season}: {passport.season}</strong><span>{tr.total}: {passport.total_lifetime_visits}</span></div>}
+   {(passport.campaign_perks?.length||0)>0&&<section className="panel tt-promo-passport">
+     <h2>{language==="cs"?"Výhody z kampaní":"Promotional benefits"}</h2>
+     <div className="tt-promo-passport-grid">{passport.campaign_perks!.map(p=><article className="tt-promo-passport-item" key={p.id}>
+       <strong>{p.reward_title}</strong><span>{p.organizer_name}</span>
+       {p.reward_details&&<p>{p.reward_details}</p>}
+       {p.benefit_expires_at&&<p>{language==="cs"?"Platí do: ":"Valid until: "}{new Date(p.benefit_expires_at).toLocaleDateString(language==="cs"?"cs-CZ":"en-GB")}</p>}
+     </article>)}</div>
+     <p className="form-note">{language==="cs"?"Tyto bonusy nezvyšují počet QR návštěv ani věrnostní úroveň.":"These bonuses do not increase QR visits or the attendance-based loyalty tier."}</p>
+   </section>}
    {(passport.awards?.length||0)>0&&<section className="panel tt-guest-manual-awards" aria-label={language==="cs"?"Ocenění od pořadatelů":language==="en"?"Organizer awards":language==="ru"?"Награды от организаторов":"Нагороди від організаторів"}>
      <h2>{language==="cs"?"Ocenění od pořadatelů":language==="en"?"Awards from organizers":language==="ru"?"Награды от организаторов":"Нагороди від організаторів"}</h2>
      <div className="tt-award-passport-grid">{passport.awards!.map(a=><article key={a.id} className="tt-award-passport-item">

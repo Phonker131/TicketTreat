@@ -798,7 +798,7 @@ export type LoyaltyTier = "newcomer"|"regular"|"insider"|"vip";
 export type LoyaltyStudio = {
   organizer_id:number;organizer_name:string;
   season_visits:number;lifetime_visits:number;
-  tier:LoyaltyTier;threshold:number;next_threshold:number|null;
+  tier:LoyaltyTier;promotional_vip?:boolean;threshold:number;next_threshold:number|null;
   remaining:number;progress_percent:number;
   perks:{key:string;required_visits:number;available:boolean;operational:boolean}[];
 };
@@ -806,6 +806,7 @@ export type LoyaltyPassport = {
   season:string;season_starts_at:string;season_ends_at:string;
   scope:"per_organizer";total_lifetime_visits:number;studios:LoyaltyStudio[];
   awards?:ManualVisitAward[];
+  campaign_perks?:Promotion[];
 };
 export function getMyLoyalty():Promise<LoyaltyPassport>{
   return request("/demo/me/loyalty");
@@ -909,4 +910,64 @@ export function replyAdminSupportTicket(id:number,body:string):
 }
 export function closeAdminSupportTicket(id:number):Promise<{status:string}>{
   return request(`/demo/manage/support/tickets/${id}/close`,{method:"POST"});
+}
+
+/** Server-authorized organizer marketing campaigns; client never determines eligibility. */
+export type PromotionTrigger = "account_signup"|"event_booking"|"instagram_follow";
+export type PromotionReward = "vip_perk"|"badge"|"other";
+export type PromotionStatus = "draft"|"active"|"paused";
+export type Promotion = {
+  id:number;organizer_id:number;organizer_name:string;
+  title:string;description:string;trigger:PromotionTrigger;event_id:number|null;
+  reward_kind:PromotionReward;reward_title:string;reward_details:string;
+  instagram_url:string;starts_at:string;ends_at:string;benefit_expires_at:string|null;
+  status?:PromotionStatus;is_live?:boolean;created_at?:string;anchor_event_id?:number;
+  created_by?:number;eligible_count?:number;
+  claims?:Partial<Record<"pending"|"approved"|"rejected",number>>;
+  participation?:"earned"|"not_eligible"|"pending"|"approved"|"rejected";
+};
+export type PromotionEvent = {
+  id:number;title:string;starts_at:string|null;
+  organizer_name:string;owner_account_id:number;
+};
+export type PromotionPayload = {
+  anchor_event_id:number;event_id:number|null;
+  title:string;description:string;trigger:PromotionTrigger;reward_kind:PromotionReward;
+  reward_title:string;reward_details:string;instagram_url:string;
+  starts_at:string;ends_at:string;benefit_expires_at:string|null;
+};
+export type PromotionClaim = {
+  id:number;campaign_id:number;name:string;instagram_username:string;
+  status:"pending"|"approved"|"rejected";created_at:string;reviewed_at:string|null;
+};
+export function getManagePromotions():Promise<{events:PromotionEvent[];campaigns:Promotion[]}>{
+  return request("/demo/manage/promotions");
+}
+export function createPromotion(payload:PromotionPayload):Promise<Promotion>{
+  return request("/demo/manage/promotions",{method:"POST",body:JSON.stringify(payload)});
+}
+export function editPromotion(id:number,payload:PromotionPayload):Promise<Promotion>{
+  return request("/demo/manage/promotions/"+id,{method:"PUT",body:JSON.stringify(payload)});
+}
+export function setPromotionStatus(id:number,status:PromotionStatus):Promise<Promotion>{
+  return request("/demo/manage/promotions/"+id+"/status",
+    {method:"POST",body:JSON.stringify({status})});
+}
+export function getPromotionClaims(id:number):Promise<{claims:PromotionClaim[]}>{
+  return request("/demo/manage/promotions/"+id+"/claims");
+}
+export function reviewPromotionClaim(campaignId:number,claimId:number,approve:boolean):
+  Promise<{id:number;status:"approved"|"rejected"}>{
+  return request("/demo/manage/promotions/"+campaignId+"/claims/"+claimId+"/review",
+    {method:"POST",body:JSON.stringify({approve})});
+}
+export function getPublicPromotions():Promise<{campaigns:Promotion[]}>{
+  return request("/demo/promotions");
+}
+export function getMyPromotions():Promise<{campaigns:Promotion[]}>{
+  return request("/demo/me/promotions");
+}
+export function claimInstagramPromotion(id:number,instagram_username:string):Promise<{status:"pending"}>{
+  return request("/demo/me/promotions/"+id+"/claim",
+    {method:"POST",body:JSON.stringify({instagram_username})});
 }
