@@ -114,6 +114,17 @@ export function ConversationPane({mode,threadId,eventId,inviteToken,onChange}:{
   const task=mode==="organizer"?readManageConversation(activeId):readMyConversation(activeId);
   void task.catch(()=>{});
  },[mode,activeId,waiting,data?.thread?.unread]);
+ async function retryLoad(){
+  setWaiting(true);
+  try{
+   await reload();
+   setError("");
+  }catch(e){
+   setError(e instanceof Error?e.message:"chat_unavailable");
+  }finally{
+   setWaiting(false);
+  }
+ }
  async function send(e:FormEvent<HTMLFormElement>){
   e.preventDefault();
   const body=draft.trim();
@@ -159,9 +170,11 @@ export function ConversationPane({mode,threadId,eventId,inviteToken,onChange}:{
  const unavailable=error==="organizer_chat_unavailable"||error==="event_not_found";
  return <section className="tt-chat-pane" aria-label={t.messageOrganizer}>
   {waiting?<div className="state-card" role="status">{t.loading}</div>:
-   error&&(!data||!data.thread)&&!login&&!unavailable?
-     <div role="alert" className="state-card state-error">{userFacingError(new Error(error),language)}
-       <button type="button" className="button button-outline" onClick={()=>void reload().catch(()=>{})}>{t.retry}</button>
+   error&&!data&&!login&&!unavailable?
+     <div role="alert" className="state-card state-error tt-chat-load-error">
+       <p>{userFacingError(new Error(error),language)}</p>
+       <button type="button" className="button button-outline"
+         onClick={()=>void retryLoad()}>{t.retry}</button>
      </div>:
    login?<div className="tt-chat-login">
      <p>{t.signInHelp}</p><Link href="/login" className="button button-primary">{t.login}</Link>

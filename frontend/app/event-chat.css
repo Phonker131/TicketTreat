@@ -63,3 +63,32 @@
  .tt-chat-bubble{max-width:92%}
 }
 @media(max-width:360px){.tt-chat-inline-head .button{width:100%}}
+
+/* Failure cards must not place the retry button over error text on iOS. */
+html body .tt-chat-pane .tt-chat-load-error{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  justify-content:flex-start!important;
+  gap:14px!important;
+  min-width:0;
+  max-width:100%;
+  padding:18px!important;
+}
+html body .tt-chat-pane .tt-chat-load-error p{
+  position:static!important;
+  display:block;
+  margin:0!important;
+  padding:0!important;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  line-height:1.55!important;
+}
+html body .tt-chat-pane .tt-chat-load-error button{
+  position:static!important;
+  display:inline-flex;
+  flex:0 0 auto;
+  min-height:44px!important;
+  margin:0!important;
+  max-width:100%;
+}

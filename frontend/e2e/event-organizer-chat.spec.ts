@@ -78,3 +78,32 @@ test("organizer can reply and close a thread",async({page})=>{
  await expect(page.getByPlaceholder("Write a message…")).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
 });
+
+test("failed message POST keeps draft and composer instead of replacing chat with a retry card",async({page})=>{
+  await page.setViewportSize({width:390,height:730});
+  const thread={id:4,event_id:77,event_title:"Werewolf Night",organizer:"Amber Events",
+    organizer_account_id:11,participant_name:"Guest Example",status:"open",
+    created_at:"2026-11-15T12:00:00Z",updated_at:"2026-11-15T12:01:00Z",unread:false};
+  await page.route("**/api/gateway/api/v1/me/chats**",async route=>{
+    const path=new URL(route.request().url()).pathname;
+    if(path.endsWith("/me/chats"))return route.fulfill({
+      status:200,contentType:"application/json",body:JSON.stringify({threads:[thread]})
+    });
+    if(path.endsWith("/messages")&&route.request().method()==="POST")
+      return route.fulfill({status:500,contentType:"application/json",
+        body:JSON.stringify({detail:"internal_server_error"})});
+    if(path.endsWith("/read"))return route.fulfill({
+      status:200,contentType:"application/json",body:'{"status":"read"}'
+    });
+    return route.fulfill({status:200,contentType:"application/json",
+      body:JSON.stringify({thread,messages:[],has_more:false})});
+  });
+  await page.goto("/messages?lang=en",{waitUntil:"domcontentloaded"});
+  await page.getByPlaceholder("Write a message…").fill("Question about ticket?");
+  await page.getByRole("button",{name:"Send",exact:true}).click();
+  await expect(page.getByPlaceholder("Write a message…")).toHaveValue("Question about ticket?");
+  await expect(page.getByRole("log",{name:"Messages"})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Try again"})).toHaveCount(0);
+  await expect(page.locator(".tt-chat-error")).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
+});
