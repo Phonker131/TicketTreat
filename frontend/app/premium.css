@@ -2252,3 +2252,101 @@ html body .admin-event-card.tp-admin-card p{margin:0;font:500 13px/1.35 var(--u)
 /* three browse segments on narrow phones: tighter padding, no icon on the smallest screens */
 @media (max-width:420px){.tt-night-events .tp-seg button{padding:0 6px;gap:5px;font-size:14px}}
 @media (max-width:360px){.tt-night-events .tp-seg button svg{display:none}}
+
+
+/* 2026-11-15: event poster, swipe deck and cookie consent on mobile / Telegram WebView.
+   Do not compress a 4:5 event poster into a viewport-height-dependent strip. */
+html body .tp-deck-img > img {
+  object-fit:contain!important;
+  object-position:center!important;
+}
+html body .tt-consent-mobile-summary,
+html body .tt-consent-mobile-policy {
+  display:none;
+}
+@media (max-width:999px) {
+  html body .tp-deck-img {
+    height:auto!important;
+    aspect-ratio:4 / 5!important;
+    max-height:none!important;
+  }
+}
+@media (max-width:760px) {
+  html body .event-page .event-hero {
+    row-gap:12px!important;
+    margin-bottom:16px!important;
+    padding-top:0!important;
+  }
+  html body .event-page .event-hero-copy {gap:8px!important}
+  html body .event-page .event-badges:empty {display:none!important}
+  html body .event-page .detail-grid {margin-top:0!important}
+  html body .event-page .event-hero h1 {
+    font-size:clamp(40px,10.5vw,58px)!important;
+    line-height:.95!important;
+    overflow-wrap:anywhere;
+  }
+}
+@media (max-width:640px) {
+  html body .tt-consent-banner {
+    left:10px!important;
+    right:10px!important;
+    bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;
+    max-height:min(72dvh,520px)!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  html body .tt-consent-inner {
+    padding:14px 15px!important;
+    gap:8px!important;
+  }
+  html body .tt-consent-heading h2 {font-size:20px!important}
+  html body .tt-consent-banner[data-editing="false"] .tt-consent-description,
+  html body .tt-consent-banner[data-editing="false"] .tt-consent-hint {display:none!important}
+  html body .tt-consent-banner[data-editing="false"] .tt-consent-mobile-summary {
+    display:block;
+    margin:0!important;
+    font:400 13px/1.4 var(--u)!important;
+    color:var(--tp-mute)!important;
+  }
+  html body .tt-consent-banner[data-editing="false"] .tt-consent-mobile-policy {
+    display:inline-block;
+    width:max-content;
+    max-width:100%;
+    font:600 12px/1.3 var(--u);
+    color:var(--tp-fg);
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  html body .tt-consent-actions {
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px!important;
+    width:100%;
+  }
+  html body .tt-consent-actions .tt-consent-decision {
+    flex:none!important;
+    min-width:0!important;
+    min-height:44px!important;
+    width:100%;
+    padding:0 7px!important;
+    font-size:12.5px!important;
+    line-height:1.2!important;
+    white-space:normal;
+  }
+  html body .tt-consent-actions .tt-consent-secondary {
+    grid-column:1 / -1!important;
+    min-height:28px!important;
+    width:100%;
+    padding:0!important;
+    font-size:13px!important;
+    justify-content:center;
+  }
+  html body .tt-consent-banner[data-editing="true"] .tt-consent-actions {
+    position:sticky;
+    bottom:-14px;
+    z-index:1;
+    padding:8px 0 10px;
+    background:var(--tp-surf);
+  }
+}
