@@ -971,3 +971,57 @@ export function claimInstagramPromotion(id:number,instagram_username:string):Pro
   return request("/demo/me/promotions/"+id+"/claim",
     {method:"POST",body:JSON.stringify({instagram_username})});
 }
+
+/** Private event conversations. Recipient identity is always derived server-side. */
+export type EventChatMessage = {
+  id:number;sender_kind:"participant"|"organizer";
+  body:string;created_at:string;client_nonce:string;
+};
+export type EventChatThread = {
+  id:number;event_id:number;event_title:string;organizer:string;
+  organizer_account_id:number|null;participant_name:string|null;
+  status:"open"|"closed";created_at:string;updated_at:string;unread:boolean;
+};
+export type EventChatDetail = {
+  thread:EventChatThread|null;messages:EventChatMessage[];has_more:boolean;
+  event?:{id:number;title:string};
+};
+export type EventChatThreads = {threads:EventChatThread[];unread?:number};
+export function getMyEventChats():Promise<EventChatThreads> {
+  return request("/demo/me/chats");
+}
+export function getEventConversation(eventId:number,invite?:string|null):Promise<EventChatDetail> {
+  return request("/demo/me/events/"+eventId+"/chat",{headers:inviteHeader(invite)});
+}
+export function sendFirstEventMessage(eventId:number,body:string,client_nonce:string,invite?:string|null):
+  Promise<{message:EventChatMessage;duplicate:boolean}> {
+  return request("/demo/me/events/"+eventId+"/chat/messages",{
+    method:"POST",headers:inviteHeader(invite),body:JSON.stringify({body,client_nonce})
+  });
+}
+export function getMyConversation(id:number,before?:number):Promise<EventChatDetail> {
+  return request("/demo/me/chats/"+id+(before?"?before="+before:""));
+}
+export function sendMyConversationMessage(id:number,body:string,client_nonce:string):
+ Promise<{message:EventChatMessage;duplicate:boolean}> {
+  return request("/demo/me/chats/"+id+"/messages",{method:"POST",body:JSON.stringify({body,client_nonce})});
+}
+export function readMyConversation(id:number):Promise<{status:string}> {
+  return request("/demo/me/chats/"+id+"/read",{method:"POST"});
+}
+export function getManageEventChats():Promise<EventChatThreads> {
+  return request("/demo/manage/chats");
+}
+export function getManageConversation(id:number,before?:number):Promise<EventChatDetail> {
+  return request("/demo/manage/chats/"+id+(before?"?before="+before:""));
+}
+export function sendManageConversationMessage(id:number,body:string,client_nonce:string):
+ Promise<{message:EventChatMessage;duplicate:boolean}> {
+  return request("/demo/manage/chats/"+id+"/messages",{method:"POST",body:JSON.stringify({body,client_nonce})});
+}
+export function readManageConversation(id:number):Promise<{status:string}> {
+  return request("/demo/manage/chats/"+id+"/read",{method:"POST"});
+}
+export function setManageConversationClosed(id:number,closed:boolean):Promise<{status:string}> {
+  return request("/demo/manage/chats/"+id+"/status",{method:"POST",body:JSON.stringify({closed})});
+}
