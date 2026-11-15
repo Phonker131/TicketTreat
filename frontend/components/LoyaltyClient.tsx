@@ -33,7 +33,8 @@ function PassportCard({studio,language}:{studio:LoyaltyStudio;language:LanguageC
  ];
  return <section className="panel loyalty-card">
   <div className="loyalty-card-head"><div><h2>{studio.organizer_name}</h2><p className="form-note">{tr.total}: {studio.lifetime_visits}</p></div>
-   <strong className={"loyalty-badge loyalty-"+studio.tier}>{names[language][studio.tier]}</strong></div>
+   <strong className={"loyalty-badge loyalty-"+studio.tier}>{names[language][studio.tier]}</strong>
+   {studio.promotional_vip&&<span className="tt-promo-vip-label">VIP promo</span>}</div>
   <div className="tt-tier-gallery" role="list" aria-label={tr.title}>
     {levels.map(([name,amount],idx)=><div key={name} className={"tt-tier-print tt-tier-"+name+(idx<=reached?" is-earned":"")} role="listitem" aria-current={idx===reached?"step":undefined}>
       <div className="tt-tier-print-head"><span>LV.{idx+1}</span><span className="tt-tier-signal" aria-hidden="true">{[1,2,3,4].map((signal)=><i key={signal} style={{height:(8+signal*6)+"px",opacity:signal<=idx+1?1:.3}}/>)}</span></div>
