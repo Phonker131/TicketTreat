@@ -304,6 +304,8 @@ html body .app-shell .tt-legal-page .back-link{color:var(--tp-fg)!important}
 html body .tt-legal-operator{background:transparent!important;border:0!important;padding:0!important}
 /* footer: the real wordmark */
 html body .tt-legal-footer-home img.tt-footer-wordmark{width:148px!important;height:auto!important;border-radius:0!important}
+html body .tt-footer-wordmark-dark,html[data-theme="dark"] body .tt-footer-wordmark-light{display:none!important}
+html[data-theme="dark"] body .tt-footer-wordmark-dark{display:block!important}
 /* a row of buttons with a gap, wrapping on narrow screens */
 html body .tt-btn-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}
 /* checkout: the date under the event title */

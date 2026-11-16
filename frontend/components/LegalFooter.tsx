@@ -20,8 +20,8 @@ export function LegalFooter(){
     <footer className="tt-support-footer tt-legal-footer" aria-label="TicketTreat legal information and support">
       <div className="tt-legal-footer-brand">
         <Link className="tt-legal-footer-home" href="/" aria-label="TicketTreat homepage">
-          <img src="/tickettreat-wordmark.svg?v=brandbook-v11-paths" className="wordmark-logo wordmark-logo-light tt-footer-wordmark" width="584" height="120" alt="TicketTreat"/>
-          <img src="/tickettreat-wordmark-dark.svg?v=brandbook-v11-paths" className="wordmark-logo wordmark-logo-dark tt-footer-wordmark" width="584" height="120" alt="" aria-hidden="true"/>
+          <img src="/tickettreat-wordmark.svg?v=brandbook-v11-paths" className="tt-footer-wordmark tt-footer-wordmark-light" width="584" height="120" alt="TicketTreat"/>
+          <img src="/tickettreat-wordmark-dark.svg?v=brandbook-v11-paths" className="tt-footer-wordmark tt-footer-wordmark-dark" width="584" height="120" alt="" aria-hidden="true"/>
         </Link>
         <small>{tr.tagline}</small>
         <p>© {new Date().getFullYear()} TicketTreat. {tr.rights}</p>
