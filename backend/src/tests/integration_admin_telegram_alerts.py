@@ -38,24 +38,24 @@ class AdminTelegramAlertIntegration(unittest.TestCase):
             "GLOBAL_ADMIN_ACCOUNT_IDS":f"{ids[0][0]},{ids[1][0]}",
             "GLOBAL_ADMIN_EMAILS":"", 
         }):
-            # No live API calls. Patching configured inside TestClient startup
-            # prevents the production delivery worker from starting.
-            with TestClient(main.app) as client:
-                with patch("demo_telegram_notifications.configured",return_value=True):
-                    new=client.post("/demo/support/tickets",headers=customer_auth,json={
-                        "category":"technical","subject":"I need help with a ticket",
-                        "body":"Ticket missing on my account, please help with this booking.",
-                    })
-                    self.assertEqual(new.status_code,201,new.text)
-                    ticket_id=new.json()["id"]
-                    reply=client.post(f"/demo/support/tickets/{ticket_id}/messages",
-                        headers=customer_auth,
-                        json={"body":"I have more information about this issue."})
-                    self.assertEqual(reply.status_code,201,reply.text)
-                    apply=client.post("/demo/auth/organizer-application",headers=applicant_auth)
-                    self.assertEqual(apply.status_code,202,apply.text)
-                    apply_again=client.post("/demo/auth/organizer-application",headers=applicant_auth)
-                    self.assertEqual(apply_again.status_code,202,apply_again.text)
+            # Suppress the Telegram worker at app startup and any network calls.
+            with patch("demo_telegram_notifications.configured",return_value=False):
+                with TestClient(main.app) as client:
+                    with patch("demo_telegram_notifications.configured",return_value=True):
+                        new=client.post("/demo/support/tickets",headers=customer_auth,json={
+                            "category":"technical","subject":"I need help with a ticket",
+                            "body":"Ticket missing on my account, please help with this booking.",
+                        })
+                        self.assertEqual(new.status_code,201,new.text)
+                        ticket_id=new.json()["id"]
+                        reply=client.post(f"/demo/support/tickets/{ticket_id}/messages",
+                            headers=customer_auth,
+                            json={"body":"I have more information about this issue."})
+                        self.assertEqual(reply.status_code,201,reply.text)
+                        apply=client.post("/demo/auth/organizer-application",headers=applicant_auth)
+                        self.assertEqual(apply.status_code,202,apply.text)
+                        apply_again=client.post("/demo/auth/organizer-application",headers=applicant_auth)
+                        self.assertEqual(apply_again.status_code,202,apply_again.text)
 
             with SessionLocal() as db:
                 rows=db.query(TelegramNotificationOutbox).filter(
