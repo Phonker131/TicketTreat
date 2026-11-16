@@ -14,6 +14,7 @@ from demo_account_recovery import VerifiedEmail
 from demo_roles import GlobalAdminBinding, GlobalAdminDelegation, WebAccountRole
 from demo_email import EmailOutbox,render_email
 from demo_support import SupportTicket,SupportMessage,SupportAdminRead,install_support_api
+from demo_telegram import DemoTelegramIdentity
 
 class SupportWorkflowTests(unittest.TestCase):
     def setUp(self):
@@ -21,7 +22,7 @@ class SupportWorkflowTests(unittest.TestCase):
         for table in (WebAccount.__table__,WebSession.__table__,VerifiedEmail.__table__,
                       GlobalAdminBinding.__table__,GlobalAdminDelegation.__table__,WebAccountRole.__table__,
                       SupportTicket.__table__,SupportMessage.__table__,SupportAdminRead.__table__,
-                      EmailOutbox.__table__):
+                      EmailOutbox.__table__,DemoTelegramIdentity.__table__):
             table.create(self.engine)
         self.Session=sessionmaker(bind=self.engine)
         self.db=self.Session()
@@ -119,6 +120,20 @@ class SupportWorkflowTests(unittest.TestCase):
         finally:
             self.config.start()
         self.assertEqual(self.db.query(SupportMessage).filter(SupportMessage.author_role=="admin").count(),0)
+
+    def test_mfa_protected_telegram_admin_alert_status(self):
+        self.db.add(DemoTelegramIdentity(guest_id=2,telegram_id=12345678))
+        self.db.commit()
+        with patch("demo_telegram_notifications.configured",return_value=True):
+            response=self.client.get("/demo/manage/admin-telegram-alerts/status",
+                                     headers=self.auth(2))
+            self.assertEqual(response.status_code,200,response.text)
+            self.assertEqual(response.json(),{
+                "configured":True,"linked_admin_count":1,"self_linked":True})
+            self.assertNotIn("12345678",response.text)
+            self.assertEqual(
+                self.client.get("/demo/manage/admin-telegram-alerts/status",
+                                headers=self.auth(1)).status_code,403)
 
     def test_ticket_rate_limit(self):
         self.assertEqual(self.create_ticket().status_code,201)
