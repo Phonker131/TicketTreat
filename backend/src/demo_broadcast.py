@@ -6,6 +6,8 @@ Marketing communications require a separate subscriber-consent workflow.
 from __future__ import annotations
 
 import html
+import hashlib
+import hmac
 import json
 import logging
 import os
@@ -57,6 +59,21 @@ def blocked_telegram_ids(db: Session) -> set[int]:
         BroadcastPreference.telegram_enabled.is_(False)
     ).all()
     return {int(row[0]) for row in rows}
+
+
+
+class EmailUnsubscribeRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=160)
+
+
+def email_unsubscribe_token(account) -> str:
+    secret = os.getenv("AUTH_CODE_SECRET", "").strip()
+    if len(secret) < 32:
+        raise HTTPException(503, "unsubscribe_unavailable")
+    # Purpose-bound proof permits only email opt-out, never account access.
+    value = f"broadcast-email-unsubscribe:v1:{account.id}:{account.email}"
+    signature = hmac.new(secret.encode(), value.encode(), hashlib.sha256).hexdigest()
+    return f"{account.id}.{signature}"
 
 
 class BroadcastCampaign(Base):
@@ -215,6 +232,27 @@ def install_broadcast_api(app, get_db, main):
     def authorized(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
         return account_lookup(db, authorization)
 
+
+
+    @app.post("/demo/public/broadcast-unsubscribe")
+    def unsubscribe_email(payload: EmailUnsubscribeRequest, db: Session = Depends(get_db)):
+        from demo_accounts import WebAccount
+        account_part, separator, signature = payload.token.partition(".")
+        if (not separator or not account_part.isascii() or not account_part.isdecimal() or len(account_part) > 12
+                or len(signature) != 64 or any(c not in "0123456789abcdef" for c in signature)):
+            raise HTTPException(400, "invalid_unsubscribe_link")
+        account = db.get(WebAccount, int(account_part))
+        if account is None or not account.email or not hmac.compare_digest(
+                payload.token, email_unsubscribe_token(account)):
+            raise HTTPException(400, "invalid_unsubscribe_link")
+        values = {"account_id": account.id, "email_enabled": False,
+                  "telegram_enabled": True, "updated_at": datetime.now(timezone.utc)}
+        # Keep Telegram unchanged when a row exists. Repeated clicks are safe.
+        db.execute(pg_insert(BroadcastPreference.__table__).values(**values).on_conflict_do_update(
+            index_elements=["account_id"],
+            set_={"email_enabled": False, "updated_at": values["updated_at"]}))
+        db.commit()
+        return {"status": "unsubscribed"}
 
     @app.get("/demo/auth/broadcast-preferences")
     def preferences(account=Depends(authorized), db: Session = Depends(get_db)):
@@ -377,11 +415,19 @@ def render_broadcast_email(row, db: Session) -> dict | None:
     content = email_shell(
         campaign.subject, campaign.message, extra, link, button,
         "Service information about your TicketTreat account or an event you joined.",
-        "TicketTreat service announcement. For support, contact @vvladver on Telegram.",
+        "TicketTreat service announcement. Support: " + web_url + "/support",
     )
+    # A GET only opens the confirmation page; mail security scanners cannot opt users out.
+    # The fragment keeps the proof out of web access logs and Referer headers.
+    unsubscribe_url = web_url + "/unsubscribe#token=" + email_unsubscribe_token(account)
+    label = "Odhlásit e-mailové rozesílky" if getattr(row, "language", "en") == "cs" else "Unsubscribe from email broadcasts"
+    unsubscribe_html = ('<p style="text-align:center;padding:18px;font-size:14px;line-height:1.6">'
+        '<a href="' + html.escape(unsubscribe_url, quote=True) + '" style="color:#15141F;text-decoration:underline">'
+        + html.escape(label) + '</a></p>')
+    content = content.replace("</body>", unsubscribe_html + "</body>")
     return {"from": os.environ["EMAIL_FROM"].strip(), "to": [row.recipient],
             "subject": campaign.subject, "html": content,
-            "text": "%s\n\n%s\n\n%s" % (campaign.subject, campaign.message, link)}
+            "text": "%s\n\n%s\n\n%s\n\n%s: %s" % (campaign.subject, campaign.message, link, label, unsubscribe_url)}
 
 
 def _send_telegram(campaign: BroadcastCampaign, telegram_id: int) -> None:
