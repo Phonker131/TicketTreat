@@ -435,7 +435,10 @@ def poster_setup(db, main, request, event, data_url: str):
         item.content_type=ctype
         item.image_bytes=blob
     # Same-origin public gateway. Do not expose the internal Railway API host.
-    event.image_url=f"/api/gateway/demo/events/{event.id}/poster"
+    # A stable URL leaves already-mounted <img> elements showing old bytes.
+    # Version by content so every replacement is requested immediately.
+    version=hashlib.sha256(blob).hexdigest()[:20]
+    event.image_url=f"/api/gateway/demo/events/{event.id}/poster?v={version}"
 
 def install_demo_roles(app, get_db, main):
     def current(
