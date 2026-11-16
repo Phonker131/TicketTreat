@@ -328,13 +328,13 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
 
 type ContactPreference = "email" | "phone" | "telegram" | "instagram";
 
-const profileTabs = ["overview", "details", "connections", "security"] as const;
+const profileTabs = ["overview", "achievements", "details", "connections", "security"] as const;
 type ProfileTab = typeof profileTabs[number];
 const profileTabLabels = {
-  cs: {overview:"Přehled", details:"Osobní údaje", connections:"Propojené účty", security:"Zabezpečení"},
-  en: {overview:"Overview", details:"Personal details", connections:"Linked accounts", security:"Security"},
-  ru: {overview:"Обзор", details:"Личные данные", connections:"Связанные аккаунты", security:"Безопасность"},
-  uk: {overview:"Огляд", details:"Особисті дані", connections:"Пов’язані акаунти", security:"Безпека"}
+  cs: {overview:"Přehled", achievements:"Ocenění", details:"Osobní údaje", connections:"Propojené účty", security:"Zabezpečení"},
+  en: {overview:"Overview", achievements:"Achievements", details:"Personal details", connections:"Linked accounts", security:"Security"},
+  ru: {overview:"Обзор", achievements:"Достижения", details:"Личные данные", connections:"Связанные аккаунты", security:"Безопасность"},
+  uk: {overview:"Огляд", achievements:"Досягнення", details:"Особисті дані", connections:"Пов’язані акаунти", security:"Безпека"}
 };
 
 export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"recovery"}) {
@@ -828,10 +828,9 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
             {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
             <div id="profile-panel-overview" role="tabpanel" aria-labelledby="profile-tab-overview" hidden={activeTab !== "overview"}>
               <section className="panel form-stack">
-              <ProfileAwards/>
               <div className="profile-facts">
                 <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
-                <div className="profile-fact"><span>{language==="ru"?"Мои награды":language==="cs"?"Moje odměny":language==="uk"?"Мої нагороди":"My rewards"}</span><Link href="/loyalty" className="button button-outline">→ {language==="ru"?"Паспорт":language==="cs"?"Pas":language==="uk"?"Паспорт":"Passport"}</Link></div>
+                <div className="profile-fact"><span>{profileTabLabels[language].achievements}</span><button type="button" className="button button-outline" onClick={()=>{setActiveTab("achievements");document.getElementById("profile-tab-achievements")?.focus();}}>{profileTabLabels[language].achievements} →</button></div>
                 <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">→ {tr.tickets}</Link></div>
               </div>
               <p className="form-note">{tr.note}</p>
@@ -839,6 +838,9 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
 
               {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
               </section>
+            </div>
+            <div id="profile-panel-achievements" role="tabpanel" aria-labelledby="profile-tab-achievements" hidden={activeTab !== "achievements"}>
+              {activeTab === "achievements" && <ProfileAwards/>}
             </div>
             <div id="profile-panel-details" role="tabpanel" aria-labelledby="profile-tab-details" hidden={activeTab !== "details"}>
             <form className="panel form-stack" onSubmit={submitProfile}>

@@ -23,7 +23,7 @@ const names:Record<LanguageCode,Record<string,string>>={
 };
 const levels=[["newcomer",0],["regular",3],["insider",6],["vip",12]] as const;
 
-function PassportCard({studio,language}:{studio:LoyaltyStudio;language:LanguageCode}){
+export function PassportCard({studio,language}:{studio:LoyaltyStudio;language:LanguageCode}){
  const tr=copy[language];
  const reached=levels.findIndex(([name])=>name===studio.tier);
  const perks=[
