@@ -1,0 +1,26 @@
+name: Broadcast preferences UI
+on:
+  pull_request:
+    branches: [dev/frontend-design]
+    paths:
+      - frontend/components/BroadcastPreferences.tsx
+      - frontend/components/ProfileClient.tsx
+      - frontend/lib/api.ts
+      - .github/workflows/broadcast-preferences-ui.yml
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+        env:
+          BACKEND_API_URL: http://127.0.0.1:8000
