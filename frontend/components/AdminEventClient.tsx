@@ -95,6 +95,13 @@ export function AdminEventClient(){
   const [scheduleTime,setScheduleTime]=useState("");
   const scheduleAt=scheduleDate&&scheduleTime?`${scheduleDate}T${scheduleTime}`:"";
   const [poster,setPoster]=useState<File|null>(null);
+  const [posterPreview,setPosterPreview]=useState("");
+  const posterInputRef=useRef<HTMLInputElement>(null);
+  useEffect(()=>{
+    if(!poster){setPosterPreview("");return;}
+    const url=URL.createObjectURL(poster);setPosterPreview(url);
+    return()=>URL.revokeObjectURL(url);
+  },[poster]);
   const [title,setTitle]=useState(""),[location,setLocation]=useState("");
   const [organizer,setOrganizer]=useState(""),[description,setDescription]=useState("");
   const [gallery,setGallery]=useState(""),[video,setVideo]=useState("");
@@ -165,6 +172,7 @@ export function AdminEventClient(){
       if(image)payload.poster_data_url=image;
       await editManageEvent(token,eventId,payload);
       await reload();setPoster(null);
+      if(posterInputRef.current)posterInputRef.current.value="";
       setNotice(tr("Изменения сохранены."));
     }catch(e){setError(formattedError(e,language));}
     finally{setBusy(false);}
@@ -582,10 +590,18 @@ export function AdminEventClient(){
               <span className="event-language-name">{name}</span>
             </label>)}
         </div></fieldset>
-        <label>{tr("Новый постер (необязательно)")}<input type="file" accept="image/png,image/jpeg,image/webp"
-          onChange={e=>setPoster(e.target.files?.[0]||null)}/>
+        <label>{tr("Новый постер (необязательно)")}<input ref={posterInputRef} type="file" accept="image/png,image/jpeg,image/webp" disabled={busy}
+          onChange={e=>{
+            const file=e.target.files?.[0]||null;
+            if(file&&(file.size>4*1024*1024||!["image/png","image/jpeg","image/webp"].includes(file.type))){
+              setError(file.size>4*1024*1024?tr("Постер больше 4 МБ"):tr("Формат постера — JPG, PNG или WebP."));
+              e.currentTarget.value="";setPoster(null);return;
+            }
+            setError("");setPoster(file);
+          }}/>
           <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
-        {event.image_url&&<img src={event.image_url} alt="Event poster" className="event-poster-preview"/>}
+        {(posterPreview||event.image_url)&&<img src={posterPreview||event.image_url!} alt={posterPreview?"Selected event poster":"Event poster"} className="event-poster-preview"/>}
+        {poster&&<p className="form-note" role="status">{language==="cs"?"Náhled nového plakátu. Pro zveřejnění klikněte na Uložit změny.":"New poster preview. Click Save changes to publish it."}</p>}
         <button className="button button-primary" disabled={busy}>{busy?tr("Сохраняем…"):tr("Сохранить изменения")}</button>
       </form>}
       </div>}
