@@ -1379,10 +1379,23 @@ def install_account_moderation(app, get_db):
         if not email_is_verified(db,account.id):
             raise HTTPException(403,"email_verification_required")
         row=db.get(OrganizerApplication,account.id)
+        created_or_reopened=False
+        submitted_at=datetime.now(timezone.utc)
         if row is None:
-            db.add(OrganizerApplication(account_id=account.id,status="pending"))
+            row=OrganizerApplication(account_id=account.id,status="pending",
+                                     created_at=submitted_at)
+            db.add(row)
+            created_or_reopened=True
         elif row.status=="rejected":
             row.status="pending";row.decided_at=None;row.decided_by=None
+            row.created_at=submitted_at
+            created_or_reopened=True
+        if created_or_reopened:
+            db.flush()
+            from demo_admin_telegram_alerts import enqueue_admin_alert
+            enqueue_admin_alert(db,kind="admin_organizer",object_id=account.id,
+                                notification_id=account.id,
+                                occurrence=str(int(submitted_at.timestamp()*1000000)))
         db.commit()
         return {"status":"pending"}
 
