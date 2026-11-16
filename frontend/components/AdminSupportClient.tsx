@@ -100,7 +100,7 @@ export function AdminSupportClient(){
       :(language==="cs"?"Telegram upozornění pro váš účet nejsou připravená.":"Telegram alerts are not ready for this account.")}{" "}
     {(!telegramAlerts.configured||!telegramAlerts.self_linked||telegramAlerts.linked_admin_count<2)&&
       <>{language==="cs"?"Každý hlavní administrátor musí propojit Telegram s webovým účtem a spustit bota.":"Each global admin needs to link their website account to Telegram and start the bot."} <Link href="/profile">{language==="cs"?"Propojit účet":"Link account"}</Link> · <a href="https://t.me/TicketTreatBot" target="_blank" rel="noopener noreferrer">@TicketTreatBot</a></>}
-  </p> 
+  </p>}
   {loading&&<div className="state-card">{tr.loading}</div>}
   {error&&<p className="state-card state-error" role="alert">{show(error)===error?userFacingError(error,language):show(error)} {(error==="mfa_challenge_required"||error==="mfa_enrollment_required")&&<Link href="/security/mfa">{tr.mfa}</Link>}</p>}
   {notice&&<p className="success-banner" role="status">{show(notice)}</p>}
