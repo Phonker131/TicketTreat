@@ -1,4 +1,5 @@
 "use client";
+import {BroadcastPreferences} from "@/components/BroadcastPreferences";
 import {ProfileAwards} from "@/components/ProfileAwards";
 
 import Link from "next/link";
@@ -328,13 +329,13 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
 
 type ContactPreference = "email" | "phone" | "telegram" | "instagram";
 
-const profileTabs = ["overview", "achievements", "details", "connections", "security"] as const;
+const profileTabs = ["overview", "achievements", "broadcasts", "details", "connections", "security"] as const;
 type ProfileTab = typeof profileTabs[number];
 const profileTabLabels = {
-  cs: {overview:"Přehled", achievements:"Ocenění", details:"Osobní údaje", connections:"Propojené účty", security:"Zabezpečení"},
-  en: {overview:"Overview", achievements:"Achievements", details:"Personal details", connections:"Linked accounts", security:"Security"},
-  ru: {overview:"Обзор", achievements:"Достижения", details:"Личные данные", connections:"Связанные аккаунты", security:"Безопасность"},
-  uk: {overview:"Огляд", achievements:"Досягнення", details:"Особисті дані", connections:"Пов’язані акаунти", security:"Безпека"}
+  cs: {overview:"Přehled", achievements:"Ocenění", broadcasts:"Rozesílky", details:"Osobní údaje", connections:"Propojené účty", security:"Zabezpečení"},
+  en: {overview:"Overview", achievements:"Achievements", broadcasts:"Broadcasts", details:"Personal details", connections:"Linked accounts", security:"Security"},
+  ru: {overview:"Обзор", achievements:"Достижения", broadcasts:"Рассылки", details:"Личные данные", connections:"Связанные аккаунты", security:"Безопасность"},
+  uk: {overview:"Огляд", achievements:"Досягнення", broadcasts:"Розсилки", details:"Особисті дані", connections:"Пов’язані акаунти", security:"Безпека"}
 };
 
 export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"recovery"}) {
@@ -840,6 +841,9 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
             </div>
             <div id="profile-panel-achievements" role="tabpanel" aria-labelledby="profile-tab-achievements" hidden={activeTab !== "achievements"}>
               {activeTab === "achievements" && <ProfileAwards/>}
+            </div>
+            <div id="profile-panel-broadcasts" role="tabpanel" aria-labelledby="profile-tab-broadcasts" hidden={activeTab !== "broadcasts"}>
+              {activeTab === "broadcasts" && <BroadcastPreferences/>}
             </div>
             <div id="profile-panel-details" role="tabpanel" aria-labelledby="profile-tab-details" hidden={activeTab !== "details"}>
             <form className="panel form-stack" onSubmit={submitProfile}>
