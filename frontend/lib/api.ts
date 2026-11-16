@@ -891,6 +891,12 @@ export function getMySupportTicket(id:number):Promise<SupportThread>{
 export function replyMySupportTicket(id:number,body:string):Promise<{status:string}>{
   return request(`/demo/support/tickets/${id}/messages`,{method:"POST",body:JSON.stringify({body})});
 }
+export type AdminTelegramAlertsStatus = {
+  configured:boolean;linked_admin_count:number;self_linked:boolean;
+};
+export function getAdminTelegramAlertsStatus():Promise<AdminTelegramAlertsStatus>{
+  return request("/demo/manage/admin-telegram-alerts/status");
+}
 export function getSupportSummary():Promise<SupportSummary>{
   return request("/demo/manage/support/summary");
 }
