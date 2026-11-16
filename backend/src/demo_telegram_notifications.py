@@ -362,8 +362,20 @@ def _deliver_one(db: Session, main) -> bool:
         return False
     row.attempts += 1
     try:
-        event = db.get(main.Event, row.event_id)
-        if event is None:
+        from demo_admin_telegram_alerts import KINDS as ADMIN_KINDS
+        event = db.get(main.Event, row.event_id) if row.kind not in ADMIN_KINDS else None
+        if row.kind in ADMIN_KINDS:
+            from demo_admin_telegram_alerts import render_admin_alert
+            lang = _recipient_languages(db, [int(row.telegram_id)], main)
+            row.language = lang.get(int(row.telegram_id), "en")
+            result = render_admin_alert(db, row)
+            if result is None:
+                row.state = "skipped"
+            else:
+                message, keyboard = result
+                _send_message(int(row.telegram_id), message, keyboard)
+                row.state = "sent"
+        elif event is None:
             row.state = "skipped"
         elif row.kind == "reminder":
             start = venue_start(event)
