@@ -415,7 +415,7 @@ def render_broadcast_email(row, db: Session) -> dict | None:
     content = email_shell(
         campaign.subject, campaign.message, extra, link, button,
         "Service information about your TicketTreat account or an event you joined.",
-        "TicketTreat service announcement. Support: " + web_url + "/support",
+        "TicketTreat announcement. For help, open a support ticket: https://tickettreat.eu/support",
     )
     # A GET only opens the confirmation page; mail security scanners cannot opt users out.
     # The fragment keeps the proof out of web access logs and Referer headers.
