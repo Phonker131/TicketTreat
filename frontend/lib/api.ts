@@ -1031,3 +1031,11 @@ export function readManageConversation(id:number):Promise<{status:string}> {
 export function setManageConversationClosed(id:number,closed:boolean):Promise<{status:string}> {
   return request("/demo/manage/chats/"+id+"/status",{method:"POST",body:JSON.stringify({closed})});
 }
+
+export type BroadcastPreferencesData = {email_enabled:boolean;telegram_enabled:boolean};
+export function getBroadcastPreferences():Promise<BroadcastPreferencesData>{
+  return request("/demo/auth/broadcast-preferences");
+}
+export function saveBroadcastPreferences(data:BroadcastPreferencesData):Promise<BroadcastPreferencesData>{
+  return request("/demo/auth/broadcast-preferences",{method:"PUT",body:JSON.stringify(data)});
+}
