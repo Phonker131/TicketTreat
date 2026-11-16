@@ -226,7 +226,7 @@ COPY = {
         "checkin_body": "Your ticket has been successfully checked at the entrance. Thank you, and we hope you enjoy the event.",
         "event": "Event", "date": "Date and time", "location": "Venue", "number": "Ticket number",
         "price": "Ticket price", "button_ticket": "View my ticket", "button_profile": "Open my account",
-        "demo": "Test mode: no real payment has been charged.", "footer": "This is an automated service message from TicketTreat. If you need assistance, please contact our support team.",
+        "demo": "Test mode: no real payment has been charged.", "footer": "This is an automated service message from TicketTreat. If you need assistance, open a support ticket at tickettreat.eu/support.",
         "qr_fallback": "If the QR code does not display, you can open your ticket using the button above.",
     },
     "ru": {
@@ -266,7 +266,7 @@ COPY = {
         "checkin_body": "Vaše vstupenka byla úspěšně ověřena při vstupu. Děkujeme a přejeme Vám příjemný zážitek.",
         "event": "Akce", "date": "Datum a čas", "location": "Místo konání", "number": "Číslo vstupenky",
         "price": "Cena vstupenky", "button_ticket": "Zobrazit vstupenku", "button_profile": "Přejít do profilu",
-        "demo": "Testovací režim: nedošlo ke skutečné platbě.", "footer": "Toto je automatické servisní sdělení TicketTreat. Pokud potřebujete pomoc, obraťte se prosím na naši podporu.",
+        "demo": "Testovací režim: nedošlo ke skutečné platbě.", "footer": "Toto je automatické servisní sdělení TicketTreat. Pokud potřebujete pomoc, vytvořte požadavek na podporu na tickettreat.eu/support.",
         "qr_fallback": "Pokud se QR kód nezobrazuje, vstupenku otevřete pomocí tlačítka výše.",
     },
     "uk": {
@@ -387,7 +387,7 @@ def email_shell(title: str, lead: str, details: str, link: str, button: str, cap
 <p style="font-size:12px;line-height:1.6;margin:0">
 <a href="https://tickettreat.eu" style="font-weight:700;color:#15141F;text-decoration:underline">tickettreat.eu</a>
 <span style="color:#5C5861"> &nbsp;·&nbsp; </span>
-<a href="https://t.me/vvladver" style="font-weight:700;color:#15141F;text-decoration:underline">{html.escape(ui[1])}</a>
+<a href="https://tickettreat.eu/support" style="font-weight:700;color:#15141F;text-decoration:underline">{html.escape(ui[1])}</a>
 </p></td></tr></table></td></tr></table>
 </body></html>"""
 
@@ -600,7 +600,7 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
         "to": [row.recipient],
         "subject": subject,
         "html": email_shell(title, lead, extra, link, button, caption, d["footer"], row.language),
-        "text": f"{title}\n\n{lead}\n\n{details_plain}\n\n{link}\n\n{caption}\n\nSupport: https://t.me/vvladver",
+        "text": f"{title}\n\n{lead}\n\n{details_plain}\n\n{link}\n\n{caption}\n\nSupport: https://tickettreat.eu/support",
         **({"attachments": attachments} if attachments else {}),
     }
 
