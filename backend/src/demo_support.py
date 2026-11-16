@@ -205,6 +205,16 @@ def install_support_api(app,get_db):
         db.commit()
         return {"status":"open"}
 
+    @app.get("/demo/manage/admin-telegram-alerts/status")
+    def admin_telegram_alerts_status(admin=Depends(staff),db:Session=Depends(get_db)):
+        """MFA-protected readiness check, without exposing Telegram IDs."""
+        from demo_admin_telegram_alerts import linked_global_admins
+        from demo_telegram_notifications import configured as telegram_configured
+        recipients=linked_global_admins(db)
+        return {"configured":telegram_configured(),
+                "linked_admin_count":len(recipients),
+                "self_linked":any(account_id==admin.id for account_id,_ in recipients)}
+
     @app.get("/demo/manage/support/summary")
     def support_summary(admin=Depends(staff),db:Session=Depends(get_db)):
         return {"unread":int(unread_query(db,admin.id).scalar() or 0),
