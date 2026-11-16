@@ -230,9 +230,17 @@ def install_broadcast_api(app, get_db, main):
     from demo_roles import account_lookup, role_for
 
     def authorized(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+        # Privileged organizer/admin operations still require MFA.
         return account_lookup(db, authorization)
 
-
+    def preferences_account(authorization: str | None = Header(default=None),
+                            db: Session = Depends(get_db)):
+        # Communication opt-out is a self-service account preference, not an
+        # administrative operation. Validate the existing signed-in session,
+        # but do not require organizer/global-admin TOTP elevation.
+        from demo_mfa import session_for
+        account, _session = session_for(db, authorization)
+        return account
 
     @app.post("/demo/public/broadcast-unsubscribe")
     def unsubscribe_email(payload: EmailUnsubscribeRequest, db: Session = Depends(get_db)):
@@ -255,13 +263,13 @@ def install_broadcast_api(app, get_db, main):
         return {"status": "unsubscribed"}
 
     @app.get("/demo/auth/broadcast-preferences")
-    def preferences(account=Depends(authorized), db: Session = Depends(get_db)):
+    def preferences(account=Depends(preferences_account), db: Session = Depends(get_db)):
         row = db.get(BroadcastPreference, account.id)
         return {"email_enabled": row.email_enabled if row else True,
                 "telegram_enabled": row.telegram_enabled if row else True}
 
     @app.put("/demo/auth/broadcast-preferences")
-    def update_preferences(payload: BroadcastPreferenceUpdate, account=Depends(authorized),
+    def update_preferences(payload: BroadcastPreferenceUpdate, account=Depends(preferences_account),
                            db: Session = Depends(get_db)):
         # Idempotent upsert: only the authenticated account can change its settings.
         values = {"account_id": account.id, "email_enabled": payload.email_enabled,
