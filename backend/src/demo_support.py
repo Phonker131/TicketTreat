@@ -166,8 +166,13 @@ def install_support_api(app,get_db):
         ticket=SupportTicket(account_id=account.id,category=payload.category,subject=subject,
                              status="open",created_at=now(),updated_at=now(),last_customer_at=now())
         db.add(ticket);db.flush()
-        db.add(SupportMessage(ticket_id=ticket.id,author_account_id=account.id,
-                              author_role="customer",body=body,created_at=now()))
+        msg=SupportMessage(ticket_id=ticket.id,author_account_id=account.id,
+                           author_role="customer",body=body,created_at=now())
+        db.add(msg);db.flush()
+        # Durable, deduplicated alerts to Telegram-linked global administrators.
+        from demo_admin_telegram_alerts import enqueue_admin_alert
+        enqueue_admin_alert(db,kind="admin_support_new",object_id=ticket.id,
+                            notification_id=msg.id)
         db.commit()
         return {"id":ticket.id,"status":"open"}
 
@@ -193,7 +198,11 @@ def install_support_api(app,get_db):
         t.updated_at=t.last_customer_at=now()
         msg=SupportMessage(ticket_id=t.id,author_account_id=account.id,
                            author_role="customer",body=body,created_at=now())
-        db.add(msg);db.commit()
+        db.add(msg);db.flush()
+        from demo_admin_telegram_alerts import enqueue_admin_alert
+        enqueue_admin_alert(db,kind="admin_support_reply",object_id=t.id,
+                            notification_id=msg.id)
+        db.commit()
         return {"status":"open"}
 
     @app.get("/demo/manage/support/summary")
