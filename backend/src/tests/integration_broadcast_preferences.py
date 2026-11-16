@@ -54,6 +54,62 @@ class BroadcastPreferenceIntegration(unittest.TestCase):
                 with patch.dict(os.environ,{"EMAIL_FROM":"test@example.test"}):
                     self.assertIsNotNone(render_broadcast_email(queued,db))
 
+    def test_privileged_admin_and_organizer_can_opt_out_without_mfa(self):
+        """No TOTP for personal preferences; privileged broadcast actions stay locked."""
+        with SessionLocal() as db:
+            organizer, _, _, organizer_headers = account_with_session(db, "organizer")
+            global_admin, _, _, admin_headers = account_with_session(db)
+            organizer_id, admin_id = organizer.id, global_admin.id
+            db.commit()
+
+        # Test with production MFA enforcement; do not enroll or elevate either account.
+        with patch.dict(os.environ, {
+            "APP_ENV": "production",
+            "GLOBAL_ADMIN_ACCOUNT_IDS": str(admin_id),
+            "GLOBAL_ADMIN_EMAILS": "",
+        }):
+            with TestClient(main.app) as client:
+                path = "/api/v1/auth/broadcast-preferences"
+                for headers in (organizer_headers, admin_headers):
+                    loaded = client.get(path, headers=headers)
+                    self.assertEqual(loaded.status_code, 200, loaded.text)
+                    self.assertEqual(loaded.json(), {
+                        "email_enabled": True, "telegram_enabled": True,
+                    })
+                    disabled = client.put(path, headers=headers, json={
+                        "email_enabled": False, "telegram_enabled": False,
+                    })
+                    self.assertEqual(disabled.status_code, 200, disabled.text)
+                    self.assertEqual(client.get(path, headers=headers).json(), {
+                        "email_enabled": False, "telegram_enabled": False,
+                    })
+                    # Re-enabling and repeated saves also use ordinary session auth.
+                    self.assertEqual(client.put(path, headers=headers, json={
+                        "email_enabled": True, "telegram_enabled": False,
+                    }).status_code, 200)
+                    self.assertEqual(client.put(path, headers=headers, json={
+                        "email_enabled": False, "telegram_enabled": False,
+                    }).status_code, 200)
+                    # A personal opt-out must NOT elevate administrative permissions.
+                    guarded = client.post("/api/v1/manage/broadcasts/preview",
+                        headers=headers, json={"scope": "global"})
+                    self.assertEqual(guarded.status_code, 403, guarded.text)
+                    self.assertEqual(guarded.json()["detail"], "mfa_enrollment_required")
+                self.assertEqual(client.get(path).status_code, 401)
+                self.assertEqual(client.put(path, json={
+                    "email_enabled": False, "telegram_enabled": False,
+                }).status_code, 401)
+                # Invalid/expired sessions do not gain access to preferences.
+                self.assertEqual(client.get(path, headers={
+                    "Authorization": "Bearer " + "z" * 40,
+                }).status_code, 401)
+        with SessionLocal() as db:
+            for aid in (organizer_id, admin_id):
+                prefs = db.get(BroadcastPreference, aid)
+                self.assertIsNotNone(prefs)
+                self.assertFalse(prefs.email_enabled)
+                self.assertFalse(prefs.telegram_enabled)
+
     def test_queued_telegram_is_not_sent_after_unsubscribe(self):
         db=MagicMock()
         item=SimpleNamespace(attempts=0,campaign_id=1,telegram_id=123,state="pending")
