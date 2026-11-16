@@ -34,6 +34,23 @@ export function AdminSupportClient(){
    }).catch(e=>{if(live)setError(e.message||String(e));}).finally(()=>{if(live)setLoading(false)});
    return()=>{live=false};
  },[refresh]);
+ // Open the exact support request referenced by an admin-only Telegram alert.
+ // The server still checks session, global-admin role and MFA on every request.
+ useEffect(()=>{
+   if(!authorized)return;
+   const raw=new URLSearchParams(window.location.search).get("ticket");
+   if(!raw || !/^[1-9][0-9]{0,9}$/.test(raw))return;
+   const ticketId=Number(raw);
+   if(!Number.isSafeInteger(ticketId))return;
+   let active=true;
+   void getAdminSupportTicket(ticketId).then(async data=>{
+     if(!active)return;
+     setCurrent(ticketId);setThread(data);
+     await markSupportRead(ticketId);
+     if(active)await refresh("all");
+   }).catch(e=>{if(active)setError(e instanceof Error?e.message:String(e))});
+   return()=>{active=false};
+ },[authorized,refresh]);
  useEffect(()=>{
    if(!authorized)return;
    const id=window.setInterval(()=>{if(document.visibilityState==="visible"){
