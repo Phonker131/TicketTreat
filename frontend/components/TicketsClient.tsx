@@ -83,8 +83,8 @@ export function TicketsClient() {
               className={past===history?"button button-primary":"button button-outline"} onClick={()=>setHistory(past)}>{words[i]}</button>)}
           </div>
           {!error && !rows.length && <section className="panel"><p>{history ? words[5] : words[3]}</p>
-            {!history && <Link className="button button-primary" href="/#events">{words[4]}</Link>}
-            {!guest && !history && <Link className="button button-outline" href="/login">{words[8]}</Link>}
+            {!history && <div className="tt-btn-row"><Link className="button button-primary" href="/#events">{words[4]}</Link>
+            {!guest && <Link className="button button-outline" href="/login">{words[8]}</Link>}</div>}
           </section>}
           <div className="ticket-list">{rows.map(({event,ticket,cancelled})=>{
             const qr = ticket?.ticket_status==="active" && !history && !cancelled && ticket.payment_status!=="pending";

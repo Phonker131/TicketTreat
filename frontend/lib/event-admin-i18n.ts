@@ -31,7 +31,7 @@ const messages: Array<[string,string,string,string]> = [
     "Фото галереї: від 1200 px по довшій стороні, горизонтальні 3:2 або 4:3 виглядають найкраще."
   ],
   [
-    "Формат постера — JPG, PNG или WebP.",
+    "Формат постера: JPG, PNG или WebP.",
     "Poster format must be JPG, PNG or WebP.",
     "Plakát musí být ve formátu JPG, PNG nebo WebP.",
     "Формат афіші має бути JPG, PNG або WebP."
@@ -427,7 +427,7 @@ const messages: Array<[string,string,string,string]> = [
     "Старі реєстрації Telegram враховуються в заповненості, але не в усіх QR-показниках."
   ],
   [
-    "Закрыть регистрацию за N минут до начала (0 — до старта)",
+    "Закрыть регистрацию за N минут до начала (0 = до старта)",
     "Close registration N minutes before start (0 = until start)",
     "Uzavřít registraci N minut před začátkem (0 = až do začátku)",
     "Закрити реєстрацію за N хвилин до початку (0 = до старту)"
@@ -505,10 +505,10 @@ const messages: Array<[string,string,string,string]> = [
     "Акаунт №"
   ],
   [
-    "📢 Рассылка участникам этого ивента →",
-    "📢 Message event attendees →",
-    "📢 Zprávy účastníkům této akce →",
-    "📢 Повідомлення учасникам цієї події →"
+    "Рассылка участникам этого ивента",
+    "Message event attendees",
+    "Zprávy účastníkům této akce",
+    "Повідомлення учасникам цієї події"
   ],
   [
     "С подтверждённым email и действующим билетом:",
@@ -661,10 +661,10 @@ const messages: Array<[string,string,string,string]> = [
     "Дій ще немає"
   ],
   [
-    "Заявки на платное мероприятие — подтверждение в течение 24 часов",
-    "Paid event requests — confirm within 24 hours",
-    "Žádosti o placenou akci — potvrdit do 24 hodin",
-    "Заявки на платну подію — підтвердження протягом 24 годин"
+    "Заявки на платное мероприятие: подтверждение в течение 24 часов",
+    "Paid event requests: confirm within 24 hours",
+    "Žádosti o placenou akci: potvrdit do 24 hodin",
+    "Заявки на платну подію: підтвердження протягом 24 годин"
   ],
   [
     "Деньги поступают напрямую организатору. Подтверждай заявку только после проверки фактического поступления. До подтверждения QR-билет не выдаётся. Не подтверждённые заявки автоматически истекают через 24 часа.",
@@ -817,10 +817,10 @@ const messages: Array<[string,string,string,string]> = [
     "Сканувати QR"
   ],
   [
-    "↓ Export CSV",
-    "↓ Export CSV",
-    "↓ Export CSV",
-    "↓ Експорт CSV"
+    "Export CSV",
+    "Export CSV",
+    "Export CSV",
+    "Експорт CSV"
   ],
   [
     "Черновик",
@@ -892,7 +892,7 @@ const messages: Array<[string,string,string,string]> = [
     "Максимум 4 МБ.",
     "Maximum file size is 4 MB.",
     "Maximální velikost je 4 MB.",
-    "Максимальний розмір — 4 МБ."
+    "Максимальний розмір: 4 МБ."
   ],
   [
     "Выберите JPG, PNG или WebP.",
@@ -967,16 +967,16 @@ const messages: Array<[string,string,string,string]> = [
     "Сканер квитків"
   ],
   [
-    "📷 Камера сканирует QR-код",
-    "📷 Camera scanning QR code",
-    "📷 Kamera skenuje QR kód",
-    "📷 Камера сканує QR-код"
+    "Камера сканирует QR-код",
+    "Camera scanning QR code",
+    "Kamera skenuje QR kód",
+    "Камера сканує QR-код"
   ],
   [
-    "Камера недоступна — используй ручной ввод",
-    "Camera unavailable — enter code manually",
-    "Kamera není dostupná — použij ruční zadání",
-    "Камера недоступна — введи код вручну"
+    "Камера недоступна, используй ручной ввод",
+    "Camera unavailable, enter the code manually",
+    "Kamera není dostupná, použij ruční zadání",
+    "Камера недоступна, введи код вручну"
   ],
   [
     "Подключение камеры…",
@@ -985,10 +985,10 @@ const messages: Array<[string,string,string,string]> = [
     "Підключення камери…"
   ],
   [
-    "QR-код билета — ручной ввод",
-    "Ticket QR code — manual entry",
-    "QR kód vstupenky — ruční zadání",
-    "QR-код квитка — ручне введення"
+    "QR-код билета: ручной ввод",
+    "Ticket QR code: manual entry",
+    "QR kód vstupenky: ruční zadání",
+    "QR-код квитка: ручне введення"
   ],
   [
     "Вставь токен из QR-кода",
@@ -1003,10 +1003,10 @@ const messages: Array<[string,string,string,string]> = [
     "Камера активна"
   ],
   [
-    "↻ Перезапустить камеру",
-    "↻ Restart camera",
-    "↻ Restartovat kameru",
-    "↻ Перезапустити камеру"
+    "Перезапустить камеру",
+    "Restart camera",
+    "Restartovat kameru",
+    "Перезапустити камеру"
   ],
   [
     "Free",
@@ -1033,10 +1033,10 @@ const messages: Array<[string,string,string,string]> = [
     "Не вдалося прочитати афішу."
   ],
   [
-    "Максимальный размер постера — 4 МБ.",
+    "Максимальный размер постера: 4 МБ.",
     "Maximum poster size is 4 MB.",
     "Maximální velikost plakátu je 4 MB.",
-    "Максимальний розмір афіші — 4 МБ."
+    "Максимальний розмір афіші: 4 МБ."
   ],
   [
     "Только PNG, JPEG или WebP.",

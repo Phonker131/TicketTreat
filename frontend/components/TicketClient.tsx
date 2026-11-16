@@ -137,7 +137,7 @@ export function TicketClient() {
   return <div className="app-shell">
     <AppHeader/>
     <main className="page narrow-page">
-      <Link href="/tickets" className="back-link">← {t(language,"tickets")}</Link>
+      <Link href="/tickets" className="back-link">{t(language,"tickets")}</Link>
       {message && (message!=="registered" || ticket) && <div className="success-banner" role="status">{message==="registered" && ticket && !admissionReady(ticket) ? unavailableText : translateMessage(message)}</div>}
       {loading?<div className="state-card">{t(language,"loading")}</div>:
        !ticket?<div className="state-card state-error">{t(language,"loadError")}</div>:
@@ -157,10 +157,10 @@ export function TicketClient() {
              <div><span>{t(language,"location")}</span><strong>{ticket.event?.location||"Czechia"}</strong></div>
              <div><span>{t(language,"price")}</span><strong>{ticket.event?formatPrice(ticket.event,language):`${ticket.payment_amount} ${ticket.currency}`}</strong></div>
            </div>
-           {ticket.payment_provider==="registration_only"&&<p className="form-note" role="note">{language==="ru"?"Запись подтверждена. TicketTreat не принимал и не проверял оплату — условия уточни у организатора.":language==="cs"?"Registrace potvrzena. TicketTreat platbu nepřijal ani neověřil — podmínky zjistěte u pořadatele.":language==="uk"?"Запис підтверджено. TicketTreat не приймав і не перевіряв оплату — умови уточни в організатора.":"Registration confirmed. TicketTreat has not collected or verified payment; confirm terms with the organizer."}</p>}
+           {ticket.payment_provider==="registration_only"&&<p className="form-note" role="note">{language==="ru"?"Запись подтверждена. TicketTreat не принимал и не проверял оплату. Условия уточни у организатора.":language==="cs"?"Registrace potvrzena. TicketTreat platbu nepřijal ani neověřil. Podmínky zjistěte u pořadatele.":language==="uk"?"Запис підтверджено. TicketTreat не приймав і не перевіряв оплату. Умови уточни в організатора.":"Registration confirmed. TicketTreat has not collected or verified payment; confirm terms with the organizer."}</p>}
            <div className="tt-pass-countdown" role="timer" aria-live="off">
              <span>{ticketText.until}</span>
-             {!countdown?<strong>—</strong>:countdown.started?<strong>{ticketText.started}</strong>:
+             {!countdown?<strong>-</strong>:countdown.started?<strong>{ticketText.started}</strong>:
               <div className="tt-countdown-values">
                 {countdown.days>0&&<span><strong>{countdown.days}</strong><small>{ticketText.days}</small></span>}
                 <span><strong>{digits(countdown.hours)}</strong><small>{ticketText.hours}</small></span>
@@ -169,7 +169,7 @@ export function TicketClient() {
               </div>}
            </div>
            {admissionReady(ticket)&&qr?
-             <button type="button" className="button button-primary button-wide" onClick={()=>setFlipped(true)}>{ticketText.back} ↗</button>:
+             <button type="button" className="button button-primary button-wide" onClick={()=>setFlipped(true)}>{ticketText.back}</button>:
              <div className="tt-pass-revoked" role="status">{unavailableText}</div>}
            <div className="ticket-status-grid tt-pass-status">
              <span className={`status ${admissionReady(ticket)?"status-success":"status-danger"}`}>{admissionReady(ticket)?(language==="ru"?"ДЕЙСТВИТЕЛЕН":language==="cs"?"PLATNÁ":language==="uk"?"ДІЙСНИЙ":"VALID"):unavailableText}</span>
@@ -192,9 +192,9 @@ export function TicketClient() {
            {admissionReady(ticket)&&qr?
              <div className="tt-pass-qr"><img src={qr} alt="QR code for TicketTreat check-in"/><strong>{ticket.code}</strong><p>{tr.qr}</p></div>:
              <div className="tt-pass-revoked" role="status">{unavailableText}</div>}
-           <p className="tt-ticket-guest"><small>{ticketText.guest}</small><strong>{[ticket.guest?.first_name,ticket.guest?.last_name].filter(Boolean).join(" ")||"—"}</strong></p>
+           <p className="tt-ticket-guest"><small>{ticketText.guest}</small><strong>{[ticket.guest?.first_name,ticket.guest?.last_name].filter(Boolean).join(" ")||"-"}</strong></p>
            <div className="tt-ticket-barcode" aria-hidden="true"/><small>{ticket.code}</small>
-           <button type="button" className="button button-secondary button-wide" onClick={()=>setFlipped(false)}>{ticketText.front} ↗</button>
+           <button type="button" className="button button-secondary button-wide" onClick={()=>setFlipped(false)}>{ticketText.front}</button>
          </div>
        </article>}
     </main>

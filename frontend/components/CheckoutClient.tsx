@@ -7,7 +7,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/components/LanguageProvider";
 import { createDemoGuest, demoCheckout, getEvent, joinWaitlist, getBookingConfig, getWaitlistOfferStatus,claimWaitlistOffer,declineWaitlistOffer,requestQuickSignup,confirmQuickSignup } from "@/lib/api";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { getStoredGuestToken, restoreGuest, storeGuest,setWebAuth } from "@/lib/session";
@@ -152,6 +152,7 @@ export function CheckoutClient() {
               <div>
                 <small>{event.organizer || "TicketTreat"}</small>
                 <h2>{event.title}</h2>
+                {event.starts_at&&<p className="tt-checkout-when">{formatDate(event.starts_at, language)}</p>}
               </div>
               <strong>{isFree ? freeLabel : price}</strong>
             </section>
@@ -227,7 +228,7 @@ export function CheckoutClient() {
                               <p className="tt-legal-at-collection">
                 {language==="ru"?"Регистрация и обработка данных выполняются по ":language==="uk"?"Реєстрація та обробка даних здійснюються відповідно до ":language==="cs"?"Informace o registraci a zpracování osobních údajů: ":"Registration and data handling: "}
                 <Link href="/terms" target="_blank" rel="noopener noreferrer">{language==="ru"?"условиям использования":language==="uk"?"умов користування":language==="cs"?"Obchodní podmínky":"Terms of Service"}</Link>
-                {" · "}
+                {", "}
                 <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">{language==="ru"?"политика конфиденциальности":language==="uk"?"політика конфіденційності":language==="cs"?"Ochrana osobních údajů":"Privacy Policy"}</Link>.
               </p>
                 <button className="button button-primary" disabled={busy}>{busy ? t(language, "loading") : t(language, "continue")}</button>
@@ -244,7 +245,7 @@ export function CheckoutClient() {
                   <section className="form-stack" aria-live="polite">
                     <h2>{language==="ru"?"Ваше место освободилось":language==="cs"?"Místo je pro vás připraveno":language==="uk"?"Місце для вас доступне":"Your seat is available"}</h2>
                     <p>{language==="ru"?"Место временно зарезервировано до:":language==="cs"?"Rezervace platí do:":language==="uk"?"Резервація діє до:":"Reserved until:"}{" "}
-                      <strong>{offer.expires_at?new Date(offer.expires_at).toLocaleString():"—"}</strong></p>
+                      <strong>{offer.expires_at?new Date(offer.expires_at).toLocaleString():"-"}</strong></p>
                     <button className="button button-primary button-wide" disabled={busy}
                       onClick={performCheckout}>{busy?t(language,"loading"):registerLabel}</button>
                     <button className="button button-outline" disabled={busy} onClick={async()=>{
@@ -278,7 +279,7 @@ export function CheckoutClient() {
               <p className="tt-legal-at-collection">
                 {language==="ru"?"Регистрация и обработка данных выполняются по ":language==="uk"?"Реєстрація та обробка даних здійснюються відповідно до ":language==="cs"?"Informace o registraci a zpracování osobních údajů: ":"Registration and data handling: "}
                 <Link href="/terms" target="_blank" rel="noopener noreferrer">{language==="ru"?"условиям использования":language==="uk"?"умов користування":language==="cs"?"Obchodní podmínky":"Terms of Service"}</Link>
-                {" · "}
+                {", "}
                 <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">{language==="ru"?"политика конфиденциальности":language==="uk"?"політика конфіденційності":language==="cs"?"Ochrana osobních údajů":"Privacy Policy"}</Link>.
               </p>
                     <button className="button button-primary button-wide" onClick={performCheckout} disabled={busy}>

@@ -19,8 +19,7 @@ export function FaqClient({forcedLanguage}:{forcedLanguage?:LanguageCode}={}){
   return <div className="app-shell">
     <AppHeader/>
     <main className="page tt-faq-page" lang={language}>
-      <Link href="/" className="back-link">← TicketTreat</Link>
-      <p className="eyebrow">TICKETTREAT / FAQ</p>
+      <Link href="/" className="back-link">TicketTreat</Link>
       <h1>{t.title}</h1>
       <p className="tt-faq-intro">{t.intro}</p>
       <nav className="tt-faq-languages" aria-label="FAQ languages">
@@ -28,7 +27,7 @@ export function FaqClient({forcedLanguage}:{forcedLanguage?:LanguageCode}={}){
         <Link href="/en/faq" hrefLang="en" lang="en" aria-current={language==="en"?"page":undefined}>English</Link>
       </nav>
       <div className="tt-faq-search">
-        <label htmlFor="tt-faq-search">{t.search}</label>
+        <label htmlFor="tt-faq-search" className="sr-only">{t.search}</label>
         <input id="tt-faq-search" type="search" value={search} onChange={event=>setSearch(event.target.value)}
           placeholder={t.search} autoComplete="off"/>
       </div>

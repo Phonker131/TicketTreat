@@ -23,7 +23,7 @@ export function OrganizerReviewClient(){
     finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
-    <Link href="/admin" className="back-link">{tr("← Admin")}</Link>
+    <Link href="/admin" className="back-link">{tr("Admin")}</Link>
     <h1>{tr("Organizer applications")}</h1>
     <p className="form-note">{tr("Applicants must verify their email. Global admin MFA is required to approve new event organizers.")}</p>
     {message&&<p className="state-card state-error" role="alert">{message}</p>}

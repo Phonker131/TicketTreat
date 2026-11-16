@@ -18,14 +18,14 @@ for (const theme of ["dark","light"] as const) {
               <div class="admin-event-grid tp-admin-grid">
                 <a href="#" class="admin-event-card tp-admin-card">
                   <div class="tp-ecard-date"><strong>15</strong><span>JAN</span></div>
-                  <span class="tp-status is-draft"><span class="tp-status-name">Draft</span><span class="tp-status-divider" aria-hidden="true">·</span><span class="tp-status-number">#20</span></span>
-                  <h3>BARFIGHT</h3><p>Fri 15 Jan · Czech Inn Bar</p>
+                  <span class="tp-status is-draft"><span class="tp-status-name">Draft</span> <span class="tp-status-number">#20</span></span>
+                  <h3>BARFIGHT</h3><p>Fri 15 Jan, Czech Inn Bar</p>
                   <div class="tp-admin-guests">0 / 30 guests</div>
                 </a>
                 <a href="#" class="admin-event-card tp-admin-card">
                   <div class="tp-ecard-date"><strong>05</strong><span>JAN</span></div>
-                  <span class="tp-status is-published"><span class="tp-status-name">Published</span><span class="tp-status-divider" aria-hidden="true">·</span><span class="tp-status-number">#19</span></span>
-                  <h3>DETECTIVE TABLE</h3><p>Tue 5 Jan · Nerd Alert</p>
+                  <span class="tp-status is-published"><span class="tp-status-name">Published</span> <span class="tp-status-number">#19</span></span>
+                  <h3>DETECTIVE TABLE</h3><p>Tue 5 Jan, Nerd Alert</p>
                   <div class="tp-admin-guests">0 / 20 guests</div>
                 </a>
               </div>

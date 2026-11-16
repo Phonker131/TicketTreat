@@ -13,14 +13,14 @@ export default function PrivacyPolicyPage(){
   return <div className="app-shell">
     <AppHeader/>
     <main className="page tt-legal-page">
-      <Link href="/" className="back-link">← TicketTreat</Link>
+      <Link href="/" className="back-link">TicketTreat</Link>
       <p className="eyebrow">TICKETTREAT / LEGAL</p>
       <h1 className="tt-legal-title">Privacy Policy</h1>
       <p className="tt-legal-intro">How we handle personal information when you use TicketTreat to find events, register and manage tickets.</p>
       <p className="tt-legal-updated">Last updated: 23 October 2026</p>
       <article className="tt-legal-content">
         <LegalOperatorIdentity/>
-        <p className="tt-legal-language-note">The English information appears below. <a href="#ceska-verze">Úplné informace v češtině ↓</a></p>
+        <p className="tt-legal-language-note">The English information appears below. <a href="#ceska-verze">Úplné informace v češtině</a></p>
         <section>
           <h2>1. Controller and scope</h2>
           <p>TicketTreat is a brand for an event-platform pilot in Czechia, not an incorporated legal entity by itself. The person or entity identified in the operator box above must be the actual GDPR controller for platform accounts, authentication, security and platform support. Event organizers may separately determine purposes and means of processing participant data for their own events; their identity and obligations must be clarified before public event sales.</p>

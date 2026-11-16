@@ -21,7 +21,7 @@ export function ProfileAwards(){
  const awards=passport.awards||[],perks=passport.campaign_perks||[];
  return <div className="form-stack">
    <section className="panel">
-     <h2>{cs?"Speciální ocenění":"Special achievements"} · {awards.length}</h2>
+     <h2>{cs?"Speciální ocenění":"Special achievements"} ({awards.length})</h2>
      {awards.length===0?<p>{cs?"Zatím vám nebylo uděleno žádné speciální ocenění. Pořadatel je může udělit po potvrzeném QR odbavení. Udělené odznaky a odměny se zobrazí přímo zde.":"You have not received any special achievements yet. Organizers can award them after a confirmed QR check-in. Your badges and rewards will appear right here."}</p>:
      <div className="tt-award-passport-grid">{awards.map(a=><article className="tt-award-passport-item" key={a.id}>
        <span className="tt-award-passport-icon" aria-hidden="true">✦</span>
@@ -30,7 +30,7 @@ export function ProfileAwards(){
      </article>)}</div>}
    </section>
    <section className="panel">
-     <h2>{cs?"Bonusy z akcí a kampaní":"Promotional rewards"} · {perks.length}</h2>
+     <h2>{cs?"Bonusy z akcí a kampaní":"Promotional rewards"} ({perks.length})</h2>
      {perks.length===0?<p className="form-note">{cs?"Zatím nemáte žádné bonusy z kampaní.":"You have no promotional rewards yet."}</p>:
      <div className="tt-promo-passport-grid">{perks.map(p=><article className="tt-promo-passport-item" key={p.id}>
        <strong>{p.reward_title}</strong><p>{p.organizer_name}</p>{p.reward_details&&<p>{p.reward_details}</p>}

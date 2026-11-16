@@ -120,15 +120,15 @@ const translations:Record<string,Partial<Record<LanguageCode,string>>> =  {
     "cs": "Zrušit akci",
     "uk": "Скасувати подію"
   },
-  "Предпросмотр ↗": {
-    "en": "Preview ↗",
-    "cs": "Náhled ↗",
-    "uk": "Попередній перегляд ↗"
+  "Предпросмотр": {
+    "en": "Preview",
+    "cs": "Náhled",
+    "uk": "Попередній перегляд"
   },
-  "Публичная страница ↗": {
-    "en": "Public page ↗",
-    "cs": "Veřejná stránka ↗",
-    "uk": "Публічна сторінка ↗"
+  "Публичная страница": {
+    "en": "Public page",
+    "cs": "Veřejná stránka",
+    "uk": "Публічна сторінка"
   },
   "Копировать ивент": {
     "en": "Duplicate event",
@@ -475,15 +475,15 @@ const translations:Record<string,Partial<Record<LanguageCode,string>>> =  {
     "cs": "Odebrat obrázek banneru",
     "uk": "Видалити банер"
   },
-  "← Админ-панель": {
-    "en": "← Admin dashboard",
-    "cs": "← Správa",
-    "uk": "← Адмін-панель"
+  "Админ-панель": {
+    "en": "Admin dashboard",
+    "cs": "Správa",
+    "uk": "Адмін-панель"
   },
-  "Изменения появятся на сайте и в Telegram Mini App. Доступ — только глобальному администратору.": {
+  "Изменения появятся на сайте и в Telegram Mini App. Доступ есть только у глобального администратора.": {
     "en": "Changes appear on the website and Telegram Mini App. Only global admins may edit.",
     "cs": "Změny se zobrazí na webu i v Telegram Mini App. Upravovat mohou pouze hlavní administrátoři.",
-    "uk": "Зміни з'являться на сайті та в Telegram Mini App. Доступ — лише головному адміністратору."
+    "uk": "Зміни з'являться на сайті та в Telegram Mini App. Доступ має лише головний адміністратор."
   },
   "Organizer applications": {
     "ru": "Заявки организаторов",
@@ -515,17 +515,17 @@ const translations:Record<string,Partial<Record<LanguageCode,string>>> =  {
     "cs": "Zamítnout",
     "uk": "Відхилити"
   },
-  "← Admin": {
-    "ru": "← Админ-панель",
-    "en": "← Admin",
-    "cs": "← Administrace",
-    "uk": "← Адмін"
+  "Admin": {
+    "ru": "Админ-панель",
+    "en": "Admin",
+    "cs": "Administrace",
+    "uk": "Адмін"
   },
-  "← Admin dashboard": {
-    "ru": "← Админ-панель",
-    "en": "← Admin dashboard",
-    "cs": "← Správa",
-    "uk": "← Адмін-панель"
+  "Admin dashboard": {
+    "ru": "Админ-панель",
+    "en": "Admin dashboard",
+    "cs": "Správa",
+    "uk": "Адмін-панель"
   },
   "Data erasure requests": {
     "ru": "Запросы на удаление данных",
@@ -563,17 +563,17 @@ const translations:Record<string,Partial<Record<LanguageCode,string>>> =  {
     "cs": "Odbavit",
     "uk": "Відмітити вхід"
   },
-  "← Organizer dashboard": {
-    "ru": "← Панель организатора",
-    "en": "← Organizer dashboard",
-    "cs": "← Správa akcí",
-    "uk": "← Панель організатора"
+  "Organizer dashboard": {
+    "ru": "Панель организатора",
+    "en": "Organizer dashboard",
+    "cs": "Správa akcí",
+    "uk": "Панель організатора"
   },
-  "← Back to profile": {
-    "ru": "← Вернуться в профиль",
-    "en": "← Back to profile",
-    "cs": "← Zpět na profil",
-    "uk": "← Назад до профілю"
+  "Back to profile": {
+    "ru": "Вернуться в профиль",
+    "en": "Back to profile",
+    "cs": "Zpět na profil",
+    "uk": "Назад до профілю"
   },
   "Two-factor authentication": {
     "ru": "Двухфакторная аутентификация",
@@ -647,11 +647,11 @@ const translations:Record<string,Partial<Record<LanguageCode,string>>> =  {
     "cs": "Otevřít správu akcí",
     "uk": "Відкрити панель організатора"
   },
-  "← Profile": {
-    "ru": "← Профиль",
-    "en": "← Profile",
-    "cs": "← Profil",
-    "uk": "← Профіль"
+  "Profile": {
+    "ru": "Профиль",
+    "en": "Profile",
+    "cs": "Profil",
+    "uk": "Профіль"
   },
   "Become an organizer": {
     "ru": "Стать организатором",

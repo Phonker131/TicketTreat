@@ -28,10 +28,10 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   const attributed=/^[a-z0-9_-]{1,40}$/.test(source)?`&utm_source=${encodeURIComponent(source)}`:"";
   const {language} = useLanguage();
   const previewWords={
-    en:{manage:"Manage event",title:"Preview — only the organizer can see this.",published:"This event is also published.",draft:"This draft is not visible to guests and does not accept registrations.",card:"Event preview",cardInfo:"Registration is unavailable in preview mode. Publish the event in the dashboard to open registration.",showMap:"Show map",hideMap:"Hide map",mapTitle:"Event venue map"},
-    cs:{manage:"Spravovat akci",title:"Náhled — viditelný pouze pořadateli.",published:"Akce je také zveřejněna.",draft:"Tento koncept není viditelný hostům a nepřijímá registrace.",card:"Náhled akce",cardInfo:"Registrace není v náhledu dostupná. Zveřejněte akci ve správě, aby se hosté mohli registrovat.",showMap:"Zobrazit mapu",hideMap:"Skrýt mapu",mapTitle:"Mapa místa konání"},
-    ru:{manage:"Управление ивентом",title:"Предпросмотр — доступен только организатору.",published:"Ивент также опубликован.",draft:"Черновик пока не виден гостям и не принимает регистрации.",card:"Предпросмотр карточки",cardInfo:"Регистрация в режиме предпросмотра недоступна. Чтобы открыть её для гостей, опубликуй мероприятие в админке.",showMap:"Показать карту",hideMap:"Скрыть карту",mapTitle:"Карта места проведения"},
-    uk:{manage:"Керування подією",title:"Попередній перегляд — доступний лише організатору.",published:"Подію також опубліковано.",draft:"Чернетку ще не видно гостям, і вона не приймає реєстрації.",card:"Попередній перегляд події",cardInfo:"Реєстрація в режимі попереднього перегляду недоступна. Опублікуй подію в панелі організатора.",showMap:"Показати карту",hideMap:"Сховати карту",mapTitle:"Карта місця проведення"}
+    en:{manage:"Manage event",title:"Preview: only the organizer can see this.",published:"This event is also published.",draft:"This draft is not visible to guests and does not accept registrations.",card:"Event preview",cardInfo:"Registration is unavailable in preview mode. Publish the event in the dashboard to open registration.",showMap:"Show map",hideMap:"Hide map",mapTitle:"Event venue map"},
+    cs:{manage:"Spravovat akci",title:"Náhled: viditelný pouze pořadateli.",published:"Akce je také zveřejněna.",draft:"Tento koncept není viditelný hostům a nepřijímá registrace.",card:"Náhled akce",cardInfo:"Registrace není v náhledu dostupná. Zveřejněte akci ve správě, aby se hosté mohli registrovat.",showMap:"Zobrazit mapu",hideMap:"Skrýt mapu",mapTitle:"Mapa místa konání"},
+    ru:{manage:"Управление ивентом",title:"Предпросмотр: доступен только организатору.",published:"Ивент также опубликован.",draft:"Черновик пока не виден гостям и не принимает регистрации.",card:"Предпросмотр карточки",cardInfo:"Регистрация в режиме предпросмотра недоступна. Чтобы открыть её для гостей, опубликуй мероприятие в админке.",showMap:"Показать карту",hideMap:"Скрыть карту",mapTitle:"Карта места проведения"},
+    uk:{manage:"Керування подією",title:"Попередній перегляд: доступний лише організатору.",published:"Подію також опубліковано.",draft:"Чернетку ще не видно гостям, і вона не приймає реєстрації.",card:"Попередній перегляд події",cardInfo:"Реєстрація в режимі попереднього перегляду недоступна. Опублікуй подію в панелі організатора.",showMap:"Показати карту",hideMap:"Сховати карту",mapTitle:"Карта місця проведення"}
   }[language];
   const [event, setEvent] = useState<TicketTreatEvent | null>(initialEvent);
   const [error, setError] = useState<string | null>(null);
@@ -123,8 +123,8 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
     <div className="app-shell">
       <AppHeader />
       <main className="page event-page">
-        <Link href={preview?`/admin/events/${event.id}`:"/"} className="back-link">← {preview?previewWords.manage:t(language, "back")}</Link>
-        {!preview&&event.visibility==="link_only"&&<div className="state-card" role="status">{language==="ru"?"🔒 Закрытое мероприятие. Доступ только по ссылке-приглашению.":language==="cs"?"🔒 Soukromá událost. Přístup pouze přes pozvánku.":language==="uk"?"🔒 Закрита подія. Доступ лише за запрошенням.":"🔒 Invitation-only event. Share this private link only with invited guests."}</div>}
+        <Link href={preview?`/admin/events/${event.id}`:"/"} className="back-link">{preview?previewWords.manage:t(language, "back")}</Link>
+        {!preview&&event.visibility==="link_only"&&<div className="state-card" role="status">{language==="ru"?"Закрытое мероприятие. Доступ только по ссылке-приглашению.":language==="cs"?"Soukromá událost. Přístup pouze přes pozvánku.":language==="uk"?"Закрита подія. Доступ лише за запрошенням.":"Invitation-only event. Share this private link only with invited guests."}</div>}
         {preview&&<div className="state-card" role="status"><strong>{previewWords.title}</strong> {event.publication?.visible?previewWords.published:previewWords.draft}</div>}
 
         <section className="event-hero">
@@ -147,19 +147,10 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
           </div>
         </section>
 
-        <section className="detail-grid">
-          <div className="detail-item"><span>{t(language, "startsAt")}</span><strong>{formatDate(event.starts_at, language)}</strong></div>
-          <div className="detail-item"><span>{t(language, "location")}</span><strong>{event.location || "—"}</strong></div>
-          <div className="detail-item"><span>{t(language, "organizer")}</span><strong>{event.organizer_profile ? <Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-organizer-link">{event.organizer_profile.display_name}</Link> : (event.organizer === "Crowdly" ? "TicketTreat" : (event.organizer || "TicketTreat"))}</strong></div>
-          <div className="detail-item"><span>{t(language, "price")}</span><strong>{formatPrice(event, language)}</strong></div>
-          <div className="detail-item"><span>{t(language, "spots")}</span><strong>{event.spots_left ?? "∞"}</strong></div>
-          <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
-        </section>
-        {!preview&&<EventOrganizerChat eventId={event.id} inviteToken={inviteToken}/>}
         {preview ? <section className="state-card"><h2>{previewWords.card}</h2><p>{previewWords.cardInfo}</p></section> : event.is_cancelled ? (
           <section className="state-card state-error">
             <h2>{t(language,"cancelled")}</h2>
-            <p><strong>{language==="en"?"Cancellation reason":language==="cs"?"Důvod zrušení":language==="uk"?"Причина скасування":"Причина отмены"}:</strong> {event.cancellation_reason || "—"}</p>
+            <p><strong>{language==="en"?"Cancellation reason":language==="cs"?"Důvod zrušení":language==="uk"?"Причина скасування":"Причина отмены"}:</strong> {event.cancellation_reason || "-"}</p>
             <p>{language==="en"?"Registration is closed.":language==="cs"?"Registrace je uzavřena.":language==="uk"?"Реєстрацію закрито.":"Регистрация закрыта."}</p>
           </section>
         ) : owned?.eventId === event.id ? (
@@ -175,7 +166,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
               <h2>{event.spots_left === 0 ? t(language, "soldOut") : t(language, "join")}</h2>
               <p>{Number(event.price||0)<=0
                 ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.")
-                : (language==="ru"?"Запись и QR-билет оформляются сразу, без подтверждения оплаты. TicketTreat не принимает и не проверяет платежи — условия оплаты уточняй у организатора.":language==="cs"?"Registrace a QR vstupenka se vydají okamžitě bez potvrzení platby. TicketTreat platby nevybírá ani neověřuje — podmínky si ověřte u pořadatele.":language==="uk"?"Запис і QR-квиток оформлюються одразу без підтвердження оплати. TicketTreat не приймає та не перевіряє платежі — умови уточнюй в організатора.":"Registration and QR tickets are immediate, without payment confirmation. TicketTreat does not collect or verify payment; check arrangements with the organizer.")}</p>
+                : (language==="ru"?"Запись и QR-билет оформляются сразу, без подтверждения оплаты. TicketTreat не принимает и не проверяет платежи. Условия оплаты уточняй у организатора.":language==="cs"?"Registrace a QR vstupenka se vydají okamžitě bez potvrzení platby. TicketTreat platby nevybírá ani neověřuje. Podmínky si ověřte u pořadatele.":language==="uk"?"Запис і QR-квиток оформлюються одразу без підтвердження оплати. TicketTreat не приймає та не перевіряє платежі. Умови уточнюй в організатора.":"Registration and QR tickets are immediate, without payment confirmation. TicketTreat does not collect or verify payment; check arrangements with the organizer.")}</p>
             </div>
             {event.spots_left === 0 ? (
               <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}${inviteQuery?`&${inviteQuery}`:""}`}>{t(language, "waitlist")}</Link>
@@ -184,7 +175,15 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
             )}
           </section>
         )}
-            {event.description && <p className="event-description">{event.description}</p>}
+        <section className="detail-grid">
+          <div className="detail-item"><span>{t(language, "startsAt")}</span><strong>{formatDate(event.starts_at, language)}</strong></div>
+          <div className="detail-item"><span>{t(language, "location")}</span><strong>{event.location || "-"}</strong></div>
+          <div className="detail-item"><span>{t(language, "organizer")}</span><strong>{event.organizer_profile ? <Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-organizer-link">{event.organizer_profile.display_name}</Link> : (event.organizer === "Crowdly" ? "TicketTreat" : (event.organizer || "TicketTreat"))}</strong></div>
+          <div className="detail-item"><span>{t(language, "price")}</span><strong>{formatPrice(event, language)}</strong></div>
+          {event.spots_left!=null&&<div className="detail-item"><span>{t(language, "spots")}</span><strong>{event.spots_left}</strong></div>}
+          <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
+        </section>
+        {event.description && <p className="event-description">{event.description}</p>}
         {(galleryUrls.length>0 || event.video_url) && <details open className="panel"><summary>{({en:"Photos and video",cs:"Fotografie a video",ru:"Фото и видео",uk:"Фото та відео"})[language]}</summary>
           <div className="event-media-gallery">{galleryUrls.map((url,index)=><a key={url+index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Event gallery photo ${index+1}`} loading="lazy" referrerPolicy="no-referrer"/></a>)}</div>
         {event.video_url && <>
@@ -192,6 +191,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
           {language==="ru"?"Смотреть видео":language==="uk"?"Дивитися відео":language==="cs"?"Zobrazit video":"Watch video"}</a>
         </>}
         </details>}
+        {!preview&&<EventOrganizerChat eventId={event.id} inviteToken={inviteToken}/>}
         <section className="panel" style={{marginTop:20,marginBottom:20}}>
           <h2>{language==="ru"?"Как добраться и сохранить дату":language==="cs"?"Místo a kalendář":language==="uk"?"Як дістатися та календар":"Venue and calendar"}</h2>
           <div className="tt-event-share-actions">
@@ -201,7 +201,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
               <a className="button button-outline" href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.telegram}`}>{shareWords.telegram}</a>
               <a className="button button-outline" href={`https://wa.me/?text=${encodeURIComponent(event.title+" "+shareUrl)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.whatsapp}`}>{shareWords.whatsapp}</a>
             </>}
-            {event.venue_url&&<a className="button button-outline" href={event.venue_url} target="_blank" rel="noopener noreferrer">{language==="ru"?"Сайт площадки ↗":language==="cs"?"Web místa konání ↗":language==="uk"?"Сайт майданчика ↗":"Venue website ↗"}</a>}
+            {event.venue_url&&<a className="button button-outline" href={event.venue_url} target="_blank" rel="noopener noreferrer">{language==="ru"?"Сайт площадки":language==="cs"?"Web místa konání":language==="uk"?"Сайт майданчика":"Venue website"}</a>}
             {mapUrl&&<><a className="button button-outline" href={mapUrl} target="_blank" rel="noopener noreferrer">{language==="ru"?"Открыть карту":language==="cs"?"Otevřít mapu":language==="uk"?"Відкрити карту":"Open map"}</a>
               <button type="button" className="button button-outline" onClick={()=>setMapOpen(v=>!v)}>{mapOpen?previewWords.hideMap:previewWords.showMap}</button></>}
           </div>

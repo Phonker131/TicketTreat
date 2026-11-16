@@ -14,6 +14,7 @@ import "./premium.css";
 import "./auth-providers.css";
 import "./promotions.css";
 import "./event-chat.css";
+import "./audit-fixes.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { MotionProvider } from "@/components/MotionProvider";
@@ -47,9 +48,9 @@ export const metadata: Metadata = {
   twitter: {card: "summary"},
   title: {
     default: "TicketTreat",
-    template: "%s · TicketTreat",
+    template: "%s | TicketTreat",
   },
-  description: "TicketTreat — discover events, reserve tickets and get helpful reminders in one place.",
+  description: "TicketTreat: discover events, reserve tickets and get helpful reminders in one place.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

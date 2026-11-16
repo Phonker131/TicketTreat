@@ -176,7 +176,7 @@ export function TelegramSignIn({link=false,compact=false}:{link?:boolean;compact
       </button>}
     {ready && !embedded && botFallback && !link && browserFlow &&
       <div className="panel form-stack" role="status">
-        <p>{language==="cs"?"Otevři @TicketTreatBot a potvrď přihlášení. Tato stránka se poté automaticky přihlásí.":language==="en"?"Open @TicketTreatBot and approve the login. This page will sign you in automatically.":language==="ru"?"Открой @TicketTreatBot и подтверди вход — сайт авторизуется автоматически.":"Відкрий @TicketTreatBot і підтвердь вхід — сайт авторизується автоматично."}</p>
+        <p>{language==="cs"?"Otevři @TicketTreatBot a potvrď přihlášení. Tato stránka se poté automaticky přihlásí.":language==="en"?"Open @TicketTreatBot and approve the login. This page will sign you in automatically.":language==="ru"?"Открой @TicketTreatBot и подтверди вход, сайт авторизуется автоматически.":"Відкрий @TicketTreatBot і підтвердь вхід, сайт авторизується автоматично."}</p>
         <p className="form-note">{language==="cs"?"Potvrzovací kód uvidíš pouze zde. Zadej ho v Telegram Mini App, nikomu ho neposílej.":language==="en"?"This confirmation code appears only here. Enter it in Telegram Mini App; do not share it.":language==="ru"?"Код отображается только здесь. Введи его в Mini App, никому не пересылай.":"Код лише тут. Введи його в Mini App, не передавай іншим."}</p>
         <strong style={{fontSize:"1.5rem",letterSpacing:".12em"}}>{browserFlow.pin}</strong>
         <a className="button button-primary" href={browserFlow.bot_link}

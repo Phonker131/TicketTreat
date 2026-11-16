@@ -66,19 +66,18 @@ export function SupportClient(){
    catch(e){setError(e instanceof Error?e.message:String(e))}finally{setBusy(false)}
  }
  return <div className="app-shell"><AppHeader/><main className="page tt-support-page">
-   <span className="eyebrow">TICKETTREAT / HELP</span>
    <h1>{t.title}</h1><p className="tt-support-lead">{t.intro}</p>
-   <div className="tt-support-faq-hint"><span>{language==="ru"?"Многие вопросы уже разобраны в FAQ.":language==="cs"?"Na mnoho otázek najdete odpověď ve FAQ.":language==="uk"?"Відповіді на багато запитань уже є у FAQ.":"Many common questions are already answered in our FAQ."}</span><Link href={language==="ru"?"/faq":"/"+language+"/faq"}>{language==="ru"?"Открыть FAQ":language==="cs"?"Otevřít FAQ":language==="uk"?"Відкрити FAQ":"Browse FAQ"} →</Link></div>
+   <div className="tt-support-faq-hint"><span>{language==="ru"?"Многие вопросы уже разобраны в FAQ.":language==="cs"?"Na mnoho otázek najdete odpověď ve FAQ.":language==="uk"?"Відповіді на багато запитань уже є у FAQ.":"Many common questions are already answered in our FAQ."}</span><Link href={language==="ru"?"/faq":"/"+language+"/faq"}>{language==="ru"?"Открыть FAQ":language==="cs"?"Otevřít FAQ":language==="uk"?"Відкрити FAQ":"Browse FAQ"}</Link></div>
    {needsLogin||needsVerifiedEmail?<section className="panel form-stack"><p>{needsVerifiedEmail?userFacingError(error,language):t.signed}</p><Link href="/profile" className="button button-primary">{needsVerifiedEmail?t.verifyEmail:t.login}</Link></section>:
     <>
     {error&&<p className="state-card state-error" role="alert">{userFacingError(error,language)}</p>}
     {notice&&<p className="success-banner" role="status">{notice==="msg:sent"?t.sent:notice}</p>}
     {loading?<div className="state-card">{t.loading}</div>:selected&&thread?<>
-      <button className="button button-outline" type="button" onClick={back}>← {t.back}</button>
+      <button className="button button-outline" type="button" onClick={back}>{t.back}</button>
       <section className="panel form-stack">
-       <div className="tt-support-ticket-heading"><h2>#{thread.ticket.id} · {thread.ticket.subject}</h2>
+       <div className="tt-support-ticket-heading"><h2>#{thread.ticket.id}, {thread.ticket.subject}</h2>
         <span className="status">{label(thread.ticket.status,t)}</span></div>
-       <small>{date(thread.ticket.created_at)} · {t.categories[keys.indexOf(thread.ticket.category)]||thread.ticket.category}</small>
+       <small>{date(thread.ticket.created_at)}, {t.categories[keys.indexOf(thread.ticket.category)]||thread.ticket.category}</small>
        <div className="tt-support-thread" aria-label={t.history}>{thread.messages.map(m=>
         <article key={m.id} className={`tt-support-message ${m.role==="admin"?"is-staff":""}`}>
           <div className="tt-support-message-meta"><strong>{m.role==="admin"?t.staff:t.user}</strong>
@@ -106,7 +105,7 @@ export function SupportClient(){
      <section className="panel form-stack"><h2>{t.history}</h2>
        {!items.length?<p>{t.empty}</p>:<div className="tt-support-list">{items.map(item=>
         <button className="tt-support-list-item" type="button" key={item.id} onClick={()=>void open(item.id)}>
-         <span><strong>#{item.id} · {item.subject}</strong><small>{date(item.updated_at)}</small></span>
+         <span><strong>#{item.id}, {item.subject}</strong><small>{date(item.updated_at)}</small></span>
          <span className="status">{label(item.status,t)}</span>
         </button>)}</div>}
      </section>

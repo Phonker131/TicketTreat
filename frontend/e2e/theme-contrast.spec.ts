@@ -76,13 +76,13 @@ for(const theme of ["dark","light"] as const){
               <div class="tt-analytics-tasks">
                 <a href="/admin/events/1" class="tt-analytics-task">
                   <span><strong>Low occupancy</strong><small>Amber HB TEST</small></span>
-                  <span>There is still time to promote this event. ↗</span>
+                  <span>There is still time to promote this event.</span>
                 </a>
               </div>
             </section>
           </main>
           <main class="page tt-support-page" data-support-contrast-test>
-            <div class="tt-support-heading-nav"><a class="back-link" href="/admin">← Admin dashboard</a><span class="eyebrow">TICKETTREAT / SUPPORT DESK</span></div>
+            <div class="tt-support-heading-nav"><a class="back-link" href="/admin">Admin dashboard</a><span class="eyebrow">TICKETTREAT / SUPPORT DESK</span></div>
             <h1>Support desk</h1><div class="stats-grid">
               <div class="stat-card"><strong>0</strong><span>Unread</span></div>
               <div class="stat-card"><strong>0</strong><span>Awaiting response</span></div>

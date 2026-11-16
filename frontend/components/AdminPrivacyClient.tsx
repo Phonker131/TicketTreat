@@ -29,8 +29,8 @@ const REQUEST_DEADLINE={
   en:"Response due",cs:"Odpovědět do",ru:"Ответить до",uk:"Відповісти до"
 };
 const OVERDUE={
-  en:"Overdue — prioritize review",cs:"Po termínu — řešte přednostně",
-  ru:"Срок истёк — обработать приоритетно",uk:"Термін минув — розглянути пріоритетно"
+  en:"Overdue, prioritize review",cs:"Po termínu, řešte přednostně",
+  ru:"Срок истёк, обработать приоритетно",uk:"Термін минув, розглянути пріоритетно"
 };
 const BLOCKERS:Record<string,Record<"en"|"cs"|"ru"|"uk",string>>={
   privileged_account:{en:"Privileged administrator account",cs:"Privilegovaný administrátorský účet",ru:"Привилегированный аккаунт администратора",uk:"Привілейований акаунт адміністратора"},
@@ -71,7 +71,7 @@ export function AdminPrivacyClient(){
     }finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
-    <Link href="/admin" className="back-link">{tr("← Admin dashboard")}</Link>
+    <Link href="/admin" className="back-link">{tr("Admin dashboard")}</Link>
     <h1>{tr("Data erasure requests")}</h1>
     <p className="form-note">{tr("Global-admin MFA is required. Never fulfill a request without checking legal obligations, user ownership and backup retention. Conflicting records will block automatic fulfillment.")}</p>
     {error&&<p className="state-card state-error" role="alert">{needsMfa?MFA_HELP[language]:manualReview?MANUAL_REVIEW[language]:userFacingError(error,language)}</p>}
@@ -80,7 +80,7 @@ export function AdminPrivacyClient(){
     {notice&&<p className="success-banner">{tr(notice)}</p>}
     {rows.length===0?<p className="state-card">{tr("No pending requests.")}</p>:
       <div className="ticket-list">{rows.map(row=><section key={row.request_id} className="panel form-stack">
-        <strong>{tr("Request #")}{row.request_id} · {tr("Account #")}{row.account_id}</strong>
+        <strong>{tr("Request #")}{row.request_id}, {tr("Account #")}{row.account_id}</strong>
         <p>{row.email}</p><small>{new Date(row.created_at).toLocaleString(localeForLanguage(language))}</small>
         <p className="form-note">{REQUEST_DEADLINE[language]}: {new Date(row.response_due_at).toLocaleDateString(localeForLanguage(language))}</p>
         {row.overdue&&<p className="state-card state-error" role="status">{OVERDUE[language]}</p>}

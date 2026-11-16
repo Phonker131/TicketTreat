@@ -111,7 +111,7 @@ function occurrenceDate(startsAt:string|null|undefined,language:LanguageCode):st
 
 function eventOptionLabel(e:{id:number;title:string;starts_at:string|null},language:LanguageCode):string{
   const date=occurrenceDate(e.starts_at,language);
-  return [e.title,date,`#${e.id}`].filter(Boolean).join(" · ");
+  return [e.title,date,`#${e.id}`].filter(Boolean).join(", ");
 }
 
 export function OrganizerRewardsClient(){
@@ -189,7 +189,7 @@ export function OrganizerRewardsClient(){
     finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page tt-reward-admin">
-    <Link href="/admin" className="back-link">← {t.back}</Link>
+    <Link href="/admin" className="back-link">{t.back}</Link>
     <div className="section-heading"><div><h1>{t.title}</h1><p>{t.intro}</p></div>
       <button type="button" className="button button-outline" disabled={busy||loading}
         onClick={()=>void reload()}>{t.refresh}</button></div>
@@ -214,7 +214,7 @@ export function OrganizerRewardsClient(){
             </select></label>
             {createSelectedEvent&&<p className="form-note tt-reward-event-selected">{eventOptionLabel(createSelectedEvent,language)}</p>}
             <label>{t.rewardTitle}<input value={title} required minLength={3} maxLength={80}
-              onChange={e=>setTitle(e.target.value)} placeholder="VIP · Thank you"/></label>
+              onChange={e=>setTitle(e.target.value)} placeholder="VIP thank you"/></label>
             <label>{t.description}<textarea value={description} maxLength={300} rows={3}
               onChange={e=>setDescription(e.target.value)}/></label>
             <label>{t.kind}<select value={kind}
@@ -238,7 +238,7 @@ export function OrganizerRewardsClient(){
             {attendees.length===0?<p className="form-note">{t.noCheckins}</p>:
             <label>{t.attendee}<select value={ticketId} required onChange={e=>setTicketId(e.target.value)}>
               <option value="">{t.selectGuest}</option>
-              {attendees.map(a=><option key={a.ticket_id} value={a.ticket_id}>{a.guest_name} · #{a.ticket_id}</option>)}
+              {attendees.map(a=><option key={a.ticket_id} value={a.ticket_id}>{a.guest_name}, #{a.ticket_id}</option>)}
             </select></label>}
             {rewards.length===0?<p className="form-note">{t.noRewards}</p>:
             <label>{t.selectReward}<select value={rewardId} required onChange={e=>setRewardId(e.target.value)}>
@@ -255,12 +255,12 @@ export function OrganizerRewardsClient(){
       </div>
       <section className="panel">
         <h2>{t.issued} ({data.grants.length})</h2>
-        {data.grants.length===0?<p className="form-note">—</p>:
+        {data.grants.length===0?<p className="form-note">-</p>:
         <div className="tt-rewards-history">{data.grants.map(grant=><div key={grant.id} className="tt-reward-history-row">
-          <div><strong>{grant.title}</strong><p>{grant.guest_name||"#"+grant.ticket_id} · {
+          <div><strong>{grant.title}</strong><p>{grant.guest_name||"#"+grant.ticket_id}, {
               [grant.event_title,
                occurrenceDate(grant.event_starts_at??data.events.find(e=>e.id===grant.event_id)?.starts_at,language),
-               `#${grant.event_id}`].filter(Boolean).join(" · ")
+               `#${grant.event_id}`].filter(Boolean).join(", ")
             }</p>
             {grant.note&&<p className="form-note">{grant.note}</p>}</div>
           <div className="tt-reward-history-actions">

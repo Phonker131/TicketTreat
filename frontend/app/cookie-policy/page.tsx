@@ -12,10 +12,10 @@ export const metadata: Metadata = {
 
 export default function CookiePolicyPage(){
   return <div className="app-shell"><AppHeader/><main className="page tt-legal-page">
-    <Link href="/" className="back-link">← TicketTreat</Link>
+    <Link href="/" className="back-link">TicketTreat</Link>
     <p className="eyebrow">TICKETTREAT / PRIVACY</p>
     <h1 className="tt-legal-title">Cookie Policy / Zásady cookies</h1>
-    <p className="tt-legal-updated">Effective: 23 October 2026 · Consent version 2026-10-23/maps-v1</p>
+    <p className="tt-legal-updated">Effective: 23 October 2026. Consent version 2026-10-23/maps-v1</p>
     <CookieSettingsControl/>
     <article className="tt-legal-content">
       <LegalOperatorIdentity/>
@@ -24,7 +24,7 @@ export default function CookiePolicyPage(){
         <p>Cookies are small pieces of data stored by your browser. TicketTreat also uses browser localStorage and sessionStorage. We use strictly necessary technologies for account access and security without asking for optional tracking consent. Under Czech Electronic Communications Act No. 127/2005 Coll., Section 89(3), the exception applies only to storage/access necessary for transmitting communications or providing services you expressly request.</p>
       </section>
       <section>
-        <h2>2. Essential cookies and local storage — always active</h2>
+        <h2>2. Essential cookies and local storage (always active)</h2>
         <div className="tt-legal-table-scroll"><table className="tt-legal-data-table">
           <thead><tr><th>Name / category</th><th>Purpose</th><th>Storage and lifetime</th></tr></thead>
           <tbody>
@@ -53,7 +53,7 @@ export default function CookiePolicyPage(){
         <p>Browser storage can be blocked or cleared in your browser settings. If you clear it, the consent choice will be requested again. This notice describes this release, not other unrelated websites.</p>
       </section>
       <section lang="cs" id="ceska-verze" className="tt-legal-czech">
-        <h2>Zásady cookies — česká verze</h2>
+        <h2>Zásady cookies: česká verze</h2>
         <p><strong>Právní základ:</strong> v souladu s § 89 odst. 3 zákona č. 127/2005 Sb. používáme nezbytné cookies bez předchozího souhlasu, pokud slouží výhradně k přenosu zpráv nebo k fungování služby výslovně požadované uživatelem. Na ostatní ukládání/čtení dat v zařízení je třeba předchozí informovaný souhlas. Pro následné zpracování osobních údajů platí GDPR a informace v <Link href="/privacy-policy">zásadách ochrany osobních údajů</Link>.</p>
         <p><strong>Nezbytné cookies:</strong> <code>tt_web_session</code> zabezpečuje přihlášení (max. 7 dní; při odhlášení se smaže), <code>tt_google_flow</code> umožňuje bezpečně dokončit vámi zvolené přihlášení přes Google (max. 10 minut). Jde o HttpOnly cookies, takže nejsou přístupné JavaScriptu na stránce.</p>
         <p><strong>Místní úložiště:</strong> <code>tickettreat_interface_language</code> uchovává nastavený jazyk, <code>tickettreat_web_auth</code> jen netajný indikátor přihlášení (nikoliv přístupový token), <code>tt_cookie_choice_v1</code> volbu a čas souhlasu, který platí nejdéle 180 dní. Aplikace PWA může používat cache pro své soubory; můžete ji vymazat v prohlížeči.</p>

@@ -21,7 +21,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
     email:"Электронная почта",password:"Пароль (не менее 12 символов)",phone:"Телефон",
     instagram:"Instagram (необязательно)",contact:"Предпочтительный способ связи",
     save:"Сохранить изменения",saving:"Сохраняем…",loading:"Загрузка…",
-    logout:"Выйти",welcome:"С возвращением!",create:"Создать аккаунт",need:"Один аккаунт TicketTreat для всех билетов — через email, Google или Telegram.",
+    logout:"Выйти",welcome:"С возвращением!",create:"Создать аккаунт",need:"Один аккаунт TicketTreat для всех билетов: через email, Google или Telegram.",
     note:"Подтверждение email и восстановление пароля работают только при настроенном почтовом провайдере. Используй уникальный пароль.",
     visits:"Посещений",tickets:"Мои билеты",profile:"Данные профиля",
     accountCreated:"Аккаунт создан.",updated:"Профиль обновлён.",required:"Заполни обязательные поля.",
@@ -47,7 +47,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
     email:"E-mail",password:"Heslo (alespoň 12 znaků)",phone:"Telefon",
     instagram:"Instagram (nepovinné)",contact:"Preferovaný kontakt",save:"Uložit změny",
     saving:"Ukládání…",loading:"Načítání…",logout:"Odhlásit se",welcome:"Vítej zpět!",
-    create:"Vytvořit účet",need:"Jeden účet TicketTreat pro všechny akce a vstupenky – ať použiješ e-mail, Google nebo Telegram.",
+    create:"Vytvořit účet",need:"Jeden účet TicketTreat pro všechny akce a vstupenky, ať použiješ e-mail, Google nebo Telegram.",
     note:"Ověření e-mailu a obnovení hesla vyžadují aktivní e-mailovou službu.",
     visits:"Návštěvy",tickets:"Moje vstupenky",profile:"Údaje profilu",
     accountCreated:"Účet vytvořen.",updated:"Profil aktualizován.",required:"Vyplň povinná pole.",
@@ -61,7 +61,7 @@ const COPY: Record<LanguageCode, Record<string, string>> = {
     instagram:"Instagram (необов’язково)",contact:"Бажаний спосіб зв’язку",
     save:"Зберегти зміни",saving:"Зберігаємо…",loading:"Завантаження…",
     logout:"Вийти",welcome:"З поверненням!",create:"Створити акаунт",
-    need:"Один акаунт TicketTreat для всіх квитків — через email, Google або Telegram.",
+    need:"Один акаунт TicketTreat для всіх квитків: через email, Google або Telegram.",
     note:"Підтвердження email і відновлення пароля потребують налаштованої пошти. Використовуй унікальний пароль.",
     visits:"Відвідувань",tickets:"Мої квитки",profile:"Дані профілю",
     accountCreated:"Акаунт створено.",updated:"Профіль оновлено.",required:"Заповни обов’язкові поля.",
@@ -129,7 +129,7 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
     "verificationSent": "Verification code sent.",
     "emailVerifiedNotice": "Email verified.",
     "passwordChanged": "Password updated. All other devices were signed out.",
-    "passwordTooShort": "New password must be 12–128 characters.",
+    "passwordTooShort": "New password must be 12-128 characters.",
     "passwordMismatch": "Passwords do not match.",
     "sessionsConfirm": "Sign out of all devices?",
     "resetSent": "If an eligible account exists, a code was sent.",
@@ -192,7 +192,7 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
     "verificationSent": "Ověřovací kód byl odeslán.",
     "emailVerifiedNotice": "E-mail byl ověřen.",
     "passwordChanged": "Heslo bylo změněno. Ostatní zařízení byla odhlášena.",
-    "passwordTooShort": "Nové heslo musí obsahovat 12–128 znaků.",
+    "passwordTooShort": "Nové heslo musí obsahovat 12-128 znaků.",
     "passwordMismatch": "Hesla se neshodují.",
     "sessionsConfirm": "Odhlásit všechna zařízení?",
     "resetSent": "Pokud existuje odpovídající účet, byl odeslán kód.",
@@ -208,7 +208,7 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
     "confirmLink": "Подтвердить привязку",
     "telegramTitle": "Telegram и TicketTreat",
     "telegramLinked": "Telegram привязан. Сайт и бот используют одни билеты и регистрации.",
-    "telegramNotLinked": "Свяжи старый аккаунт Telegram с сайтом — билеты и очереди перенесутся без повторной регистрации. Понадобится подтвердить владение Telegram.",
+    "telegramNotLinked": "Свяжи старый аккаунт Telegram с сайтом: билеты и очереди перенесутся без повторной регистрации. Понадобится подтвердить владение Telegram.",
     "linkCurrent": "Привязать текущий Telegram",
     "linkViaBot": "Привязать через Telegram-бота",
     "linkWaiting": "В Telegram нажми «Подтвердить привязку». Ссылка действует 10 минут. Статус обновится автоматически.",
@@ -255,7 +255,7 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
     "verificationSent": "Код подтверждения отправлен.",
     "emailVerifiedNotice": "Email подтверждён.",
     "passwordChanged": "Пароль изменён. Все другие устройства вышли из аккаунта.",
-    "passwordTooShort": "Новый пароль должен содержать 12–128 символов.",
+    "passwordTooShort": "Новый пароль должен содержать 12-128 символов.",
     "passwordMismatch": "Пароли не совпадают.",
     "sessionsConfirm": "Завершить все сессии?",
     "resetSent": "Если адрес подтверждён, письмо отправлено.",
@@ -318,7 +318,7 @@ const PROFILE_UI: Record<LanguageCode, Record<string, string>> = {
     "verificationSent": "Код підтвердження надіслано.",
     "emailVerifiedNotice": "Email підтверджено.",
     "passwordChanged": "Пароль змінено. Інші пристрої вийшли з акаунта.",
-    "passwordTooShort": "Новий пароль має містити 12–128 символів.",
+    "passwordTooShort": "Новий пароль має містити 12-128 символів.",
     "passwordMismatch": "Паролі не збігаються.",
     "sessionsConfirm": "Завершити всі сеанси?",
     "resetSent": "Якщо відповідний акаунт існує, код надіслано.",
@@ -739,7 +739,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
     <div className="app-shell">
       <AppHeader />
       <main className="page auth-container">
-        <Link href="/" className="back-link">← {tr.back}</Link>
+        <Link href="/" className="back-link">{tr.back}</Link>
         {incomingBrowserLogin && <section className="panel form-stack" aria-label="Approve browser login">
           <h2>{language==="cs"?"Potvrzení přihlášení k webu":language==="en"?"Approve website sign-in":language==="ru"?"Подтвердить вход на сайт":"Підтвердити вхід на сайт"}</h2>
           <p className="form-note">{language==="cs"?"Potvrď pouze přihlášení, které jsi sám/sama zahájil(a) na tickettreat.eu. Cizí žádosti zamítni.":language==="en"?"Only approve if you personally started this sign-in on tickettreat.eu. Never approve an unexpected request.":language==="ru"?"Подтверждай, только если сам начал вход на tickettreat.eu. Чужие запросы не подтверждай.":"Підтверджуй лише власний запит входу на tickettreat.eu."}</p>
@@ -793,7 +793,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
                 <div className="profile-avatar">{profile.account.first_name.charAt(0).toUpperCase()}</div>
                 <div className="profile-identity">
                   <h1>{profile.account.first_name} {profile.account.last_name}</h1>
-                  <p>{profile.account.email || "Telegram · @TicketTreatBot"}</p>
+                  <p>{profile.account.email || "Telegram, @TicketTreatBot"}</p>
                 </div>
               </div>
               <div className="profile-identity-meta">
@@ -830,11 +830,10 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
               <section className="panel form-stack">
               <div className="profile-facts">
                 <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
-                <div className="profile-fact"><span>{profileTabLabels[language].achievements}</span><button type="button" className="button button-outline" onClick={()=>{setActiveTab("achievements");document.getElementById("profile-tab-achievements")?.focus();}}>{profileTabLabels[language].achievements} →</button></div>
-                <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">→ {tr.tickets}</Link></div>
+                <div className="profile-fact"><span>{profileTabLabels[language].achievements}</span><button type="button" className="button button-outline" onClick={()=>{setActiveTab("achievements");document.getElementById("profile-tab-achievements")?.focus();}}>{profileTabLabels[language].achievements}</button></div>
+                <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">{tr.tickets}</Link></div>
               </div>
-              <p className="form-note">{tr.note}</p>
-              {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary"> {ui.organizerDashboard} →</Link>}
+              {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary">{ui.organizerDashboard}</Link>}
 
               {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
               </section>
@@ -863,7 +862,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
                   </button>
                   {linkRequest && <div className="form-stack">
                     <p className="form-note">{ui.linkWaiting}</p>
-                    <a className="button button-outline" href={linkRequest.bot_link} target="_blank" rel="noopener noreferrer">↗ @TicketTreatBot</a>
+                    <a className="button button-outline" href={linkRequest.bot_link} target="_blank" rel="noopener noreferrer">@TicketTreatBot</a>
                   </div>}
                 </>}
               </section>}
@@ -938,7 +937,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
                 {language==="ru"?"Мои данные и запрос на удаление":language==="uk"?"Мої дані та запит на видалення":language==="cs"?"Moje údaje a žádost o výmaz":"My data and erasure request"}
               </Link>
               <div className="security-session-row">
-                <p>{ui.activeSessions}: <strong>{sessionCount ?? "—"}</strong></p>
+                <p>{ui.activeSessions}: <strong>{sessionCount ?? "-"}</strong></p>
                 <button type="button" className="button button-outline" onClick={signOutAllDevices}
                   disabled={busy}>{ui.signOutEverywhere}</button>
               </div>
@@ -1023,7 +1022,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
                 <Link href="/terms" target="_blank" rel="noopener noreferrer">{language==="ru"?"условиями использования":language==="uk"?"умовами користування":language==="cs"?"obchodní podmínky":"Terms of Service"}</Link>.
                 {" "}{language==="ru"?"Создание аккаунта не означает согласия на маркетинговые рассылки.":language==="uk"?"Створення акаунта не означає згоди на маркетингові розсилки.":language==="cs"?"Registrace neznamená souhlas s marketingovým zasíláním.":"Creating an account does not consent to marketing."}
               </p>}
-              <p className="form-note">{mode==="signup"?tr.passwordHint:tr.note}</p>
+              {mode==="signup"&&<p className="form-note">{tr.passwordHint}</p>}
               <button className="button button-primary" type="submit" disabled={busy}>{busy?tr.loading:mode==="signup" && signupCodeSent
                 ?(language==="cs"?"Ověřit e-mail a vytvořit účet":language==="en"?"Verify email and create account":language==="ru"?"Подтвердить email и создать аккаунт":"Підтвердити email і створити акаунт")
                 :mode==="signup"
@@ -1045,7 +1044,6 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
             <Link href="/password-recovery" className="button button-outline">
               {language==="ru"?"Забыли пароль?":language==="uk"?"Забули пароль?":language==="cs"?"Zapomenuté heslo?":"Forgot password?"}
             </Link>
-            <p className="form-note">{tr.note}</p>
           </>
         )}
       </main>

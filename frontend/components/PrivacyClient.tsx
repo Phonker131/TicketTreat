@@ -161,22 +161,23 @@ export function PrivacyClient(){
   }
 
   return <div className="app-shell"><AppHeader/><main className="page">
-    <Link href="/profile" className="back-link">← {tr.back}</Link>
+    <Link href="/profile" className="back-link">{tr.back}</Link>
     <h1>{tr.title}</h1>
     <p className="form-note">{tr.policyIntro} <Link href="/privacy-policy">{tr.policyLink}</Link> {tr.policyOutro}</p>
     <section className="panel form-stack">
       <h2>{tr.erasure}</h2>
       <p className="form-note">{tr.explain}</p>
-      {error&&<p role="alert" className="state-card state-error">{show(error)}</p>}
+      {error&&error!=="msg:login"&&<p role="alert" className="state-card state-error">{show(error)}</p>}
       {needsMfa&&<Link className="button button-outline" href="/security/mfa">{tr.mfaAction}</Link>}
       {notice&&<p className="success-banner">{show(notice)}</p>}
       {details?.status==="pending"?
         <>
           <p><strong>{tr.status}:</strong> {tr.pending}</p>
-          <p className="form-note">{tr.requested}: {details.requested_at?new Date(details.requested_at).toLocaleString(language):"—"}</p>
-          <p className="form-note">{tr.due}: {details.response_due_at?new Date(details.response_due_at).toLocaleDateString(language):"—"}</p>
+          <p className="form-note">{tr.requested}: {details.requested_at?new Date(details.requested_at).toLocaleString(language):"-"}</p>
+          <p className="form-note">{tr.due}: {details.response_due_at?new Date(details.response_due_at).toLocaleDateString(language):"-"}</p>
           <button className="button button-outline" type="button" disabled={pending} onClick={withdraw}>{tr.withdraw}</button>
         </>:
+        error==="msg:login"?<div className="form-stack"><p>{show(error)}</p><Link className="button button-primary" href="/login">{language==="cs"?"Přihlásit se":language==="ru"?"Войти":language==="uk"?"Увійти":"Log in"}</Link></div>:
         <form onSubmit={send} className="form-stack">
           <label>{tr.confirm}
             <input type="password" autoComplete="current-password" minLength={1} maxLength={128}

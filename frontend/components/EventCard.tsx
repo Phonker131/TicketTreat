@@ -48,10 +48,10 @@ export function EventCard({event}:{event:TicketTreatEvent}){
   }:null;
   const when=validStart&&startsAt
     ?new Intl.DateTimeFormat(locale,{weekday:"short",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit",timeZone:startsAt.timeZone}).format(startsAt.date)
-    :"—";
+    :"-";
   const href=`/events/${event.id}?lang=${language}`;
   const tags=eventTags(event);
-  const langs=(event.languages||[]).map(code=>code.toUpperCase()).join(" · ");
+  const langs=(event.languages||[]).map(code=>code.toUpperCase()).join(", ");
 
   return (
     <article className="event-card tp-ecard">
@@ -75,8 +75,8 @@ export function EventCard({event}:{event:TicketTreatEvent}){
         <h2 className="tp-ecard-title"><Link href={href}>{event.title}</Link></h2>
         <p className="tp-ecard-place">
           {event.organizer_profile&&<Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-event-organizer-link">{event.organizer_profile.display_name}</Link>}
-          {event.organizer_profile&&event.location&&<span aria-hidden="true"> · </span>}
-          <span>{event.location||(event.organizer_profile?"":"—")}</span>
+          {event.organizer_profile&&event.location&&<span aria-hidden="true">, </span>}
+          {event.location&&<span>{event.location}</span>}
         </p>
         {(tags.length>0||langs)&&<ul className="tp-ecard-tags" aria-label={t(language,"languages")}>
           {tags.map(tag=><li key={tag}>{TAG_LABELS[language][tag]}</li>)}
@@ -85,7 +85,7 @@ export function EventCard({event}:{event:TicketTreatEvent}){
         <div className="event-card-footer tp-ecard-foot">
           {event.spots_left===0
             ?<span className="status status-danger">{t(language,"soldOut")}</span>
-            :<span className="status">{event.spots_left==null?"∞":`${event.spots_left} ${words.spotsFew}`}</span>}
+            :(event.spots_left!=null&&<span className="status">{`${event.spots_left} ${words.spotsFew}`}</span>)}
           <Link href={href} className="button button-secondary">{t(language,"details")}</Link>
         </div>
       </div>

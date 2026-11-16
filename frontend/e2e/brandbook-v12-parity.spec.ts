@@ -27,11 +27,12 @@ test("welcome tour: three guest-facing slides each show distinct content",async(
   await expect(story).toHaveCount(0);
 });
 
-test("brandbook: organizer directory shows one non-clickable example",async({page})=>{
+test("brandbook: organizer directory shows a non-clickable example only while it is empty",async({page})=>{
   await page.goto("/organizers?nostory",{waitUntil:"domcontentloaded"});
-  await expect(page.locator(".tt-organizer-ghost")).toHaveCount(1);
+  const real=await page.locator(".tt-organizer-directory-card").count();
+  await expect(page.locator(".tt-organizer-ghost")).toHaveCount(real?0:1);
   await expect(page.locator(".tt-organizer-ghost a")).toHaveCount(0);
-  await expect(page.locator(".tt-organizer-ghost h2")).toBeVisible();
+  if(!real)await expect(page.locator(".tt-organizer-ghost h2")).toBeVisible();
 });
 
 test("brandbook: all publicly referenced brand stamps exist",async({request})=>{

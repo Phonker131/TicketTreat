@@ -39,7 +39,7 @@ export function ManageAccountsClient() {
   async function changeRole(account:ManagedAccount,role:"participant"|"organizer"){
     const token=getWebToken();if(!token)return;
     if(account.merged_into_account_id)return;
-    if(!window.confirm(`${ui.roleConfirm} #${account.account_id} → ${ui[role]}?`))return;
+    if(!window.confirm(`${ui.roleConfirm} #${account.account_id}: ${ui[role]}?`))return;
     setBusy(account.account_id);setError("");setNotice("");
     try{
       await setManagedAccountRole(token,account.account_id,role);
@@ -72,7 +72,7 @@ export function ManageAccountsClient() {
     finally{setBusy(null);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
-    <Link href="/admin" className="back-link">{tr("← Organizer dashboard")}</Link>
+    <Link href="/admin" className="back-link">{tr("Organizer dashboard")}</Link>
     <div className="admin-heading"><div><span className="status status-demo">GLOBAL ADMIN</span><h1>{tr("Управление аккаунтами")}</h1>
       <p>{ui.intro}</p></div></div>
     {error&&<div className="state-card state-error">{display(error)}</div>}
@@ -106,7 +106,7 @@ export function ManageAccountsClient() {
                 :a.role==="global_admin" ? ui.global : a.role==="organizer" ? ui.organizer : ui.participant}
             </span>
           </div>
-          <p className="account-management-meta">{ui.account} #{a.account_id} · {a.email}</p>
+          <p className="account-management-meta">{ui.account} #{a.account_id}, {a.email}</p>
         </div>
         {!a.merged_into_account_id&&a.role!=="global_admin"&&<div className="account-management-actions">
           <button className="button button-outline" disabled={busy===a.account_id||a.role==="participant"}

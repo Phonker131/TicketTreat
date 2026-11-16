@@ -7,7 +7,7 @@ import {PosterArt} from "@/components/premium/PosterArt";
 import type {TicketTreatEvent} from "@/lib/types";
 
 export type DeckAction="want"|"pass"|"view";
-type Labels={want:string;pass:string;view:string;done:string;doneText:string;reset:string;hint:string};
+type Labels={want:string;pass:string;view:string;done:string;doneText:string;reset:string;hint:string;spots:string};
 
 function Poster({event}:{event:TicketTreatEvent}){
  const [failed,setFailed]=useState(false);
@@ -19,12 +19,12 @@ function Poster({event}:{event:TicketTreatEvent}){
  return <img ref={img} src={event.image_url} alt="" draggable={false} loading="lazy" decoding="async" onError={()=>setFailed(true)}/>;
 }
 
-function Face({event,date,price}:{event:TicketTreatEvent;date:string;price:string}){
+function Face({event,date,price,spots}:{event:TicketTreatEvent;date:string;price:string;spots:string}){
  return <>
   <div className="tp-deck-img"><Poster event={event}/><span className="tp-datebadge">{date}</span></div>
   <h3>{event.title}</h3>
   <p>{event.location||"Praha"}</p>
-  <div className="tp-meta"><b>{price}</b>{event.spots_left!=null&&event.spots_left>0&&<span>{event.spots_left}</span>}</div>
+  <div className="tp-meta"><b>{price}</b>{event.spots_left!=null&&event.spots_left>0&&<span>{event.spots_left} {spots}</span>}</div>
  </>;
 }
 
@@ -67,7 +67,7 @@ export function SwipeDeck({events,index,labels,dateOf,priceOf,onAction,onReset}:
   <p className="tp-deck-hint">{labels.hint}</p>
   <div className="tp-deck-stage">
    {behind.map((e,i)=><div key={e.id} className="tp-deck-card tp-deck-ghost" style={{transform:`translateY(${(i+1)*16}px) scale(${1-(i+1)*.05})`,zIndex:-i-1,opacity:1-(i+1)*.25}} aria-hidden="true">
-     <Face event={e} date={dateOf(e)} price={priceOf(e)}/></div>)}
+     <Face event={e} date={dateOf(e)} price={priceOf(e)} spots={labels.spots}/></div>)}
    <M.div key={current.id} className="tp-deck-card" tabIndex={0} role="group" aria-label={current.title+". "+labels.hint}
      style={{x,y,rotate}} drag dragSnapToOrigin dragElastic={.9} dragMomentum={false}
      whileDrag={{scale:1.025,cursor:"grabbing"}} initial={{opacity:0,scale:.94,y:28}} animate={{opacity:1,scale:1}} transition={{type:"spring",stiffness:230,damping:24}}
@@ -77,7 +77,7 @@ export function SwipeDeck({events,index,labels,dateOf,priceOf,onAction,onReset}:
       else if(info.offset.x>90||info.velocity.x>650){void fly("want")}
       else if(info.offset.x<-90||info.velocity.x<-650){void fly("pass")}
      }}>
-    <Face event={current} date={dateOf(current)} price={priceOf(current)}/>
+    <Face event={current} date={dateOf(current)} price={priceOf(current)} spots={labels.spots}/>
     <M.span className="tp-deck-stamp is-want" style={{opacity:wantOp}}>{labels.want}</M.span>
     <M.span className="tp-deck-stamp is-pass" style={{opacity:passOp}}>{labels.pass}</M.span>
     <M.span className="tp-deck-stamp is-view" style={{opacity:viewOp}}>{labels.view}</M.span>

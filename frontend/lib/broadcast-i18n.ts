@@ -95,16 +95,16 @@ const translations: Array<[string,string,string,string]> = [
     "Введи SEND у полі підтвердження."
   ],
   [
-    "← Панель организатора",
-    "← Organizer dashboard",
-    "← Panel pořadatele",
-    "← Панель організатора"
+    "Панель организатора",
+    "Organizer dashboard",
+    "Panel pořadatele",
+    "Панель організатора"
   ],
   [
-    "📢 Рассылки",
-    "📢 Broadcasts",
-    "📢 Rozesílky",
-    "📢 Розсилки"
+    "Рассылки",
+    "Broadcasts",
+    "Rozesílky",
+    "Розсилки"
   ],
   [
     "Служебные объявления по платформе или отдельному ивенту.",
@@ -131,16 +131,16 @@ const translations: Array<[string,string,string,string]> = [
     "Аудиторія розсилки"
   ],
   [
-    "🌍 Всем пользователям",
-    "🌍 All users",
-    "🌍 Všem uživatelům",
-    "🌍 Усім користувачам"
+    "Всем пользователям",
+    "All users",
+    "Všem uživatelům",
+    "Усім користувачам"
   ],
   [
-    "🎟 Участникам ивента",
-    "🎟 Event attendees",
-    "🎟 Účastníkům akce",
-    "🎟 Учасникам події"
+    "Участникам ивента",
+    "Event attendees",
+    "Účastníkům akce",
+    "Учасникам події"
   ],
   [
     "Выбери мероприятие",
@@ -221,10 +221,10 @@ const translations: Array<[string,string,string,string]> = [
     "Тут з’явиться попередній перегляд повідомлення."
   ],
   [
-    "🖼 Изображение прикреплено",
-    "🖼 Image attached",
-    "🖼 Obrázek přiložen",
-    "🖼 Зображення додано"
+    "Изображение прикреплено",
+    "Image attached",
+    "Obrázek přiložen",
+    "Зображення додано"
   ],
   [
     "3. Проверка и отправка",
@@ -236,7 +236,7 @@ const translations: Array<[string,string,string,string]> = [
     "Сначала нажми «Посчитать получателей». После изменения заголовка или текста проверку аудитории нужно повторить. Для отправки требуется заголовок от 5 и текст от 20 символов.",
     "First calculate recipients. Repeat after editing the subject or message. Subject must have 5+ characters and message 20+.",
     "Nejprve spočítej příjemce. Po změně předmětu nebo textu kontrolu opakuj. Předmět musí mít alespoň 5 a zpráva 20 znaků.",
-    "Спочатку підрахуй отримувачів. Після зміни теми чи тексту перевірку повтори. Тема має містити від 5, текст — від 20 символів."
+    "Спочатку підрахуй отримувачів. Після зміни теми чи тексту перевірку повтори. Тема має містити від 5 символів, а текст від 20."
   ],
   [
     "Проверяем…",
@@ -245,10 +245,10 @@ const translations: Array<[string,string,string,string]> = [
     "Перевіряємо…"
   ],
   [
-    "👥 Посчитать получателей",
-    "👥 Calculate recipients",
-    "👥 Spočítat příjemce",
-    "👥 Підрахувати отримувачів"
+    "Посчитать получателей",
+    "Calculate recipients",
+    "Spočítat příjemce",
+    "Підрахувати отримувачів"
   ],
   [
     "Подключён",
@@ -305,10 +305,10 @@ const translations: Array<[string,string,string,string]> = [
     "Надсилаємо…"
   ],
   [
-    "📢 Подтвердить рассылку",
-    "📢 Confirm broadcast",
-    "📢 Potvrdit rozesílku",
-    "📢 Підтвердити розсилку"
+    "Подтвердить рассылку",
+    "Confirm broadcast",
+    "Potvrdit rozesílku",
+    "Підтвердити розсилку"
   ],
   [
     "Рассылка запускается только после подтверждения. Количество сообщений по каналам может отличаться, а один человек может получить их в обоих каналах.",
@@ -323,10 +323,10 @@ const translations: Array<[string,string,string,string]> = [
     "Історія розсилок"
   ],
   [
-    "↻ Обновить",
-    "↻ Refresh",
-    "↻ Obnovit",
-    "↻ Оновити"
+    "Обновить",
+    "Refresh",
+    "Obnovit",
+    "Оновити"
   ],
   [
     "История рассылок пока пустая.",

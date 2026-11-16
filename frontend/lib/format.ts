@@ -13,7 +13,7 @@ export function eventDisplayDate(value: string): {date:Date;timeZone:string} {
 }
 
 export function formatDate(value: string | null, language: LanguageCode): string {
-  if (!value) return "—";
+  if (!value) return "-";
   const {date,timeZone}=eventDisplayDate(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat(localeForLanguage(language), {

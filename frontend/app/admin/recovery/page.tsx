@@ -41,7 +41,7 @@ export default function PrivateAccessRecoveryPage(){
     }finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page narrow-page">
-    <Link className="back-link" href="/">← TicketTreat</Link>
+    <Link className="back-link" href="/">TicketTreat</Link>
     {!ready?<div className="state-card">Checking access…</div>:
       !eligible?<div className="state-card">This action is not available for this account.</div>:
       <section className="panel form-stack">

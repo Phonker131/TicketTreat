@@ -12,7 +12,7 @@ export default function LegalNoticePage(){
   return <div className="app-shell">
     <AppHeader/>
     <main className="page tt-legal-page">
-      <Link href="/" className="back-link">← TicketTreat</Link>
+      <Link href="/" className="back-link">TicketTreat</Link>
       <p className="eyebrow">TICKETTREAT / LEGAL</p>
       <h1 className="tt-legal-title">Legal Notice / Provozovatel</h1>
       <p className="tt-legal-updated">Last updated / Poslední aktualizace: 25 October 2026</p>
@@ -31,7 +31,7 @@ export default function LegalNoticePage(){
         </section>
         <section>
           <h2>Legal documents / Právní dokumenty</h2>
-          <p><Link href="/privacy-policy">Privacy Policy / Ochrana osobních údajů</Link> · <Link href="/terms">Terms of Service / Obchodní podmínky</Link></p>
+          <p><Link href="/privacy-policy">Privacy Policy / Ochrana osobních údajů</Link>, <Link href="/terms">Terms of Service / Obchodní podmínky</Link></p>
         </section>
       </article>
     </main>

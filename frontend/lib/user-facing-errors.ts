@@ -6,7 +6,7 @@ import type {LanguageCode} from "@/lib/types";
 const MESSAGES: Record<string,Record<LanguageCode,string>> = { 
   "chat_daily_limit": {en:"You reached today's chat message limit. Try again tomorrow.",cs:"Dnes jste dosáhli limitu zpráv. Zkuste to zítra.",ru:"Вы достигли дневного лимита сообщений. Попробуйте завтра.",uk:"Ви досягли денного ліміту повідомлень. Спробуйте завтра."},
   "chat_slow_down": {en:"You're sending messages too quickly. Try again in a moment.",cs:"Zprávy odesíláte příliš rychle. Zkuste to za chvíli.",ru:"Вы отправляете сообщения слишком часто. Повторите чуть позже.",uk:"Ви надсилаєте повідомлення надто часто. Спробуйте трохи пізніше."},
-  "chat_invalid_message": {en:"Write 2–2000 characters to send a message.",cs:"Napište zprávu dlouhou 2–2000 znaků.",ru:"Сообщение должно содержать от 2 до 2000 символов.",uk:"Повідомлення має містити від 2 до 2000 символів."},
+  "chat_invalid_message": {en:"Write 2-2000 characters to send a message.",cs:"Napište zprávu dlouhou 2-2000 znaků.",ru:"Сообщение должно содержать от 2 до 2000 символов.",uk:"Повідомлення має містити від 2 до 2000 символів."},
   "conversation_closed": {en:"This conversation is closed. The organizer can reopen it.",cs:"Konverzace je uzavřená. Pořadatel ji může znovu otevřít.",ru:"Диалог закрыт. Организатор может открыть его заново.",uk:"Діалог закрито. Організатор може відкрити його знову."},
   "organizer_chat_unavailable": {en:"Chat is not available for this event yet.",cs:"Chat pro tuto akci zatím není dostupný.",ru:"Чат этого события пока недоступен.",uk:"Чат цієї події поки недоступний."},
   "conversation_not_found": {en:"This conversation was not found or is no longer accessible.",cs:"Konverzace nebyla nalezena nebo k ní nemáte přístup.",ru:"Диалог не найден или больше недоступен.",uk:"Діалог не знайдено або він більше недоступний."},
@@ -131,10 +131,10 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
     "uk": "Поточний пароль неправильний. Спробуй знову або віднови його в профілі."
   },
   "mfa_enrollment_required": {
-    "en": "Set up two-factor authentication in Profile → Account security, then return here.",
-    "cs": "Nastavte dvoufaktorové ověření v Profil → Zabezpečení účtu a vraťte se sem.",
-    "ru": "Настрой двухфакторную защиту в «Профиль → Безопасность аккаунта» и вернись сюда.",
-    "uk": "Налаштуй двофакторний захист у «Профіль → Безпека акаунта» та повернися сюди."
+    "en": "Set up two-factor authentication in your profile, section Account security, then return here.",
+    "cs": "Nastavte dvoufaktorové ověření v profilu v sekci Zabezpečení účtu a vraťte se sem.",
+    "ru": "Настрой двухфакторную защиту в профиле, раздел «Безопасность аккаунта», и вернись сюда.",
+    "uk": "Налаштуй двофакторний захист у профілі, розділ «Безпека акаунта», та повернися сюди."
   },
   "mfa_challenge_required": {
     "en": "Verify the six-digit code from your authenticator in Account security, then retry.",
@@ -181,8 +181,8 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
   "event_has_history_cannot_delete": {
     "en":"This event has registration, ticket, payment, waitlist or notification history and cannot be permanently deleted. Keep it cancelled to preserve records.",
     "cs":"Tato akce má historii registrací, vstupenek, plateb, čekací listiny nebo oznámení, proto ji nelze trvale smazat. Ponechte ji zrušenou.",
-    "ru":"У мероприятия есть история регистраций, билетов, платежей, очереди или уведомлений. Удалять его из базы нельзя — оставь его отменённым.",
-    "uk":"Подія має історію реєстрацій, квитків, платежів, черги або сповіщень. Видаляти її з бази не можна — залиш її скасованою."
+    "ru":"У мероприятия есть история регистраций, билетов, платежей, очереди или уведомлений. Удалять его из базы нельзя, оставь его отменённым.",
+    "uk":"Подія має історію реєстрацій, квитків, платежів, черги або сповіщень. Видаляти її з бази не можна, залиш її скасованою."
   },
   "draft_has_activity_cannot_delete": {
     "en":"This draft has a registration, ticket, waitlist, payment request or notification history and cannot be permanently deleted.",

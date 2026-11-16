@@ -22,10 +22,11 @@ export function OrganizerApplyClient(){
     catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
-    <Link href="/profile" className="back-link">{tr("← Profile")}</Link>
+    <Link href="/profile" className="back-link">{tr("Profile")}</Link>
     <h1>{tr("Become an organizer")}</h1>
     <p className="form-note">{txt.intro}</p>
-    {error&&<div className="state-card state-error" role="alert">{error==="msg:login"?txt.login:error}</div>}
+    {error==="msg:login"?<section className="panel form-stack"><p>{txt.login}</p><Link href="/login" className="button button-primary">{language==="cs"?"Přihlásit se":language==="ru"?"Войти":language==="uk"?"Увійти":"Log in"}</Link></section>:
+     error&&<div className="state-card state-error" role="alert">{error}</div>}
     {data&&<section className="panel form-stack">
       <p>{txt.role}: <strong>{txt[data.role]||data.role}</strong></p>
       <p>{txt.status}: <strong>{txt[data.status]||data.status}</strong></p>

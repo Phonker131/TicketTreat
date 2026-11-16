@@ -123,11 +123,11 @@ export function CheckInClient() {
           </div>
           <div className="tt-checkin-camera-status" role="status" aria-live="polite">
             <span className="tt-checkin-camera-indicator" aria-hidden="true"/>
-            <span>{scanning?tr("📷 Камера сканирует QR-код"):cameraError?tr("Камера недоступна — используй ручной ввод"):tr("Подключение камеры…")}</span>
+            <span>{scanning?tr("Камера сканирует QR-код"):cameraError?tr("Камера недоступна, используй ручной ввод"):tr("Подключение камеры…")}</span>
           </div>
           <div className="tt-checkin-controls">
             <div className="tt-checkin-manual">
-              <label htmlFor="tickettreat-manual-token">{language==="cs"?"Kód vstupenky nebo QR token":language==="en"?"Ticket code or QR token":tr("QR-код билета — ручной ввод")}</label>
+              <label htmlFor="tickettreat-manual-token">{language==="cs"?"Kód vstupenky nebo QR token":language==="en"?"Ticket code or QR token":tr("QR-код билета: ручной ввод")}</label>
               <input id="tickettreat-manual-token" value={manual}
                 onChange={(e) => setManual(e.target.value)}
                 placeholder="CRD-000013"
@@ -138,7 +138,7 @@ export function CheckInClient() {
                 disabled={submitting||!manual.trim()} onClick={() => void submit(manual)}>{tr("Check in")}</button>
               <button type="button" className="button button-outline" disabled={submitting}
                 onClick={()=>{setScanning(false);setCameraError(false);setScanCycle(v=>v+1);}}>
-                {tr("↻ Перезапустить камеру")}
+                {tr("Перезапустить камеру")}
               </button>
             </div>
           </div>

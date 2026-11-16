@@ -31,7 +31,7 @@ const copy={
   validate:"Check your dates: the end must follow the start; reward expiry must follow the campaign end.",
   time:"Times are in your local timezone. Eligibility is checked using server timestamps.",
   note:"VIP promotional perks are separate from the 12-check-in loyalty tier. Instagram follows are never automatically verified.",
-  scope:"For signup or Instagram campaigns, the event identifies the organizer only — participants do not need to book that event.",
+  scope:"For signup or Instagram campaigns, the event only identifies the organizer. Participants do not need to book that event.",
   verify:"Instagram requests are pending until the organizer verifies the username manually.",
   confirm:"Publish this campaign? Its terms and dates are locked afterwards.",
   stop:"Pause this campaign and temporarily hide its benefits?",
@@ -106,7 +106,7 @@ export function PromotionsAdminClient(){
  function begin(which:"signup"|"instagram"){
   const f=blank(events[0]?.id||0);
   f.trigger=which==="signup"?"account_signup":"instagram_follow";
-  f.title=which==="signup"?"Amber Events · VIP 24h":"Amber Events · Instagram VIP";
+  f.title=which==="signup"?"Amber Events VIP 24h":"Amber Events Instagram VIP";
   f.reward_title="Amber Events VIP";
   f.description=which==="signup"
    ?"Register for TicketTreat during the promotional 24 hours to qualify for VIP."
@@ -165,7 +165,7 @@ export function PromotionsAdminClient(){
   finally{setBusy(false)}
  }
  return <div className="app-shell"><AppHeader/><main className="page tt-promo-page">
-  <Link href="/admin" className="back-link">← {t.back}</Link>
+  <Link href="/admin" className="back-link">{t.back}</Link>
   <div className="section-heading"><div><h1>{t.title}</h1><p>{t.intro}</p></div>
    <div className="tt-promo-actions"><Link className="button button-outline" href="/promotions">{t.public}</Link>
    <button type="button" className="button button-primary" onClick={()=>{if(open)close();else setOpen(true)}}>{open?t.cancel:t.new}</button></div>
@@ -187,7 +187,7 @@ export function PromotionsAdminClient(){
        <label>{t.organizer}<select required value={form.anchor_event_id} onChange={e=>{
         setForm(f=>({...f,anchor_event_id:Number(e.target.value),event_id:null}));
        }}><option value={0}>{t.select}</option>
-        {events.map(e=><option key={e.id} value={e.id}>{e.organizer_name+" · "+e.title+" #"+e.id}</option>)}
+        {events.map(e=><option key={e.id} value={e.id}>{e.organizer_name+", "+e.title+" #"+e.id}</option>)}
        </select></label>
        <label>{t.trigger}<select value={form.trigger} onChange={e=>setForm(f=>({...f,trigger:e.target.value as PromotionTrigger,event_id:null,instagram_url:""}))}>
         <option value="account_signup">{t.signup}</option>
@@ -237,14 +237,14 @@ export function PromotionsAdminClient(){
       const current=Date.now(),start=Date.parse(p.starts_at),end=Date.parse(p.ends_at);
       const state=p.status==="draft"?t.draft:p.status==="paused"?t.paused:current>=end?t.ended:current<start?t.scheduled:t.live;
       return <article className="panel tt-promo-card" key={p.id}>
-       <div className="tt-promo-card-top"><div><small>{p.organizer_name+" · #"+p.id}</small>
+       <div className="tt-promo-card-top"><div><small>{p.organizer_name+", #"+p.id}</small>
         <h3>{p.title}</h3></div><span className="status">{state}</span></div>
        <p>{p.description}</p><div className="tt-promo-metrics">
         <span>{t.starts+": "+dateLabel(p.starts_at,lang)}</span>
         <span>{t.ends+": "+dateLabel(p.ends_at,lang)}</span>
         <span>{t.reward+": "+p.reward_title}</span>
         <span>{t.eligible+": "+(p.eligible_count||0)}</span>
-        {p.trigger==="instagram_follow"&&<span>{t.pending+": "+(p.claims?.pending||0)+" · "+t.approved+": "+(p.claims?.approved||0)}</span>}
+        {p.trigger==="instagram_follow"&&<span>{t.pending+": "+(p.claims?.pending||0)+", "+t.approved+": "+(p.claims?.approved||0)}</span>}
        </div>
        <div className="tt-promo-actions">
         {p.status==="draft"&&<>
@@ -261,7 +261,7 @@ export function PromotionsAdminClient(){
        {claimsFor===p.id&&<div className="tt-promo-claims">
         <h4>{t.review}</h4><p className="form-note">{t.verify}</p>
         {claims.length===0?<p>{t.none}</p>:claims.map(c=><div className="tt-promo-claim" key={c.id}>
-         <div><strong>{c.name}</strong><p>{"@"+c.instagram_username+" · "+c.status}</p></div>
+         <div><strong>{c.name}</strong><p>{"@"+c.instagram_username+", "+c.status}</p></div>
          {c.status==="pending"&&<div className="tt-promo-actions">
           <button type="button" disabled={busy} className="button button-primary" onClick={()=>void review(p.id,c.id,true)}>{t.approve}</button>
           <button type="button" disabled={busy} className="button button-outline" onClick={()=>void review(p.id,c.id,false)}>{t.reject}</button>

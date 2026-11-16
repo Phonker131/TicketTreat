@@ -48,7 +48,7 @@ function Chrome({language,tab,children,bar=true,className="",kind}:{language:Lan
  </div>;
 }
 function AppBar({language}:{language:LanguageCode}){
- return <header className="tp-appbar"><Wordmark/><span className="tp-appbar-tg">TG ↗</span></header>;
+ return <header className="tp-appbar"><Wordmark/><span className="tp-appbar-tg">TG</span></header>;
 }
 
 /* ---------- phone screens ---------- */
@@ -178,7 +178,7 @@ function GuestTable({language,rows=5}:{language:LanguageCode;rows?:number}){
 export function LaptopOverview({language}:{language:LanguageCode}){
  const c=premium[language].lap;
  return <div className="tp-lap-scr"><Side language={language} active={0}/>
-  <main><header><h4>{c.greet}</h4><span className="tp-appbar-tg">TG ↗</span></header>
+  <main><header><h4>{c.greet}</h4><span className="tp-appbar-tg">TG</span></header>
    <div className="tp-stats">{c.stats.map((s,i)=><div key={s}><small>{s}</small><b>{["30","28","3","3"][i]}</b></div>)}</div>
    <div className="tp-lap-cols">
     <section className="tp-next" style={vars({"--c":"var(--blu)"})}><PosterImg name={"quiz"} w={120} h={160}/><div><small>{c.nextEvent}</small><h5>{premium[language].qr.title}</h5><p>{premium[language].event.when}</p><div className="tp-bar"><i style={{width:"90%"}}/></div></div></section>

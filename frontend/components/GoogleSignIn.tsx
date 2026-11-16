@@ -61,10 +61,10 @@ export function GoogleSignIn({link=false,compact=false}:{link?:boolean;compact?:
     {message && <div className={message==="success"?"form-note":"state-card state-error"} role="alert">
       {tr[message as keyof typeof tr] || tr.failed}
       {message==="link_required" && <p style={{margin:"8px 0 0"}}>
-        {language==="ru"?"Это не новая регистрация. Войди с прежним паролем ниже, затем открой «Безопасность аккаунта» → «Привязать Google». Данные и билеты сохранятся.":
+        {language==="ru"?"Это не новая регистрация. Войди с прежним паролем ниже, затем открой «Безопасность аккаунта» и нажми «Привязать Google». Данные и билеты сохранятся.":
         language==="cs"?"Nejde o novou registraci. Přihlas se dosavadním heslem a pak v Zabezpečení účtu propoj Google.":
         language==="uk"?"Це не нова реєстрація. Увійди за наявним паролем, потім прив’яжи Google в налаштуваннях безпеки.":
-        "You don't need to sign up again. Sign in below with your existing password, then use Account security → Link Google. Your tickets stay in the same account."}
+        "You don't need to sign up again. Sign in below with your existing password, then open Account security and choose Link Google. Your tickets stay in the same account."}
       </p>}
     </div>}
     {!compact && !enabled && !embedded && <p className="form-note" role="status">{tr.unavailable}</p>}

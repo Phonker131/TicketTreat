@@ -15,7 +15,7 @@ const W:Record<LanguageCode,Record<string,string>>={
 export function OrganizerPublicClient({data}:{data:OrganizerPublicDetail}){
   const {language}=useLanguage(),w=W[language];
   return <div className="app-shell"><AppHeader/><main className="page tt-organizer-public">
-    <Link href="/organizers" className="back-link">← {w.back}</Link>
+    <Link href="/organizers" className="back-link">{w.back}</Link>
     <section className="tt-organizer-hero">
       <div className="tt-organizer-cover">
         {data.cover_url&&<img src={data.cover_url} alt="" loading="eager"/>}

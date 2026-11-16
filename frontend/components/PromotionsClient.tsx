@@ -10,14 +10,14 @@ const copy={
    empty:"There are no live promotions right now.",back:"Discover events",expires:"Offer ends",
    reward:"Reward",signup:"Create an account",event:"Register for event",instagram:"Open Instagram",
    username:"Your Instagram username",claim:"Submit for review",claimed:"Submitted for manual verification.",
-   pending:"Pending manual review",earned:"Qualified — see your guest passport",approved:"Approved — see your guest passport",
+   pending:"Pending manual review",earned:"Qualified, see your guest passport",approved:"Approved, see your guest passport",
    rejected:"Submission not approved",disclaimer:"TicketTreat does not verify Instagram follows automatically. The organizer must check your username before approving the reward.",
    notVerified:"Sign in to TicketTreat first to submit a claim.",sending:"Sending…",passport:"My rewards"},
  cs:{title:"Speciální nabídky",intro:"Časově omezené kampaně pořadatelů.",loading:"Načítání nabídek…",
    empty:"Právě neprobíhá žádná akce.",back:"Procházet akce",expires:"Akce končí",
    reward:"Odměna",signup:"Vytvořit účet",event:"Přihlásit se na akci",instagram:"Otevřít Instagram",
    username:"Váš instagramový účet",claim:"Odeslat k ověření",claimed:"Odesláno k ručnímu ověření.",
-   pending:"Čeká na ruční kontrolu",earned:"Splněno — viz pas hosta",approved:"Schváleno — viz pas hosta",
+   pending:"Čeká na ruční kontrolu",earned:"Splněno, viz pas hosta",approved:"Schváleno, viz pas hosta",
    rejected:"Žádost nebyla schválena",disclaimer:"TicketTreat nesleduje Instagram automaticky. Pořadatel musí váš účet před schválením odměny ověřit.",
    notVerified:"Nejprve se přihlaste do TicketTreat.",sending:"Odesílám…",passport:"Moje odměny"}
 } as const;
@@ -47,12 +47,12 @@ export function PromotionsClient(){
   finally{setBusy(null)}
  }
  return <div className="app-shell"><AppHeader/><main className="page tt-promo-page">
-  <Link href="/" className="back-link">← {t.back}</Link>
+  <Link href="/" className="back-link">{t.back}</Link>
   <div className="section-heading"><div><h1>{t.title}</h1><p>{t.intro}</p></div></div>
   {error&&<div role="alert" className="state-card state-error">{error}</div>}
   {notice&&<p role="status" className="success-banner">{notice}</p>}
   {loading?<div className="state-card">{t.loading}</div>:
-   promos.length===0?<div className="panel">{t.empty}</div>:
+   promos.length===0?<div className="panel form-stack"><p>{t.empty}</p><Link href="/" className="button button-primary">{t.back}</Link></div>:
    <div className="tt-promo-cards">
     {promos.map(p=>{
      const own=mine.find(m=>m.id===p.id);

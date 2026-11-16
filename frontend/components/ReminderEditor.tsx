@@ -24,8 +24,8 @@ const labels = {
     message: "Сообщение от организатора",
     placeholder: "Например: Ждём вас на событии! Вход с 17:30, покажите билет на входе.",
     hint: "Этот текст появится в каждом email-напоминании. В Telegram он отправляется один раз, в ближайший к событию выбранный момент. Только организационная информация, не реклама.",
-    email: "Email: все выбранные интервалы — только подтверждённым владельцам билетов.",
-    bot: "Telegram: одно напоминание — в ближайший к началу выбранный момент.",
+    email: "Email: все выбранные интервалы, только подтверждённым владельцам билетов.",
+    bot: "Telegram: одно напоминание, в ближайший к началу выбранный момент.",
     minutes: "минут",
     hours: "часов",
     days: "дней",
@@ -143,7 +143,7 @@ export function ReminderEditor({minutes,onChange,message,onMessageChange,languag
       <button type="button" className="button button-outline" onClick={addCustom} disabled={minutes.length>=4}>{words.add}</button>
     </div>
     {validation&&<p role="alert" className="form-note" style={{color:"#ba3228"}}>{validation}</p>}
-    <div className="tt-reminder-heading">{words.selected} · {minutes.length}/4</div>
+    <div className="tt-reminder-heading">{words.selected}: {minutes.length}/4</div>
     <div className="tt-reminder-chips">
       {sorted.map(n=><span className="tt-reminder-scheduled" key={n}>⏰ {describe(n)}
         <button type="button" aria-label={`${words.remove}: ${describe(n)}`} onClick={()=>remove(n)}>×</button>

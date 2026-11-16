@@ -10,6 +10,7 @@ import {useLanguage} from "@/components/LanguageProvider";
 import {eventAdminText} from "@/lib/event-admin-i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import {localeForLanguage} from "@/lib/i18n";
+import {formatDate} from "@/lib/format";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
@@ -156,7 +157,7 @@ export function AdminEventClient(){
       let image:string|undefined;
       if(poster && poster.size>0) {
         if(poster.size>4*1024*1024)throw new LocalValidationError(tr("Постер больше 4 МБ"));
-        if(!["image/jpeg","image/png","image/webp"].includes(poster.type))throw new LocalValidationError(tr("Формат постера — JPG, PNG или WebP."));
+        if(!["image/jpeg","image/png","image/webp"].includes(poster.type))throw new LocalValidationError(tr("Формат постера: JPG, PNG или WebP."));
         image=await posterData(poster);
       }
       if(!languages.length)throw new LocalValidationError(tr("Выбери язык."));
@@ -465,16 +466,16 @@ export function AdminEventClient(){
     catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page">
-    <Link href="/admin" className="back-link">← Organizer dashboard</Link>
+    <Link href="/admin" className="back-link">{tr("Organizer dashboard")}</Link>
     {loading&&<div className="state-card">{tr("Загрузка…")}</div>}
     {error&&<div className="state-card state-error" role="alert">{error}</div>}
     {notice&&<div className="success-banner" role="status">{notice}</div>}
     {event&&identity&&<>
       <div className="admin-heading tp-event-head">
-        <div><span className={event.is_cancelled?"status status-danger":"status status-demo"}>{event.is_cancelled?tr("Cancelled"):`${tr(event.publication?.status==="draft"?"Черновик":event.publication?.status==="scheduled"?"Запланировано":"Опубликовано")} · #${event.id}`}</span>
+        <div><span className={event.is_cancelled?"status status-danger":"status status-demo"}>{event.is_cancelled?tr("Cancelled"):`${tr(event.publication?.status==="draft"?"Черновик":event.publication?.status==="scheduled"?"Запланировано":"Опубликовано")}, #${event.id}`}</span>
         <h1>{event.title}</h1><p>{event.location}</p></div>
       </div>
-      {event.is_cancelled&&<div className="state-card state-error"><strong>{tr("Причина отмены:")}</strong> {event.cancellation_reason||"—"}</div>}
+      {event.is_cancelled&&<div className="state-card state-error"><strong>{tr("Причина отмены:")}</strong> {event.cancellation_reason||"-"}</div>}
       <div className="tp-tabs" role="tablist" aria-label={TAB_WORDS[language].overview}>
         {TABS.filter(t=>t!=="moderation"||identity.role==="global_admin").map(t=><button key={t} type="button" role="tab" aria-selected={tab===t} onClick={()=>pickTab(t)}>
           {TAB_WORDS[language][t]}
@@ -484,21 +485,21 @@ export function AdminEventClient(){
       {tab==="overview"&&<div className="tp-tabpanel">
       <div className="tp-quick">
         <div><strong>{event.registered_count??0}{event.max_participants?` / ${event.max_participants}`:""}</strong><span>{tr("Регистрации всего")}</span></div>
-        <div><strong>{data?data.tickets.filter(t=>t.checked_in_at).length:"—"}</strong><span>{tr("Пришли по QR")}</span></div>
-        <div><strong>{data?data.waitlist.filter(w=>w.status==="waiting").length:"—"}</strong><span>{tr("Ожидают места")}</span></div>
-        <div><strong>{asLocal(event.starts_at).replace("T"," ")||"—"}</strong><span>{tr("Дата и время")}</span></div>
+        <div><strong>{data?data.tickets.filter(t=>t.checked_in_at).length:"-"}</strong><span>{tr("Пришли по QR")}</span></div>
+        <div><strong>{data?data.waitlist.filter(w=>w.status==="waiting").length:"-"}</strong><span>{tr("Ожидают места")}</span></div>
+        <div><strong>{event.starts_at?formatDate(event.starts_at,language):"-"}</strong><span>{tr("Дата и время")}</span></div>
       </div>
       <section className="tt-admin-event-toolbar" aria-label={language==="cs"?"Správa akce":language==="ru"?"Управление мероприятием":language==="uk"?"Керування подією":"Event management actions"}>
         <div className="tt-admin-event-toolbar-primary">
           {!event.is_cancelled&&<button type="button" className="button button-primary" disabled={busy} onClick={()=>pickTab("details")}>
             {tr("Редактировать ивент")}
           </button>}
-          <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр ↗")}</Link>
-          {event.publication?.visible&&<Link className="button button-outline" href={event.invite_url||`/events/${event.id}`}>{language==="ru"?"Страница мероприятия ↗":language==="cs"?"Stránka akce ↗":language==="uk"?"Сторінка події ↗":"Event page ↗"}</Link>}
+          <Link className="button button-outline" href={`/admin/events/${event.id}/preview`}>{tr("Предпросмотр")}</Link>
+          {event.publication?.visible&&<Link className="button button-outline" href={event.invite_url||`/events/${event.id}`}>{language==="ru"?"Страница мероприятия":language==="cs"?"Stránka akce":language==="uk"?"Сторінка події":"Event page"}</Link>}
           <button type="button" className="button button-outline" disabled={busy} onClick={duplicate}>{tr("Копировать ивент")}</button>
         </div>
         <div className="tt-admin-event-toolbar-secondary">
-          <button type="button" className="button button-outline" onClick={csv} disabled={busy}>{tr("↓ Export CSV")}</button>
+          <button type="button" className="button button-outline" onClick={csv} disabled={busy}>{tr("Export CSV")}</button>
           <Link className="button button-sun" href="/admin/check-in">{tr("Scan QR")}</Link>
           {!event.is_cancelled&&<button type="button" className="button button-outline" disabled={busy} onClick={openCancelDialog}>{tr("Отменить ивент")}</button>}
           <button type="button" className="button button-outline tt-admin-event-delete" disabled={busy}
@@ -521,7 +522,7 @@ export function AdminEventClient(){
           </select>
         </label>
         {event.visibility==="link_only"&&<div className="state-card" role="status">
-          🔒 {language==="ru"?"Мероприятие скрыто из каталога и Google. Чтобы открыть его, нужна секретная ссылка. Любой обладатель ссылки может передать её другим.":language==="cs"?"Akce není v katalogu ani ve vyhledávačích. Odkaz může předat kdokoli, kdo jej získá.":language==="uk"?"Подія прихована з каталогу та Google. Кожен, хто має посилання, може ним поділитися.":"Unlisted: only guests with the private invitation link can view or book. Anyone who has the link may share it."}
+          {language==="ru"?"Мероприятие скрыто из каталога и Google. Чтобы открыть его, нужна секретная ссылка. Любой обладатель ссылки может передать её другим.":language==="cs"?"Akce není v katalogu ani ve vyhledávačích. Odkaz může předat kdokoli, kdo jej získá.":language==="uk"?"Подія прихована з каталогу та Google. Кожен, хто має посилання, може ним поділитися.":"Unlisted: only guests with the private invitation link can view or book. Anyone who has the link may share it."}
           {event.invite_url&&<div className="admin-event-actions" style={{marginTop:10}}>
             <button type="button" className="button button-primary" onClick={copyEventLink}>{language==="ru"?"Скопировать приглашение":language==="cs"?"Kopírovat pozvánku":language==="uk"?"Скопіювати запрошення":"Copy invitation link"}</button>
           </div>}
@@ -594,7 +595,7 @@ export function AdminEventClient(){
           onChange={e=>{
             const file=e.target.files?.[0]||null;
             if(file&&(file.size>4*1024*1024||!["image/png","image/jpeg","image/webp"].includes(file.type))){
-              setError(file.size>4*1024*1024?tr("Постер больше 4 МБ"):tr("Формат постера — JPG, PNG или WebP."));
+              setError(file.size>4*1024*1024?tr("Постер больше 4 МБ"):tr("Формат постера: JPG, PNG или WebP."));
               e.currentTarget.value="";setPoster(null);return;
             }
             setError("");setPoster(file);
@@ -623,9 +624,9 @@ export function AdminEventClient(){
             <img src={photo.url} alt={tr("Фотография мероприятия")} />
             <div className="admin-event-actions">
               <button type="button" className="button button-outline" disabled={busy||i===0}
-                onClick={()=>updateMediaOrder(photo.id,-1)} aria-label={tr("Переместить фото назад")}>↑</button>
+                onClick={()=>updateMediaOrder(photo.id,-1)} aria-label={tr("Переместить фото назад")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
               <button type="button" className="button button-outline" disabled={busy||i===(event.uploaded_gallery?.length||0)-1}
-                onClick={()=>updateMediaOrder(photo.id,1)} aria-label={tr("Переместить фото вперёд")}>↓</button>
+                onClick={()=>updateMediaOrder(photo.id,1)} aria-label={tr("Переместить фото вперёд")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
               <button type="button" className="button button-outline" disabled={busy||photo.is_cover}
                 onClick={()=>updateMediaOrder(photo.id,0)}>
                 {photo.is_cover?tr("✓ Обложка"):tr("Сделать обложкой")}</button>
@@ -639,7 +640,7 @@ export function AdminEventClient(){
       <dialog ref={cancelDialogRef} className="tt-event-cancel-dialog" aria-labelledby="tt-event-cancel-title"
         aria-describedby="tt-event-cancel-description" onClose={()=>setShowCancel(false)}>
         <form className="form-stack" onSubmit={cancel}>
-          <span className="status status-danger">#{event.id} · {tr("Отмена ивента")}</span>
+          <span className="status status-danger">#{event.id}, {tr("Отмена ивента")}</span>
           <h2 id="tt-event-cancel-title">{tr("Отмена ивента")}</h2>
           <p id="tt-event-cancel-description">{tr("Ты собираешься отменить")} <strong>{event.title}</strong>. {tr("Новые регистрации закроются, действующие билеты будут аннулированы, а уведомления подтверждённым владельцам билетов будут поставлены в очередь.")} {tr("Это действие нельзя отменить через панель организатора.")}</p>
           <label>{tr("Причина отмены")} <span className="tt-cancel-required">{tr("(обязательно, минимум 8 символов)")}</span>
@@ -664,9 +665,9 @@ export function AdminEventClient(){
         <h2>{tr("Аналитика посещаемости")}</h2>
         <div className="stats-grid">
           <div className="stat-card"><strong>{pilotInsights.registered}</strong><span>{tr("Регистрации всего")}</span></div>
-          <div className="stat-card"><strong>{pilotInsights.occupancy_percent??"—"}%</strong><span>{tr("Заполненность")}</span></div>
+          <div className="stat-card"><strong>{pilotInsights.occupancy_percent??"-"}%</strong><span>{tr("Заполненность")}</span></div>
           <div className="stat-card"><strong>{pilotInsights.checked_in}</strong><span>{tr("Пришли по QR")}</span></div>
-          <div className="stat-card"><strong>{pilotInsights.no_show??"—"}</strong><span>{pilotInsights.event_finished?tr("Итоговый no-show"):tr("No-show после окончания")}</span></div>
+          <div className="stat-card"><strong>{pilotInsights.no_show??"-"}</strong><span>{pilotInsights.event_finished?tr("Итоговый no-show"):tr("No-show после окончания")}</span></div>
           <div className="stat-card"><strong>{pilotInsights.waitlist}</strong><span>{tr("Ожидают места")}</span></div>
           <div className="stat-card"><strong>{pilotInsights.cancelled_tickets}</strong><span>{tr("Отмены")}</span></div>
         </div>
@@ -692,7 +693,7 @@ export function AdminEventClient(){
       {tab==="notify"&&<div className="tp-tabpanel">
       {!event.is_cancelled&&<section className="panel form-stack">
         <h2>{tr("Правила бесплатной регистрации")}</h2>
-        <label>{tr("Закрыть регистрацию за N минут до начала (0 — до старта)")}
+        <label>{tr("Закрыть регистрацию за N минут до начала (0 = до старта)")}
           <input type="number" min={0} max={10080}
             value={pilotSettings.signup_cutoff_minutes}
             onChange={e=>setPilotSettings(s=>({...s,signup_cutoff_minutes:Number(e.target.value)}))}/>
@@ -737,8 +738,8 @@ export function AdminEventClient(){
       {tab==="notify"&&<div className="tp-tabpanel">
       <section className="panel form-stack">
         <h2>{tr("Уведомления участникам")}</h2>
-        <Link href={`/admin/broadcasts?event_id=${eventId}`} className="button button-outline">{tr("📢 Рассылка участникам этого ивента →")}</Link>
-        <p>{tr("С подтверждённым email и действующим билетом:")} <strong>{emailStatus?.verified_ticket_holders??"—"}</strong></p>
+        <Link href={`/admin/broadcasts?event_id=${eventId}`} className="button button-outline">{tr("Рассылка участникам этого ивента")}</Link>
+        <p>{tr("С подтверждённым email и действующим билетом:")} <strong>{emailStatus?.verified_ticket_holders??"-"}</strong></p>
         <p className="form-note">{emailStatus?.email_enabled?
           tr("Отправка подключена. Зарегистрированные пользователи получают письма с билетами, напоминаниями и важными изменениями."):
           tr("Отправка отключена до подтверждения домена и настройки Resend. Новые письма пока не отправляются.")}</p>
@@ -747,12 +748,12 @@ export function AdminEventClient(){
             <div className="stat-card">
               <strong>Email</strong>
               <span>{tr("Доставлено провайдеру:")} {emailStatus.message_states.sent||0}</span>
-              <span>{tr("В очереди:")} {emailStatus.message_states.pending||0} · {tr("Ошибок:")} {emailStatus.message_states.failed||0}</span>
+              <span>{tr("В очереди:")} {emailStatus.message_states.pending||0}, {tr("Ошибок:")} {emailStatus.message_states.failed||0}</span>
             </div>
             <div className="stat-card">
               <strong>Telegram</strong>
               <span>{tr("Зарегистрированных получателей:")} {emailStatus.telegram_recipients??0}</span>
-              <span>{tr("Отправлено:")} {emailStatus.telegram_message_states?.sent||0} · {tr("В очереди:")} {emailStatus.telegram_message_states?.pending||0} · {tr("Ошибок:")} {emailStatus.telegram_message_states?.failed||0}</span>
+              <span>{tr("Отправлено:")} {emailStatus.telegram_message_states?.sent||0}, {tr("В очереди:")} {emailStatus.telegram_message_states?.pending||0}, {tr("Ошибок:")} {emailStatus.telegram_message_states?.failed||0}</span>
               <span>{emailStatus.telegram_enabled?tr("Канал подключён. Напоминания отправляются по расписанию."):tr("Канал сейчас не настроен.")}</span>
             </div>
           </div>
@@ -854,9 +855,9 @@ export function AdminEventClient(){
           {!data.tickets.length&&<p>{tr("Пока нет билетов.")}</p>}
           {data.tickets.map(ticket=><div className="participant-row" key={ticket.id}>
             <div><strong>{ticket.guest?.first_name} {ticket.guest?.last_name}</strong>
-              <small>{ticket.guest?.email}</small><small>{ticket.code} · {ticket.payment_provider==="registration_only"?(language==="cs"?"Registrace (platba neověřena)":language==="en"?"Registered (payment not verified)":language==="uk"?"Записано (оплату не перевірено)":"Записан (оплата не проверена)"):ticket.payment_status === "paid"?tr("Paid"):ticket.payment_status === "not_required"?tr("Free"):ticket.payment_status === "pending"?tr("Ожидает оплаты"):ticket.payment_status}</small>
+              <small>{ticket.guest?.email}</small><small>{ticket.code}, {ticket.payment_provider==="registration_only"?(language==="cs"?"Registrace (platba neověřena)":language==="en"?"Registered (payment not verified)":language==="uk"?"Записано (оплату не перевірено)":"Записан (оплата не проверена)"):ticket.payment_status === "paid"?tr("Paid"):ticket.payment_status === "not_required"?tr("Free"):ticket.payment_status === "pending"?tr("Ожидает оплаты"):ticket.payment_status}</small>
               {ticket.ticket_status==="cancelled"&&!["free","legacy_free","registration_only","demo"].includes(ticket.payment_provider)&&
-                <small>{language==="cs"?"Externí platba – případné vrácení peněz řešte ručně":language==="en"?"External payment – verify any refund manually":language==="uk"?"Зовнішня оплата – перевірте можливе повернення коштів вручну":"Внешняя оплата — проверь возможный возврат вручную"}</small>}</div>
+                <small>{language==="cs"?"Externí platba: případné vrácení peněz řešte ručně":language==="en"?"External payment: verify any refund manually":language==="uk"?"Зовнішня оплата: перевірте можливе повернення коштів вручну":"Внешняя оплата: проверь возможный возврат вручную"}</small>}</div>
             <div className="participant-actions">
               <span className={ticket.checked_in_at?"status status-success":"status status-demo"}>
                 {ticket.ticket_status==="cancelled"?tr("Cancelled"):ticket.checked_in_at?tr("Checked in"):(language==="cs"?"Registrován":language==="en"?"Registered":language==="uk"?"Записано":"Записан")}</span>

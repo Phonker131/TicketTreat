@@ -25,14 +25,14 @@ export function OrganizerDirectoryClient({profiles}:{profiles:OrganizerPublicSum
        </div>
        <h2>{p.display_name}</h2>
        {p.city&&<p>{p.city}</p>}
-       <p>{p.bio.slice(0,180)}</p>
+       <p>{p.bio}</p>
        <strong className="tt-organizer-link">{t.view}</strong>
      </Link>)}
-     <div className="panel tt-organizer-ghost" aria-label={t.future}>
+     {!profiles.length&&<div className="panel tt-organizer-ghost" aria-label={t.future}>
        <span className="tt-example-stamp">{t.example}</span>
        <div className="tt-organizer-ghost-mark" aria-hidden="true">+</div>
        <h2>{t.future}</h2><p>{t.futureHint}</p>
-     </div>
+     </div>}
    </div>
    {!profiles.length&&<p className="form-note">{t.empty}</p>}
    <section className="tp-pitch" aria-label={premium[language].pitch.title}>

@@ -134,10 +134,10 @@ export function BroadcastClient(){
   }
   const canSend=Boolean(preview)&&!busy&&blockers.length===0;
   return <div className="app-shell"><AppHeader/><main className="page tt-broadcast-page">
-    <Link href="/admin" className="back-link">{tr("← Панель организатора")}</Link>
+    <Link href="/admin" className="back-link">{tr("Панель организатора")}</Link>
     <div className="admin-heading">
       <div><span className="status status-demo">TICKETTREAT / COMMUNICATIONS</span>
-        <h1>{tr("📢 Рассылки")}</h1>
+        <h1>{tr("Рассылки")}</h1>
         <p>{tr("Служебные объявления по платформе или отдельному ивенту.")}</p>
       </div>
     </div>
@@ -149,9 +149,9 @@ export function BroadcastClient(){
         <h2>{tr("1. Кому отправить")}</h2>
         <div className="tt-broadcast-scope" role="group" aria-label={tr("Аудитория рассылки")}>
           {me.role==="global_admin"&&<button type="button" className={scope==="global"?"button button-primary":"button button-outline"}
-            aria-pressed={scope==="global"} onClick={()=>{setScope("global");invalidate();}}>{tr("🌍 Всем пользователям")}</button>}
+            aria-pressed={scope==="global"} onClick={()=>{setScope("global");invalidate();}}>{tr("Всем пользователям")}</button>}
           <button type="button" className={scope==="event"?"button button-primary":"button button-outline"}
-            aria-pressed={scope==="event"} onClick={()=>{setScope("event");invalidate();}}>{tr("🎟 Участникам ивента")}</button>
+            aria-pressed={scope==="event"} onClick={()=>{setScope("event");invalidate();}}>{tr("Участникам ивента")}</button>
         </div>
         {scope==="event"&&<label>{tr("Выбери мероприятие")}
           <select value={eventId} onChange={e=>{setEventId(e.target.value);invalidate();}}>
@@ -174,7 +174,7 @@ export function BroadcastClient(){
             onChange={e=>{setMessage(e.target.value);invalidate();}}/>
           <small className={messageChars<MIN_MESSAGE_CHARS?"tt-broadcast-length-warning":"tt-broadcast-length-ok"} aria-live="polite">
             {messageChars<MIN_MESSAGE_CHARS
-              ?`${tr("Минимум")} ${MIN_MESSAGE_CHARS} ${tr("символов")}. ${tr("Сейчас")} ${messageChars} — ${tr("добавь ещё")} ${MIN_MESSAGE_CHARS-messageChars}.`
+              ?`${tr("Минимум")} ${MIN_MESSAGE_CHARS} ${tr("символов")}. ${tr("Сейчас")} ${messageChars}, ${tr("добавь ещё")} ${MIN_MESSAGE_CHARS-messageChars}.`
               :`${tr("✓ Текст готов к отправке:")} ${messageChars}/1000 ${tr("символов")}.`}
           </small>
         </label>
@@ -186,18 +186,18 @@ export function BroadcastClient(){
         <div className="tt-broadcast-preview">
           <strong>{subject||tr("Заголовок")}</strong>
           <p>{message||tr("Текст сообщения появится здесь.")}</p>
-          {imageUrl&&<small>{tr("🖼 Изображение прикреплено")}</small>}
+          {imageUrl&&<small>{tr("Изображение прикреплено")}</small>}
         </div>
       </section>
       <section className="panel form-stack">
         <h2>{tr("3. Проверка и отправка")}</h2>
         {!preview&&<p className="form-note">{tr("Сначала нажми «Посчитать получателей». После изменения заголовка или текста проверку аудитории нужно повторить. Для отправки требуется заголовок от 5 и текст от 20 символов.")}</p>}
         <button type="button" className="button button-outline" disabled={busy||scope==="event"&&!eventId}
-          onClick={checkAudience}>{busy?tr("Проверяем…"):tr("👥 Посчитать получателей")}</button>
+          onClick={checkAudience}>{busy?tr("Проверяем…"):tr("Посчитать получателей")}</button>
         {preview&&<>
           <div className="tt-broadcast-stats">
-            <div><strong>{preview.email_recipients}</strong><span>📧 Email</span><small>{preview.email_available?tr("Подключён"):tr("Провайдер отключён")}</small></div>
-            <div><strong>{preview.telegram_recipients}</strong><span>✈️ Telegram</span><small>{preview.telegram_available?tr("Подключён"):tr("Бот недоступен")}</small></div>
+            <div><strong>{preview.email_recipients}</strong><span>Email</span><small>{preview.email_available?tr("Подключён"):tr("Провайдер отключён")}</small></div>
+            <div><strong>{preview.telegram_recipients}</strong><span>Telegram</span><small>{preview.telegram_available?tr("Подключён"):tr("Бот недоступен")}</small></div>
           </div>
           {allCount===0&&<p role="status">{tr("Сейчас нет адресатов для рассылки.")}</p>}
           <label className="tt-broadcast-consent">
@@ -216,19 +216,19 @@ export function BroadcastClient(){
             :<div className="tt-broadcast-ready" role="status">{tr("✓ Все проверки пройдены. Рассылка готова к подтверждению.")}</div>}
           <button className="button button-primary" type="button" onClick={deliver}
             disabled={!canSend} aria-describedby="tt-broadcast-send-explainer">
-            {busy?tr("Отправляем…"):tr("📢 Подтвердить рассылку")}
+            {busy?tr("Отправляем…"):tr("Подтвердить рассылку")}
           </button>
           <small id="tt-broadcast-send-explainer">{tr("Рассылка запускается только после подтверждения. Количество сообщений по каналам может отличаться, а один человек может получить их в обоих каналах.")}</small>
         </>}
       </section>
       <section className="panel form-stack">
         <div className="tt-broadcast-history-heading"><h2>{tr("История отправок")}</h2>
-          <button className="button button-outline" type="button" disabled={busy} onClick={refresh}>{tr("↻ Обновить")}</button></div>
+          <button className="button button-outline" type="button" disabled={busy} onClick={refresh}>{tr("Обновить")}</button></div>
         {!history.length&&<p>{tr("История рассылок пока пустая.")}</p>}
         {history.map(c=><article className="tt-broadcast-history" key={c.id}>
-          <div><strong>{c.subject}</strong><small>#{c.id} · {c.scope==="global"?tr("Все пользователи"):tr("Ивент #")+c.event_id} · {new Date(c.created_at).toLocaleString(localeForLanguage(language))}</small></div>
-          <p>📧 Email: {c.emails.sent||0}/{c.email_count} {tr("отправлено")} · {c.emails.failed||0} {tr("ошибок")}</p>
-          <p>✈️ Telegram: {c.telegram.sent||0}/{c.telegram_count} {tr("отправлено")} · {c.telegram.failed||0} {tr("ошибок")} · {c.telegram.skipped||0} {tr("недоступно")}</p>
+          <div><strong>{c.subject}</strong><small>#{c.id}, {c.scope==="global"?tr("Все пользователи"):tr("Ивент #")+c.event_id}, {new Date(c.created_at).toLocaleString(localeForLanguage(language))}</small></div>
+          <p>Email: {c.emails.sent||0}/{c.email_count} {tr("отправлено")}, {c.emails.failed||0} {tr("ошибок")}</p>
+          <p>Telegram: {c.telegram.sent||0}/{c.telegram_count} {tr("отправлено")}, {c.telegram.failed||0} {tr("ошибок")}, {c.telegram.skipped||0} {tr("недоступно")}</p>
         </article>)}
       </section>
     </>}

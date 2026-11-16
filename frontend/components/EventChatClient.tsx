@@ -267,22 +267,27 @@ export function EventChatInbox({mode}:{mode:Mode}){
   return()=>{live=false;window.clearInterval(timer)};
  },[load,queryThread]);
  const visible=threads.filter(x=>!onlyOpen||x.status==="open");
+ const guest=mode==="participant"&&!!error&&requiresLogin(error);
  const current=threads.find(x=>x.id===selected);
  return <div className="app-shell"><AppHeader/><main className="page tt-chat-page">
-  <Link href={mode==="organizer"?"/admin":"/"} className="back-link">← {mode==="organizer"?"Dashboard":t.event}</Link>
+  <Link href={mode==="organizer"?"/admin":"/"} className="back-link">{mode==="organizer"?(lang==="cs"?"Správa akcí":"Organizer dashboard"):(lang==="cs"?"Akce":"Events")}</Link>
   <div className="section-heading"><div><h1>{mode==="organizer"?t.staffTitle:t.title}</h1>
    <p>{mode==="organizer"?t.staffIntro:t.intro}</p></div>
-   <button type="button" className="button button-outline" onClick={()=>void load().catch(e=>setError(String(e)))}>
-    {t.refresh}</button>
+   {!guest&&<button type="button" className="button button-outline" onClick={()=>void load().catch(e=>setError(String(e)))}>
+    {t.refresh}</button>}
   </div>
-  {error&&<div role="alert" className="state-card state-error">
+  {error&&!guest&&<div role="alert" className="state-card state-error">
     {mode==="organizer"?t.noAccess:userFacingError(new Error(error),language)}
     {requiresLogin(error)&&<Link href="/login" className="button button-primary">{t.login}</Link>}
     {mode==="organizer"&&<Link href="/security/mfa" className="button button-outline">MFA</Link>}
   </div>}
-  {loading?<div className="state-card">{t.loading}</div>:
+  {guest?<div className="panel tt-chat-inbox-empty">
+    <p>{lang==="cs"?"Přihlaste se a pište pořadatelům svých akcí.":"Sign in to message the organizers of your events."}</p>
+    <Link href="/login" className="button button-primary">{t.login}</Link>
+  </div>:
+  loading?<div className="state-card">{t.loading}</div>:
   !threads.length?<div className="panel tt-chat-inbox-empty">
-    <p>{t.empty}</p>{mode==="participant"&&<Link href="/" className="button button-primary">{t.event}</Link>}
+    <p>{t.empty}</p>{mode==="participant"&&<Link href="/" className="button button-primary">{lang==="cs"?"Najít akci":"Explore events"}</Link>}
   </div>:
   <div className="tt-chat-inbox">
    <aside className="tt-chat-thread-list" aria-label={t.title}>

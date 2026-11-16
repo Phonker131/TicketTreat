@@ -21,9 +21,9 @@ const copy={
 } as const;
 
 function dateLabel(value:string|null,lang:LanguageCode){
- if(!value)return "—";
+ if(!value)return "-";
  const {date,timeZone}=eventDisplayDate(value);
- return Number.isNaN(date.getTime())?"—":new Intl.DateTimeFormat(lang==="cs"?"cs-CZ":lang==="uk"?"uk-UA":lang==="en"?"en-GB":"ru-RU",{day:"2-digit",month:"short",timeZone}).format(date);
+ return Number.isNaN(date.getTime())?"-":new Intl.DateTimeFormat(lang==="cs"?"cs-CZ":lang==="uk"?"uk-UA":lang==="en"?"en-GB":"ru-RU",{day:"2-digit",month:"short",timeZone}).format(date);
 }
 function priceText(e:TicketTreatEvent,lang:LanguageCode){
  const n=Number(e.price||0);
@@ -79,10 +79,10 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
    mode==="list"?<div className="event-grid tp-feed">{filtered.map(event=><EventCard key={event.id} event={event}/>)}</div>:
    <div className="tt-swipe-area">
      <SwipeDeck events={filtered} index={index}
-       labels={{want:tr.want,pass:tr.pass,view:tr.view,hint:tr.hint,done:tr.done,doneText:premium[language].empty.doneText,reset:premium[language].empty.reset}}
+       labels={{want:tr.want,pass:tr.pass,view:tr.view,hint:tr.hint,done:tr.done,doneText:premium[language].empty.doneText,reset:premium[language].empty.reset,spots:({en:"spots left",cs:"volných míst",ru:"мест",uk:"місць"} as Record<string,string>)[language]||"spots left"}}
        dateOf={e=>dateLabel(e.starts_at,language)} priceOf={e=>priceText(e,language)}
        onAction={a=>advance(a)} onReset={()=>setIndex(0)}/>
-     {feedback&&<p role="status" className="tp-deck-feedback">{feedback} · <button type="button" className="tp-linkbtn" onClick={()=>setMode("saved")}>{tr.savedMode}{saved.length?` (${saved.length})`:""}</button></p>}
+     {feedback&&<p role="status" className="tp-deck-feedback">{feedback}{" "}<button type="button" className="tp-linkbtn" onClick={()=>setMode("saved")}>{tr.savedMode}{saved.length?` (${saved.length})`:""}</button></p>}
    </div>}
  </div>;
 }

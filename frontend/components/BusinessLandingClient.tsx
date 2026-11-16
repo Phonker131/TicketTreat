@@ -85,7 +85,7 @@ export function BusinessLandingClient(){
   </div></section>
   <section id="business-timeline" className="tt-v12-screen tt-business-timeline"><div className="tt-v12-screen-content">
    <div className="tt-v12-intro"><h2>{t.timing}</h2></div>
-   <div className="tt-business-triptych">{t.period.map((v,i)=><article key={i}><span>0{i+1}</span><h3>{v}</h3><p>{t.details[i]}</p></article>)}</div>
+   <div className="tt-business-triptych">{t.period.map((v,i)=><article key={i}><h3>{v}</h3><p>{t.details[i]}</p></article>)}</div>
   </div></section>
   <section id="business-faq" className="tt-v12-screen tt-business-faq"><div className="tt-v12-screen-content">
    <div className="tt-v12-intro"><h2>{t.questions}</h2></div>
@@ -98,7 +98,7 @@ export function BusinessLandingClient(){
       <label>{language==="ru"?"Контактное лицо":language==="uk"?"Контактна особа":language==="cs"?"Kontaktní osoba":"Contact person"}<input required minLength={2} maxLength={100} autoComplete="name" value={contact} onChange={e=>setContact(e.target.value)}/></label>
       <label>Email<input required type="email" autoComplete="email" maxLength={160} value={email} onChange={e=>setEmail(e.target.value)}/></label>
       <label>{language==="ru"?"Какие мероприятия планируете?":language==="uk"?"Які події плануєте?":language==="cs"?"Jaké akce plánujete?":"What kind of events?"}<textarea required minLength={10} maxLength={1000} rows={3} value={eventTypes} onChange={e=>setEventTypes(e.target.value)}/></label>
-      {formError&&<p className="tt-business-form-error" role="alert">{formError} <Link href="/profile">{language==="ru"?"Войти":language==="uk"?"Увійти":language==="cs"?"Přihlásit se":"Sign in"} ↗</Link></p>}
+      {formError&&<p className="tt-business-form-error" role="alert">{formError} <Link href="/profile">{language==="ru"?"Войти":language==="uk"?"Увійти":language==="cs"?"Přihlásit se":"Sign in"}</Link></p>}
       {formState==="sent"&&<p className="tt-business-form-success" role="status">{language==="ru"?"Заявка отправлена в службу поддержки TicketTreat. Мы ответим через тикет и email аккаунта.":language==="uk"?"Заявку надіслано до підтримки TicketTreat. Відповімо в зверненні та на email.":language==="cs"?"Žádost byla odeslána podpoře TicketTreat. Odpovíme v požadavku a e-mailem.":"Application received by TicketTreat support. We will reply in the ticket and by account email."}</p>}
       <button type="submit" className="button button-primary" disabled={formState==="sending"||formState==="sent"}>{formState==="sending"?"…":t.apply}</button>
       <p className="tt-business-apply-note">{language==="ru"?"Для отправки нужен аккаунт с подтверждённым email. Данные заявки доступны администраторам через службу поддержки.":language==="uk"?"Для надсилання потрібен акаунт з підтвердженим email. Заявку отримають адміністратори підтримки.":language==="cs"?"K odeslání potřebujete účet s ověřeným e-mailem. Žádost obdrží administrátoři podpory.":"A verified TicketTreat account is required. The application is delivered to the support admins."}</p>

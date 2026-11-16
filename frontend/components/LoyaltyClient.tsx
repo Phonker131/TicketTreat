@@ -70,8 +70,8 @@ export function LoyaltyClient(){
    finally{if(live)setLoading(false);}
  })();return()=>{live=false};},[]);
  return <div className="app-shell"><AppHeader/><main className="page">
-  <Link href="/" className="back-link">← {language==="ru"?"Ивенты":language==="cs"?"Události":language==="uk"?"Події":"Events"}</Link>
-  <div className="section-heading"><div><h1>{tr.title}</h1><p>{tr.subtitle}</p></div></div>
+  <Link href="/" className="back-link">{language==="ru"?"Ивенты":language==="cs"?"Události":language==="uk"?"Події":"Events"}</Link>
+  <div className={"section-heading"+(!loading&&!error&&!passport?" sr-only":"")}><div><h1>{tr.title}</h1><p>{tr.subtitle}</p></div></div>
   {loading?<div className="state-card" role="status">…</div>:error?<div className="state-card state-error" role="alert">{error}</div>:
   !passport?<RewardsPreview language={language} mode="guest"/>:
   <>

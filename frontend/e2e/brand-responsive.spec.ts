@@ -170,7 +170,7 @@ test("Czech and EU legal pages publish controller status and consumer-law detail
   await expect(page.getByRole("heading",{name:/Úplné informace o zpracování osobních údajů/})).toBeVisible();
   await expect(page.getByText(/openid/).first()).toBeVisible();
   await page.goto("/terms",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("heading",{name:/Obchodní podmínky – české znění/})).toBeVisible();
+  await expect(page.getByRole("heading",{name:/Obchodní podmínky: české znění/})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Complaints and alternative dispute resolution"})).toBeVisible();
 });
 

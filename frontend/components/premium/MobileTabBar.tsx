@@ -17,7 +17,7 @@ const icons=[
 /** Phone-only bottom navigation for the website and the Telegram Mini App. Three destinations, one sliding indicator. */
 export function MobileTabBar({homepage}:{homepage:string}){
  const {language}=useLanguage(),pathname=usePathname()||"/",reduce=useReducedMotion();
- const hidden=/^\/(admin|checkout|security|organizer)(\/|$)/.test(pathname)||/^\/business/.test(pathname);
+ const hidden=(/^\/(admin|checkout|security|organizer)(\/|$)/.test(pathname)&&!/^\/organizer\/apply/.test(pathname))||/^\/business/.test(pathname);
  useEffect(()=>{
   if(hidden)return;
   document.body.classList.add("has-tabbar");
@@ -27,7 +27,7 @@ export function MobileTabBar({homepage}:{homepage:string}){
  const [events,tickets,,profile]=premium[language].tabs;
  const labels=[events,tickets,profile];
  const links=[homepage,"/tickets","/profile"];
- const active=(i:number)=>i===0?(pathname==="/"||/^\/(cs|en|uk)$/.test(pathname)||pathname.startsWith("/events")):pathname===links[i]||pathname.startsWith(links[i]+"/");
+ const active=(i:number)=>i===0?(pathname==="/"||/^\/(cs|en|uk)$/.test(pathname)||pathname.startsWith("/events")):pathname===links[i]||pathname.startsWith(links[i]+"/")||(i===2&&/^\/(login|password-recovery)(\/|$)/.test(pathname));
  // The header uses backdrop-filter; fixed-position descendants then become
  // anchored to the header on iOS Safari. A body-level portal keeps this nav
  // truly fixed to the visual viewport while preserving React events.

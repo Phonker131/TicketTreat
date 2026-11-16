@@ -65,7 +65,7 @@ export function OrganizerProfileEditor(){
     finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page organizer-editor">
-    <Link href="/admin" className="back-link">← {tr.back}</Link>
+    <Link href="/admin" className="back-link">{tr.back}</Link>
     <h1>{tr.title}</h1><p className="form-note">{tr.intro}</p>
     {loading?<div className="state-card">{tr.loading}</div>:<>
       <p className={"status "+(profile.published?"status-success":"")}>{profile.published?tr.published:tr.unpublished}</p>
@@ -82,7 +82,7 @@ export function OrganizerProfileEditor(){
         <p className="form-note">{tr.publishHint}</p>
         <div className="admin-event-actions">
           <button className="button button-primary" disabled={busy} type="submit">{busy?tr.saving:tr.save}</button>
-          {profile.published&&stored&&<Link className="button button-outline" href={`/organizers/${profile.slug}`}>{tr.view} ↗</Link>}
+          {profile.published&&stored&&<Link className="button button-outline" href={`/organizers/${profile.slug}`}>{tr.view}</Link>}
         </div>
       </form>
       <section className="panel form-stack" style={{marginTop:20}}>
