@@ -19,7 +19,7 @@ from typing import Literal
 
 from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Integer, String, Text, func, and_, or_
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, func, and_, or_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -27,6 +27,36 @@ from db.base import Base
 
 LOG = logging.getLogger("tickettreat.broadcast")
 MAX_AUDIENCE_PER_CHANNEL = 50000
+
+
+
+class BroadcastPreference(Base):
+    __tablename__ = "demo_broadcast_preferences"
+    account_id = Column(Integer, ForeignKey("demo_web_accounts.id", ondelete="CASCADE"), primary_key=True)
+    email_enabled = Column(Boolean, nullable=False, default=True)
+    telegram_enabled = Column(Boolean, nullable=False, default=True)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
+class BroadcastPreferenceUpdate(BaseModel):
+    email_enabled: bool
+    telegram_enabled: bool
+
+
+def email_broadcast_enabled(db: Session, account_id: int) -> bool:
+    preference = db.get(BroadcastPreference, account_id)
+    return preference is None or preference.email_enabled
+
+
+def blocked_telegram_ids(db: Session) -> set[int]:
+    from demo_accounts import WebAccount
+    from demo_telegram import DemoTelegramIdentity
+    rows = db.query(DemoTelegramIdentity.telegram_id).join(
+        WebAccount, WebAccount.guest_id == DemoTelegramIdentity.guest_id
+    ).join(BroadcastPreference, BroadcastPreference.account_id == WebAccount.id).filter(
+        BroadcastPreference.telegram_enabled.is_(False)
+    ).all()
+    return {int(row[0]) for row in rows}
 
 
 class BroadcastCampaign(Base):
@@ -121,6 +151,9 @@ def _audience(db: Session, scope: str, event_id: int | None, main):
             main.DemoTicket.event_id == event_id,
             main.DemoTicket.ticket_status == "active",
         ).distinct()
+    query = query.outerjoin(BroadcastPreference, BroadcastPreference.account_id == WebAccount.id).filter(
+        or_(BroadcastPreference.account_id.is_(None), BroadcastPreference.email_enabled.is_(True))
+    )
     # Email is sent only to the verified canonical website account address.
     email_accounts = [(row.id, row.guest_id, row.email) for row in query.order_by(WebAccount.id).all()]
 
@@ -147,6 +180,8 @@ def _audience(db: Session, scope: str, event_id: int | None, main):
             main.DemoTicket.ticket_status == "active",
         ).all()
     ids = sorted({int(row[0]) for row in (bot_user_ids + miniapp_ids) if row[0] and int(row[0]) > 0})
+    blocked = blocked_telegram_ids(db)
+    ids = [telegram_id for telegram_id in ids if telegram_id not in blocked]
     if len(email_accounts) > MAX_AUDIENCE_PER_CHANNEL or len(ids) > MAX_AUDIENCE_PER_CHANNEL:
         raise HTTPException(413, "audience_exceeds_50000_per_channel")
     return email_accounts, ids
@@ -179,6 +214,24 @@ def install_broadcast_api(app, get_db, main):
 
     def authorized(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
         return account_lookup(db, authorization)
+
+
+    @app.get("/demo/auth/broadcast-preferences")
+    def preferences(account=Depends(authorized), db: Session = Depends(get_db)):
+        row = db.get(BroadcastPreference, account.id)
+        return {"email_enabled": row.email_enabled if row else True,
+                "telegram_enabled": row.telegram_enabled if row else True}
+
+    @app.put("/demo/auth/broadcast-preferences")
+    def update_preferences(payload: BroadcastPreferenceUpdate, account=Depends(authorized),
+                           db: Session = Depends(get_db)):
+        # Idempotent upsert: only the authenticated account can change its settings.
+        values = {"account_id": account.id, "email_enabled": payload.email_enabled,
+                  "telegram_enabled": payload.telegram_enabled, "updated_at": datetime.now(timezone.utc)}
+        db.execute(pg_insert(BroadcastPreference.__table__).values(**values).on_conflict_do_update(
+            index_elements=["account_id"], set_={k: v for k, v in values.items() if k != "account_id"}))
+        db.commit()
+        return {"email_enabled": payload.email_enabled, "telegram_enabled": payload.telegram_enabled}
 
     @app.post("/demo/manage/broadcasts/preview")
     def preview(payload: AudienceRequest, account=Depends(authorized), db: Session = Depends(get_db)):
@@ -305,7 +358,7 @@ def render_broadcast_email(row, db: Session) -> dict | None:
         WebAccount.guest_id == row.guest_id,
         WebAccount.email == row.recipient,
     ).first()
-    if not account:
+    if not account or not email_broadcast_enabled(db, account.id):
         return None
     from demo_email import email_shell
     web_url = (os.getenv("WEB_APP_URL", "").strip() or "https://tickettreat.eu").rstrip("/")
@@ -376,7 +429,7 @@ def _deliver_telegram(db: Session) -> bool:
     item.attempts += 1
     try:
         campaign = db.get(BroadcastCampaign, item.campaign_id)
-        if campaign is None:
+        if campaign is None or int(item.telegram_id) in blocked_telegram_ids(db):
             item.state = "skipped"
         else:
             _send_telegram(campaign, int(item.telegram_id))
