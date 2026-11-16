@@ -3,6 +3,8 @@ on:
   pull_request:
     branches: [dev/frontend-design]
     paths:
+      - frontend/app/unsubscribe/**
+      - frontend/components/EmailUnsubscribe.tsx
       - frontend/components/BroadcastPreferences.tsx
       - frontend/components/ProfileClient.tsx
       - frontend/lib/api.ts
