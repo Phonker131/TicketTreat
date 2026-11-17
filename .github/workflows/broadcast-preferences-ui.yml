@@ -3,6 +3,9 @@ on:
   pull_request:
     branches: [dev/frontend-design]
     paths:
+      - frontend/e2e/organizer-media-feedback.spec.ts
+      - frontend/components/AdminClient.tsx
+      - frontend/components/OrganizerProfileEditor.tsx
       - frontend/components/AdminEventClient.tsx
       - frontend/app/unsubscribe/**
       - frontend/components/EmailUnsubscribe.tsx
@@ -25,5 +28,9 @@ jobs:
           node-version: "22"
       - run: npm install --no-audit --no-fund
       - run: npm run build
+        env:
+          BACKEND_API_URL: http://127.0.0.1:8000
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test e2e/organizer-media-feedback.spec.ts
         env:
           BACKEND_API_URL: http://127.0.0.1:8000
