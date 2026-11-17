@@ -263,8 +263,15 @@ export function AdminEventClient(){
   // and one bad file never stops the rest.
   async function uploadPhotos(list: FileList|null) {
     const token=getWebToken();
-    const files=Array.from(list||[]).filter(f=>!f.type||f.type.startsWith("image/"));
-    if(!token||!files.length)return;
+    const chosen=Array.from(list||[]);
+    const oversized=chosen.filter(f=>f.size>25*1024*1024).length;
+    const invalid=chosen.filter(f=>f.type&&!f.type.startsWith("image/")).length;
+    const files=chosen.filter(f=>f.size<=25*1024*1024&&(!f.type||f.type.startsWith("image/")));
+    if(!token)return;
+    if(!files.length){
+      if(chosen.length)setError(language==="cs"?"Vyberte fotografie do 25 MB.":"Choose image files smaller than 25 MB.");
+      return;
+    }
     const free=Math.max(0,8-(event?.gallery_urls?.length||0));
     if(!free){setNotice("");setError(tr("Не более 8 фотографий на мероприятие."));return;}
     const batch=files.slice(0,free);
@@ -288,6 +295,8 @@ export function AdminEventClient(){
     const problems=[
       failed?(language==="cs"?`Nepodařilo se nahrát ${failed} fotek: ${failures[0]||"Zkuste to znovu."}`:`Could not upload ${failed} photo(s): ${failures[0]||"Please try again."}`):"",
       skipped?tr("В галерее максимум 8 фото, лишние не загружены: {n}.").replace("{n}",String(skipped)):"",
+      oversized?(language==="cs"?`${oversized} fotografií přesahuje 25 MB.`:`${oversized} photo(s) exceed 25 MB.`):"",
+      invalid?(language==="cs"?`${invalid} souborů není obrázek.`:`${invalid} file(s) are not images.`):"",
     ].filter(Boolean).join(" ");
     if(problems)setError(problems);
   }
