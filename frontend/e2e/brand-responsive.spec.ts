@@ -127,11 +127,10 @@ test("desktop navbar remains permanently visible",async({page})=>{
   await expect(page.locator(".topbar-menu-toggle")).toBeHidden();
 });
 
-test("public pilot header opens the official TicketTreat bot", async ({page}) => {
+test("the official TicketTreat bot stays reachable from the footer", async ({page}) => {
   await page.goto("/?nostory",{waitUntil:"domcontentloaded"});
-  const bot = page.locator("a.mode-pill-link");
-  await expect(bot).toHaveAttribute("href","https://t.me/TicketTreatBot");
-  await expect(bot).toContainText("Telegram Mini App");
+  await expect(page.locator("a.mode-pill-link")).toHaveCount(0);
+  await expect(page.locator('footer a[href="https://t.me/TicketTreatBot"]').first()).toBeVisible();
 });
 
 test("registration does not reveal platform-owner recovery or JSON export", async ({page}) => {

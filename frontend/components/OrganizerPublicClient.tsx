@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import {AppHeader} from "@/components/AppHeader";
-import {EventCard} from "@/components/EventCard";
+import {EventBoard} from "@/components/premium/EventLists";
 import {useLanguage} from "@/components/LanguageProvider";
 import type {OrganizerPublicDetail,LanguageCode} from "@/lib/types";
 import {PageFaq} from "@/components/premium/PageFaq";
@@ -44,11 +44,11 @@ export function OrganizerPublicClient({data}:{data:OrganizerPublicDetail}){
     </section>
     <section className="tt-organizer-section">
       <h2>{w.upcoming}</h2>
-      {data.upcoming_events.length>0?<div className="event-grid">{data.upcoming_events.map(event=><EventCard event={event} key={event.id}/>)}</div>:<div className="state-card">{w.none}</div>}
+      {data.upcoming_events.length>0?<EventBoard events={data.upcoming_events} language={language}/>:<div className="state-card">{w.none}</div>}
     </section>
     <section className="tt-organizer-section">
       <h2>{w.past}</h2>
-      {data.past_events.length>0?<div className="event-grid">{data.past_events.map(event=><EventCard event={event} key={event.id}/>)}</div>:<div className="state-card">{w.none}</div>}
+      {data.past_events.length>0?<EventBoard events={data.past_events} language={language}/>:<div className="state-card">{w.none}</div>}
     </section>
 <PageFaq topic="organizers"/>
   </main></div>;

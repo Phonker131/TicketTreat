@@ -7,7 +7,6 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { MobileTabBar } from "@/components/premium/MobileTabBar";
 import { useLanguage } from "@/components/LanguageProvider";
-import { isTelegramWebApp, getTelegramWebApp } from "@/lib/telegram";
 import { t } from "@/lib/i18n";
 import { getManageMe,getBookingConfig } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
@@ -23,14 +22,11 @@ export function AppHeader() {
   const menuAction = menuOpen
     ? (language==="ru"?"Закрыть меню":language==="cs"?"Zavřít nabídku":language==="uk"?"Закрити меню":"Close menu")
     : (language==="ru"?"Открыть меню":language==="cs"?"Otevřít nabídku":language==="uk"?"Відкрити меню":"Open menu");
-  const [insideTelegram, setInsideTelegram] = useState(false);
   const [canOrganize, setCanOrganize] = useState(false);
   const [demoEnabled,setDemoEnabled] = useState(false);
   // Public account is fixed while the Czech pilot uses one official Telegram bot.
-  const botUrl = "https://t.me/TicketTreatBot";
   useEffect(()=>{getBookingConfig().then(config=>setDemoEnabled(config.demo_payment_mode)).catch(()=>{});},[]);
 
-  useEffect(() => setInsideTelegram(isTelegramWebApp()), []);
   // Until hydration attaches event handlers, a mobile tap must not appear to
   // succeed while silently doing nothing. Enable the toggle only when ready.
   useEffect(() => setMenuReady(true), []);
@@ -93,11 +89,6 @@ export function AppHeader() {
 
         <div className="topbar-actions">
           {demoEnabled&&<span className="demo-pill">{t(language, "demo")}</span>}
-          {<a className="mode-pill mode-pill-link" href={botUrl} target="_blank" rel="noopener noreferrer"
-            aria-label={language==="ru"?"Открыть бота TicketTreat в Telegram":language==="cs"?"Otevřít bota TicketTreat na Telegramu":language==="uk"?"Відкрити бота TicketTreat у Telegram":"Open TicketTreat Telegram bot"}
-            onClick={e=>{const telegram=getTelegramWebApp();if(insideTelegram && telegram?.openTelegramLink){e.preventDefault();telegram.openTelegramLink(botUrl);}}}>
-            <span className="tt-telegram-full-label">Telegram Mini App</span><span className="tt-telegram-compact-label" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 4.5 2.8 11.7c-.9.4-.9 1.1.1 1.4l4.7 1.5 1.8 5.6c.2.6.9.8 1.4.4l2.6-2.2 4.9 3.6c.6.4 1.3.1 1.5-.6l3-15.4c.2-1-.5-1.6-1.3-1.5Z"/><path d="m7.6 14.6 9.9-6.3"/></svg></span>
-          </a>}
           <button type="button" className="topbar-menu-toggle" disabled={!menuReady} aria-controls="tt-primary-nav" aria-expanded={menuOpen} aria-label={menuAction} onClick={() => setMenuOpen(open => !open)}>
             <span className="topbar-menu-icon" aria-hidden="true"><span /><span /><span /></span>
             <span className="topbar-menu-label">{menuLabel}</span>

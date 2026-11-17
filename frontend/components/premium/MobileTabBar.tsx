@@ -17,7 +17,7 @@ const icons=[
 /** Phone-only bottom navigation for the website and the Telegram Mini App. Three destinations, one sliding indicator. */
 export function MobileTabBar({homepage}:{homepage:string}){
  const {language}=useLanguage(),pathname=usePathname()||"/",reduce=useReducedMotion();
- const hidden=(/^\/(admin|checkout|security|organizer)(\/|$)/.test(pathname)&&!/^\/organizer\/apply/.test(pathname))||/^\/business/.test(pathname);
+ const hidden=(/^\/(admin|checkout|security|organizer)(\/|$)/.test(pathname)&&!/^\/organizer\/apply/.test(pathname))||/^\/business/.test(pathname)||/^\/events\/\d/.test(pathname);
  useEffect(()=>{
   if(hidden)return;
   document.body.classList.add("has-tabbar");

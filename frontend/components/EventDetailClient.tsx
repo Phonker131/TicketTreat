@@ -16,6 +16,7 @@ import { LANGUAGE_NAMES, t } from "@/lib/i18n";
 import {eventTags,TAG_LABELS} from "@/lib/event-tags";
 import type { TicketTreatEvent } from "@/lib/types";
 import {PageFaq} from "@/components/premium/PageFaq";
+import {dateParts} from "@/components/premium/EventLists";
 import {EventOrganizerChat} from "@/components/EventChatClient";
 
 export function EventDetailClient({preview=false,initialEvent=null}:{preview?:boolean;initialEvent?:TicketTreatEvent|null}) {
@@ -119,31 +120,40 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
     ? event.languages.map((code) => LANGUAGE_NAMES[language][code]).join(", ")
     : t(language, "notSpecified");
 
+  const when=dateParts(event.starts_at,language);
+  const organizerName=event.organizer_profile?.display_name||(event.organizer==="Crowdly"?"TicketTreat":event.organizer)||"";
+  const spotsText=event.spots_left==null?"":event.spots_left===0?t(language,"soldOut"):`${event.spots_left} ${({en:"spots left",cs:"volných míst",ru:"мест",uk:"місць"})[language]}`;
+  const bookable=!preview&&!event.is_cancelled&&owned?.eventId!==event.id&&event.spots_left!==0;
+  const bookHref=`/checkout/${event.id}${inviteQuery||attributed?`?${[inviteQuery,attributed.replace(/^&/,"")].filter(Boolean).join("&")}`:""}`;
+
   return (
     <div className="app-shell">
       <AppHeader />
-      <main className="page event-page">
+      <main className="page event-page ev2">
         <Link href={preview?`/admin/events/${event.id}`:"/"} className="back-link">{preview?previewWords.manage:t(language, "back")}</Link>
         {!preview&&event.visibility==="link_only"&&<div className="state-card" role="status">{language==="ru"?"Закрытое мероприятие. Доступ только по ссылке-приглашению.":language==="cs"?"Soukromá událost. Přístup pouze přes pozvánku.":language==="uk"?"Закрита подія. Доступ лише за запрошенням.":"Invitation-only event. Share this private link only with invited guests."}</div>}
         {preview&&<div className="state-card" role="status"><strong>{previewWords.title}</strong> {event.publication?.visible?previewWords.published:previewWords.draft}</div>}
 
         <section className="event-hero">
+          <div className="ev2-media">
           {posterUrl && !posterUnavailable ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img className="event-image" src={posterUrl} alt="" onError={()=>setPosterUnavailable(true)} />
           ) : (
             <PosterArt seed={event.id} className="event-image tp-event-art" label={event.title}/>
           )}
+          </div>
 
           <div className="event-hero-copy">
+            {when&&<p className="ev2-date"><b>{when.day}</b><span><strong>{when.month}</strong><small>{when.weekday}, {when.time}</small></span></p>}
             <div className="event-badges">
               {event.is_cancelled && <span className="status status-danger">{t(language, "cancelled")}</span>}
               {event.spots_left === 0 && <span className="status status-danger">{t(language, "soldOut")}</span>}
               {demoPayments&&<span className="status status-demo">{t(language, "demo")}</span>}
             </div>
             <h1>{event.title}</h1>
+            <p className="ev2-where">{[event.location,organizerName].filter(Boolean).join(", ")}</p>
             {eventTags(event).length>0&&<ul className="tp-ecard-tags is-hero">{eventTags(event).map(tag=><li key={tag}>{TAG_LABELS[language][tag]}</li>)}</ul>}
-
           </div>
         </section>
 
@@ -161,29 +171,25 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
             </Link>
           </div>
         ) : (
-          <section className="join-card">
-            <div>
-              <h2>{event.spots_left === 0 ? t(language, "soldOut") : t(language, "join")}</h2>
-              <p>{Number(event.price||0)<=0
-                ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.")
-                : (language==="ru"?"Запись и QR-билет оформляются сразу, без подтверждения оплаты. TicketTreat не принимает и не проверяет платежи. Условия оплаты уточняй у организатора.":language==="cs"?"Registrace a QR vstupenka se vydají okamžitě bez potvrzení platby. TicketTreat platby nevybírá ani neověřuje. Podmínky si ověřte u pořadatele.":language==="uk"?"Запис і QR-квиток оформлюються одразу без підтвердження оплати. TicketTreat не приймає та не перевіряє платежі. Умови уточнюй в організатора.":"Registration and QR tickets are immediate, without payment confirmation. TicketTreat does not collect or verify payment; check arrangements with the organizer.")}</p>
-            </div>
+          <section className="join-card ev2-book">
+            <div className="ev2-book-price"><strong>{formatPrice(event, language)}</strong>{spotsText&&<span>{spotsText}</span>}</div>
             {event.spots_left === 0 ? (
               <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}${inviteQuery?`&${inviteQuery}`:""}`}>{t(language, "waitlist")}</Link>
             ) : (
               <Link className="button button-primary" href={`/checkout/${event.id}${inviteQuery||attributed?`?${[inviteQuery,attributed.replace(/^&/,"")].filter(Boolean).join("&")}`:""}`}>{t(language, "join")}</Link>
             )}
+            <p className="ev2-book-note">{Number(event.price||0)<=0
+                ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.")
+                : (language==="ru"?"Запись и QR-билет оформляются сразу, без подтверждения оплаты. TicketTreat не принимает и не проверяет платежи. Условия оплаты уточняй у организатора.":language==="cs"?"Registrace a QR vstupenka se vydají okamžitě bez potvrzení platby. TicketTreat platby nevybírá ani neověřuje. Podmínky si ověřte u pořadatele.":language==="uk"?"Запис і QR-квиток оформлюються одразу без підтвердження оплати. TicketTreat не приймає та не перевіряє платежі. Умови уточнюй в організатора.":"Registration and QR tickets are immediate, without payment confirmation. TicketTreat does not collect or verify payment; check arrangements with the organizer.")}</p>
           </section>
         )}
         <section className="detail-grid">
           <div className="detail-item"><span>{t(language, "startsAt")}</span><strong>{formatDate(event.starts_at, language)}</strong></div>
           <div className="detail-item"><span>{t(language, "location")}</span><strong>{event.location || "-"}</strong></div>
           <div className="detail-item"><span>{t(language, "organizer")}</span><strong>{event.organizer_profile ? <Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-organizer-link">{event.organizer_profile.display_name}</Link> : (event.organizer === "Crowdly" ? "TicketTreat" : (event.organizer || "TicketTreat"))}</strong></div>
-          <div className="detail-item"><span>{t(language, "price")}</span><strong>{formatPrice(event, language)}</strong></div>
-          {event.spots_left!=null&&<div className="detail-item"><span>{t(language, "spots")}</span><strong>{event.spots_left}</strong></div>}
           <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
         </section>
-        {event.description && <p className="event-description">{event.description}</p>}
+        {event.description && <section className="ev2-about"><h2>{({en:"About the event",cs:"O akci",ru:"Об ивенте",uk:"Про подію"})[language]}</h2><p className="event-description">{event.description}</p></section>}
         {(galleryUrls.length>0 || event.video_url) && <details open className="panel"><summary>{({en:"Photos and video",cs:"Fotografie a video",ru:"Фото и видео",uk:"Фото та відео"})[language]}</summary>
           <div className="event-media-gallery">{galleryUrls.map((url,index)=><a key={url+index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Event gallery photo ${index+1}`} loading="lazy" referrerPolicy="no-referrer"/></a>)}</div>
         {event.video_url && <>
@@ -215,6 +221,10 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         </section>
 
 <PageFaq topic="event"/>
+        {bookable&&<div className="ev2-bar" role="region" aria-label={t(language, "join")}>
+          <span><strong>{formatPrice(event, language)}</strong>{spotsText&&<small>{spotsText}</small>}</span>
+          <Link className="button button-primary" href={bookHref}>{t(language, "join")}</Link>
+        </div>}
       </main>
     </div>
   );

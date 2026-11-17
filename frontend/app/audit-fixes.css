@@ -142,23 +142,6 @@ html body .app-shell .form-note a{text-decoration:underline;text-underline-offse
  html body .event-page .event-hero{align-items:start!important}
  html body .event-page .event-image{justify-self:start!important}
 }
-/* desktop: poster on the left, title, booking and facts on the right; the rest full width below */
-@media (min-width:1000px){
- html body main.event-page{display:grid!important;grid-template-columns:minmax(0,420px) minmax(0,1fr);column-gap:clamp(36px,4vw,64px);row-gap:20px;align-content:start}
- html body main.event-page>*{grid-column:1 / -1;min-width:0}
- html body main.event-page>.event-hero{display:contents!important}
- html body main.event-page .event-image{grid-column:1;grid-row:span 3;align-self:start;max-width:420px!important}
- html body main.event-page .event-hero-copy{grid-column:2;align-self:end}
- html body main.event-page .event-hero h1{font-size:clamp(48px,4.6vw,80px)!important}
- html body main.event-page>.event-hero+*{grid-column:2;margin:0!important}
- html body main.event-page>.detail-grid{grid-column:2;align-self:start;grid-template-columns:minmax(0,1fr)!important;gap:0!important;padding:4px 20px!important;margin:0!important;border-radius:20px;background:var(--tp-surf);box-shadow:0 0 0 1.5px var(--tp-line)}
- html body main.event-page>.detail-grid .detail-item{display:flex!important;flex-direction:row!important;align-items:baseline;justify-content:space-between;gap:16px;padding:12px 0!important;border-radius:0!important;background:none!important;box-shadow:none!important;border-bottom:1px solid var(--tp-line)!important}
- html body main.event-page>.detail-grid .detail-item:last-child{border-bottom:0!important}
- html body main.event-page>.detail-grid .detail-item strong{text-align:right;font-size:16px!important}
- html body main.event-page .join-card{padding:18px 22px!important}
- html body main.event-page .join-card h2{font-size:34px!important}
- html body main.event-page .join-card p{font-size:14px}
-}
 /* tags on the event page get their own chip colours */
 html body .event-page .tp-ecard-tags{--ec-chip:var(--tp-surf2);--ec-fg:var(--tp-fg)}
 html body .event-page .tp-ecard-tags li{padding:7px 12px!important;font-size:13px!important;background:var(--tp-surf2)!important;color:var(--tp-fg)!important}
