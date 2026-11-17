@@ -7,6 +7,7 @@ redeemable benefit. All grants are audited and can be revoked without erasing
 their history; existing check-in, ticket and loyalty calculations are untouched.
 """
 from __future__ import annotations
+import json
 from datetime import datetime, timezone
 
 from fastapi import Depends, Header, HTTPException
@@ -16,7 +17,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from db.base import Base
-from demo_roles import EventOwnership, account_lookup, ensure_manage, ensure_owner, role_for
+from demo_roles import EventOwnership, account_lookup, ensure_manage, ensure_owner, role_for, audit
 
 class OrganizerReward(Base):
     __tablename__ = "organizer_rewards"
@@ -48,6 +49,12 @@ class CreateReward(BaseModel):
     title: str = Field(min_length=3,max_length=80)
     description: str = Field(default="",max_length=300)
     kind: str = Field(default="badge",pattern=r"^(badge|recognition|perk)$")
+
+class UpdateReward(BaseModel):
+    title: str = Field(min_length=3,max_length=80)
+    description: str = Field(default="",max_length=300)
+    kind: str = Field(pattern=r"^(badge|recognition|perk)$")
+    active: bool
 
 class GrantReward(BaseModel):
     ticket_id: int = Field(gt=0)
@@ -190,6 +197,41 @@ def install_rewards_api(app,get_db,main):
         db.add(reward)
         db.commit()
         db.refresh(reward)
+        return reward_json(reward)
+
+    @app.patch("/demo/manage/rewards/{reward_id}")
+    def update_reward(reward_id:int,payload:UpdateReward,
+                      account=Depends(current),db:Session=Depends(get_db)):
+        """Update a catalog item without erasing prior check-ins or grants."""
+        reward=(db.query(OrganizerReward)
+                .filter(OrganizerReward.id==reward_id).with_for_update().first())
+        if reward is None:
+            raise HTTPException(404,"reward_not_found")
+        # A reward belongs to the organizer, not merely the administrator who
+        # created it. Editing rights mirror the organizer-scoped dashboard.
+        if role_for(db,account)!="global_admin" and reward.owner_account_id!=account.id:
+            raise HTTPException(403,"reward_not_owned_by_organizer")
+        owned_event=(db.query(EventOwnership.event_id)
+                     .filter(EventOwnership.owner_account_id==reward.owner_account_id)
+                     .order_by(EventOwnership.event_id).first())
+        if owned_event is None:
+            raise HTTPException(409,"reward_organizer_has_no_events")
+        title=payload.title.strip()
+        if len(title)<3:
+            raise HTTPException(422,"reward_title_too_short")
+        old={"title":reward.title,"description":reward.description,"kind":reward.kind,
+             "active":reward.archived_at is None}
+        reward.title=title
+        reward.description=payload.description.strip()
+        reward.kind=payload.kind
+        reward.archived_at=None if payload.active else (reward.archived_at or datetime.now(timezone.utc))
+        audit(db,int(owned_event[0]),account.id,"edit_reward",json.dumps({
+            "reward_id":reward.id,"previous":old,"updated":{
+                "title":reward.title,"description":reward.description,
+                "kind":reward.kind,"active":payload.active,
+            }
+        },ensure_ascii=False))
+        db.commit()
         return reward_json(reward)
 
     @app.post("/demo/manage/rewards/{reward_id}/grants",status_code=201)
