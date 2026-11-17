@@ -4,7 +4,7 @@
    spring curves and a gentle rise as blocks enter the screen.
    Kept out on purpose (Vlad's rules): eyebrow pills, grain textures, huge empty gaps.
    ===================================================================================== */
-:root{--spring:cubic-bezier(.32,.72,0,1);--shell:color-mix(in srgb,var(--tp-fg) 4%,transparent)}
+:root{--spring:cubic-bezier(.32,.72,0,1);--shell:color-mix(in srgb,var(--tp-fg) 2.5%,transparent)}
 
 /* ---------- island header: a floating pill, detached from the edges ---------- */
 html body .topbar{background:transparent!important;border:0!important;box-shadow:none!important;padding:10px 12px 0!important;z-index:100}
@@ -53,7 +53,7 @@ html body .tt-island:hover .tt-island-dot{transform:scale(1.06) rotate(-8deg)}
 /* ---------- double-bezel cards: a hairline shell around the card, concentric corners ---------- */
 html body :is(main.ev2 .ev2-book,main.ev2 .detail-grid,.tt-dash-chart,.tt-dash-main .tp-admin-grid,.tt-dash-main .tp-admin-summary>div,.tt-dash-side,
  .auth-container>.panel,.auth-container .panel.form-stack,.tt-login-art,.tp-faq-list>details){
- box-shadow:0 0 0 6px var(--shell),0 0 0 7px var(--tp-line),inset 0 1px 0 color-mix(in srgb,#fff 8%,transparent)!important}
+ box-shadow:0 0 0 1px var(--tp-line),0 0 0 5px var(--shell),0 0 0 6px color-mix(in srgb,var(--tp-line) 55%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 7%,transparent)!important}
 html body .tt-dash-main .tp-admin-summary{gap:20px!important}
 html body main.ev2 .ev2-book{margin-bottom:22px!important}
 html body main.ev2 .detail-grid{margin-bottom:34px!important}
@@ -71,3 +71,11 @@ html body main.ev2 .detail-grid{margin-bottom:34px!important}
 
 /* ---------- finer icon strokes ---------- */
 html body .tt-dash-icon{stroke-width:1.6}
+
+/* phone menu: win over the older link boxes and the old highlighted item */
+@media (max-width:999px){
+ html body header.topbar nav.topbar-nav{background:color-mix(in srgb,var(--tp-bg) 92%,transparent)!important;color:var(--tp-fg)!important}
+ html body header.topbar nav.topbar-nav a,html body header.topbar nav.topbar-nav a[aria-current="page"],html body header.topbar nav.topbar-nav a:hover{background:transparent!important;box-shadow:none!important;border:0!important;border-bottom:1px solid var(--tp-line)!important;border-radius:0!important}
+ html body header.topbar nav.topbar-nav a{color:var(--tp-fg)!important}
+ html body header.topbar nav.topbar-nav a[aria-current="page"],html body header.topbar nav.topbar-nav a:hover{color:var(--tom)!important}
+}

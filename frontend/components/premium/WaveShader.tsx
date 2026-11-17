@@ -4,21 +4,25 @@ import {useEffect,useRef} from "react";
 /** Slow light waves rising from the bottom, drawn with WebGL in the brand colours.
  *  No library. Pauses off screen, keeps one still frame when Reduce Motion is on,
  *  and falls back to a CSS glow when WebGL is not available. */
-const FRAG=`precision mediump float;
+/* Smooth sums of sines only: hash-based value noise showed rectangular steps on some GPUs. */
+const FRAG=`#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
 uniform vec2 u_res;uniform float u_time;uniform vec3 u_bg;uniform vec3 u_c1;uniform vec3 u_c2;
-float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float n(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);
- return mix(mix(h(i),h(i+vec2(1.,0.)),u.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),u.x),u.y);}
-float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p*=2.03;a*=.5;}return v;}
 void main(){
- vec2 uv=gl_FragCoord.xy/u_res;float asp=u_res.x/u_res.y;vec2 p=vec2(uv.x*asp,uv.y);
+ vec2 uv=gl_FragCoord.xy/u_res;float asp=u_res.x/u_res.y;float x=uv.x*asp;
  float t=u_time*.05;float line=0.;float glow=0.;
  for(int i=0;i<4;i++){float fi=float(i);
-  float y=.14+.075*fi+.05*sin(p.x*1.3+t*2.4+fi*2.1)+.08*(fbm(vec2(p.x*.8+t*1.5+fi*3.,t*.7+fi))-.5);
+  float y=.14+.075*fi
+   +.045*sin(x*1.3+t*2.4+fi*2.1)
+   +.028*sin(x*2.7-t*1.9+fi*1.3)
+   +.014*sin(x*5.3+t*3.3+fi*.7);
   float d=uv.y-y;
   line+=exp(-d*d*2600.)*(.7-.14*fi);
   glow+=exp(-abs(d)*9.)*(.26-.05*fi);}
- float haze=smoothstep(.7,0.,uv.y)*.2+fbm(p*1.4+vec2(t,-t))*.05;
+ float haze=smoothstep(.7,0.,uv.y)*(.18+.04*sin(x*1.1+t*1.6));
  vec3 col=mix(u_bg,u_c2,clamp(haze+glow*.55,0.,.85));
  col=mix(col,u_c1,clamp(glow*.75+line,0.,.9));
  gl_FragColor=vec4(col,1.);

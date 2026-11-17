@@ -194,7 +194,9 @@ html body main.ev2 .ev2-bar{display:none}
  html body main.ev2>*{grid-column:2;min-width:0}
  html body main.ev2>.back-link{grid-column:1 / -1;margin:0 0 20px!important}
  html body main.ev2>.event-hero{display:contents!important}
- html body main.ev2 .ev2-media{grid-column:1;grid-row:2 / span 40;position:sticky;top:96px;align-self:start;max-width:440px;margin:0}
+ html body main.ev2 .ev2-media{grid-column:1;grid-row:2 / span 40;position:relative;align-self:stretch;max-width:440px;margin:0}
+ /* the column stretches over the details; the poster sticks inside it, so it stops where the details end */
+ html body main.ev2 .ev2-media>.event-image{position:sticky!important;top:96px}
  html body main.ev2 .event-hero-copy{grid-column:2;margin:0 0 26px!important}
  html body main.ev2 .ev2-date b{font-size:96px}
  html body main.ev2 .ev2-date strong{font-size:34px}
