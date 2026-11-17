@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import Boolean, CheckConstraint, Column, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Column, ForeignKey, Integer, String, UniqueConstraint, and_, func, or_
 from sqlalchemy.orm import Session
 
 from db.base import Base
@@ -38,6 +38,57 @@ class OrganizerLoyaltyBenefit(Base):
     description_en = Column(String(300), nullable=False, default="")
     description_cs = Column(String(300), nullable=False, default="")
     priority_enabled = Column(Boolean, nullable=False, default=True)
+
+
+class OrganizerLoyaltyAlias(Base):
+    """Reviewed legacy event-owner/name pair, NOT an account or role merge.
+
+    Some organizers previously published events through more than one staff
+    account. Explicit aliases unify only that organization's loyalty passport;
+    event ownership, authentication and other organizer brands stay intact.
+    Never infer an alias merely because two organizers share a public name.
+    """
+    __tablename__ = "organizer_loyalty_aliases"
+    __table_args__ = (
+        UniqueConstraint("owner_account_id", "organizer_name_key", name="uq_loyalty_alias_owner_name"),
+        CheckConstraint("owner_account_id <> canonical_owner_account_id", name="ck_loyalty_alias_not_self"),
+    )
+    id = Column(Integer, primary_key=True)
+    owner_account_id = Column(Integer, ForeignKey("demo_web_accounts.id"), nullable=False)
+    organizer_name_key = Column(String(120), nullable=False)
+    canonical_owner_account_id = Column(Integer, ForeignKey("demo_web_accounts.id"), nullable=False)
+
+
+def organizer_key(name: str | None) -> str:
+    return (name or "").strip().casefold()
+
+
+def loyalty_alias_lookup(db: Session) -> dict[tuple[int, str], int]:
+    return {(int(row.owner_account_id), row.organizer_name_key): int(row.canonical_owner_account_id)
+            for row in db.query(OrganizerLoyaltyAlias).all()}
+
+
+def canonical_loyalty_owner(owner_id: int, event_organizer: str | None,
+                           aliases: dict[tuple[int, str], int]) -> int:
+    return aliases.get((int(owner_id), organizer_key(event_organizer)), int(owner_id))
+
+
+def loyalty_attendance_scope(db: Session, owner_id: int, event_model):
+    """Only reviewed legacy owner/name pairs count toward a canonical studio."""
+    incoming = db.query(OrganizerLoyaltyAlias).filter(
+        OrganizerLoyaltyAlias.canonical_owner_account_id == owner_id).all()
+    outgoing = db.query(OrganizerLoyaltyAlias).filter(
+        OrganizerLoyaltyAlias.owner_account_id == owner_id).all()
+    own_scope = and_(EventOwnership.owner_account_id == owner_id, *[
+        or_(event_model.organizer.is_(None),
+            func.lower(func.trim(event_model.organizer)) != row.organizer_name_key)
+        for row in outgoing
+    ])
+    return or_(own_scope, *[
+        and_(EventOwnership.owner_account_id == row.owner_account_id,
+             func.lower(func.trim(event_model.organizer)) == row.organizer_name_key)
+        for row in incoming
+    ])
 
 
 class TierBenefitUpdate(BaseModel):
@@ -85,16 +136,23 @@ def install_loyalty_benefits_api(app, get_db, main):
         return account
 
     def scoped_owners(db: Session, account):
-        owners_query = db.query(EventOwnership.event_id, EventOwnership.owner_account_id)
+        aliases = loyalty_alias_lookup(db)
+        owners_query = db.query(EventOwnership.owner_account_id, main.Event.organizer).join(
+            main.Event, main.Event.id == EventOwnership.event_id)
         if role_for(db, account) != "global_admin":
-            owners_query = owners_query.filter(EventOwnership.owner_account_id == account.id)
+            merged_sources = {old_id for (old_id, _), canonical in aliases.items()
+                              if canonical == account.id}
+            owners_query = owners_query.filter(EventOwnership.owner_account_id.in_(
+                [account.id, *merged_sources]))
         rows = owners_query.order_by(EventOwnership.event_id.desc()).limit(1000).all()
         owner_names = {}
-        for event_id, owner_id in rows:
+        for event_owner_id, event_name in rows:
+            owner_id = canonical_loyalty_owner(event_owner_id, event_name, aliases)
+            if role_for(db, account) != "global_admin" and owner_id != account.id and event_owner_id != account.id:
+                continue
             if owner_id in owner_names:
                 continue
-            event = db.get(main.Event, event_id)
-            owner_names[int(owner_id)] = (str(event.organizer or "").strip() if event else "") or f"Organizer #{owner_id}"
+            owner_names[int(owner_id)] = str(event_name or "").strip() or f"Organizer #{owner_id}"
         return owner_names
 
     @app.get("/demo/manage/loyalty/tiers")

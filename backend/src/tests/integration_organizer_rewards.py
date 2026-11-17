@@ -19,6 +19,8 @@ from db.session import SessionLocal
 from demo_roles import EventOwnership
 from demo_mfa import _code
 from demo_rewards import RewardGrant
+from demo_loyalty_benefits import OrganizerLoyaltyAlias
+from demo_loyalty import attendance_counts
 from integration_pilot_ops import account_with_session
 
 def enroll_mfa(client,headers,password):
@@ -32,6 +34,63 @@ def enroll_mfa(client,headers,password):
     assert confirmed.status_code==200,confirmed.text
 
 class OrganizerAwardIntegration(unittest.TestCase):
+    def test_reviewed_legacy_organizer_alias_unifies_only_matching_studio(self):
+        """One business can have two historic publishers; same-name strangers stay separate."""
+        with SessionLocal() as db:
+            current,_,current_pw,current_auth=account_with_session(db,"organizer")
+            old,_,old_pw,old_auth=account_with_session(db,"organizer")
+            stranger,_,stranger_pw,stranger_auth=account_with_session(db,"organizer")
+            _attendee,guest,_,guest_auth=account_with_session(db)
+            owners=[current.id,old.id,old.id,stranger.id]
+            labels=["Amber Events","Amber Events","Scentino","Amber Events"]
+            now=datetime.now(timezone.utc)
+            events=[]
+            for index,(owner_id,label) in enumerate(zip(owners,labels)):
+                event=main.Event(title=f"Legacy org test {secrets.token_hex(6)}",
+                                 organizer=label,
+                                 starts_at=(now-timedelta(days=2+index)).replace(tzinfo=None),
+                                 price=Decimal("0"),currency="CZK",max_participants=20,
+                                 is_cancelled=False)
+                db.add(event);db.flush()
+                db.add(EventOwnership(event_id=event.id,owner_account_id=owner_id))
+                db.add(main.DemoTicket(event_id=event.id,guest_id=guest.id,
+                    qr_token=secrets.token_urlsafe(32),ticket_status="active",
+                    checked_in_at=now-timedelta(hours=1+index),payment_status="not_required",
+                    payment_provider="free",payment_amount="0",currency="CZK"))
+                events.append(event)
+            db.add(OrganizerLoyaltyAlias(owner_account_id=old.id,
+                    organizer_name_key="amber events",canonical_owner_account_id=current.id))
+            db.commit()
+            current_id,old_id,stranger_id,guest_id=current.id,old.id,stranger.id,guest.id
+
+        with SessionLocal() as db:
+            self.assertEqual(attendance_counts(db,current_id,[guest_id],main=main)[guest_id],2)
+            self.assertEqual(attendance_counts(db,old_id,[guest_id],main=main)[guest_id],1)
+            self.assertEqual(attendance_counts(db,stranger_id,[guest_id],main=main)[guest_id],1)
+        with TestClient(main.app) as client:
+            for header,password in ((current_auth,current_pw),(old_auth,old_pw),
+                                    (stranger_auth,stranger_pw)):
+                enroll_mfa(client,header,password)
+            current_studios=client.get("/demo/manage/loyalty/tiers",headers=current_auth)
+            self.assertEqual(current_studios.status_code,200,current_studios.text)
+            self.assertEqual([(r["owner_account_id"],r["name"]) for r in current_studios.json()["organizers"]],
+                             [(current_id,"Amber Events")])
+            old_studios=client.get("/demo/manage/loyalty/tiers",headers=old_auth)
+            self.assertEqual(old_studios.status_code,200,old_studios.text)
+            self.assertEqual({(r["owner_account_id"],r["name"]) for r in old_studios.json()["organizers"]},
+                             {(current_id,"Amber Events"),(old_id,"Scentino")})
+            stranger_studios=client.get("/demo/manage/loyalty/tiers",headers=stranger_auth)
+            self.assertEqual(stranger_studios.status_code,200,stranger_studios.text)
+            self.assertEqual([r["owner_account_id"] for r in stranger_studios.json()["organizers"]],
+                             [stranger_id])
+            passport=client.get("/demo/me/loyalty",headers=guest_auth)
+            self.assertEqual(passport.status_code,200,passport.text)
+            studio_visits={(r["organizer_id"],r["organizer_name"]):r["season_visits"]
+                           for r in passport.json()["studios"]}
+            self.assertEqual(studio_visits[(current_id,"Amber Events")],2)
+            self.assertEqual(studio_visits[(old_id,"Scentino")],1)
+            self.assertEqual(studio_visits[(stranger_id,"Amber Events")],1)
+
     def test_real_checkin_only_duplicate_proof_scoping_wallet_and_revoke(self):
         with SessionLocal() as db:
             organizer,_,pw,auth=account_with_session(db,"organizer")
