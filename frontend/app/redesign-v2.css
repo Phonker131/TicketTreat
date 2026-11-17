@@ -309,3 +309,55 @@ html body .tt-dash-main .tp-admin-card .tp-admin-guests{grid-area:guests;display
 html body .tt-night-hero.tt-tear :is(h1,p).tt-tear-word{display:block!important;max-width:none!important;width:auto!important;margin:0!important;font:900 clamp(104px,25vw,330px)/.8 var(--d)!important;font-stretch:normal!important;letter-spacing:-.01em!important;text-transform:uppercase!important;color:inherit!important;text-shadow:.045em .045em 0 var(--tom)!important;white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;hyphens:none!important}
 html body .tt-night-hero.tt-tear.is-still :is(h1,p).tt-tear-word{font-size:clamp(84px,20vw,220px)!important}
 html body .tt-night-hero.tt-tear p.tt-tear-line{display:block!important;margin:0!important;max-width:32ch!important;font:600 clamp(15px,1.5vw,19px)/1.35 var(--u)!important;color:inherit!important;opacity:.82;text-align:center!important}
+
+/* =====================================================================================
+   The hero ticket v3: a tall boarding-pass style ticket, bright gradient front in the brand
+   blue and coral, a paper back with the QR and a scanner line. Turns over in 3D.
+   ===================================================================================== */
+html body .tt-tear-ticket-wrap{width:auto!important;perspective:1400px}
+html body .tt-tk3{position:relative;width:clamp(230px,min(62vw,31svh),320px);aspect-ratio:9/16;transform-style:preserve-3d;will-change:transform}
+html body .tt-tk3-face{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;border-radius:22px;-webkit-backface-visibility:hidden;backface-visibility:hidden;
+ box-shadow:0 40px 90px -30px rgba(0,0,0,.75);
+ -webkit-mask:radial-gradient(circle 13px at 0 74%,#0000 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 13px at 100% 74%,#0000 97%,#000) right/51% 100% no-repeat;
+ mask:radial-gradient(circle 13px at 0 74%,#0000 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 13px at 100% 74%,#0000 97%,#000) right/51% 100% no-repeat}
+
+/* front */
+html body .tt-tk3-face.is-front{padding:18px 18px 0;color:var(--ink);
+ background:radial-gradient(90% 60% at 100% 0%,rgba(255,255,255,.35) 0,transparent 60%),linear-gradient(162deg,#0297DE 0%,#53B3EA 24%,#C9A6C9 50%,#F7967A 74%,#FC734D 100%)}
+html body .tt-tk3-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+html body .tt-tk3-brand{display:inline-block;padding:6px 9px 5px;background:var(--ink);color:var(--paper);font:900 19px/1 var(--d);letter-spacing:.02em;text-transform:uppercase}
+html body .tt-tk3-vbar{display:flex;gap:4px;align-items:stretch;height:96px;padding:6px;background:var(--paper)}
+html body .tt-tk3-vbar i{width:30px;background:repeating-linear-gradient(0deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 5px,transparent 5px 8px,var(--ink) 8px 11px,transparent 11px 12px,var(--ink) 12px 13px,transparent 13px 16px)}
+html body .tt-tk3-vbar small{writing-mode:vertical-rl;font:700 10px/1 var(--m);letter-spacing:.08em;color:var(--ink)}
+html body .tt-tk3-no{margin-top:auto;font:700 12px/1 var(--m);letter-spacing:.08em}
+html body .tt-tk3-title{margin-top:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font:900 clamp(34px,4.4svh,46px)/.86 var(--d);text-transform:uppercase;letter-spacing:-.005em}
+html body .tt-tk3-rule{display:flex;justify-content:flex-end;margin-top:8px;padding-top:4px;border-top:2px solid var(--ink)}
+html body .tt-tk3-rule b{font:700 11px/1 var(--m)}
+html body .tt-tk3-sub{margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:900 22px/1 var(--d);text-transform:uppercase}
+html body .tt-tk3-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin:12px 0 0}
+html body .tt-tk3-fields div{min-width:0}
+html body .tt-tk3-fields dt{font:700 12px/1.1 var(--u)}
+html body .tt-tk3-fields dd{margin:2px 0 0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:500 12px/1.2 var(--u);color:rgba(2,7,10,.72)}
+html body .tt-tk3-perf{height:0;margin:14px -18px 0;border-top:2px dashed rgba(2,7,10,.35)}
+html body .tt-tk3-hbar{display:block;height:15%;margin:12px -18px 0;background:var(--paper) repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 5px,transparent 5px 8px,var(--ink) 8px 11px,transparent 11px 12px,var(--ink) 12px 13px,transparent 13px 17px) 18px 12px/calc(100% - 36px) calc(100% - 24px) no-repeat}
+
+/* back */
+html body .tt-tk3-face.is-back{transform:rotateY(180deg);align-items:center;justify-content:center;gap:12px;padding:20px;background:var(--paper);color:var(--ink);text-align:center}
+html body .tt-tk3-face.is-back .tt-tk3-brand{position:absolute;top:18px;left:18px}
+html body .tt-tk3-qr{position:relative;width:78%;aspect-ratio:1;padding:10px;border-radius:16px;background:#fff;box-shadow:0 0 0 2px var(--ink);overflow:hidden}
+html body .tt-tk3-qrsvg{display:block;width:100%!important;height:100%!important}
+html body .tt-tk3-scan{position:absolute;left:6px;right:6px;top:8%;height:3px;border-radius:3px;background:var(--yel);box-shadow:0 0 14px 4px color-mix(in srgb,var(--yel) 60%,transparent);animation:tt-scan 2.4s cubic-bezier(.45,0,.55,1) infinite alternate}
+@keyframes tt-scan{from{top:8%}to{top:90%}}
+html body .tt-tk3-code{font:900 30px/1 var(--d);letter-spacing:.04em}
+html body .tt-tk3-show{font:500 13px/1.35 var(--u);color:#3b4349;max-width:24ch}
+html body .tt-tk3-open{position:relative;z-index:3;font:700 13px/1 var(--u);color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+
+/* the whole ticket turns on a tap; the link on the back stays clickable above this layer */
+html body .tt-tk3-turn{position:absolute;inset:0;z-index:2;border:0;border-radius:22px;background:transparent;cursor:pointer}
+html body .tt-tk3-turn:focus-visible{outline:3px solid var(--tp-fg);outline-offset:4px}
+html body .tt-tk3 .tt-tk-shine{z-index:1}
+@media (prefers-reduced-motion:reduce){html body .tt-tk3-scan{animation:none;top:48%}}
+html body .tt-tk3-open{position:absolute!important;bottom:18px;left:0;right:0;text-align:center}
+html body .tt-tk3-face.is-back{padding-bottom:48px}
+html body .tt-tk3-turn[aria-pressed="true"]{bottom:52px}
+html body main section.tt-v12-screen.tt-night-events{padding-bottom:0!important}

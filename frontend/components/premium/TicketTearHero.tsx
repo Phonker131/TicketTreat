@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useRef,useState,type PointerEvent} from "react";
 import Link from "next/link";
-import {useMotionValue,useReducedMotion,useScroll,useSpring,useTransform,type MotionValue} from "motion/react";
+import {useMotionValue,useMotionValueEvent,useReducedMotion,useScroll,useSpring,useTransform,type MotionValue} from "motion/react";
 import * as M from "motion/react-m";
 import {WaveShader} from "@/components/premium/WaveShader";
 import {Qr} from "@/components/premium/Qr";
@@ -29,26 +29,51 @@ function Sheet({line,word,hidden}:{line:string;word:string;hidden?:boolean}){
  </div>;
 }
 
-function Ticket({event,language,rx,ry,shine}:{event:TicketTreatEvent|null;language:LanguageCode;rx:MotionValue<number>;ry:MotionValue<number>;shine:MotionValue<string>}){
- const c=COPY[language];
+const BACK={
+ en:{show:"Show this QR at the door",open:"Open the event",flip:"Turn the ticket",date:"Date",time:"Time",price:"Price",entry:"Entry"},
+ cs:{show:"U vstupu ukaž tento QR",open:"Otevřít akci",flip:"Otočit vstupenku",date:"Datum",time:"Čas",price:"Cena",entry:"Vstup"},
+ ru:{show:"Покажи этот QR на входе",open:"Открыть ивент",flip:"Перевернуть билет",date:"Дата",time:"Время",price:"Цена",entry:"Вход"},
+ uk:{show:"Покажи цей QR на вході",open:"Відкрити подію",flip:"Перевернути квиток",date:"Дата",time:"Час",price:"Ціна",entry:"Вхід"},
+} as const;
+
+/** The hero ticket: a bright gradient front (after a boarding-pass poster) and a paper back with the QR.
+ *  It turns over as the page scrolls on, and on a tap. */
+function Ticket({event,language,rx,ry,shine,turned,onTurn}:{event:TicketTreatEvent|null;language:LanguageCode;rx:MotionValue<number>;ry:MotionValue<number>;shine:MotionValue<string>;turned:boolean;onTurn:()=>void}){
+ const c=COPY[language],k=BACK[language];
  const d=event?dateParts(event.starts_at,language):null;
  const code=event?`TT-${String(event.id).padStart(4,"0")}`:"TT-0000";
- const body=<>
-  <div className="tt-tk-main">
-   <span className="tt-tk-admit">{c.admit}</span>
-   <strong className="tt-tk-title">{event?event.title:c.soon}</strong>
-   {event?<span className="tt-tk-meta">{[d&&`${d.weekday} ${d.day} ${d.month}, ${d.time}`,event.location].filter(Boolean).join(", ")}</span>
-    :<span className="tt-tk-meta">{c.soonText}</span>}
-   {event&&<span className="tt-tk-price">{formatPrice(event,language)}</span>}
+ const no=event?String(event.id).padStart(6,"0"):"000000";
+ return <M.div className="tt-tk3" style={{rotateX:rx,rotateY:ry}}>
+  <div className="tt-tk3-face is-front" aria-hidden={turned||undefined}>
+   <div className="tt-tk3-top">
+    <span className="tt-tk3-brand">TICKETTREAT</span>
+    <span className="tt-tk3-vbar" aria-hidden="true"><i/><small>{no}</small></span>
+   </div>
+   <span className="tt-tk3-no">#{no}</span>
+   <strong className="tt-tk3-title">{event?event.title:c.soon}</strong>
+   <span className="tt-tk3-rule"><b>{d?new Date().getFullYear():""}</b></span>
+   <span className="tt-tk3-sub">{event?(event.location||"Praha"):c.soonText}</span>
+   <dl className="tt-tk3-fields">
+    <div><dt>{k.date}</dt><dd>{d?`${d.day} ${d.month}`:"-"}</dd></div>
+    <div><dt>{k.time}</dt><dd>{d?d.time:"-"}</dd></div>
+    <div><dt>{k.price}</dt><dd>{event?formatPrice(event,language):"-"}</dd></div>
+    <div><dt>{k.entry}</dt><dd>{c.admit}</dd></div>
+   </dl>
+   <span className="tt-tk3-perf" aria-hidden="true"/>
+   <span className="tt-tk3-hbar" aria-hidden="true"/>
+   <M.span className="tt-tk-shine" style={{backgroundPosition:shine}} aria-hidden="true"/>
   </div>
-  <div className="tt-tk-stub">
-   <Qr value={"https://tickettreat.eu/events/"+(event?.id??"")} size={96} className="tt-tk-qr"/>
-   <span className="tt-tk-code">{code}</span>
+  <div className="tt-tk3-face is-back" aria-hidden={!turned||undefined}>
+   <span className="tt-tk3-brand">TICKETTREAT</span>
+   <div className="tt-tk3-qr">
+    <Qr value={"https://tickettreat.eu/events/"+(event?.id??"")} size={200} className="tt-tk3-qrsvg"/>
+    <span className="tt-tk3-scan" aria-hidden="true"/>
+   </div>
+   <strong className="tt-tk3-code">{code}</strong>
+   <span className="tt-tk3-show">{k.show}</span>
+   {event&&<Link href={`/events/${event.id}`} className="tt-tk3-open">{k.open}</Link>}
   </div>
-  <M.span className="tt-tk-shine" style={{backgroundPosition:shine}} aria-hidden="true"/>
- </>;
- return <M.div className="tt-tk" style={{rotateX:rx,rotateY:ry}}>
-  {event?<Link href={`/events/${event.id}`} className="tt-tk-card" aria-label={`${c.book}: ${event.title}`}>{body}</Link>:<div className="tt-tk-card">{body}</div>}
+  <button type="button" className="tt-tk3-turn" onClick={onTurn} aria-pressed={turned} aria-label={k.flip}/>
  </M.div>;
 }
 
@@ -67,11 +92,23 @@ export function TicketTearHero({event,language,storyReady}:{event:TicketTreatEve
  const lr=useTransform(p,[.04,.5],[0,-6]),rr=useTransform(p,[.04,.5],[0,6]);
  const ty=useTransform(p,[.18,.62],["38%","0%"]),ts=useTransform(p,[.18,.62],[.82,1]),to=useTransform(p,[.14,.4],[0,1]);
  const co=useTransform(p,[.6,.8],[0,1]),cy=useTransform(p,[.6,.8],[16,0]);
+ // The header waits until the ticket is fully up (desktop only, see polish-v3.css).
+ useEffect(()=>{const root=document.documentElement;root.dataset.hero=still?"open":"closed";return()=>{delete root.dataset.hero;};},[still]);
+ useMotionValueEvent(scrollYProgress,"change",v=>{if(!still)document.documentElement.dataset.hero=v>=.62?"open":"closed";});
  // The ticket turns towards the pointer, like the tiger's eyes following it.
  const px=useMotionValue(0),py=useMotionValue(0);
  const rx=useSpring(useTransform(py,[-.5,.5],[9,-9]),{stiffness:160,damping:18});
  const ry=useSpring(useTransform(px,[-.5,.5],[-12,12]),{stiffness:160,damping:18});
  const shine=useTransform(px,[-.5,.5],["0% 0%","100% 0%"]);
+ const [tapped,setTapped]=useState(false);
+ const scrollTurn=useTransform(p,[.64,.86],[0,180]);
+ const tapTurn=useSpring(0,{stiffness:120,damping:16});
+ useEffect(()=>{tapTurn.set(tapped?180:0)},[tapped,tapTurn]);
+ const turnY=useTransform(()=>ry.get()+scrollTurn.get()+tapTurn.get());
+ const [turned,setTurned]=useState(false);
+ useMotionValueEvent(turnY,"change",v=>{const n=((v%360)+360)%360;setTurned(n>90&&n<270);});
+ const stillTurn=useSpring(0,{stiffness:120,damping:16});
+ useEffect(()=>{stillTurn.set(tapped?180:0)},[tapped,stillTurn]);
  const move=(e:PointerEvent<HTMLDivElement>)=>{if(reduce||e.pointerType!=="mouse")return;const r=e.currentTarget.getBoundingClientRect();
   px.set((e.clientX-r.left)/r.width-.5);py.set((e.clientY-r.top)/r.height-.5);};
  const leave=()=>{px.set(0);py.set(0);};
@@ -85,7 +122,7 @@ export function TicketTearHero({event,language,storyReady}:{event:TicketTreatEve
    <div className="tt-tear-stage">
     <WaveShader className="tt-tear-bg"/>
     <div className="tt-tear-still-copy"><p className="tt-tear-line">{c.line}</p><h1 id="tt-night-title" className="tt-tear-word">{c.word}</h1></div>
-    <div className="tt-tear-ticket-wrap"><Ticket event={event} language={language} rx={rx} ry={ry} shine={shine}/></div>
+    <div className="tt-tear-ticket-wrap"><Ticket event={event} language={language} rx={rx} ry={stillTurn} shine={shine} turned={tapped} onTurn={()=>setTapped(v=>!v)}/></div>
     {actions}
    </div>
   </section>;
@@ -94,7 +131,7 @@ export function TicketTearHero({event,language,storyReady}:{event:TicketTreatEve
   <div className="tt-tear-stage" onPointerMove={move} onPointerLeave={leave}>
    <WaveShader className="tt-tear-bg"/>
    <M.div className="tt-tear-ticket-wrap" style={{y:ty,scale:ts,opacity:to}}>
-    <Ticket event={event} language={language} rx={rx} ry={ry} shine={shine}/>
+    <Ticket event={event} language={language} rx={rx} ry={turnY} shine={shine} turned={turned} onTurn={()=>setTapped(v=>!v)}/>
    </M.div>
    <M.div className="tt-tear-actions-wrap" style={{opacity:co,y:cy}}>{actions}</M.div>
    <M.div className="tt-tear-half is-left" style={{x:lx,rotate:lr,clipPath:LEFT}}><Sheet line={c.line} word={c.word}/></M.div>

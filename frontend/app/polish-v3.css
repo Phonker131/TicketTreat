@@ -79,3 +79,48 @@ html body .tt-dash-icon{stroke-width:1.6}
  html body header.topbar nav.topbar-nav a{color:var(--tp-fg)!important}
  html body header.topbar nav.topbar-nav a[aria-current="page"],html body header.topbar nav.topbar-nav a:hover{color:var(--tom)!important}
 }
+
+/* the old menu rules use the #tt-primary-nav id: match that weight */
+@media (max-width:999px){
+ html body .topbar #tt-primary-nav a,html body .topbar #tt-primary-nav a:link,html body .topbar #tt-primary-nav a:visited,html body .topbar #tt-primary-nav a[aria-current="page"],html body .topbar #tt-primary-nav a:hover,html body .topbar #tt-primary-nav a:focus-visible{background:transparent!important;box-shadow:none!important;border:0!important;border-bottom:1px solid var(--tp-line)!important;border-radius:0!important;color:var(--tp-fg)!important}
+ html body .topbar #tt-primary-nav a[aria-current="page"],html body .topbar #tt-primary-nav a:hover{color:var(--tom)!important}
+}
+
+/* home: the torn sheet starts at the very top, under the floating header, no strip of background above it */
+html body main.tt-night-home-page{padding-top:0!important}
+html body .tt-night-hero.tt-tear{margin-top:-70px!important}
+@media (max-width:999px){html body .tt-night-hero.tt-tear{margin-top:-66px!important}}
+html body .tt-tear-notch.is-top{display:none}
+
+/* desktop home: the floating header waits until the ticket has risen */
+@media (min-width:1000px){
+ html body .topbar{transition:opacity .5s var(--spring),transform .6s var(--spring)}
+ html[data-hero="closed"] body .topbar{opacity:0;transform:translateY(-110%);pointer-events:none}
+}
+@media (min-width:1000px){html[data-hero="closed"] body .topbar:focus-within{opacity:1;transform:none;pointer-events:auto}}
+
+/* ---------- tighter rhythm: no empty bands between blocks ---------- */
+html body .app-shell main.page{padding-bottom:40px!important}
+@media (max-width:999px){html body .app-shell main.page{padding-bottom:28px!important}}
+html body > footer.tt-legal-footer,html body footer.tt-legal-footer{margin-top:0!important}
+html body .tt-night-events{padding-top:24px!important}
+html body .tt-night-events .section-heading{margin-bottom:8px!important}
+html body .tt-night-home .tp-faq{margin-top:28px!important;padding-top:0!important}
+html body .tt-tear.is-still .tt-tear-stage{padding:40px 16px 32px!important}
+html body main.tt-notfound{min-height:0!important;align-content:start!important;padding-top:40px!important}
+html body .tt-business-page .tt-v12-screen,html body main .tt-v12-screen[class*="tt-business-"]{padding-block:clamp(24px,3.4vw,44px)!important}
+html body main .tt-business-hero-gr,html body main .tt-business-connect .tt-v12-screen-content{gap:clamp(24px,3vw,44px)!important}
+html body .tp-te-note{margin-bottom:12px!important}
+html body .tp-rewards+*,html body .tp-ladder{margin-top:0!important}
+
+/* spacing, second pass: the footer, the FAQ blocks and section joins */
+html body > footer.tt-support-footer.tt-legal-footer{margin-top:0!important}
+html body main.page section.tp-faq{padding-top:0!important;margin-top:clamp(28px,3.5vw,44px)!important}
+html body main.page section.tp-faq h2{margin-top:0!important}
+html body main.page .tp-rewards{padding-bottom:0!important}
+html body .tt-organizer-section{padding-top:0!important;margin-top:clamp(24px,3vw,36px)!important}
+html body main .tt-v12-screen[class*="tt-business-"]{padding-block:clamp(20px,2.6vw,34px)!important}
+html body main.tt-notfound{min-height:calc(100svh - 360px)!important;align-content:center!important;padding-top:24px!important}
+html body main.ev2>.tp-faq{margin-top:36px!important}
+html body .tt-night-events{padding-bottom:0!important;margin-bottom:0!important}
+html body .tt-business-feature-grid{margin-bottom:0!important}
