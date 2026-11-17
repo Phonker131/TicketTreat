@@ -61,6 +61,7 @@ class OrganizerAwardIntegration(unittest.TestCase):
                 payment_amount="0",currency="CZK")
             db.add(ticket);db.flush()
             event_id,repeat_event_id,ticket_id,guest_id=ev.id,repeat_event.id,ticket.id,guest.id
+            organizer_id=organizer.id
             db.commit()
 
         with TestClient(main.app) as client:
@@ -163,27 +164,27 @@ class OrganizerAwardIntegration(unittest.TestCase):
             tiers=client.get("/api/v1/manage/loyalty/tiers",headers=auth)
             self.assertEqual(tiers.status_code,200,tiers.text)
             organizer_tiers=next(o for o in tiers.json()["organizers"]
-                                 if o["owner_account_id"]==organizer.id)
+                                 if o["owner_account_id"]==organizer_id)
             self.assertEqual([b["required_visits"] for b in organizer_tiers["tiers"]],[0,3,6,12])
-            saved_tier=client.put(f"/api/v1/manage/loyalty/tiers/{organizer.id}/regular",headers=auth,json={
+            saved_tier=client.put(f"/api/v1/manage/loyalty/tiers/{organizer_id}/regular",headers=auth,json={
                 "label_en":"Priority booking queue","label_cs":"Přednostní pořadník",
                 "description_en":"For verified repeat visitors", "description_cs":"Pro pravidelné návštěvníky",
                 "priority_enabled":False,
             })
             self.assertEqual(saved_tier.status_code,200,saved_tier.text)
             self.assertFalse(saved_tier.json()["enabled"])
-            stranger=client.put(f"/demo/manage/loyalty/tiers/{organizer.id}/regular",headers=other_auth,json={
+            stranger=client.put(f"/demo/manage/loyalty/tiers/{organizer_id}/regular",headers=other_auth,json={
                 "label_en":"Hijacked program","label_cs":"Cizí program","priority_enabled":True,
             })
             self.assertEqual(stranger.status_code,403,stranger.text)
-            fake_early=client.put(f"/demo/manage/loyalty/tiers/{organizer.id}/vip",headers=auth,json={
+            fake_early=client.put(f"/demo/manage/loyalty/tiers/{organizer_id}/vip",headers=auth,json={
                 "label_en":"VIP early booking","label_cs":"VIP předčasná rezervace",
                 "priority_enabled":True,
             })
             self.assertEqual(fake_early.status_code,422,fake_early.text)
             after=client.get("/demo/me/loyalty",headers=guest_auth)
             owned_studio=next(s for s in after.json()["studios"]
-                              if s["organizer_id"]==organizer.id)
+                              if s["organizer_id"]==organizer_id)
             self.assertEqual(owned_studio["tier_rewards"][1]["label_en"],"Priority booking queue")
             self.assertEqual(owned_studio["tier_rewards"][1]["description_en"],"For verified repeat visitors")
             self.assertFalse(owned_studio["tier_rewards"][1]["enabled"])
