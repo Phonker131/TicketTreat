@@ -205,6 +205,23 @@ def install_organizer_public_profiles(app, get_db, main):
         db.commit()
         return {**public_summary(row), "published": row.published}
 
+    @app.get("/demo/manage/organizer-profile/media/{kind}")
+    def own_image(kind: str, account: WebAccount = Depends(editor),
+                  db: Session = Depends(get_db)):
+        """Authenticated preview also works before an organizer publishes their profile."""
+        if kind not in {"logo", "cover"}:
+            raise HTTPException(404, "media_not_found")
+        row = db.get(OrganizerPublicProfile, account.id)
+        if row is None:
+            raise HTTPException(404, "organizer_profile_not_found")
+        blob = getattr(row, kind + "_bytes")
+        ctype = getattr(row, kind + "_type")
+        if not blob or not ctype:
+            raise HTTPException(404, "media_not_found")
+        return Response(content=blob, media_type=ctype,
+                        headers={"Cache-Control": "private, no-store",
+                                 "X-Content-Type-Options": "nosniff"})
+
     @app.delete("/demo/manage/organizer-profile/media/{kind}")
     def delete_image(kind: str, account: WebAccount = Depends(editor),
                      db: Session = Depends(get_db)):
