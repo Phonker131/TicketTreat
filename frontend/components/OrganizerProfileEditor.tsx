@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import Link from "next/link";
+import {userFacingError} from "@/lib/user-facing-errors";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {getOwnOrganizerProfile,saveOwnOrganizerProfile,uploadOrganizerImage,deleteOrganizerImage} from "@/lib/api";
@@ -27,7 +28,7 @@ export function OrganizerProfileEditor(){
   useEffect(()=>{
     let live=true;
     getOwnOrganizerProfile().then(data=>{if(live){setProfile(data);setStored(Boolean(data.display_name));}})
-      .catch(()=>{if(live)setError(tr.error);}).finally(()=>{if(live)setLoading(false);});
+      .catch(e=>{if(live)setError(userFacingError(e,language));}).finally(()=>{if(live)setLoading(false);});
     return()=>{live=false};
   },[]); // The server's permission checks are authoritative.
 
@@ -35,15 +36,15 @@ export function OrganizerProfileEditor(){
     setProfile(p=>({...p,[key]:value}));setNotice("");
   }
   async function save(e:React.FormEvent){
-    e.preventDefault();setBusy(true);setError("");setNotice("");
+    e.preventDefault();if(busy)return;setBusy(true);setError("");setNotice("");
     try{
       const result=await saveOwnOrganizerProfile(profile);
       setProfile(result);setStored(true);setNotice(tr.saved);
-    }catch(e){setError(e instanceof Error?e.message:String(e));}
+    }catch(e){setError(userFacingError(e,language));}
     finally{setBusy(false);}
   }
   async function upload(kind:"logo"|"cover",file:File|undefined){
-    if(!file)return;
+    if(!file||busy)return;
     if(!["image/png","image/jpeg","image/webp"].includes(file.type)){setError(tr.invalid);return;}
     if(file.size>(kind==="logo"?600_000:2_000_000)){setError(tr.imageTooLarge);return;}
     if(!stored){setError(tr.uploadFirst);return;}
@@ -51,17 +52,23 @@ export function OrganizerProfileEditor(){
     try{
       const data_url=await new Promise<string>((resolve,reject)=>{
         const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));
-        reader.onerror=()=>reject(new Error("image_read_error"));reader.readAsDataURL(file);
+        reader.onerror=()=>reject(new Error("poster_read_failed"));reader.readAsDataURL(file);
       });
       const result=await uploadOrganizerImage(kind,data_url);
-      setProfile(result);setPreviews(p=>({...p,[kind]:data_url}));setNotice(tr.saved);
-    }catch(e){setError(e instanceof Error?e.message:String(e));}
+      setProfile(p=>({...p,logo_url:result.logo_url,cover_url:result.cover_url}));setPreviews(p=>({...p,[kind]:data_url}));setNotice(language==="cs"?"Obrázek byl nahrán. Neuložený text profilu zůstává zachován.":"Image uploaded. Unsaved profile text has been preserved.");
+    }catch(e){setError(userFacingError(e,language));}
     finally{setBusy(false);}
   }
   async function remove(kind:"logo"|"cover"){
-    setBusy(true);setError("");
-    try{setProfile(await deleteOrganizerImage(kind));setPreviews(p=>({...p,[kind]:""}));}
-    catch(e){setError(e instanceof Error?e.message:String(e));}
+    if(busy)return;
+    setBusy(true);setError("");setNotice("");
+    try{
+      const result=await deleteOrganizerImage(kind);
+      setProfile(p=>({...p,logo_url:result.logo_url,cover_url:result.cover_url}));
+      setPreviews(p=>({...p,[kind]:""}));
+      setNotice(language==="cs"?"Obrázek byl odstraněn.":"Image removed.");
+    }
+    catch(e){setError(userFacingError(e,language));}
     finally{setBusy(false);}
   }
   return <div className="app-shell"><AppHeader/><main className="page organizer-editor">
@@ -80,6 +87,7 @@ export function OrganizerProfileEditor(){
         <label>{tr.instagram}<input value={profile.instagram} onChange={e=>change("instagram",e.target.value)} placeholder="@organizer" maxLength={32}/></label>
         <label className="organizer-publish-toggle"><input type="checkbox" checked={profile.published} onChange={e=>change("published",e.target.checked)}/>{tr.visible}</label>
         <p className="form-note">{tr.publishHint}</p>
+        {error&&<p role="alert" className="state-card state-error">{error}</p>}
         <div className="admin-event-actions">
           <button className="button button-primary" disabled={busy} type="submit">{busy?tr.saving:tr.save}</button>
           {profile.published&&stored&&<Link className="button button-outline" href={`/organizers/${profile.slug}`}>{tr.view}</Link>}
@@ -87,6 +95,10 @@ export function OrganizerProfileEditor(){
       </form>
       <section className="panel form-stack" style={{marginTop:20}}>
         <p className="form-note">{tr.imageTooLarge}</p>
+        {!stored&&<p>{tr.uploadFirst}</p>}
+        {busy&&<p role="status">{tr.saving}</p>}
+        {error&&<p role="alert" className="state-card state-error">{error}</p>}
+        {notice&&<p role="status">{notice}</p>}
         {(["logo","cover"] as const).map(kind=><div className="organizer-editor-media" key={kind}>
           <h2>{tr[kind]}</h2>
           {(previews[kind]||(profile.published?(kind==="logo"?profile.logo_url:profile.cover_url):null))&&
