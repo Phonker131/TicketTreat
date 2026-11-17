@@ -35,12 +35,16 @@ class OrganizerLoyaltyBenefit(Base):
     tier = Column(String(16), nullable=False)
     label_en = Column(String(100), nullable=False)
     label_cs = Column(String(100), nullable=False)
+    description_en = Column(String(300), nullable=False, default="")
+    description_cs = Column(String(300), nullable=False, default="")
     priority_enabled = Column(Boolean, nullable=False, default=True)
 
 
 class TierBenefitUpdate(BaseModel):
     label_en: str = Field(min_length=3, max_length=100)
     label_cs: str = Field(min_length=3, max_length=100)
+    description_en: str = Field(default="", max_length=300)
+    description_cs: str = Field(default="", max_length=300)
     # The only operational reward in the current pilot is queue priority.
     priority_enabled: bool | None = None
 
@@ -52,6 +56,8 @@ def benefit_payload(tier: str, row: OrganizerLoyaltyBenefit | None) -> dict:
         "tier": tier, "required_visits": visits, "key": key,
         "label_en": row.label_en if row else default_en,
         "label_cs": row.label_cs if row else default_cs,
+        "description_en": row.description_en if row else "",
+        "description_cs": row.description_cs if row else "",
         "operational": operational,
         "enabled": bool(active and operational),
         "editable_enabled": tier == "regular",
@@ -122,6 +128,7 @@ def install_loyalty_benefits_api(app, get_db, main):
             db.add(row)
         else:
             row.label_en, row.label_cs = en, cs
+        row.description_en, row.description_cs = payload.description_en.strip(), payload.description_cs.strip()
         if tier == "regular" and payload.priority_enabled is not None:
             row.priority_enabled = payload.priority_enabled
         db.flush()

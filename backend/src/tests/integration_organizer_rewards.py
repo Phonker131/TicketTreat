@@ -167,6 +167,7 @@ class OrganizerAwardIntegration(unittest.TestCase):
             self.assertEqual([b["required_visits"] for b in organizer_tiers["tiers"]],[0,3,6,12])
             saved_tier=client.put(f"/api/v1/manage/loyalty/tiers/{organizer.id}/regular",headers=auth,json={
                 "label_en":"Priority booking queue","label_cs":"Přednostní pořadník",
+                "description_en":"For verified repeat visitors", "description_cs":"Pro pravidelné návštěvníky",
                 "priority_enabled":False,
             })
             self.assertEqual(saved_tier.status_code,200,saved_tier.text)
@@ -184,6 +185,7 @@ class OrganizerAwardIntegration(unittest.TestCase):
             owned_studio=next(s for s in after.json()["studios"]
                               if s["organizer_id"]==organizer.id)
             self.assertEqual(owned_studio["tier_rewards"][1]["label_en"],"Priority booking queue")
+            self.assertEqual(owned_studio["tier_rewards"][1]["description_en"],"For verified repeat visitors")
             self.assertFalse(owned_studio["tier_rewards"][1]["enabled"])
             other_passport=client.get("/demo/me/loyalty",headers=other_auth)
             self.assertNotIn("qr_token",other_passport.text)
