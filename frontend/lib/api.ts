@@ -781,6 +781,10 @@ export function createOrganizerReward(data:{event_id:number;title:string;descrip
   kind:"badge"|"recognition"|"perk"}):Promise<OrganizerReward>{
   return request("/demo/manage/rewards",{method:"POST",body:JSON.stringify(data)});
 }
+export function updateOrganizerReward(rewardId:number,data:{title:string;description:string;
+  kind:"badge"|"recognition"|"perk";active:boolean}):Promise<OrganizerReward>{
+  return request(`/demo/manage/rewards/${rewardId}`,{method:"PATCH",body:JSON.stringify(data)});
+}
 export function grantOrganizerReward(rewardId:number,ticketId:number,note:string):Promise<OrganizerRewardGrant>{
   return request(`/demo/manage/rewards/${rewardId}/grants`,{
     method:"POST",body:JSON.stringify({ticket_id:ticketId,note}),
@@ -847,11 +851,6 @@ export type BroadcastSend = BroadcastDraft & {
   expected_email_recipients:number;expected_telegram_recipients:number;
   confirm:"SEND";service_only:true;
 };
-export function uploadBroadcastImage(token:string,dataUrl:string):Promise<{image_url:string}> {
-  return request("/demo/manage/broadcasts/media",{
-    method:"POST",headers:accountHeaders(token),body:JSON.stringify({data_url:dataUrl})
-  });
-}
 export function previewBroadcast(token:string,draft:BroadcastDraft):Promise<BroadcastAudience> {
   return request("/demo/manage/broadcasts/preview",{method:"POST",headers:accountHeaders(token),body:JSON.stringify(draft)});
 }
