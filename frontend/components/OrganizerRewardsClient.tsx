@@ -5,7 +5,7 @@ import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {
   getOrganizerRewards,createOrganizerReward,grantOrganizerReward,
-  revokeOrganizerReward,type OrganizerRewardsDashboard,
+  updateOrganizerReward,revokeOrganizerReward,type OrganizerReward,type OrganizerRewardsDashboard,
 } from "@/lib/api";
 import {userFacingError} from "@/lib/user-facing-errors";
 import {localeForLanguage} from "@/lib/i18n";
@@ -26,7 +26,10 @@ const labels={
     noCheckins:"No verified QR check-ins for this event yet. Rewards cannot be given for bookings.",
     noRewards:"Create a reward for this event's organizer first.",
     already:"Already awarded",confirm:"Revoke this award? The guest will no longer see it, but the audit record will remain.",
-    saved:"Reward created.",granted:"Reward issued.",removed:"Award revoked.",
+    saved:"Reward created.",granted:"Reward issued.",removed:"Award revoked.",updated:"Reward updated.",
+    catalog:"Manage existing rewards",edit:"Edit",saveChanges:"Save changes",cancelEdit:"Cancel",
+    active:"Available for new awards",activeStatus:"Active",archivedStatus:"Paused",
+    editHint:"Changes to the name, description or type also appear on previously awarded passports. Pausing stops new awards; existing guest rewards remain assigned.",
     mfa:"Organizer access requires email verification and MFA.",login:"Sign in to your organizer account.", busy:"Saving…",
     privacy:"Only confirmed attendees of events you manage appear here. QR codes and personal contact details are not exposed.",
     unavailable:"Unable to load rewards. Check your organizer access and MFA."
@@ -45,7 +48,10 @@ const labels={
     noCheckins:"Na této akci zatím nikdo neprošel QR odbavením. Za pouhou registraci nelze odměnu udělit.",
     noRewards:"Nejprve vytvořte odměnu pro pořadatele této akce.",
     already:"Již uděleno",confirm:"Odebrat tuto odměnu? Z pasu hosta zmizí, záznam zůstane uložen.",
-    saved:"Odměna vytvořena.",granted:"Odměna udělena.",removed:"Odměna odebrána.",
+    saved:"Odměna vytvořena.",granted:"Odměna udělena.",removed:"Odměna odebrána.",updated:"Odměna upravena.",
+    catalog:"Správa existujících odměn",edit:"Upravit",saveChanges:"Uložit změny",cancelEdit:"Zrušit",
+    active:"Lze udělovat nové odměny",activeStatus:"Aktivní",archivedStatus:"Pozastavená",
+    editHint:"Úpravy názvu, popisu nebo typu se projeví také v již udělených odměnách. Pozastavení zabrání novým udělením; hostům již udělené odměny zůstanou.",
     mfa:"Pro přístup pořadatele je nutné ověřený e-mail a MFA.",login:"Přihlaste se jako pořadatel.",busy:"Ukládám…",
     privacy:"Zobrazují se pouze odbavení hosté vašich akcí. QR kódy ani soukromé kontakty se nezobrazují.",
     unavailable:"Odměny nelze načíst. Zkontrolujte oprávnění pořadatele a MFA."
@@ -64,7 +70,10 @@ const labels={
     noCheckins:"Для этого события пока нет подтверждённых QR-посещений. За одну регистрацию награды не выдаются.",
     noRewards:"Сначала создайте награду для организатора этого события.",
     already:"Уже вручена",confirm:"Отменить выдачу? Награда исчезнет из паспорта, но запись останется в истории.",
-    saved:"Награда создана.",granted:"Награда вручена.",removed:"Награда отменена.",
+    saved:"Награда создана.",granted:"Награда вручена.",removed:"Награда отменена.",updated:"Награда обновлена.",
+    catalog:"Управление созданными наградами",edit:"Изменить",saveChanges:"Сохранить изменения",cancelEdit:"Отмена",
+    active:"Разрешить новые выдачи",activeStatus:"Активна",archivedStatus:"Приостановлена",
+    editHint:"Изменения названия, описания и типа отображаются и у уже награждённых гостей. Приостановка прекращает новые выдачи, но сохраняет старые.",
     mfa:"Для доступа организатора нужно подтвердить email и MFA.",login:"Войдите в аккаунт организатора.",busy:"Сохраняем…",
     privacy:"В списке только гости с QR check-in на ваших событиях. QR-коды и контакты не отображаются.",
     unavailable:"Не удалось загрузить награды. Проверьте роль и MFA."
@@ -83,7 +92,10 @@ const labels={
     noCheckins:"Для цієї події ще немає підтверджених QR-відвідувань. За реєстрацію нагороди не видаються.",
     noRewards:"Спочатку створіть нагороду для організатора цієї події.",
     already:"Уже видано",confirm:"Скасувати нагороду? Вона зникне з паспорта, але запис залишиться.",
-    saved:"Нагороду створено.",granted:"Нагороду вручено.",removed:"Нагороду скасовано.",
+    saved:"Нагороду створено.",granted:"Нагороду вручено.",removed:"Нагороду скасовано.",updated:"Нагороду оновлено.",
+    catalog:"Керування існуючими нагородами",edit:"Редагувати",saveChanges:"Зберегти зміни",cancelEdit:"Скасувати",
+    active:"Дозволити нові нагородження",activeStatus:"Активна",archivedStatus:"Призупинена",
+    editHint:"Зміни назви, опису або типу відображатимуться і в раніше виданих нагородах. Призупинення блокує нові нагородження, але залишає попередні.",
     mfa:"Організатор повинен підтвердити email та MFA.",login:"Увійдіть як організатор.",busy:"Зберігаємо…",
     privacy:"Доступні лише гості ваших подій із QR check-in. QR-коди та контактні дані не відображаються.",
     unavailable:"Не вдалося завантажити нагороди. Перевірте доступ організатора та MFA."
@@ -130,6 +142,11 @@ export function OrganizerRewardsClient(){
   const [description,setDescription]=useState("");
   const [kind,setKind]=useState<"badge"|"recognition"|"perk">("badge");
   const [note,setNote]=useState("");
+  const [editingId,setEditingId]=useState<number|null>(null);
+  const [editTitle,setEditTitle]=useState("");
+  const [editDescription,setEditDescription]=useState("");
+  const [editKind,setEditKind]=useState<OrganizerReward["kind"]>("badge");
+  const [editActive,setEditActive]=useState(true);
 
   async function reload(){
     setLoading(true);setError("");
@@ -169,7 +186,7 @@ export function OrganizerRewardsClient(){
   }
   async function grant(e:FormEvent<HTMLFormElement>){
     e.preventDefault();
-    if(!rewardId||!ticketId||isDuplicate)return;
+    if(!chosenReward||!ticketId||isDuplicate)return;
     setBusy(true);setError("");setNotice("");
     try{
       await grantOrganizerReward(Number(rewardId),Number(ticketId),note.trim());
@@ -185,6 +202,25 @@ export function OrganizerRewardsClient(){
       await revokeOrganizerReward(id);
       setNotice(t.removed);
       setData(await getOrganizerRewards());
+    }catch(cause){setError(userFacingError(cause,language));}
+    finally{setBusy(false);}
+  }
+  function startEdit(reward:OrganizerReward){
+    setEditingId(reward.id);setEditTitle(reward.title);
+    setEditDescription(reward.description);setEditKind(reward.kind);
+    setEditActive(reward.active);setError("");setNotice("");
+  }
+  async function saveEdit(e:FormEvent<HTMLFormElement>,id:number){
+    e.preventDefault();if(busy||editTitle.trim().length<3)return;
+    setBusy(true);setError("");setNotice("");
+    try{
+      await updateOrganizerReward(id,{
+        title:editTitle.trim(),description:editDescription.trim(),
+        kind:editKind,active:editActive,
+      });
+      const next=await getOrganizerRewards();
+      setData(next);setEditingId(null);setNotice(t.updated);
+      if(!editActive&&String(id)===rewardId)setRewardId("");
     }catch(cause){setError(userFacingError(cause,language));}
     finally{setBusy(false);}
   }
@@ -249,10 +285,40 @@ export function OrganizerRewardsClient(){
               onChange={e=>setNote(e.target.value)}/></label>
             {isDuplicate&&<p className="form-note" role="status">{t.already}</p>}
             <button type="submit" className="button button-primary"
-              disabled={busy||!ticketId||!rewardId||!!isDuplicate}>{busy?t.busy:t.give}</button>
+              disabled={busy||!ticketId||!chosenReward||!!isDuplicate}>{busy?t.busy:t.give}</button>
           </form>}
         </section>
       </div>
+      <section className="panel form-stack">
+        <h2>{t.catalog} ({data.rewards.length})</h2>
+        <p className="form-note">{t.editHint}</p>
+        {data.rewards.map(reward=><div key={reward.id} className="tt-reward-history-row">
+          <div>
+            <strong>{reward.title}</strong>
+            {reward.description&&<p className="form-note">{reward.description}</p>}
+            <span className={"status "+(reward.active?"status-success":"status-demo")}>{reward.active?t.activeStatus:t.archivedStatus}</span>
+            <span className="form-note" style={{marginLeft:8}}>{reward.kind==="badge"?t.badge:reward.kind==="perk"?t.perk:t.recognition}</span>
+          </div>
+          {editingId===reward.id?
+            <form className="form-stack tt-reward-edit-form" onSubmit={e=>void saveEdit(e,reward.id)}>
+              <label>{t.rewardTitle}<input value={editTitle} required minLength={3} maxLength={80}
+                onChange={e=>setEditTitle(e.target.value)}/></label>
+              <label>{t.description}<textarea value={editDescription} maxLength={300} rows={3}
+                onChange={e=>setEditDescription(e.target.value)}/></label>
+              <label>{t.kind}<select value={editKind} onChange={e=>setEditKind(e.target.value as OrganizerReward["kind"])}>
+                <option value="badge">{t.badge}</option><option value="recognition">{t.recognition}</option><option value="perk">{t.perk}</option>
+              </select></label>
+              <label className="tt-reward-edit-toggle"><input type="checkbox" checked={editActive}
+                onChange={e=>setEditActive(e.target.checked)}/>{t.active}</label>
+              <div className="admin-event-actions">
+                <button type="submit" className="button button-primary" disabled={busy||editTitle.trim().length<3}>{busy?t.busy:t.saveChanges}</button>
+                <button type="button" className="button button-outline" disabled={busy} onClick={()=>setEditingId(null)}>{t.cancelEdit}</button>
+              </div>
+            </form>:
+            <button type="button" className="button button-outline" disabled={busy}
+              onClick={()=>startEdit(reward)}>{t.edit}</button>}
+        </div>)}
+      </section>
       <section className="panel">
         <h2>{t.issued} ({data.grants.length})</h2>
         {data.grants.length===0?<p className="form-note">-</p>:
