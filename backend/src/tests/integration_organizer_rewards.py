@@ -158,6 +158,33 @@ class OrganizerAwardIntegration(unittest.TestCase):
             })
             self.assertEqual(restored.status_code,200,restored.text)
             self.assertTrue(restored.json()["active"])
+            # Organization-wide loyalty tiers are separate from manual event
+            # awards. An organizer can configure own bilingual tier benefits.
+            tiers=client.get("/api/v1/manage/loyalty/tiers",headers=auth)
+            self.assertEqual(tiers.status_code,200,tiers.text)
+            organizer_tiers=next(o for o in tiers.json()["organizers"]
+                                 if o["owner_account_id"]==organizer.id)
+            self.assertEqual([b["required_visits"] for b in organizer_tiers["tiers"]],[0,3,6,12])
+            saved_tier=client.put(f"/api/v1/manage/loyalty/tiers/{organizer.id}/regular",headers=auth,json={
+                "label_en":"Priority booking queue","label_cs":"Přednostní pořadník",
+                "priority_enabled":False,
+            })
+            self.assertEqual(saved_tier.status_code,200,saved_tier.text)
+            self.assertFalse(saved_tier.json()["enabled"])
+            stranger=client.put(f"/demo/manage/loyalty/tiers/{organizer.id}/regular",headers=other_auth,json={
+                "label_en":"Hijacked program","label_cs":"Cizí program","priority_enabled":True,
+            })
+            self.assertEqual(stranger.status_code,403,stranger.text)
+            fake_early=client.put(f"/demo/manage/loyalty/tiers/{organizer.id}/vip",headers=auth,json={
+                "label_en":"VIP early booking","label_cs":"VIP předčasná rezervace",
+                "priority_enabled":True,
+            })
+            self.assertEqual(fake_early.status_code,422,fake_early.text)
+            after=client.get("/demo/me/loyalty",headers=guest_auth)
+            owned_studio=next(s for s in after.json()["studios"]
+                              if s["organizer_id"]==organizer.id)
+            self.assertEqual(owned_studio["tier_rewards"][1]["label_en"],"Priority booking queue")
+            self.assertFalse(owned_studio["tier_rewards"][1]["enabled"])
             other_passport=client.get("/demo/me/loyalty",headers=other_auth)
             self.assertNotIn("qr_token",other_passport.text)
 

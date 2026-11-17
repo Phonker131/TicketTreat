@@ -96,16 +96,19 @@ def passport_for(db: Session, guest_id: int, main, *, now: datetime | None = Non
         if start <= at < end:
             studio["visits"].add(int(event_id))
     result = []
+    from demo_loyalty_benefits import benefits_for_organizer
     for studio in studios.values():
         count = len(studio.pop("visits"))
         lifetime = len(studio.pop("total_visits"))
+        tier_benefits = benefits_for_organizer(db, studio["organizer_id"])
         result.append({
             **studio, "season_visits": count, "lifetime_visits": lifetime,
             **tier_for(count),
+            "tier_rewards": tier_benefits,
             # Only queue priority is live in V1 pilot. Other roadmap perks
             # require organizer inventory, publication windows or funding.
             "perks": [
-                {"key": "priority_waitlist", "required_visits": 3, "available": count >= 3, "operational": True},
+                {"key": "priority_waitlist", "required_visits": 3, "available": count >= 3 and tier_benefits[1]["enabled"], "operational": tier_benefits[1]["enabled"]},
                 {"key": "early_access", "required_visits": 6, "available": False, "operational": False},
                 {"key": "vip_companion", "required_visits": 12, "available": False, "operational": False},
             ],
@@ -125,8 +128,10 @@ def passport_for(db: Session, guest_id: int, main, *, now: datetime | None = Non
                 "organizer_id": promotion["organizer_id"],
                 "organizer_name": promotion["organizer_name"],
                 "season_visits": 0, "lifetime_visits": 0, **tier_for(0),
+                "tier_rewards": benefits_for_organizer(db, promotion["organizer_id"]),
                 "perks": [
-                    {"key": "priority_waitlist", "required_visits": 3, "available": False, "operational": True},
+                    {"key": "priority_waitlist", "required_visits": 3, "available": False,
+                     "operational": benefits_for_organizer(db, promotion["organizer_id"])[1]["enabled"]},
                     {"key": "early_access", "required_visits": 6, "available": False, "operational": False},
                     {"key": "vip_companion", "required_visits": 12, "available": False, "operational": False},
                 ],
@@ -156,6 +161,9 @@ def priority_waitlist_entry(db: Session, event, main):
         return waiting[0] if waiting else None
     owner = db.get(EventOwnership, event.id)
     if owner is None:
+        return waiting[0]
+    from demo_loyalty_benefits import priority_enabled
+    if not priority_enabled(db, owner.owner_account_id):
         return waiting[0]
     counts = attendance_counts(db, owner.owner_account_id,
                                [int(entry.guest_id) for entry in waiting], main=main)
