@@ -41,9 +41,9 @@ export function OrganizerLoyaltyTiersClient(){
   {notice&&<p role="status" className="success-banner">{notice}</p>}
   {loading?<div className="state-card" role="status">…</div>:data&&<>
    {data.organizers.length===0?<section className="panel"><p>{t.none}</p></section>:<>
-    <section className="panel"><label>{t.org}<select value={ownerId??""} onChange={e=>{setOwnerId(Number(e.target.value));setEditing(null);setNotice("");}}>
+    <section className="panel"><label htmlFor="tt-loyalty-organizer-select">{t.org}</label><select id="tt-loyalty-organizer-select" value={ownerId??""} onChange={e=>{setOwnerId(Number(e.target.value));setEditing(null);setNotice("");}}>
      {data.organizers.map(o=><option key={o.owner_account_id} value={o.owner_account_id}>{o.name}</option>)}
-    </select></label><p className="form-note">{t.rules}</p></section>
+    </select><p className="form-note">{t.rules}</p></section>
     <div className="tt-reward-admin-grid">{org?.tiers.map((b,i)=><section key={`${ownerId}-${b.tier}`} className="panel form-stack">
      <h2>{t.levels[i]}</h2><p className="form-note">{b.required_visits} {t.visits}</p>
      <span className={`status ${b.enabled?"status-success":"status-demo"}`}>{b.enabled?t.live:b.operational?t.paused:t.soon}</span>
