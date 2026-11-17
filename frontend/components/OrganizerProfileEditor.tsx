@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import Link from "next/link";
+import {prepareUploadImage} from "@/lib/gallery-photo";
 import {userFacingError} from "@/lib/user-facing-errors";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
@@ -45,15 +46,10 @@ export function OrganizerProfileEditor(){
   }
   async function upload(kind:"logo"|"cover",file:File|undefined){
     if(!file||busy)return;
-    if(!["image/png","image/jpeg","image/webp"].includes(file.type)){setError(tr.invalid);return;}
-    if(file.size>(kind==="logo"?600_000:2_000_000)){setError(tr.imageTooLarge);return;}
     if(!stored){setError(tr.uploadFirst);return;}
     setBusy(true);setError("");setNotice("");
     try{
-      const data_url=await new Promise<string>((resolve,reject)=>{
-        const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));
-        reader.onerror=()=>reject(new Error("poster_read_failed"));reader.readAsDataURL(file);
-      });
+      const data_url=await prepareUploadImage(file,kind==="logo"?600_000:2_000_000);
       const result=await uploadOrganizerImage(kind,data_url);
       setProfile(p=>({...p,logo_url:result.logo_url,cover_url:result.cover_url}));setPreviews(p=>({...p,[kind]:data_url}));setNotice(language==="cs"?"Obrázek byl nahrán. Neuložený text profilu zůstává zachován.":"Image uploaded. Unsaved profile text has been preserved.");
     }catch(e){setError(userFacingError(e,language));}
@@ -106,7 +102,7 @@ export function OrganizerProfileEditor(){
           <img className={kind==="logo"?"organizer-edit-logo":"organizer-edit-cover"} src={previews[kind]||(kind==="logo"?profile.logo_url:profile.cover_url)||""} alt="" />}
           <div className="admin-event-actions">
             <label className="button button-outline">{tr.upload}
-              <input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy||!stored} style={{display:"none"}} onChange={e=>{void upload(kind,e.target.files?.[0]);e.currentTarget.value="";}}/>
+              <input type="file" accept="image/*" disabled={busy||!stored} style={{display:"none"}} onChange={e=>{void upload(kind,e.target.files?.[0]);e.currentTarget.value="";}}/>
             </label>
             {(kind==="logo"?profile.logo_url:profile.cover_url)&&<button className="button button-outline" type="button" disabled={busy} onClick={()=>void remove(kind)}>{tr.remove}</button>}
           </div>
