@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from db.base import Base
@@ -272,22 +273,22 @@ def install_email_account_security(app, get_db):
             raise HTTPException(400, "invalid_or_expired_code")
         if db.query(WebAccount.id).filter(WebAccount.email == email).first():
             raise HTTPException(409, "email_already_registered_link_accounts")
-        account.email = email
-        # Keep '!telegram-only' until the user chooses a password via the
-        # established email reset flow. Email magic login works immediately.
-        account.contact_preference = "email"
-        db.add(VerifiedEmail(account_id=account.id, verified_at=now()))
-        from main import DemoGuest
-        guest = db.get(DemoGuest, account.guest_id)
-        if guest is not None:
-            guest.email = email
-        db.delete(row)
-        from demo_identity_registry import mirror_verified_identity
-        mirror_verified_identity(db, account_id=account.id,
-                                 provider="email", verified_subject=email)
         try:
+            account.email = email
+            # Keep '!telegram-only' until the user chooses a password via the
+            # established email reset flow. Email magic login works immediately.
+            account.contact_preference = "email"
+            db.add(VerifiedEmail(account_id=account.id, verified_at=now()))
+            from main import DemoGuest
+            guest = db.get(DemoGuest, account.guest_id)
+            if guest is not None:
+                guest.email = email
+            db.delete(row)
+            from demo_identity_registry import mirror_verified_identity
+            mirror_verified_identity(db, account_id=account.id,
+                                     provider="email", verified_subject=email)
             db.commit()
-        except Exception:
+        except IntegrityError:
             db.rollback()
             raise HTTPException(409, "email_already_registered_link_accounts") from None
         return {"email_verified": True}

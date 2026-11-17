@@ -240,10 +240,11 @@ def install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict):
                     and identity.account_id != registry_account.id):
                 raise HTTPException(409, "verified_identity_owner_mismatch")
             if linked_id is not None:
+                # Serialize with a concurrent transfer of a Telegram-only profile.
+                account = db.query(WebAccount).filter_by(id=linked_id).with_for_update().first()
                 session = db.query(WebSession).filter(WebSession.token_hash == session_hash).first()
                 if session is None or session.account_id != linked_id or utc(session.expires_at) <= datetime.now(timezone.utc):
                     raise HTTPException(401, "invalid_session")
-                account = db.get(WebAccount, linked_id)
                 if account is None:
                     raise HTTPException(401, "invalid_session")
                 require_privileged_mfa(db, account, session)

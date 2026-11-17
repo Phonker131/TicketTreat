@@ -111,22 +111,23 @@ def install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict,reject_
             raise HTTPException(409,"account_already_exists_use_login")
         guest=DemoGuest(access_token=secrets.token_urlsafe(32),
                         first_name=row.first_name,last_name=row.last_name,email=email)
-        db.add(guest);db.flush()
-        account=WebAccount(email=email,first_name=row.first_name,last_name=row.last_name,
-                           guest_id=guest.id,password_hash=hash_password(secrets.token_urlsafe(48)),
-                           contact_preference="email")
-        db.add(account);db.flush()
-        db.add(VerifiedEmail(account_id=account.id,verified_at=datetime.now(timezone.utc)))
-        # The successful one-use OTP, not the submitted email text, is proof.
-        from demo_identity_registry import mirror_verified_identity
-        mirror_verified_identity(db, account_id=account.id,
-                                 provider="email", verified_subject=email)
-        db.add(WebAccountRole(account_id=account.id,role="participant"))
-        # Consent is persisted with immutable acceptance timestamp.
-        db.add(QuickPrivacyConsent(account_id=account.id,version=row.privacy_version,
-                                   accepted_at=datetime.now(timezone.utc)))
-        db.delete(row)
-        try:db.commit()
+        try:
+            db.add(guest);db.flush()
+            account=WebAccount(email=email,first_name=row.first_name,last_name=row.last_name,
+                               guest_id=guest.id,password_hash=hash_password(secrets.token_urlsafe(48)),
+                               contact_preference="email")
+            db.add(account);db.flush()
+            db.add(VerifiedEmail(account_id=account.id,verified_at=datetime.now(timezone.utc)))
+            # The successful one-use OTP, not the submitted email text, is proof.
+            from demo_identity_registry import mirror_verified_identity
+            mirror_verified_identity(db, account_id=account.id,
+                                     provider="email", verified_subject=email)
+            db.add(WebAccountRole(account_id=account.id,role="participant"))
+            # Consent is persisted with immutable acceptance timestamp.
+            db.add(QuickPrivacyConsent(account_id=account.id,version=row.privacy_version,
+                                       accepted_at=datetime.now(timezone.utc)))
+            db.delete(row)
+            db.commit()
         except IntegrityError:
             db.rollback()
             raise HTTPException(409,"account_already_exists_use_login")
