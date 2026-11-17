@@ -5026,6 +5026,29 @@ def handle_broadcast_text(message):
     )
 
 
+def explain_media_upload(message):
+    """A file in chat is not a website upload or a support ticket."""
+    if message.chat.type != "private":
+        return
+    lang = remember_telegram_language(message.from_user)
+    if lang == "cs":
+        text = ("Soubor nebyl uložen na web ani odeslán podpoře. "
+                "Plakát nebo fotografie akce nahrajte v panelu pořadatele. "
+                "Pro pomoc otevřete požadavek v zákaznické podpoře.")
+        buttons = [("Panel pořadatele", "/admin"), ("Zákaznická podpora", "/support")]
+    else:
+        text = ("This file has not been saved to the website or sent to support. "
+                "Upload event posters and photos in the organizer dashboard. "
+                "For help, open a support ticket.")
+        buttons = [("Organizer dashboard", "/admin"), ("Support desk", "/support")]
+    copy_send(message, text, buttons)
+
+
+@bot.message_handler(content_types=["document", "video"])
+def handle_media_document(message):
+    explain_media_upload(message)
+
+
 # =========================================================
 # Shared photo handler
 # =========================================================
@@ -5106,6 +5129,9 @@ def handle_photo(message):
             f"Ошибок: {failed}",
             reply_markup=get_main_menu(telegram_id),
         )
+        return
+
+    explain_media_upload(message)
 
 
 # =========================================================
