@@ -35,6 +35,6 @@ jobs:
         env:
           BACKEND_API_URL: http://127.0.0.1:8000
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test e2e/organizer-reward-edit.spec.ts e2e/organizer-rewards.spec.ts
+      - run: npx playwright test e2e/organizer-loyalty-tiers.spec.ts e2e/organizer-reward-edit.spec.ts e2e/organizer-rewards.spec.ts
         env:
           BACKEND_API_URL: http://127.0.0.1:8000

@@ -499,6 +499,7 @@ html body .tt-rt-body{display:grid;gap:5px;justify-items:start}
 html body .tt-rt-body small{font:600 12px/1 var(--m);letter-spacing:.04em;text-transform:uppercase;color:var(--tp-mute)}
 html body .tt-rt-body strong{font:900 clamp(26px,2.5vw,36px)/.9 var(--d);text-transform:uppercase;color:var(--tp-fg)}
 html body .tt-rt-body span{font:500 14px/1.35 var(--u);color:var(--tp-fg);text-wrap:pretty}
+html body .tt-rt-body .tt-rt-description{font-size:12px;color:var(--tp-mute);overflow-wrap:anywhere}
 html body .tt-rt-body em{margin-top:3px;padding:5px 9px;border-radius:999px;font:700 11px/1 var(--u);font-style:normal}
 html body .tt-rt-body em.is-live{background:color-mix(in srgb,var(--tom) 18%,transparent);color:var(--tom)}
 html body .tt-rt-body em.is-soon{border:1px solid var(--tp-line);color:var(--tp-mute)}

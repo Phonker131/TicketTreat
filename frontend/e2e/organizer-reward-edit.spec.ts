@@ -16,7 +16,7 @@ test("organizer can edit and pause a previously created reward",async({page})=>{
     }
     return route.fulfill({status:404,json:{detail:"fixture_not_found"}});
   });
-  await page.goto("/admin/rewards?lang=en");
+  await page.goto("/admin/rewards/legacy?lang=en");
   await page.getByRole("button",{name:"Edit",exact:true}).click();
   const form=page.locator("form.tt-reward-edit-form");
   await form.getByLabel("Reward name").fill("VIP supporter");

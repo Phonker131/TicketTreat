@@ -40,7 +40,7 @@ test("organizer reward panel creates badge and awards only a checked-in attendee
     dashboard.grants.push(result);
     return route.fulfill({status:201,contentType:"application/json",body:JSON.stringify(result)});
   });
-  await page.goto("/admin/rewards");
+  await page.goto("/admin/rewards/legacy");
   await expect(page.getByRole("heading",{name:"Attendance rewards"})).toBeVisible();
   // Two occurrences with identical titles must have distinct date/time and IDs.
   const eventPickers=page.locator(".tt-reward-admin-grid form select").filter({
@@ -86,7 +86,7 @@ test("Czech rewards picker shows the date for two same-title events",async({page
       ],rewards:[],attendees:[],grants:[],
     })});
   });
-  await page.goto("/admin/rewards?lang=cs");
+  await page.goto("/admin/rewards/legacy?lang=cs");
   await expect(page.getByRole("heading",{name:"Odměny za návštěvu"})).toBeVisible();
   const pickers=page.locator(".tt-reward-admin-grid form select").filter({
     has:page.locator('option[value="91"]'),
