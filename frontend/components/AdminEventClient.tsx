@@ -500,6 +500,7 @@ export function AdminEventClient(){
     }
     catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
+  const galleryIsFull=(event?.gallery_urls?.length||0)>=8;
   return <div className="app-shell"><AppHeader/><main className="page">
     <Link href="/admin" className="back-link">{tr("Organizer dashboard")}</Link>
     {loading&&<div className="state-card">{tr("Загрузка…")}</div>}
@@ -665,11 +666,11 @@ export function AdminEventClient(){
           onDragOver={e=>{e.preventDefault();if(!busy)setDropActive(true);}}
           onDragLeave={()=>setDropActive(false)}
           onDrop={e=>{e.preventDefault();setDropActive(false);if(!busy)void uploadPhotos(e.dataTransfer.files);}}>
-          <input type="file" accept="image/*" multiple disabled={busy||(event.gallery_urls?.length||0)>=8}
+          <input type="file" accept="image/*" multiple disabled={busy||galleryIsFull}
             onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4-4-9 9"/></svg>
           <strong>{upload?tr("Загружаем {done} из {total}…").replace("{done}",String(upload.done)).replace("{total}",String(upload.total))
-            :(event.gallery_urls?.length||0)>=8?tr("В галерее уже 8 фото. Удали одно, чтобы добавить новое."):tr("Перетащи фото сюда или нажми, чтобы выбрать")}</strong>
+            :galleryIsFull?tr("В галерее уже 8 фото. Удали одно, чтобы добавить новое."):tr("Перетащи фото сюда или нажми, чтобы выбрать")}</strong>
           <small>{tr("Подойдут любые фото с телефона или камеры, размер уменьшим сами. Лучше всего смотрятся горизонтальные.")}</small>
           {upload&&<span className="tt-gal-progress" aria-hidden="true"><i style={{width:`${Math.max(6,upload.done/upload.total*100)}%`}}/></span>}
         </label>
