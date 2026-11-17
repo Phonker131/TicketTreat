@@ -6,11 +6,14 @@ Marketing communications require a separate subscriber-consent workflow.
 from __future__ import annotations
 
 import html
+import io
 import hashlib
 import hmac
 import json
 import logging
 import os
+import re
+import secrets
 import threading
 import time
 import urllib.error
@@ -20,10 +23,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import Depends, Header, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, func, and_, or_
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, LargeBinary, func, and_, or_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, deferred
 
 from db.base import Base
 
@@ -89,6 +93,21 @@ class BroadcastCampaign(Base):
     email_count = Column(Integer, nullable=False, default=0)
     telegram_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
+class BroadcastImage(Base):
+    """Owner-uploaded announcement picture, public only through a random 256-bit URL."""
+    __tablename__ = "demo_broadcast_images"
+    token = Column(String(43), primary_key=True)
+    owner_account_id = Column(Integer, ForeignKey("demo_web_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    content_type = Column(String(32), nullable=False)
+    image_bytes = deferred(Column(LargeBinary, nullable=False))
+    created_at = Column(DateTime(timezone=True), nullable=False,
+                        default=lambda: datetime.now(timezone.utc))
+
+
+class BroadcastImageUpload(BaseModel):
+    data_url: str = Field(min_length=40, max_length=2_900_000)
 
 
 class BroadcastTelegramOutbox(Base):
@@ -278,6 +297,49 @@ def install_broadcast_api(app, get_db, main):
             index_elements=["account_id"], set_={k: v for k, v in values.items() if k != "account_id"}))
         db.commit()
         return {"email_enabled": payload.email_enabled, "telegram_enabled": payload.telegram_enabled}
+
+    @app.post("/demo/manage/broadcasts/media", status_code=201)
+    def upload_image(payload: BroadcastImageUpload, account=Depends(authorized),
+                     db: Session = Depends(get_db)):
+        """Private edit permission; public URL is unguessable and safe for Telegram/email."""
+        from demo_roles import ensure_manage
+        from demo_media_store import normalized_webp
+        from PIL import Image
+        ensure_manage(db, account)
+        since = datetime.now(timezone.utc) - timedelta(days=1)
+        recent = db.query(func.count(BroadcastImage.token)).filter(
+            BroadcastImage.owner_account_id == account.id,
+            BroadcastImage.created_at >= since).scalar() or 0
+        if recent >= 20:
+            raise HTTPException(429, "broadcast_image_daily_limit")
+        _, original = main.decode_demo_poster(payload.data_url)
+        # Telegram's sendPhoto accepts JPEG reliably. Decode and re-encode to
+        # strip EXIF/metadata even if a client submits a raw JPEG.
+        with Image.open(io.BytesIO(normalized_webp(original))) as picture:
+            output = io.BytesIO()
+            picture.convert("RGB").save(output, "JPEG", quality=84, optimize=True)
+        image = output.getvalue()
+        if len(image) > 2_000_000:
+            raise HTTPException(413, "broadcast_image_too_large")
+        base = (os.getenv("WEB_APP_URL", "").strip() or "https://tickettreat.eu").rstrip("/")
+        if not base.startswith("https://"):
+            raise HTTPException(503, "public_media_url_not_configured")
+        token = secrets.token_urlsafe(32)
+        db.add(BroadcastImage(token=token, owner_account_id=account.id,
+                              content_type="image/jpeg", image_bytes=image))
+        db.commit()
+        return {"image_url": base + "/api/gateway/demo/public/broadcast-media/" + token}
+
+    @app.get("/demo/public/broadcast-media/{token}")
+    def public_image(token: str, db: Session = Depends(get_db)):
+        if not re.fullmatch(r"[A-Za-z0-9_-]{43}", token):
+            raise HTTPException(404, "broadcast_image_not_found")
+        row = db.get(BroadcastImage, token)
+        if row is None:
+            raise HTTPException(404, "broadcast_image_not_found")
+        return Response(content=row.image_bytes, media_type=row.content_type,
+                        headers={"Cache-Control":"public,max-age=3600",
+                                 "X-Content-Type-Options":"nosniff"})
 
     @app.post("/demo/manage/broadcasts/preview")
     def preview(payload: AudienceRequest, account=Depends(authorized), db: Session = Depends(get_db)):
