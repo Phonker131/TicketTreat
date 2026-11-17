@@ -38,3 +38,31 @@ export async function prepareGalleryPhoto(file:File):Promise<string>{
   }
   throw new GalleryPhotoError("too_large");
 }
+
+/** Keep supported originals when they fit; resize large phone images for upload. */
+export async function prepareUploadImage(file:File,maxBytes=4*1024*1024):Promise<string>{
+  if(file.size>32*1024*1024)throw new Error("poster_too_large");
+  if(file.type&&!file.type.startsWith("image/"))throw new Error("invalid_poster_type");
+  if(["image/jpeg","image/png","image/webp"].includes(file.type)&&file.size>0&&file.size<=maxBytes){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));
+      reader.onerror=()=>reject(new Error("poster_read_failed"));reader.readAsDataURL(file);
+    });
+  }
+  let source;
+  try{source=await decode(file);}catch{throw new Error("poster_read_failed");}
+  try{
+    for(const side of [2000,1400,1000,700]){
+      const scale=Math.min(1,side/Math.max(source.width,source.height));
+      const canvas=document.createElement("canvas");
+      canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));
+      const ctx=canvas.getContext("2d");if(!ctx)throw new Error("poster_read_failed");
+      ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,0,0,canvas.width,canvas.height);
+      for(const quality of [.88,.76,.62]){
+        const result=canvas.toDataURL("image/jpeg",quality);
+        if(result.startsWith("data:image/jpeg;")&&result.split(",")[1].length*3/4<=maxBytes)return result;
+      }
+    }
+    throw new Error("poster_too_large");
+  }finally{if("close" in source&&typeof source.close==="function")source.close();}
+}
