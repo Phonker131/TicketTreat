@@ -45,3 +45,29 @@ test("organizer logo upload converts the selected device photo before sending",a
   await expect.poll(()=>uploaded).toMatch(/^data:image\/jpeg;base64,/);
   await expect(page.locator(".organizer-edit-logo")).toBeVisible();
 });
+
+
+test("broadcast composer stores a device image and allows removing it",async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem("tickettreat_web_auth","browser-session"));
+  let uploaded="";
+  const imagePath="/api/gateway/demo/public/broadcast-media/"+"a".repeat(43);
+  await page.route("**/api/gateway/**",route=>{
+    const path=new URL(route.request().url()).pathname;
+    if(path.endsWith("/manage/me"))return route.fulfill({json:{account_id:2,email:"pilot@example.invalid",role:"global_admin"}});
+    if(path.endsWith("/manage/events")||path.endsWith("/manage/broadcasts")&&route.request().method()==="GET")return route.fulfill({json:[]});
+    if(path.endsWith("/manage/broadcasts/media")&&route.request().method()==="POST"){
+      uploaded=(route.request().postDataJSON() as {data_url:string}).data_url;
+      return route.fulfill({status:201,json:{image_url:imagePath}});
+    }
+    if(path===imagePath)return route.fulfill({status:200,contentType:"image/png",body:PNG});
+    return route.fulfill({status:404,json:{detail:"fixture_not_found"}});
+  });
+  await page.goto("/admin/broadcasts?lang=en");
+  const picker=page.locator('input[type="file"][accept="image/*"]');
+  await expect(picker).toHaveCount(1);
+  await picker.setInputFiles({name:"announcement.png",mimeType:"image/png",buffer:PNG});
+  await expect.poll(()=>uploaded).toMatch(/^data:image\/jpeg;base64,/);
+  await expect(page.getByRole("img",{name:"Attached image preview"})).toBeVisible();
+  await page.getByRole("button",{name:"Remove image"}).click();
+  await expect(page.getByRole("img",{name:"Attached image preview"})).toHaveCount(0);
+});
