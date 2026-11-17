@@ -8,7 +8,8 @@ import {broadcastText} from "@/lib/broadcast-i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import {localeForLanguage} from "@/lib/i18n";
 import {getWebToken} from "@/lib/session";
-import {getManageMe,getManageEvents,previewBroadcast,sendBroadcast,getBroadcastHistory} from "@/lib/api";
+import {prepareGalleryPhoto} from "@/lib/gallery-photo";
+import {getManageMe,getManageEvents,previewBroadcast,sendBroadcast,getBroadcastHistory,uploadBroadcastImage} from "@/lib/api";
 import type {BroadcastAudience,BroadcastHistory} from "@/lib/api";
 import type {ManageEvent,ManageIdentity} from "@/lib/types";
 
@@ -47,6 +48,7 @@ export function BroadcastClient(){
   const [requestId,setRequestId]=useState("");
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState(false);
+  const [imageBusy,setImageBusy]=useState(false);
   const [error,setError]=useState("");
   const [success,setSuccess]=useState("");
   const [sent,setSent]=useState<BroadcastHistory|null>(null);
@@ -75,6 +77,33 @@ export function BroadcastClient(){
   function draft(){
     return {scope,event_id:scope==="global"?null:Number(eventId)};
   }
+  async function addImage(file:File|undefined){
+    if(!file)return;
+    invalidate();
+    // Never accidentally send an outdated picture if the new selection fails.
+    setImageUrl("");
+    if(file.size>25*1024*1024){
+      setError(language==="cs"?"Vyberte obrázek menší než 25 MB.":"Choose an image smaller than 25 MB.");return;
+    }
+    if(file.type&&!file.type.startsWith("image/")){
+      setError(language==="cs"?"Vyberte obrázek.":"Choose a photo file.");return;
+    }
+    const token=getWebToken();
+    if(!token){setError(tr("Войди в профиль TicketTreat."));return;}
+    setImageBusy(true);
+    try{
+      let dataUrl:string;
+      try{dataUrl=await prepareGalleryPhoto(file);}
+      catch{throw new Error("unreadable_device_image");}
+      const result=await uploadBroadcastImage(token,dataUrl);
+      setImageUrl(result.image_url);
+    }catch(e){
+      setError(e instanceof Error&&e.message==="unreadable_device_image"?
+        (language==="cs"?"Obrázek se nepodařilo zpracovat. Zkuste JPG, PNG nebo WebP.":"Could not process image. Try JPG, PNG or WebP."):
+        messageOf(e,language));
+    }finally{setImageBusy(false);}
+  }
+
   async function checkAudience(){
     const token=getWebToken();if(!token)return;
     if(scope==="event" && !eventId){setError(tr("Выбери ивент."));return;}
@@ -88,7 +117,7 @@ export function BroadcastClient(){
   async function deliver(){
     const token=getWebToken();if(!token||!preview||busy)return;
     // Keep the click handler and the disabled button in sync.
-    if(!canSend)return;
+    if(!canSend||imageBusy)return;
     if(!requestId)setRequestId(crypto.randomUUID());
     const id=requestId||crypto.randomUUID();
     setRequestId(id);
@@ -132,7 +161,7 @@ export function BroadcastClient(){
     if(!serviceOnly)blockers.push(tr("Подтверди, что это служебное сообщение."));
     if(confirmed.trim()!=="SEND")blockers.push(tr("Введи SEND в поле подтверждения."));
   }
-  const canSend=Boolean(preview)&&!busy&&blockers.length===0;
+  const canSend=Boolean(preview)&&!busy&&!imageBusy&&blockers.length===0;
   return <div className="app-shell"><AppHeader/><main className="page tt-broadcast-page">
     <Link href="/admin" className="back-link">{tr("Панель организатора")}</Link>
     <div className="admin-heading">
@@ -178,15 +207,19 @@ export function BroadcastClient(){
               :`${tr("✓ Текст готов к отправке:")} ${messageChars}/1000 ${tr("символов")}.`}
           </small>
         </label>
-        <label>{tr("Ссылка на изображение (необязательно)")}
-          <input type="url" value={imageUrl} maxLength={1000} placeholder="https://example.com/photo.jpg"
-            onChange={e=>{setImageUrl(e.target.value);invalidate();}}/>
-          <small>{tr("Публичный HTTPS-адрес картинки для Telegram и email. Необязательно.")}</small>
+        <label>{language==="cs"?"Přiložit obrázek z telefonu nebo počítače (nepovinné)":"Attach an image from your phone or computer (optional)"}
+          <input type="file" accept="image/*" disabled={busy||imageBusy}
+            onChange={e=>{void addImage(e.target.files?.[0]);e.currentTarget.value="";}}/>
+          <small>{language==="cs"?"Vyberte fotku do 25 MB. Před odesláním ji zmenšíme a bezpečně uložíme pro e-mail i Telegram.":"Choose a photo up to 25 MB. It is resized and stored for email and Telegram delivery."}</small>
+          {imageBusy&&<span role="status">{language==="cs"?"Nahrávání obrázku…":"Uploading image…"}</span>}
         </label>
+        {imageUrl&&<button type="button" className="button button-outline" onClick={()=>{setImageUrl("");invalidate();}}>{language==="cs"?"Odebrat obrázek":"Remove image"}</button>}
         <div className="tt-broadcast-preview">
           <strong>{subject||tr("Заголовок")}</strong>
           <p>{message||tr("Текст сообщения появится здесь.")}</p>
-          {imageUrl&&<small>{tr("Изображение прикреплено")}</small>}
+          {imageUrl&&<div><small>{tr("Изображение прикреплено")}</small><img src={imageUrl}
+            alt={language==="cs"?"Náhled přiloženého obrázku":"Attached image preview"}
+            style={{display:"block",maxWidth:"100%",maxHeight:240,objectFit:"contain",borderRadius:12,marginTop:8}}/></div>}
         </div>
       </section>
       <section className="panel form-stack">

@@ -42,9 +42,7 @@ class LocalValidationError extends Error {}
 function formattedError(e:unknown,language:LanguageCode):string {
   return e instanceof LocalValidationError ? e.message : userFacingError(e,language);
 }
-function posterData(file:File):Promise<string> {return new Promise((resolve,reject)=>{
-  const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Poster read failed"));reader.readAsDataURL(file);
-});}
+function posterData(file:File):Promise<string> {return prepareGalleryPhoto(file);}
 export function AdminEventClient(){
   const {language}=useLanguage();
   const tr=(phrase:string)=>eventAdminText(language,phrase);
@@ -163,9 +161,10 @@ export function AdminEventClient(){
     try{
       let image:string|undefined;
       if(poster && poster.size>0) {
-        if(poster.size>4*1024*1024)throw new LocalValidationError(tr("Постер больше 4 МБ"));
-        if(!["image/jpeg","image/png","image/webp"].includes(poster.type))throw new LocalValidationError(tr("Формат постера: JPG, PNG или WebP."));
-        image=await posterData(poster);
+        if(poster.size>25*1024*1024)throw new LocalValidationError(language==="cs"?"Obrázek musí mít maximálně 25 MB.":"Choose an image smaller than 25 MB.");
+        if(poster.type&&!poster.type.startsWith("image/"))throw new LocalValidationError(language==="cs"?"Vyberte obrázek.":"Choose an image file.");
+        try{image=await posterData(poster);}
+        catch{throw new LocalValidationError(language==="cs"?"Obrázek se nepodařilo zpracovat. Zkuste JPG, PNG nebo WebP.":"Could not process this image. Try JPG, PNG or WebP.");}
       }
       if(!languages.length)throw new LocalValidationError(tr("Выбери язык."));
       const payload:Record<string,unknown>={
@@ -264,25 +263,40 @@ export function AdminEventClient(){
   // and one bad file never stops the rest.
   async function uploadPhotos(list: FileList|null) {
     const token=getWebToken();
-    const files=Array.from(list||[]).filter(f=>!f.type||f.type.startsWith("image/"));
-    if(!token||!files.length)return;
+    const chosen=Array.from(list||[]);
+    const oversized=chosen.filter(f=>f.size>25*1024*1024).length;
+    const invalid=chosen.filter(f=>f.type&&!f.type.startsWith("image/")).length;
+    const files=chosen.filter(f=>f.size<=25*1024*1024&&(!f.type||f.type.startsWith("image/")));
+    if(!token)return;
+    if(!files.length){
+      if(chosen.length)setError(language==="cs"?"Vyberte fotografie do 25 MB.":"Choose image files smaller than 25 MB.");
+      return;
+    }
     const free=Math.max(0,8-(event?.gallery_urls?.length||0));
     if(!free){setNotice("");setError(tr("Не более 8 фотографий на мероприятие."));return;}
     const batch=files.slice(0,free);
     setBusy(true);setError("");setNotice("");setUpload({done:0,total:batch.length});
     let failed=0;
+    const failures:string[]=[];
     for(const [i,file] of batch.entries()){
       try{await uploadManageGalleryPhoto(token,eventId,await prepareGalleryPhoto(file));}
-      catch{failed++;}
+      catch(e){failed++;failures.push(formattedError(e,language));}
       setUpload({done:i+1,total:batch.length});
     }
-    try{await reload();}catch{/* the list refreshes on the next visit */}
+    try{
+      // Refresh only server media: a full reload resets unsaved event title,
+      // description, venue and time while the user is editing.
+      const refreshed=await getManageEvent(eventId,token);
+      setEvent(refreshed);
+    }catch{/* the list refreshes on the next visit */}
     setUpload(null);setBusy(false);
     const added=batch.length-failed,skipped=files.length-batch.length;
     if(added)setNotice(tr("Загружено фото: {n}.").replace("{n}",String(added)));
     const problems=[
-      failed?tr("Не получилось загрузить: {n}. Сохрани эти фото как JPG и попробуй ещё раз.").replace("{n}",String(failed)):"",
+      failed?(language==="cs"?`Nepodařilo se nahrát ${failed} fotek: ${failures[0]||"Zkuste to znovu."}`:`Could not upload ${failed} photo(s): ${failures[0]||"Please try again."}`):"",
       skipped?tr("В галерее максимум 8 фото, лишние не загружены: {n}.").replace("{n}",String(skipped)):"",
+      oversized?(language==="cs"?`${oversized} fotografií přesahuje 25 MB.`:`${oversized} photo(s) exceed 25 MB.`):"",
+      invalid?(language==="cs"?`${invalid} souborů není obrázek.`:`${invalid} file(s) are not images.`):"",
     ].filter(Boolean).join(" ");
     if(problems)setError(problems);
   }
@@ -486,6 +500,7 @@ export function AdminEventClient(){
     }
     catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
+  const galleryIsFull=(event?.gallery_urls?.length||0)>=8;
   return <div className="app-shell"><AppHeader/><main className="page">
     <Link href="/admin" className="back-link">{tr("Organizer dashboard")}</Link>
     {loading&&<div className="state-card">{tr("Загрузка…")}</div>}
@@ -582,7 +597,11 @@ export function AdminEventClient(){
           <small className="tp-field-hint">{tr("Сайт, Instagram или страница места на карте. Гости увидят кнопку «Сайт площадки» на странице ивента.")}</small></label>
         <label>{tr("Описание")}<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>
         <OrganizerRules/>
-        <label>{tr("Фото мероприятия (HTTPS, по одной ссылке на строку, до 8)")}<textarea rows={4} value={gallery} onChange={e=>setGallery(e.target.value)}/></label>
+        <label>{language==="cs"?"Fotografie akce ze zařízení":"Event photos from your device"}
+          <input type="file" multiple accept="image/*" disabled={busy}
+            onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/>
+          <small className="tp-field-hint">{language==="cs"?"Vyberte až 8 fotek z telefonu nebo počítače. Fotografie se nahrají hned a již uložené zůstanou zachované.":"Choose up to 8 photos from your phone or computer. Photos upload immediately; existing photos are kept."}</small>
+        </label>
         <label>{tr("Видео (YouTube/Vimeo)")}<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
         <div className="two-col"><label>{tr("Дата и время")}<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
           <label>{tr("Количество мест")}<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
@@ -612,13 +631,13 @@ export function AdminEventClient(){
               <span className="event-language-name">{name}</span>
             </label>)}
         </div></fieldset>
-        <label>{tr("Новый постер (необязательно)")}<input ref={posterInputRef} type="file" accept="image/png,image/jpeg,image/webp" disabled={busy}
+        <label>{language==="cs"?"Nový plakát ze zařízení (nepovinné)":"New poster from your device (optional)"}<input ref={posterInputRef} type="file" accept="image/*" disabled={busy}
           onChange={e=>{
             const file=e.target.files?.[0]||null;
             setPosterStatus("");setPosterError("");
-            if(file&&(file.size>4*1024*1024||!["image/png","image/jpeg","image/webp"].includes(file.type))){
-              setError(file.size>4*1024*1024?tr("Постер больше 4 МБ"):tr("Формат постера: JPG, PNG или WebP."));
-              setPosterError(file.size>4*1024*1024?tr("Постер больше 4 МБ"):tr("Формат постера: JPG, PNG или WebP."));
+            if(file&&(file.size>25*1024*1024||(file.type&&!file.type.startsWith("image/")))){
+              setError(file.size>25*1024*1024?(language==="cs"?"Obrázek přesahuje 25 MB.":"Image exceeds 25 MB."):(language==="cs"?"Vyberte fotografii.":"Choose an image."));
+              setPosterError(file.size>25*1024*1024?(language==="cs"?"Obrázek přesahuje 25 MB.":"Image exceeds 25 MB."):(language==="cs"?"Vyberte fotografii.":"Choose an image."));
               e.currentTarget.value="";setPoster(null);return;
             }
             setError("");setPoster(file);
@@ -647,11 +666,11 @@ export function AdminEventClient(){
           onDragOver={e=>{e.preventDefault();if(!busy)setDropActive(true);}}
           onDragLeave={()=>setDropActive(false)}
           onDrop={e=>{e.preventDefault();setDropActive(false);if(!busy)void uploadPhotos(e.dataTransfer.files);}}>
-          <input type="file" accept="image/*" multiple disabled={busy||(event.gallery_urls?.length||0)>=8}
+          <input type="file" accept="image/*" multiple disabled={busy||galleryIsFull}
             onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4-4-9 9"/></svg>
           <strong>{upload?tr("Загружаем {done} из {total}…").replace("{done}",String(upload.done)).replace("{total}",String(upload.total))
-            :(event.gallery_urls?.length||0)>=8?tr("В галерее уже 8 фото. Удали одно, чтобы добавить новое."):tr("Перетащи фото сюда или нажми, чтобы выбрать")}</strong>
+            :galleryIsFull?tr("В галерее уже 8 фото. Удали одно, чтобы добавить новое."):tr("Перетащи фото сюда или нажми, чтобы выбрать")}</strong>
           <small>{tr("Подойдут любые фото с телефона или камеры, размер уменьшим сами. Лучше всего смотрятся горизонтальные.")}</small>
           {upload&&<span className="tt-gal-progress" aria-hidden="true"><i style={{width:`${Math.max(6,upload.done/upload.total*100)}%`}}/></span>}
         </label>
