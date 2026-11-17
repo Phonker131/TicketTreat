@@ -809,7 +809,7 @@ export type LoyaltyStudio = {
 };
 export type OrganizerTierBenefit = {
   tier:"newcomer"|"regular"|"insider"|"vip";required_visits:number;
-  key:string;label_en:string;label_cs:string;operational:boolean;
+  key:string;label_en:string;label_cs:string;description_en:string;description_cs:string;operational:boolean;
   enabled:boolean;editable_enabled:boolean;
 };
 export type OrganizerLoyaltyTiers = {organizers:{owner_account_id:number;name:string;tiers:OrganizerTierBenefit[]}[]};
@@ -817,7 +817,7 @@ export function getOrganizerLoyaltyTiers():Promise<OrganizerLoyaltyTiers>{
   return request("/demo/manage/loyalty/tiers");
 }
 export function updateOrganizerLoyaltyTier(ownerId:number,tier:OrganizerTierBenefit["tier"],
-  settings:{label_en:string;label_cs:string;priority_enabled?:boolean}):Promise<OrganizerTierBenefit>{
+  settings:{label_en:string;label_cs:string;description_en:string;description_cs:string;priority_enabled?:boolean}):Promise<OrganizerTierBenefit>{
   return request(`/demo/manage/loyalty/tiers/${ownerId}/${tier}`,{
     method:"PUT",body:JSON.stringify(settings),
   });

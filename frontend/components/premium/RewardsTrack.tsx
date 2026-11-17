@@ -78,6 +78,8 @@ export function RewardsTrack({language,visits,tierRewards}:{language:LanguageCod
      <small>{c.at[i]}</small>
      <strong>{c.names[i]}</strong>
      <span>{benefit?(language==="cs"?benefit.label_cs:benefit.label_en):c.perks[i]}</span>
+     {benefit&&(language==="cs"?benefit.description_cs:benefit.description_en)&&
+       <small>{language==="cs"?benefit.description_cs:benefit.description_en}</small>}
      {i>0&&<em className={isLive?"is-live":"is-soon"}>{isLive?c.live:c.soon}</em>}
     </div>
    </li>;

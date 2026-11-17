@@ -22,7 +22,7 @@ test("loyalty rewards are configured per organizer and tier, never per event",as
       const owner=Number(matched[1]),tier=matched[2],body=route.request().postDataJSON();
       saved={owner,tier,body};
       const benefit=dashboard.organizers.find(o=>o.owner_account_id===owner)!.tiers.find(b=>b.tier===tier)!;
-      Object.assign(benefit,{label_en:body.label_en,label_cs:body.label_cs,
+      Object.assign(benefit,{label_en:body.label_en,label_cs:body.label_cs,description_en:body.description_en,description_cs:body.description_cs,
         enabled:tier==="regular"?body.priority_enabled:benefit.enabled});
       return route.fulfill({json:benefit});
     }
@@ -36,11 +36,13 @@ test("loyalty rewards are configured per organizer and tier, never per event",as
   await regular.getByRole("button",{name:"Edit reward"}).click();
   await regular.getByLabel("Reward (English)").fill("VIP queue priority");
   await regular.getByLabel("Reward (Czech)").fill("VIP pořadník");
+  await regular.getByLabel("Details (English)").fill("For repeat visitors");
+  await regular.getByLabel("Details (Czech)").fill("Pro pravidelné hosty");
   await regular.getByLabel("Enable waitlist priority").uncheck();
   await regular.getByRole("button",{name:"Save changes"}).click();
   await expect(regular.getByText("VIP queue priority")).toBeVisible();
   await expect(regular.getByText("Paused")).toBeVisible();
-  expect(saved).toMatchObject({owner:2,tier:"regular",body:{label_en:"VIP queue priority",label_cs:"VIP pořadník",priority_enabled:false}});
+  expect(saved).toMatchObject({owner:2,tier:"regular",body:{label_en:"VIP queue priority",label_cs:"VIP pořadník",description_en:"For repeat visitors",description_cs:"Pro pravidelné hosty",priority_enabled:false}});
   await page.reload();
   await expect(regular.getByText("VIP queue priority")).toBeVisible();
   await page.getByLabel("Organizer",{exact:true}).selectOption("3");
