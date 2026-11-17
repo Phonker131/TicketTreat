@@ -97,6 +97,8 @@ export function AdminEventClient(){
   const scheduleAt=scheduleDate&&scheduleTime?`${scheduleDate}T${scheduleTime}`:"";
   const [poster,setPoster]=useState<File|null>(null);
   const [posterPreview,setPosterPreview]=useState("");
+  const [posterStatus,setPosterStatus]=useState("");
+  const [posterError,setPosterError]=useState("");
   const posterInputRef=useRef<HTMLInputElement>(null);
   useEffect(()=>{
     if(!poster){setPosterPreview("");return;}
@@ -152,7 +154,9 @@ export function AdminEventClient(){
 
   async function saveChanges(e:FormEvent){
     e.preventDefault();const token=getWebToken();if(!token||!event)return;
-    setBusy(true);setError("");setNotice("");
+    if(busy)return;
+    setBusy(true);setError("");setNotice("");setPosterError("");
+    setPosterStatus(language==="cs"?"Ukládání změn a nahrávání plakátu…":"Saving changes and uploading the poster…");
     try{
       let image:string|undefined;
       if(poster && poster.size>0) {
@@ -172,10 +176,15 @@ export function AdminEventClient(){
       };
       if(image)payload.poster_data_url=image;
       await editManageEvent(token,eventId,payload);
-      await reload();setPoster(null);
-      if(posterInputRef.current)posterInputRef.current.value="";
+      setPosterStatus(poster?(language==="cs"?"Nový plakát byl uložen.":"New poster saved successfully."):tr("Изменения сохранены."));
       setNotice(tr("Изменения сохранены."));
-    }catch(e){setError(formattedError(e,language));}
+      try{
+        await reload();setPoster(null);
+        if(posterInputRef.current)posterInputRef.current.value="";
+      }catch{
+        setPosterError(language==="cs"?"Změny jsou uložené, ale náhled se nepodařilo obnovit. Obnovte stránku.":"Changes are saved, but the preview could not refresh. Reload the page.");
+      }
+    }catch(e){setPosterStatus("");setPosterError(formattedError(e,language));setError(formattedError(e,language));}
     finally{setBusy(false);}
   }
   useEffect(()=>{
@@ -594,15 +603,20 @@ export function AdminEventClient(){
         <label>{tr("Новый постер (необязательно)")}<input ref={posterInputRef} type="file" accept="image/png,image/jpeg,image/webp" disabled={busy}
           onChange={e=>{
             const file=e.target.files?.[0]||null;
+            setPosterStatus("");setPosterError("");
             if(file&&(file.size>4*1024*1024||!["image/png","image/jpeg","image/webp"].includes(file.type))){
               setError(file.size>4*1024*1024?tr("Постер больше 4 МБ"):tr("Формат постера: JPG, PNG или WebP."));
+              setPosterError(file.size>4*1024*1024?tr("Постер больше 4 МБ"):tr("Формат постера: JPG, PNG или WebP."));
               e.currentTarget.value="";setPoster(null);return;
             }
             setError("");setPoster(file);
+            if(file)setPosterStatus(language==="cs"?"Soubor je vybraný. Klikněte na Uložit změny.":"File selected. Click Save changes to upload it.");
           }}/>
           <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
-        {(posterPreview||event.image_url)&&<img src={posterPreview||event.image_url!} alt={posterPreview?"Selected event poster":"Event poster"} className="event-poster-preview"/>}
-        {poster&&<p className="form-note" role="status">{language==="cs"?"Náhled nového plakátu. Pro zveřejnění klikněte na Uložit změny.":"New poster preview. Click Save changes to publish it."}</p>}
+        {(posterPreview||event.image_url)&&<img src={posterPreview||event.image_url!} alt={posterPreview?"Selected event poster":"Event poster"} className="event-poster-preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/>}
+        {poster&&<p className="form-note"><strong>{poster.name} · {(poster.size/1024/1024).toFixed(2)} MB</strong><br/>{language==="cs"?"Náhled nového plakátu. Pro zveřejnění klikněte na Uložit změny.":"New poster preview. Click Save changes to publish it."}</p>}
+        {posterStatus&&<p role="status" className="success-banner">{posterStatus}</p>}
+        {posterError&&<p role="alert" className="error-banner">{posterError}</p>}
         <button className="button button-primary" disabled={busy}>{busy?tr("Сохраняем…"):tr("Сохранить изменения")}</button>
       </form>}
       </div>}
