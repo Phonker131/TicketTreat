@@ -80,6 +80,8 @@ export function BroadcastClient(){
   async function addImage(file:File|undefined){
     if(!file)return;
     invalidate();
+    // Never accidentally send an outdated picture if the new selection fails.
+    setImageUrl("");
     if(file.size>25*1024*1024){
       setError(language==="cs"?"Vyberte obrázek menší než 25 MB.":"Choose an image smaller than 25 MB.");return;
     }
@@ -210,8 +212,8 @@ export function BroadcastClient(){
             onChange={e=>{void addImage(e.target.files?.[0]);e.currentTarget.value="";}}/>
           <small>{language==="cs"?"Vyberte fotku do 25 MB. Před odesláním ji zmenšíme a bezpečně uložíme pro e-mail i Telegram.":"Choose a photo up to 25 MB. It is resized and stored for email and Telegram delivery."}</small>
           {imageBusy&&<span role="status">{language==="cs"?"Nahrávání obrázku…":"Uploading image…"}</span>}
-          {imageUrl&&<button type="button" className="button button-outline" onClick={()=>{setImageUrl("");invalidate();}}>{language==="cs"?"Odebrat obrázek":"Remove image"}</button>}
         </label>
+        {imageUrl&&<button type="button" className="button button-outline" onClick={()=>{setImageUrl("");invalidate();}}>{language==="cs"?"Odebrat obrázek":"Remove image"}</button>}
         <div className="tt-broadcast-preview">
           <strong>{subject||tr("Заголовок")}</strong>
           <p>{message||tr("Текст сообщения появится здесь.")}</p>
