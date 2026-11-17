@@ -72,6 +72,35 @@ html body main.ev2 .detail-grid{margin-bottom:34px!important}
 /* ---------- finer icon strokes ---------- */
 html body .tt-dash-icon{stroke-width:1.6}
 
+/* Mobile organizer tabs stay INSIDE the inset dashboard bezel.  The previous
+   negative horizontal margin on .tp-admin-nav let the first/last pills escape
+   the framed panel (especially in Safari on narrow phones).  Keep the full
+   list available by scrolling the inner row, without scrolling the page. */
+@media (max-width:999px){
+ html body .tt-dash{min-width:0}
+ html body .tt-dash-side{
+  box-sizing:border-box;
+  width:100%;max-width:100%;min-width:0;
+  padding:8px;
+  margin:0 0 18px;
+  overflow:hidden;
+  border-radius:18px;
+ }
+ html body .tt-dash-side .tp-admin-nav{
+  display:flex!important;flex-wrap:nowrap!important;align-items:center;
+  box-sizing:border-box;width:100%;max-width:100%;min-width:0;
+  gap:8px;
+  margin:0!important;padding:4px 6px!important;
+  overflow-x:auto;overflow-y:hidden;
+  overscroll-behavior-x:contain;scrollbar-width:none;
+  scroll-padding-inline:6px;
+  -webkit-overflow-scrolling:touch;
+ }
+ html body .tt-dash-side .tp-admin-nav::-webkit-scrollbar{display:none}
+ html body .tt-dash-side .tp-admin-nav li{flex:0 0 auto}
+ html body .tt-dash-side .tp-admin-nav a{min-height:44px;white-space:nowrap}
+}
+
 /* phone menu: win over the older link boxes and the old highlighted item */
 @media (max-width:999px){
  html body header.topbar nav.topbar-nav{background:color-mix(in srgb,var(--tp-bg) 92%,transparent)!important;color:var(--tp-fg)!important}
