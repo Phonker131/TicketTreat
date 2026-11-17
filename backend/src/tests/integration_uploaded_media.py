@@ -44,12 +44,12 @@ class UploadedBroadcastMediaTests(unittest.TestCase):
             uploaded = client.post(endpoint, headers=headers, json={"data_url": data_url})
             self.assertEqual(uploaded.status_code, 201, uploaded.text)
             url = uploaded.json()["image_url"]
-            self.assertRegex(url, r"^https://tickettreat\\.eu/api/gateway/demo/public/broadcast-media/[A-Za-z0-9_-]{43}$")
+            self.assertRegex(url, r"^https://tickettreat\.eu/api/gateway/demo/public/broadcast-media/[A-Za-z0-9_-]{43}$")
             token = url.rsplit("/", 1)[1]
             image = client.get("/demo/public/broadcast-media/" + token)
-            self.assertEqual(image.status_code, 200, image.text[:200] if not image.ok else "")
+            self.assertEqual(image.status_code, 200, image.text[:200] if image.status_code != 200 else "")
             self.assertEqual(image.headers["content-type"], "image/jpeg")
-            self.assertEqual(image.content[:3], b"\\xff\\xd8\\xff")
+            self.assertEqual(image.content[:3], b"\xff\xd8\xff")
             self.assertEqual(client.get("/demo/public/broadcast-media/" + "X" * 43).status_code, 404)
             self.assertEqual(client.get("/demo/public/broadcast-media/invalid").status_code, 404)
             with SessionLocal() as db:
