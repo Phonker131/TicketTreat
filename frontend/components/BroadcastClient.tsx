@@ -8,7 +8,7 @@ import {broadcastText} from "@/lib/broadcast-i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import {localeForLanguage} from "@/lib/i18n";
 import {getWebToken} from "@/lib/session";
-import {getManageMe,getManageEvents,previewBroadcast,sendBroadcast,getBroadcastHistory} from "@/lib/api";
+import {getManageMe,getManageEvents,previewBroadcast,sendBroadcast,getBroadcastHistory,uploadBroadcastImage} from "@/lib/api";
 import type {BroadcastAudience,BroadcastHistory} from "@/lib/api";
 import type {ManageEvent,ManageIdentity} from "@/lib/types";
 
@@ -26,6 +26,8 @@ function messageOf(error:unknown,language: "en"|"cs"|"ru"|"uk"):string {
   };
   return errors[raw] ? broadcastText(language,errors[raw]) : userFacingError(error,language);
 }
+
+import {prepareUploadImage} from "@/lib/gallery-photo";
 
 const MIN_SUBJECT_CHARS=5;
 const MIN_MESSAGE_CHARS=20;
@@ -108,6 +110,17 @@ export function BroadcastClient(){
     }catch(e){setError(e instanceof Error?e.message:String(e));}
     finally{setBusy(false);}
   }
+  async function uploadImage(file:File|undefined){
+    const token=getWebToken();if(!file||!token||busy)return;
+    if(scope==="event"&&!eventId){setError(tr("Выбери ивент."));return;}
+    invalidate();setBusy(true);
+    try{
+      const data_url=await prepareUploadImage(file,2*1024*1024);
+      const result=await uploadBroadcastImage(token,{...draft(),data_url});
+      setImageUrl(result.url);setSuccess(language==="cs"?"Obrázek byl nahrán. Rozesílka zatím nebyla odeslána.":"Image uploaded. The broadcast has not been sent yet.");
+    }catch(e){setError(e instanceof Error?e.message:String(e));}
+    finally{setBusy(false);}
+  }
   async function refresh(){
     const token=getWebToken();if(!token)return;
     setBusy(true);
@@ -178,11 +191,21 @@ export function BroadcastClient(){
               :`${tr("✓ Текст готов к отправке:")} ${messageChars}/1000 ${tr("символов")}.`}
           </small>
         </label>
+        <label>{language==="cs"?"Nahrát obrázek z telefonu nebo počítače":"Upload image from phone or computer"}
+          <input type="file" accept="image/*" disabled={busy} onChange={e=>{void uploadImage(e.target.files?.[0]);e.currentTarget.value="";}}/>
+          <small>{language==="cs"?"Velké fotografie se zmenší. Nahraný obrázek bude dostupný příjemcům přes veřejný odkaz.":"Large photos are resized. Uploaded images are accessible to recipients through a public link."}</small>
+        </label>
+        {busy&&<p role="status">{language==="cs"?"Zpracování…":"Processing…"}</p>}
+        {error&&<p role="alert">{messageOf(error,language)}</p>}
+        {success&&<p role="status">{success}</p>}
+        <details><summary>{language==="cs"?"Nebo použít odkaz na obrázek":"Or use an image link"}</summary>
         <label>{tr("Ссылка на изображение (необязательно)")}
           <input type="url" value={imageUrl} maxLength={1000} placeholder="https://example.com/photo.jpg"
             onChange={e=>{setImageUrl(e.target.value);invalidate();}}/>
           <small>{tr("Публичный HTTPS-адрес картинки для Telegram и email. Необязательно.")}</small>
         </label>
+        </details>
+        {imageUrl&&<><img src={imageUrl} alt={language==="cs"?"Náhled obrázku":"Image preview"} style={{maxWidth:"100%",maxHeight:300,objectFit:"contain"}}/><button type="button" className="button button-outline" disabled={busy} onClick={()=>{setImageUrl("");invalidate();}}>{language==="cs"?"Odebrat obrázek":"Remove image"}</button></>}
         <div className="tt-broadcast-preview">
           <strong>{subject||tr("Заголовок")}</strong>
           <p>{message||tr("Текст сообщения появится здесь.")}</p>
