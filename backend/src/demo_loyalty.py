@@ -55,11 +55,12 @@ def attendance_counts(db: Session, owner_id: int, guest_ids: list[int], *,
     if main is None:
         import main as main
     from demo_roles import EventOwnership
+    from demo_loyalty_benefits import loyalty_attendance_scope
     _season, start, end = season_bounds(now)
     rows = (db.query(main.DemoTicket.guest_id, func.count(func.distinct(main.DemoTicket.event_id)))
             .join(EventOwnership, EventOwnership.event_id == main.DemoTicket.event_id)
             .join(main.Event, main.Event.id == main.DemoTicket.event_id)
-            .filter(EventOwnership.owner_account_id == owner_id,
+            .filter(loyalty_attendance_scope(db, owner_id, main.Event),
                     main.DemoTicket.guest_id.in_(guest_ids),
                     main.DemoTicket.ticket_status == "active",
                     main.DemoTicket.checked_in_at.isnot(None),
@@ -73,6 +74,8 @@ def attendance_counts(db: Session, owner_id: int, guest_ids: list[int], *,
 def passport_for(db: Session, guest_id: int, main, *, now: datetime | None = None) -> dict:
     """The user's own studio passports, including studios with bookings but no visits."""
     from demo_roles import EventOwnership
+    from demo_loyalty_benefits import canonical_loyalty_owner, loyalty_alias_lookup
+    aliases = loyalty_alias_lookup(db)
     season, start, end = season_bounds(now)
     records = (db.query(EventOwnership.owner_account_id, main.Event.organizer,
                         main.DemoTicket.event_id, main.DemoTicket.checked_in_at,
@@ -83,8 +86,9 @@ def passport_for(db: Session, guest_id: int, main, *, now: datetime | None = Non
                .order_by(main.DemoTicket.event_id).all())
     studios: dict[int, dict] = {}
     for owner, label, event_id, checked_at, status, cancelled in records:
-        studio = studios.setdefault(int(owner), {
-            "organizer_id": int(owner), "organizer_name": str(label or "").strip()[:120] or "TicketTreat organizer",
+        studio_owner = canonical_loyalty_owner(owner, label, aliases)
+        studio = studios.setdefault(studio_owner, {
+            "organizer_id": studio_owner, "organizer_name": str(label or "").strip()[:120] or "TicketTreat organizer",
             "visits": set(), "total_visits": set(),
         })
         if label and studio["organizer_name"] == "TicketTreat organizer":
@@ -122,16 +126,18 @@ def passport_for(db: Session, guest_id: int, main, *, now: datetime | None = Non
     for promotion in campaign_perks:
         if promotion["reward_kind"] != "vip_perk":
             continue
-        studio = next((s for s in result if s["organizer_id"] == promotion["organizer_id"]), None)
+        studio_owner = canonical_loyalty_owner(
+            promotion["organizer_id"], promotion["organizer_name"], aliases)
+        studio = next((s for s in result if s["organizer_id"] == studio_owner), None)
         if studio is None:
             studio = {
-                "organizer_id": promotion["organizer_id"],
+                "organizer_id": studio_owner,
                 "organizer_name": promotion["organizer_name"],
                 "season_visits": 0, "lifetime_visits": 0, **tier_for(0),
-                "tier_rewards": benefits_for_organizer(db, promotion["organizer_id"]),
+                "tier_rewards": benefits_for_organizer(db, studio_owner),
                 "perks": [
                     {"key": "priority_waitlist", "required_visits": 3, "available": False,
-                     "operational": benefits_for_organizer(db, promotion["organizer_id"])[1]["enabled"]},
+                     "operational": benefits_for_organizer(db, studio_owner)[1]["enabled"]},
                     {"key": "early_access", "required_visits": 6, "available": False, "operational": False},
                     {"key": "vip_companion", "required_visits": 12, "available": False, "operational": False},
                 ],
@@ -162,10 +168,12 @@ def priority_waitlist_entry(db: Session, event, main):
     owner = db.get(EventOwnership, event.id)
     if owner is None:
         return waiting[0]
-    from demo_loyalty_benefits import priority_enabled
-    if not priority_enabled(db, owner.owner_account_id):
+    from demo_loyalty_benefits import priority_enabled, canonical_loyalty_owner, loyalty_alias_lookup
+    studio_owner = canonical_loyalty_owner(owner.owner_account_id, event.organizer,
+                                          loyalty_alias_lookup(db))
+    if not priority_enabled(db, studio_owner):
         return waiting[0]
-    counts = attendance_counts(db, owner.owner_account_id,
+    counts = attendance_counts(db, studio_owner,
                                [int(entry.guest_id) for entry in waiting], main=main)
     # Python stable sort preserves already-ordered FIFO entries in a level.
     waiting.sort(key=lambda entry: -tier_for(counts.get(int(entry.guest_id), 0))["threshold"])
