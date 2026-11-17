@@ -151,7 +151,11 @@ export function AdminClient() {
       const starts=String(data.get("starts_at")||"");
       if(!starts)throw new Error("event_start_required");
       if(!reminderMinutes.length||!reminderMessage.trim())throw new Error("reminder_settings_required");
-      const photos=data.getAll("gallery_files").filter((f):f is File=>f instanceof File&&f.size>0&&(!f.type||f.type.startsWith("image/")));
+      const photos=data.getAll("gallery_files").filter((f):f is File=>f instanceof File&&f.size>0);
+      if(photos.some(f=>f.size>25*1024*1024))
+        throw new LocalValidationError(language==="cs"?"Každá fotografie musí mít maximálně 25 MB.":"Each photo must be smaller than 25 MB.");
+      if(photos.some(f=>f.type&&!f.type.startsWith("image/")))
+        throw new LocalValidationError(language==="cs"?"Vyberte pouze fotografie.":"Choose image files only.");
       if(photos.length>8)throw new LocalValidationError(language==="cs"?"Maximálně 8 fotografií.":"Choose at most 8 photos.");
       const event=await addManageEvent(token,{
         title:String(data.get("title")||"").trim(),
