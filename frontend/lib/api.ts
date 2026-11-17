@@ -781,6 +781,10 @@ export function createOrganizerReward(data:{event_id:number;title:string;descrip
   kind:"badge"|"recognition"|"perk"}):Promise<OrganizerReward>{
   return request("/demo/manage/rewards",{method:"POST",body:JSON.stringify(data)});
 }
+export function updateOrganizerReward(rewardId:number,data:{title:string;description:string;
+  kind:"badge"|"recognition"|"perk";active:boolean}):Promise<OrganizerReward>{
+  return request(`/demo/manage/rewards/${rewardId}`,{method:"PATCH",body:JSON.stringify(data)});
+}
 export function grantOrganizerReward(rewardId:number,ticketId:number,note:string):Promise<OrganizerRewardGrant>{
   return request(`/demo/manage/rewards/${rewardId}/grants`,{
     method:"POST",body:JSON.stringify({ticket_id:ticketId,note}),

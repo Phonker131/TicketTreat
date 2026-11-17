@@ -1082,6 +1082,9 @@ input:focus, textarea:focus, select:focus {
   padding:13px 4px;border-top:1px solid rgba(120,94,125,.2);min-width:0}
 .tt-reward-history-row>div:first-child {min-width:0;overflow-wrap:anywhere}
 .tt-reward-history-row p {margin:4px 0}
+.tt-reward-edit-form {width:min(100%,560px);flex:1 1 320px}
+.tt-reward-edit-toggle {display:flex;align-items:center;gap:12px;cursor:pointer}
+.tt-reward-admin .tt-reward-edit-toggle input {width:20px;height:20px;flex:none}
 .tt-reward-history-actions {display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
 .tt-guest-manual-awards {margin:20px 0}
 .tt-award-passport-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin-top:14px}
