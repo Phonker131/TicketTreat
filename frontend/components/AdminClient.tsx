@@ -8,7 +8,7 @@ import {eventAdminText} from "@/lib/event-admin-i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import { uploadManageGalleryPhoto, addManageEvent, getManageEvents, getManageMe, getSupportSummary } from "@/lib/api";
-import {prepareGalleryPhoto} from "@/lib/gallery-photo";
+import {prepareGalleryPhoto,prepareUploadImage} from "@/lib/gallery-photo";
 import { getWebToken } from "@/lib/session";
 import {localeForLanguage} from "@/lib/i18n";
 import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag} from "@/lib/event-tags";
@@ -149,9 +149,7 @@ export function AdminClient() {
       const file=data.get("poster");
       let poster_data_url: string|null=null;
       if(file instanceof File && file.size>0){
-        if(file.size>4*1024*1024)throw new Error("poster_too_large");
-        if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw new Error("invalid_poster_type");
-        poster_data_url=await readPoster(file);
+        poster_data_url=await prepareUploadImage(file);
       }
       const langs=data.getAll("languages").map(String).filter((v):v is LanguageCode=>["en","cs","ru","uk"].includes(v));
       if(!langs.length)throw new Error("invalid_event_languages");
@@ -304,21 +302,17 @@ export function AdminClient() {
           </section>
           <section className="tp-form-section">
             <h3>{x.media}</h3>
-            <label>{x.poster}<input name="poster" type="file" accept="image/jpeg,image/png,image/webp"
+            <label>{x.poster}<input name="poster" type="file" accept="image/*"
               disabled={saving} onChange={e=>{
                 const f=e.target.files?.[0];setPreview("");setError("");
                 if(!f)return;
-                if(f.size>4*1024*1024||!["image/jpeg","image/png","image/webp"].includes(f.type)){
-                  setError(f.size>4*1024*1024?"msg:tooBig":userFacingError(new Error("invalid_poster_type"),language));
-                  e.currentTarget.value="";return;
-                }
                 setPreview(URL.createObjectURL(f));
               }}/>
               <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
             {preview&&<img className="event-poster-preview" src={preview} alt="Poster preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/>}
             <label>{language==="cs"?"Nahrát fotografie z zařízení":"Upload photos from your device"}<input name="gallery_files" type="file" multiple accept="image/*"/>
               <small className="tp-field-hint">{language==="cs"?"Jakékoli fotky z telefonu nebo fotoaparátu, velikost zmenšíme sami. Celkem nejvýše 8 včetně odkazů.":"Any photos from your phone or camera, we resize them for you. 8 in total, links included."}</small></label>
-            <label>{ui.photo}<textarea name="gallery_urls" rows={3} placeholder="https://example.com/event-photo.jpg"/></label>
+            <details><summary>{language==="cs"?"Nebo vložit odkazy na fotografie":"Or use photo links"}</summary><label>{ui.photo}<textarea name="gallery_urls" rows={3} placeholder="https://example.com/event-photo.jpg"/></label></details>
             <label>{ui.video}<input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=…"/></label>
           </section>
           <section className="tp-form-section is-wide">
