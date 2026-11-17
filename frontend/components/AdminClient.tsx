@@ -89,6 +89,7 @@ export function AdminClient() {
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
   const [preview,setPreview]=useState("");
+  useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview);},[preview]);
   const [reminderMinutes,setReminderMinutes]=useState<number[]>([10080,1440,180]);
   const [reminderMessage,setReminderMessage]=useState(() => tr("Your TicketTreat event starts soon."));
   const [eventSearch,setEventSearch]=useState("");
@@ -116,6 +117,7 @@ export function AdminClient() {
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if(saving)return;
     const token=getWebToken();
     if(!token)return;
     const form=e.currentTarget,data=new FormData(form);
@@ -281,9 +283,17 @@ export function AdminClient() {
           <section className="tp-form-section">
             <h3>{x.media}</h3>
             <label>{x.poster}<input name="poster" type="file" accept="image/jpeg,image/png,image/webp"
-              onChange={e=>{const f=e.target.files?.[0];if(!f){setPreview("");return;}if(f.size>4*1024*1024){setError("msg:tooBig");return;}const url=URL.createObjectURL(f);setPreview(url);}}/>
+              disabled={saving} onChange={e=>{
+                const f=e.target.files?.[0];setPreview("");setError("");
+                if(!f)return;
+                if(f.size>4*1024*1024||!["image/jpeg","image/png","image/webp"].includes(f.type)){
+                  setError(f.size>4*1024*1024?"msg:tooBig":userFacingError(new Error("invalid_poster_type"),language));
+                  e.currentTarget.value="";return;
+                }
+                setPreview(URL.createObjectURL(f));
+              }}/>
               <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
-            {preview&&<img className="event-poster-preview" src={preview} alt="Poster preview"/>}
+            {preview&&<img className="event-poster-preview" src={preview} alt="Poster preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/>}
             <label>{language==="cs"?"Nahrát fotografie z zařízení":"Upload photos from your device"}<input name="gallery_files" type="file" multiple accept="image/jpeg,image/png,image/webp"/>
               <small className="tp-field-hint">{language==="cs"?"JPG, PNG nebo WebP, do 2 MB za fotografii, celkem nejvýše 8 fotografií včetně odkazů.":"JPG, PNG or WebP, up to 2 MB each, 8 photos total including links."}</small></label>
             <label>{ui.photo}<textarea name="gallery_urls" rows={3} placeholder="https://example.com/event-photo.jpg"/></label>
@@ -302,6 +312,7 @@ export function AdminClient() {
               message={reminderMessage} onMessageChange={setReminderMessage} language={language}/>
           </section>
           <div className="tp-form-actions">
+            {error&&<p role="alert" className="state-card state-error">{show(error)}</p>}
             <button className="button button-primary" disabled={saving}>{saving?ui.saving:ui.createDraft}</button>
             <button type="button" className="button button-outline" onClick={()=>setShowForm(false)}>{ui.close}</button>
           </div>
