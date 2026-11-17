@@ -1039,3 +1039,7 @@ export function getBroadcastPreferences():Promise<BroadcastPreferencesData>{
 export function saveBroadcastPreferences(data:BroadcastPreferencesData):Promise<BroadcastPreferencesData>{
   return request("/demo/auth/broadcast-preferences",{method:"PUT",body:JSON.stringify(data)});
 }
+
+export function uploadBroadcastImage(token:string,payload:{scope:"global"|"event";event_id:number|null;data_url:string}):Promise<{url:string}>{
+  return request("/demo/manage/broadcast-images",{method:"POST",headers:accountHeaders(token),body:JSON.stringify(payload)});
+}
