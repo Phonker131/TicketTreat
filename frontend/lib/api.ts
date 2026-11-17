@@ -847,6 +847,11 @@ export type BroadcastSend = BroadcastDraft & {
   expected_email_recipients:number;expected_telegram_recipients:number;
   confirm:"SEND";service_only:true;
 };
+export function uploadBroadcastImage(token:string,dataUrl:string):Promise<{image_url:string}> {
+  return request("/demo/manage/broadcasts/media",{
+    method:"POST",headers:accountHeaders(token),body:JSON.stringify({data_url:dataUrl})
+  });
+}
 export function previewBroadcast(token:string,draft:BroadcastDraft):Promise<BroadcastAudience> {
   return request("/demo/manage/broadcasts/preview",{method:"POST",headers:accountHeaders(token),body:JSON.stringify(draft)});
 }
