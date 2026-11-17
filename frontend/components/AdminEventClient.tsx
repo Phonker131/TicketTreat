@@ -276,7 +276,12 @@ export function AdminEventClient(){
       catch(e){failed++;failures.push(formattedError(e,language));}
       setUpload({done:i+1,total:batch.length});
     }
-    try{await reload();}catch{/* the list refreshes on the next visit */}
+    try{
+      // Refresh only server media: a full reload resets unsaved event title,
+      // description, venue and time while the user is editing.
+      const refreshed=await getManageEvent(eventId,token);
+      setEvent(refreshed);
+    }catch{/* the list refreshes on the next visit */}
     setUpload(null);setBusy(false);
     const added=batch.length-failed,skipped=files.length-batch.length;
     if(added)setNotice(tr("Загружено фото: {n}.").replace("{n}",String(added)));
