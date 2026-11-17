@@ -40,6 +40,28 @@ function DateTile({value,locale,empty}:{value:string|null;locale:string;empty:st
   return <span className="tp-ecard-date"><strong>{new Intl.DateTimeFormat(locale,{day:"2-digit"}).format(date)}</strong><span>{new Intl.DateTimeFormat(locale,{month:"short"}).format(date).replace(".","").toUpperCase()}</span></span>;
 }
 
+const DASH_ICONS:Record<string,React.ReactNode>={
+  events:<><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></>,
+  scan:<><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 12h8"/></>,
+  analytics:<><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></>,
+  rewards:<><circle cx="12" cy="9" r="5"/><path d="m8.5 13.5-1.5 7 5-2.5 5 2.5-1.5-7"/></>,
+  messages:<><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.7A8 8 0 1 1 21 12Z"/></>,
+  campaigns:<><path d="M3 11v2a2 2 0 0 0 2 2h2l5 4V5L7 9H5a2 2 0 0 0-2 2Z"/><path d="M16 9a4 4 0 0 1 0 6"/></>,
+  profile:<><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
+  accounts:<><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></>,
+  broadcast:<><path d="M5 12a7 7 0 0 1 14 0M8.5 12a3.5 3.5 0 0 1 7 0"/><circle cx="12" cy="12" r="1"/><path d="M12 13v8"/></>,
+  support:<><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="m5.6 5.6 3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6"/></>,
+  privacy:<><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/></>,
+  applications:<><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 8h6M9 12h6M9 16h3"/></>,
+  published:<><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></>,
+  drafts:<><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/></>,
+  guests:<><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></>,
+  next:<><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+};
+function DashIcon({name}:{name:string}){
+  return <svg className="tt-dash-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{DASH_ICONS[name]}</svg>;
+}
+
 export function AdminClient() {
   const {language}=useLanguage();
   const tr=(phrase:string)=>eventAdminText(language,phrase);
@@ -197,7 +219,24 @@ export function AdminClient() {
     return date&&!Number.isNaN(date.getTime())?new Intl.DateTimeFormat(locale,{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}).format(date):x.noDate;
   };
 
-  return <div className="app-shell"><AppHeader/><main className="page">
+  return <div className="app-shell"><AppHeader/><main className="page tt-dash-page"><div className="tt-dash">
+    {identity&&<aside className="tt-dash-side"><ul className="tp-admin-nav" aria-label={x.nav}>
+      <li><Link href="/admin" aria-current="page"><DashIcon name="events"/>{language==="cs"?"Akce":language==="ru"?"Ивенты":language==="uk"?"Події":"Events"}</Link></li>
+      <li><Link href="/admin/check-in"><DashIcon name="scan"/>{ui.scan}</Link></li>
+      <li><Link href="/admin/analytics"><DashIcon name="analytics"/>{x.analytics}</Link></li>
+      <li><Link href="/admin/rewards"><DashIcon name="rewards"/>{x.rewards}</Link></li>
+      <li><Link href="/admin/messages"><DashIcon name="messages"/>{language==="cs"?"Zprávy účastníků":"Attendee messages"}</Link></li>
+      <li><Link href="/admin/promotions"><DashIcon name="campaigns"/>{language==="cs"?"Kampaně":"Campaigns"}</Link></li>
+      <li><Link href="/admin/organizer-profile"><DashIcon name="profile"/>{x.profile}</Link></li>
+      {identity.role==="global_admin"&&<>
+        <li><Link href="/admin/accounts"><DashIcon name="accounts"/>{x.accounts}</Link></li>
+        <li><Link href="/admin/broadcasts"><DashIcon name="broadcast"/>{ui.broadcast}</Link></li>
+        <li><Link href="/admin/support"><DashIcon name="support"/>{ui.support}{supportUnread!==null&&supportUnread>0&&<b className="tp-badge">{supportUnread}</b>}</Link></li>
+        <li><Link href="/admin/privacy"><DashIcon name="privacy"/>{x.privacy}</Link></li>
+        <li><Link href="/admin/organizers"><DashIcon name="applications"/>{x.applications}</Link></li>
+      </>}
+    </ul></aside>}
+    <div className="tt-dash-main">
     <div className="admin-heading tp-admin-top">
       <div><span className="status status-demo">{identity?.role==="global_admin"?tr("Главный администратор"):tr("Организатор")}</span>
         <h1>{identity?.role==="global_admin"?ui.all:ui.mine}</h1>
@@ -209,20 +248,6 @@ export function AdminClient() {
         <Link className="button button-sun" href="/admin/check-in">{ui.scan}</Link>
       </div>}
     </div>
-    {identity&&<ul className="tp-admin-nav" aria-label={x.nav}>
-      <li><Link href="/admin/analytics">{x.analytics}</Link></li>
-      <li><Link href="/admin/rewards">{x.rewards}</Link></li>
-      <li><Link href="/admin/messages">{language==="cs"?"Zprávy účastníků":"Attendee messages"}</Link></li>
-      <li><Link href="/admin/promotions">{language==="cs"?"Kampaně":"Campaigns"}</Link></li>
-      <li><Link href="/admin/organizer-profile">{x.profile}</Link></li>
-      {identity.role==="global_admin"&&<>
-        <li><Link href="/admin/accounts">{x.accounts}</Link></li>
-        <li><Link href="/admin/broadcasts">{ui.broadcast}</Link></li>
-        <li><Link href="/admin/support">{ui.support}{supportUnread!==null&&supportUnread>0&&<b className="tp-badge">{supportUnread}</b>}</Link></li>
-        <li><Link href="/admin/privacy">{x.privacy}</Link></li>
-        <li><Link href="/admin/organizers">{x.applications}</Link></li>
-      </>}
-    </ul>}
     {error&&<div className="state-card state-error" role="alert">
       {error==="mfa_enrollment_required" || error==="mfa_challenge_required" ? <>
         <strong>{error==="mfa_enrollment_required" ? mfaCopy.setupTitle : mfaCopy.challengeTitle}</strong>
@@ -235,10 +260,10 @@ export function AdminClient() {
     {notice&&<div className="success-banner" role="status">{show(notice)}</div>}
     {loading?<div className="state-card">{ui.loading}</div>:identity&&identity.role!=="participant"&&<>
       {events.length>0&&<div className="tp-admin-summary" aria-label={ui.events}>
-        <div><strong>{summary.published}</strong><span>{x.published}</span></div>
-        <div><strong>{summary.drafts}</strong><span>{x.drafts}</span></div>
-        <div><strong>{summary.guests}</strong><span>{x.guestsTotal}</span></div>
-        <div><strong style={{fontSize:summary.next?20:30,lineHeight:1.05}}>{summary.next?summary.next.title:"-"}</strong><span>{x.next}: {summary.next?whenText(summary.next):x.none}</span></div>
+        <div><DashIcon name="published"/><strong>{summary.published}</strong><span>{x.published}</span></div>
+        <div><DashIcon name="drafts"/><strong>{summary.drafts}</strong><span>{x.drafts}</span></div>
+        <div><DashIcon name="guests"/><strong>{summary.guests}</strong><span>{x.guestsTotal}</span></div>
+        <div className="is-next"><DashIcon name="next"/><strong>{summary.next?summary.next.title:"-"}</strong><span>{x.next}: {summary.next?whenText(summary.next):x.none}</span></div>
       </div>}
       {showForm&&<form className="panel form-stack" onSubmit={submit}>
         <h2>{tr("Новый ивент")}</h2><p className="form-note">{ui.draftHelp}</p>
@@ -318,6 +343,16 @@ export function AdminClient() {
           </div>
         </div>
       </form>}
+      {upcoming.length>0&&<section className="tt-dash-chart" aria-label={language==="cs"?"Registrace na nadcházející akce":"Registrations for upcoming events"}>
+        <h2>{language==="cs"?"Registrace na nadcházející akce":language==="ru"?"Записи на ближайшие ивенты":language==="uk"?"Записи на найближчі події":"Registrations for upcoming events"}</h2>
+        <div className="tt-dash-bars">{[...upcoming].sort((a,b)=>startMs(a)-startMs(b)).slice(0,8).map(ev=>{
+          const reg=ev.registered_count??0,cap=ev.max_participants||0,pct=cap?Math.min(100,Math.round(100*reg/cap)):Math.min(100,reg*10);
+          return <Link key={ev.id} href={`/admin/events/${ev.id}`} className="tt-dash-bar" title={ev.title}>
+            <b>{reg}{cap?` / ${cap}`:""}</b>
+            <span className="tt-dash-bar-track"><i style={{height:`${Math.max(pct,3)}%`}}/></span>
+            <small>{ev.title}</small>
+          </Link>;})}</div>
+      </section>}
       {events.length>0&&<div className="tp-admin-toolbar" role="search" aria-label={tr("Фильтрация мероприятий")}>
         <label className="is-search">{x.search}<input type="search" placeholder={ui.searchHint}
           value={eventSearch} onChange={e=>setEventSearch(e.target.value)}/></label>
@@ -339,6 +374,7 @@ export function AdminClient() {
           const fill=cap?Math.min(100,Math.round(100*registered/cap)):0;
           return <Link key={ev.id} href={`/admin/events/${ev.id}`} className="admin-event-card tp-admin-card">
             <DateTile value={ev.starts_at} locale={locale} empty={x.noDate}/>
+            <span className="tt-dash-thumb">{ev.image_url?<img src={ev.image_url} alt="" loading="lazy"/>:null}</span>
             <span className={`tp-status is-${status}`}>
               <span className="tp-status-name">{ev.visibility==="link_only"&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{marginRight:4,verticalAlign:"-1px"}}><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>}{statusLabel(ev)}</span>
               {" "}
@@ -355,5 +391,5 @@ export function AdminClient() {
       </div>
       {!events.length&&<div className="state-card">{ui.empty}</div>}
     </>}
-    </main></div>;
+    </div></div></main></div>;
 }

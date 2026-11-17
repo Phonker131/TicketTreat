@@ -17,5 +17,5 @@ test("homepage has the current branded hero without legacy landing request",asyn
   await expect(page.locator("#tt-night-title")).toBeVisible();
   await page.waitForLoadState("networkidle");
   expect(staleRequests).toEqual([]);
-  await expect(page.locator("#tt-night-title")).toContainText("WHAT'S ON");
+  await expect(page.locator("#tt-night-title")).toContainText("TONIGHT");
 });

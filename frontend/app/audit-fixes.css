@@ -183,7 +183,8 @@ html body .app-shell p.state-card[role="status"]{font:400 14px/1.5 var(--u)!impo
  html body .app-shell main.page>h1{margin-top:8px!important}
 }
 /* sign-in and recovery forms: a readable column, not a 1200px wide field */
-html body .app-shell main.page.auth-container:not(:has(#profile-panel-overview,[role="tablist"] [role="tab"])){max-width:560px!important;margin-inline:auto!important}
+html body .app-shell main.page.auth-container:not(:has(#profile-panel-overview,[role="tablist"] [role="tab"],> .tt-login-art)){max-width:560px!important;margin-inline:auto!important}
+@media (max-width:959px){html body .app-shell main.page.auth-container:has(> .tt-login-art){max-width:560px!important;margin-inline:auto!important}}
 /* sign up / log in switch: the segmented control of the site */
 html body .app-shell .auth-tabs{display:grid!important;grid-template-columns:1fr 1fr;margin:18px 0!important;gap:0!important;padding:4px;border-radius:999px;background:var(--tp-surf);box-shadow:0 0 0 1.5px var(--tp-line)}
 html body .app-shell .auth-tabs button{min-height:44px;padding:0 14px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:var(--tp-mute)!important;font:700 15px/1 var(--u)!important}

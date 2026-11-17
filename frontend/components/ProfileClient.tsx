@@ -1,4 +1,5 @@
 "use client";
+import {LoginArt} from "@/components/premium/LoginArt";
 import {BroadcastPreferences} from "@/components/BroadcastPreferences";
 import {ProfileAwards} from "@/components/ProfileAwards";
 
@@ -951,6 +952,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
           </>
         ) : (
           <>
+            <LoginArt language={language}/>
             <h1>{screen==="login" ? (mode==="signup" ? tr.signup : tr.login) : tr.title}</h1>
             {telegramProfile && <section className="panel telegram-verified-profile">
               <span className="status status-success">✓ {ui.telegramVerified}</span>
