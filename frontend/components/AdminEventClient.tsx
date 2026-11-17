@@ -21,7 +21,7 @@ import {
   removeManageParticipant,removeManageWaitlistGuest,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
-import {prepareGalleryPhoto} from "@/lib/gallery-photo";
+import {prepareGalleryPhoto,prepareUploadImage} from "@/lib/gallery-photo";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
 import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag,type EventTag} from "@/lib/event-tags";
 import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff} from "@/lib/api";
@@ -155,6 +155,16 @@ export function AdminEventClient(){
     return()=>window.clearInterval(timer);
   },[eventId]);
 
+  async function savePoster(){
+    const token=getWebToken();if(!token||!poster||busy)return;
+    setBusy(true);setPosterError("");setPosterStatus(language==="cs"?"Nahrávání plakátu…":"Uploading poster…");
+    try{
+      const saved=await editManageEvent(token,eventId,{poster_data_url:await prepareUploadImage(poster)});
+      setEvent(saved);setPoster(null);if(posterInputRef.current)posterInputRef.current.value="";
+      setPosterStatus(language==="cs"?"Plakát byl uložen. Ostatní změny formuláře nejsou uložené.":"Poster saved. Other form edits have not been saved.");
+    }catch(e){setPosterStatus("");setPosterError(formattedError(e,language));}
+    finally{setBusy(false);}
+  }
   async function saveChanges(e:FormEvent){
     e.preventDefault();const token=getWebToken();if(!token||!event)return;
     if(busy)return;
@@ -163,9 +173,7 @@ export function AdminEventClient(){
     try{
       let image:string|undefined;
       if(poster && poster.size>0) {
-        if(poster.size>4*1024*1024)throw new LocalValidationError(tr("Постер больше 4 МБ"));
-        if(!["image/jpeg","image/png","image/webp"].includes(poster.type))throw new LocalValidationError(tr("Формат постера: JPG, PNG или WebP."));
-        image=await posterData(poster);
+        image=await prepareUploadImage(poster);
       }
       if(!languages.length)throw new LocalValidationError(tr("Выбери язык."));
       const payload:Record<string,unknown>={
@@ -276,7 +284,7 @@ export function AdminEventClient(){
       catch{failed++;}
       setUpload({done:i+1,total:batch.length});
     }
-    try{await reload();}catch{/* the list refreshes on the next visit */}
+    try{setEvent(await getManageEvent(eventId,token));}catch{setError(language==="cs"?"Fotografie byly odeslány, ale seznam se nepodařilo obnovit.":"Photos were submitted, but the list could not refresh.");}
     setUpload(null);setBusy(false);
     const added=batch.length-failed,skipped=files.length-batch.length;
     if(added)setNotice(tr("Загружено фото: {n}.").replace("{n}",String(added)));
@@ -582,7 +590,11 @@ export function AdminEventClient(){
           <small className="tp-field-hint">{tr("Сайт, Instagram или страница места на карте. Гости увидят кнопку «Сайт площадки» на странице ивента.")}</small></label>
         <label>{tr("Описание")}<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>
         <OrganizerRules/>
-        <label>{tr("Фото мероприятия (HTTPS, по одной ссылке на строку, до 8)")}<textarea rows={4} value={gallery} onChange={e=>setGallery(e.target.value)}/></label>
+        <label>{language==="cs"?"Nahrát fotografie z telefonu nebo počítače":"Upload photos from phone or computer"}<input type="file" accept="image/*" multiple disabled={busy} onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/></label>
+        {upload&&<p role="status">{upload.done}/{upload.total}</p>}
+        {error&&<p role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}
+        <details><summary>{language==="cs"?"Nebo vložit odkazy na fotografie":"Or use photo links"}</summary>
+        <label>{tr("Фото мероприятия (HTTPS, по одной ссылке на строку, до 8)")}<textarea rows={4} value={gallery} onChange={e=>setGallery(e.target.value)}/></label></details>
         <label>{tr("Видео (YouTube/Vimeo)")}<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
         <div className="two-col"><label>{tr("Дата и время")}<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
           <label>{tr("Количество мест")}<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
@@ -612,21 +624,17 @@ export function AdminEventClient(){
               <span className="event-language-name">{name}</span>
             </label>)}
         </div></fieldset>
-        <label>{tr("Новый постер (необязательно)")}<input ref={posterInputRef} type="file" accept="image/png,image/jpeg,image/webp" disabled={busy}
+        <label>{tr("Новый постер (необязательно)")}<input ref={posterInputRef} type="file" accept="image/*" disabled={busy}
           onChange={e=>{
             const file=e.target.files?.[0]||null;
             setPosterStatus("");setPosterError("");
-            if(file&&(file.size>4*1024*1024||!["image/png","image/jpeg","image/webp"].includes(file.type))){
-              setError(file.size>4*1024*1024?tr("Постер больше 4 МБ"):tr("Формат постера: JPG, PNG или WebP."));
-              setPosterError(file.size>4*1024*1024?tr("Постер больше 4 МБ"):tr("Формат постера: JPG, PNG или WebP."));
-              e.currentTarget.value="";setPoster(null);return;
-            }
             setError("");setPoster(file);
             if(file)setPosterStatus(language==="cs"?"Soubor je vybraný. Klikněte na Uložit změny.":"File selected. Click Save changes to upload it.");
           }}/>
           <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
         {(posterPreview||event.image_url)&&<img src={posterPreview||event.image_url!} alt={posterPreview?"Selected event poster":"Event poster"} className="event-poster-preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/>}
         {poster&&<p className="form-note"><strong>{poster.name} · {(poster.size/1024/1024).toFixed(2)} MB</strong><br/>{language==="cs"?"Náhled nového plakátu. Pro zveřejnění klikněte na Uložit změny.":"New poster preview. Click Save changes to publish it."}</p>}
+        {poster&&<button type="button" className="button button-primary" disabled={busy} onClick={()=>void savePoster()}>{language==="cs"?"Uložit pouze plakát":"Save poster only"}</button>}
         {posterStatus&&<p role="status" className="success-banner">{posterStatus}</p>}
         {posterError&&<p role="alert" className="error-banner">{posterError}</p>}
         <button className="button button-primary" disabled={busy}>{busy?tr("Сохраняем…"):tr("Сохранить изменения")}</button>
