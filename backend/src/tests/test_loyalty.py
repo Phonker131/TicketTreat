@@ -4,9 +4,17 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from demo_loyalty import season_bounds, tier_for
+from demo_loyalty_benefits import benefit_payload
 
 
 class LoyaltyRulesTests(unittest.TestCase):
+    def test_organizer_tiers_are_season_scoped_and_unimplemented_perks_cannot_be_enabled(self):
+        self.assertEqual([benefit_payload(tier,None)["required_visits"]
+                          for tier in ("newcomer","regular","insider","vip")],[0,3,6,12])
+        self.assertTrue(benefit_payload("regular",None)["enabled"])
+        self.assertFalse(benefit_payload("insider",None)["operational"])
+        self.assertFalse(benefit_payload("vip",None)["enabled"])
+
     def test_tiers_never_credit_bookings(self):
         for visits, expected, following in (
             (0, "newcomer", 3), (2, "newcomer", 3),
