@@ -302,3 +302,8 @@ html body .tt-dash-main .tp-admin-card .tp-admin-guests{grid-area:guests;display
  html body .tt-dash-main .tp-admin-summary .tt-dash-icon{width:34px;height:34px;padding:7px;margin-bottom:6px;border-radius:10px}
  html body .tt-dash-main .tp-admin-summary strong{font-size:24px!important}
 }
+
+/* both halves of the torn sheet must be identical: the h1 copy must not pick up the old hero headline rules */
+html body .tt-night-hero.tt-tear :is(h1,p).tt-tear-word{display:block!important;max-width:none!important;width:auto!important;margin:0!important;font:900 clamp(104px,25vw,330px)/.8 var(--d)!important;font-stretch:normal!important;letter-spacing:-.01em!important;text-transform:uppercase!important;color:inherit!important;text-shadow:.045em .045em 0 var(--tom)!important;white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;hyphens:none!important}
+html body .tt-night-hero.tt-tear.is-still :is(h1,p).tt-tear-word{font-size:clamp(84px,20vw,220px)!important}
+html body .tt-night-hero.tt-tear p.tt-tear-line{display:block!important;margin:0!important;max-width:32ch!important;font:600 clamp(15px,1.5vw,19px)/1.35 var(--u)!important;color:inherit!important;opacity:.82;text-align:center!important}

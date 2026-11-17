@@ -76,7 +76,7 @@ export function TicketTearHero({event,language,storyReady}:{event:TicketTreatEve
   px.set((e.clientX-r.left)/r.width-.5);py.set((e.clientY-r.top)/r.height-.5);};
  const leave=()=>{px.set(0);py.set(0);};
  const actions=<div className="tt-tear-actions">
-  <a className="button button-primary" href="#events">{c.all}</a>
+  <a className="button button-primary tt-island" href="#events">{c.all}<span className="tt-island-dot" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 12h8M8 15h5"/></svg></span></a>
   <button type="button" className="button button-secondary" disabled={!storyReady} onClick={()=>window.dispatchEvent(new Event("tickettreat-open-story"))}>{c.how}</button>
  </div>;
 

@@ -176,7 +176,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
             {event.spots_left === 0 ? (
               <Link className="button button-sun" href={`/checkout/${event.id}?waitlist=1${attributed}${inviteQuery?`&${inviteQuery}`:""}`}>{t(language, "waitlist")}</Link>
             ) : (
-              <Link className="button button-primary" href={`/checkout/${event.id}${inviteQuery||attributed?`?${[inviteQuery,attributed.replace(/^&/,"")].filter(Boolean).join("&")}`:""}`}>{t(language, "join")}</Link>
+              <Link className="button button-primary tt-island" href={`/checkout/${event.id}${inviteQuery||attributed?`?${[inviteQuery,attributed.replace(/^&/,"")].filter(Boolean).join("&")}`:""}`}>{t(language, "join")}<span className="tt-island-dot" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V7Z"/><path d="M14 6v1.5M14 11.2v1.6M14 16.5V18"/></svg></span></Link>
             )}
             <p className="ev2-book-note">{Number(event.price||0)<=0
                 ? (language==="ru"?"Бесплатный QR-билет после подтверждённой регистрации.":language==="cs"?"QR vstupenka zdarma po ověřené registraci.":language==="uk"?"Безкоштовний QR-квиток після підтвердженої реєстрації.":"Free QR ticket after verified registration.")
@@ -223,7 +223,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
 <PageFaq topic="event"/>
         {bookable&&<div className="ev2-bar" role="region" aria-label={t(language, "join")}>
           <span><strong>{formatPrice(event, language)}</strong>{spotsText&&<small>{spotsText}</small>}</span>
-          <Link className="button button-primary" href={bookHref}>{t(language, "join")}</Link>
+          <Link className="button button-primary tt-island" href={bookHref}>{t(language, "join")}<span className="tt-island-dot" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V7Z"/><path d="M14 6v1.5M14 11.2v1.6M14 16.5V18"/></svg></span></Link>
         </div>}
       </main>
     </div>

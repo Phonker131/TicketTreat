@@ -16,6 +16,7 @@ import "./promotions.css";
 import "./event-chat.css";
 import "./audit-fixes.css";
 import "./redesign-v2.css";
+import "./polish-v3.css";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { MotionProvider } from "@/components/MotionProvider";
