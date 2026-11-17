@@ -25,6 +25,8 @@ export function OrganizerLoyaltyTiersClient(){
  }
  useEffect(()=>{void reload();},[]);
  const org=data?.organizers.find(o=>o.owner_account_id===ownerId);
+ const repeatedNames=new Map<string,number>();
+ for(const organizer of data?.organizers??[]){const key=organizer.name.trim().toLocaleLowerCase();repeatedNames.set(key,(repeatedNames.get(key)??0)+1);}
  function edit(b:OrganizerTierBenefit){setEditing(b.tier);setEn(b.label_en);setCs(b.label_cs);setDescriptionEn(b.description_en||"");setDescriptionCs(b.description_cs||"");setPriority(b.enabled);setError("");setNotice("");}
  async function save(e:FormEvent<HTMLFormElement>,b:OrganizerTierBenefit){
   e.preventDefault();if(ownerId===null||busy||en.trim().length<3||cs.trim().length<3)return;
@@ -42,7 +44,7 @@ export function OrganizerLoyaltyTiersClient(){
   {loading?<div className="state-card" role="status">…</div>:data&&<>
    {data.organizers.length===0?<section className="panel"><p>{t.none}</p></section>:<>
     <section className="panel"><label htmlFor="tt-loyalty-organizer-select">{t.org}</label><select id="tt-loyalty-organizer-select" value={ownerId??""} onChange={e=>{setOwnerId(Number(e.target.value));setEditing(null);setNotice("");}}>
-     {data.organizers.map(o=><option key={o.owner_account_id} value={o.owner_account_id}>{o.name}</option>)}
+     {data.organizers.map(o=><option key={o.owner_account_id} value={o.owner_account_id}>{o.name}{(repeatedNames.get(o.name.trim().toLocaleLowerCase())??0)>1?` · #${o.owner_account_id}`:""}</option>)}
     </select><p className="form-note">{t.rules}</p></section>
     <div className="tt-reward-admin-grid">{org?.tiers.map((b,i)=><section key={`${ownerId}-${b.tier}`} className="panel form-stack">
      <h2>{t.levels[i]}</h2><p className="form-note">{b.required_visits} {t.visits}</p>
