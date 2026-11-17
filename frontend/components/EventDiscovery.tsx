@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import * as M from "motion/react-m";
-import {EventBoard} from "@/components/premium/EventLists";
+import {EventCard} from "@/components/EventCard";
 import {SwipeDeck} from "@/components/premium/SwipeDeck";
 import {MoodEmpty} from "@/components/premium/EventsPlaceholders";
 import {premium} from "@/components/premium/copy";
@@ -74,9 +74,9 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
    </div>
    {mode==="saved"?(saved.length===0
      ?<MoodEmpty language={language} title={tr.noSaved} text={tr.noSavedText} action={tr.toSwipe} onReset={()=>setMode("list")}/>
-     :<EventBoard events={saved} language={language}/>):
+     :<div className="event-grid tp-feed tt-feed-row">{saved.map(event=><EventCard key={event.id} event={event}/>)}</div>):
    filtered.length===0?<MoodEmpty language={language} title={tr.noMatch} onReset={()=>setMood("all")}/>:
-   mode==="list"?<EventBoard events={filtered} language={language}/>:
+   mode==="list"?<div className="event-grid tp-feed tt-feed-row">{filtered.map(event=><EventCard key={event.id} event={event}/>)}</div>:
    <div className="tt-swipe-area">
      <SwipeDeck events={filtered} index={index}
        labels={{want:tr.want,pass:tr.pass,view:tr.view,hint:tr.hint,done:tr.done,doneText:premium[language].empty.doneText,reset:premium[language].empty.reset,spots:({en:"spots left",cs:"volných míst",ru:"мест",uk:"місць"} as Record<string,string>)[language]||"spots left"}}

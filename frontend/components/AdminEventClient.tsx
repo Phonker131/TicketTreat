@@ -21,6 +21,7 @@ import {
   removeManageParticipant,removeManageWaitlistGuest,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
+import {prepareGalleryPhoto} from "@/lib/gallery-photo";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
 import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag,type EventTag} from "@/lib/event-tags";
 import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff} from "@/lib/api";
@@ -78,6 +79,8 @@ export function AdminEventClient(){
   const [organizers,setOrganizers]=useState<OrganizerIdentity[]>([]);
   const [audit,setAudit]=useState<{action:string;details:string;actor_account_id:number;at:string}[]>([]);
   const [error,setError]=useState(""),[notice,setNotice]=useState("");
+  const [upload,setUpload]=useState<{done:number;total:number}|null>(null);
+  const [dropActive,setDropActive]=useState(false);
   useEffect(()=>{
     if(new URLSearchParams(window.location.search).has("photo_upload_failed"))
       setError(language==="cs"?"Koncept je uložen, ale některé fotografie se nepodařilo nahrát. Zkontrolujte galerii níže a nahrajte chybějící soubory znovu.":"Your draft is saved, but some photos could not be uploaded. Check the gallery below and upload the missing files again.");
@@ -257,22 +260,31 @@ export function AdminEventClient(){
       await reload();setNotice(tr("Владелец ивента обновлён."));
     }catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
-  async function uploadPhotos(files: FileList|null) {
-    const token=getWebToken();if(!token||!files?.length)return;
-    setBusy(true);setError("");setNotice("");
-    try {
-      const current=event?.gallery_urls?.length||0;
-      if(current+files.length>8)throw new LocalValidationError(tr("Не более 8 фотографий на мероприятие."));
-      for(const file of Array.from(files)){
-        if(file.size>2*1024*1024)throw new LocalValidationError(tr("Фотография должна быть меньше 2 МБ."));
-        if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw new LocalValidationError(tr("Нужны JPG, PNG или WebP."));
-        const dataUrl=await posterData(file);
-        await uploadManageGalleryPhoto(token,eventId,dataUrl);
-      }
-      await reload();
-      setNotice(tr("Фотографии добавлены."));
-    }catch(e){setError(formattedError(e,language))}
-    finally{setBusy(false)}
+  // Any phone or camera photo works: it is shrunk in the browser, uploaded one by one,
+  // and one bad file never stops the rest.
+  async function uploadPhotos(list: FileList|null) {
+    const token=getWebToken();
+    const files=Array.from(list||[]).filter(f=>!f.type||f.type.startsWith("image/"));
+    if(!token||!files.length)return;
+    const free=Math.max(0,8-(event?.gallery_urls?.length||0));
+    if(!free){setNotice("");setError(tr("Не более 8 фотографий на мероприятие."));return;}
+    const batch=files.slice(0,free);
+    setBusy(true);setError("");setNotice("");setUpload({done:0,total:batch.length});
+    let failed=0;
+    for(const [i,file] of batch.entries()){
+      try{await uploadManageGalleryPhoto(token,eventId,await prepareGalleryPhoto(file));}
+      catch{failed++;}
+      setUpload({done:i+1,total:batch.length});
+    }
+    try{await reload();}catch{/* the list refreshes on the next visit */}
+    setUpload(null);setBusy(false);
+    const added=batch.length-failed,skipped=files.length-batch.length;
+    if(added)setNotice(tr("Загружено фото: {n}.").replace("{n}",String(added)));
+    const problems=[
+      failed?tr("Не получилось загрузить: {n}. Сохрани эти фото как JPG и попробуй ещё раз.").replace("{n}",String(failed)):"",
+      skipped?tr("В галерее максимум 8 фото, лишние не загружены: {n}.").replace("{n}",String(skipped)):"",
+    ].filter(Boolean).join(" ");
+    if(problems)setError(problems);
   }
   async function removePhoto(imageId:number){
     const token=getWebToken();if(!token)return;
@@ -626,16 +638,27 @@ export function AdminEventClient(){
         <img src={event.image_url} alt="" className="event-poster-preview"/>
         <p className="form-note">{tr("Новый постер загружается на вкладке «Описание».")}</p>
       </section>}
-      {!event.is_cancelled&&<section className="panel form-stack">
-        <h2>{tr("Фотогалерея мероприятия")}</h2>
-        <p className="form-note">{tr("Загружай фотографии с прошлых мероприятий (JPG, PNG, WebP; до 2 МБ каждая, максимум 8 включая HTTPS-ссылки). Файлы сохраняются на сервере TicketTreat.")}</p>
-        <p className="form-note">{tr("Фото галереи: от 1200 px по длинной стороне, горизонтальные 3:2 или 4:3 смотрятся лучше всего.")}</p>
-        <label>{tr("Добавить фотографии")}
-          <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy} onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/>
+      {!event.is_cancelled&&<section className="panel form-stack tt-gal">
+        <div className="tt-gal-head">
+          <h2>{tr("Фотогалерея мероприятия")}</h2>
+          <span className="tt-gal-count">{event.gallery_urls?.length||0}/8</span>
+        </div>
+        <label className={`tt-gal-drop${dropActive?" is-over":""}${upload?" is-busy":""}`}
+          onDragOver={e=>{e.preventDefault();if(!busy)setDropActive(true);}}
+          onDragLeave={()=>setDropActive(false)}
+          onDrop={e=>{e.preventDefault();setDropActive(false);if(!busy)void uploadPhotos(e.dataTransfer.files);}}>
+          <input type="file" accept="image/*" multiple disabled={busy||(event.gallery_urls?.length||0)>=8}
+            onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4-4-9 9"/></svg>
+          <strong>{upload?tr("Загружаем {done} из {total}…").replace("{done}",String(upload.done)).replace("{total}",String(upload.total))
+            :(event.gallery_urls?.length||0)>=8?tr("В галерее уже 8 фото. Удали одно, чтобы добавить новое."):tr("Перетащи фото сюда или нажми, чтобы выбрать")}</strong>
+          <small>{tr("Подойдут любые фото с телефона или камеры, размер уменьшим сами. Лучше всего смотрятся горизонтальные.")}</small>
+          {upload&&<span className="tt-gal-progress" aria-hidden="true"><i style={{width:`${Math.max(6,upload.done/upload.total*100)}%`}}/></span>}
         </label>
-        <div className="event-media-gallery">
-          {(event.uploaded_gallery||[]).map((photo,i)=><div key={photo.id}>
+        <div className="event-media-gallery tt-gal-grid">
+          {(event.uploaded_gallery||[]).map((photo,i)=><div key={photo.id} className={photo.is_cover?"is-cover":undefined}>
             <img src={photo.url} alt={tr("Фотография мероприятия")} />
+            {photo.is_cover&&<span className="tt-gal-cover">{tr("Обложка")}</span>}
             <div className="admin-event-actions">
               <button type="button" className="button button-outline" disabled={busy||i===0}
                 onClick={()=>updateMediaOrder(photo.id,-1)} aria-label={tr("Переместить фото назад")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
@@ -645,7 +668,7 @@ export function AdminEventClient(){
                 onClick={()=>updateMediaOrder(photo.id,0)}>
                 {photo.is_cover?tr("✓ Обложка"):tr("Сделать обложкой")}</button>
               <button type="button" className="button button-outline" disabled={busy}
-                onClick={()=>removePhoto(photo.id)}>{tr("Удалить")}</button>
+                onClick={()=>removePhoto(photo.id)} aria-label={tr("Удалить")} title={tr("Удалить")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
             </div>
           </div>)}
         </div>

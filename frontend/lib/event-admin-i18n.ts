@@ -1175,6 +1175,54 @@ const messages: Array<[string,string,string,string]> = [
     "Upload a new poster on the Details tab.",
     "Nový plakát nahrajete na kartě Údaje.",
     "Нову афішу завантажуй на вкладці «Опис»."
+  ],
+  [
+    "Загружено фото: {n}.",
+    "Photos added: {n}.",
+    "Nahráno fotografií: {n}.",
+    "Завантажено фото: {n}."
+  ],
+  [
+    "Не получилось загрузить: {n}. Сохрани эти фото как JPG и попробуй ещё раз.",
+    "Could not upload: {n}. Save those photos as JPG and try again.",
+    "Nepodařilo se nahrát: {n}. Uložte tyto fotky jako JPG a zkuste to znovu.",
+    "Не вдалося завантажити: {n}. Збережи ці фото як JPG і спробуй ще раз."
+  ],
+  [
+    "В галерее максимум 8 фото, лишние не загружены: {n}.",
+    "The gallery holds 8 photos, so {n} were left out.",
+    "Galerie pojme 8 fotek, zbylé jsme nenahráli: {n}.",
+    "У галереї максимум 8 фото, зайві не завантажено: {n}."
+  ],
+  [
+    "Загружаем {done} из {total}…",
+    "Uploading {done} of {total}…",
+    "Nahráváme {done} z {total}…",
+    "Завантажуємо {done} з {total}…"
+  ],
+  [
+    "В галерее уже 8 фото. Удали одно, чтобы добавить новое.",
+    "The gallery already has 8 photos. Remove one to add another.",
+    "Galerie už má 8 fotek. Smažte jednu, abyste mohli přidat další.",
+    "У галереї вже 8 фото. Видали одне, щоб додати нове."
+  ],
+  [
+    "Перетащи фото сюда или нажми, чтобы выбрать",
+    "Drop photos here or click to choose",
+    "Přetáhněte fotky sem nebo klikněte a vyberte",
+    "Перетягни фото сюди або натисни, щоб вибрати"
+  ],
+  [
+    "Подойдут любые фото с телефона или камеры, размер уменьшим сами. Лучше всего смотрятся горизонтальные.",
+    "Any photos from a phone or camera work, we resize them for you. Landscape shots look best.",
+    "Hodí se jakékoli fotky z telefonu nebo fotoaparátu, velikost zmenšíme sami. Nejlépe vypadají fotky na šířku.",
+    "Підійдуть будь-які фото з телефона чи камери, розмір зменшимо самі. Найкраще виглядають горизонтальні."
+  ],
+  [
+    "Обложка",
+    "Cover",
+    "Obálka",
+    "Обкладинка"
   ]
 ];
 const dictionary = new Map(messages.map(([ru,en,cs,uk]) => [ru,{ru,en,cs,uk}] as const));

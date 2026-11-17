@@ -35,9 +35,9 @@ test("business header stays one row at desktop widths",async({page})=>{
 });
 test("home and organizer presentations show interface components rather than glyph placeholders",async({page})=>{
  await page.goto("/?nostory&lang=en");
- await expect(page.locator(".tt-night-hero .tp-phone")).toBeVisible();
- await expect(page.locator(".tt-v12-how .tp-how-phone .tp-phone")).toHaveCount(1);
- await expect(page.locator(".tt-v12-ticket .tp-ticket-pair .tp-phone")).toHaveCount(2);
+ // The home hero is the torn "TONIGHT" sheet with a real ticket underneath, not a drawn phone.
+ await expect(page.locator(".tt-tear .tt-tear-word").first()).toBeVisible();
+ await expect(page.locator(".tt-tear .tt-tk3")).toHaveCount(1);
  await page.goto("/business?lang=en");
  await expect(page.locator(".tt-business-hero .tp-laptop")).toHaveCount(1);
  await expect(page.locator(".tt-business-sides .tp-sides-row .tp-phone")).toHaveCount(2);

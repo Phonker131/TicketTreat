@@ -19,17 +19,17 @@ const picks:Record<FaqTopic,[number,number][]>={
 const own:Partial<Record<FaqTopic,Record<LanguageCode,FaqItem[]>>>={
  rewards:{
   en:[{q:"When does a visit count?",a:"Only after a real check-in at the door, when staff scan your QR ticket."},
-   {q:"Who sets the levels and perks?",a:"Each organizer sets their own levels and perks, so they can differ between organizers."},
-   {q:"Where do I see my visits?",a:"Sign in and open Rewards. Your passport shows your visits and the next level."}],
+   {q:"Are the levels the same everywhere?",a:"Yes: 3, 6 and 12 visits for every organizer. Each organizer counts your visits separately, so you can be a Regular with one and a Newcomer with another."},
+   {q:"Where do I see my visits?",a:"Sign in and open Rewards. You see your visits with each organizer and how many are left to the next level."}],
   cs:[{q:"Kdy se návštěva započítá?",a:"Až po skutečném odbavení u vstupu, když obsluha naskenuje vaši QR vstupenku."},
-   {q:"Kdo určuje úrovně a výhody?",a:"Každý pořadatel si nastavuje vlastní úrovně a výhody, proto se mohou mezi pořadateli lišit."},
-   {q:"Kde uvidím své návštěvy?",a:"Přihlaste se a otevřete Odměny. Pas ukazuje vaše návštěvy a další úroveň."}],
+   {q:"Jsou úrovně všude stejné?",a:"Ano: 3, 6 a 12 návštěv u každého pořadatele. Každý pořadatel počítá vaše návštěvy zvlášť, takže u jednoho můžete být Stálý host a u jiného Nováček."},
+   {q:"Kde uvidím své návštěvy?",a:"Přihlaste se a otevřete Odměny. Uvidíte návštěvy u každého pořadatele a kolik zbývá do další úrovně."}],
   ru:[{q:"Когда засчитывается визит?",a:"Только после настоящего check-in на входе, когда сотрудник сканирует ваш QR-билет."},
-   {q:"Кто задаёт уровни и бонусы?",a:"Каждый организатор задаёт свои уровни и бонусы, поэтому у разных организаторов они могут отличаться."},
-   {q:"Где посмотреть мои визиты?",a:"Войдите в аккаунт и откройте «Награды». Паспорт показывает ваши визиты и следующий уровень."}],
+   {q:"Уровни везде одинаковые?",a:"Да: 3, 6 и 12 визитов у любого организатора. Визиты каждый организатор считает отдельно, поэтому у одного вы можете быть «Своим», а у другого «Новичком»."},
+   {q:"Где посмотреть мои визиты?",a:"Войдите в аккаунт и откройте «Награды». Там видны визиты у каждого организатора и сколько осталось до следующего уровня."}],
   uk:[{q:"Коли зараховується візит?",a:"Лише після справжнього check-in на вході, коли працівник сканує ваш QR-квиток."},
-   {q:"Хто встановлює рівні та бонуси?",a:"Кожен організатор встановлює власні рівні та бонуси, тож у різних організаторів вони можуть відрізнятися."},
-   {q:"Де подивитися мої візити?",a:"Увійдіть в акаунт і відкрийте «Нагороди». Паспорт показує ваші візити та наступний рівень."}]
+   {q:"Рівні всюди однакові?",a:"Так: 3, 6 і 12 візитів у будь-якого організатора. Візити кожен організатор рахує окремо, тож в одного ви можете бути «Своїм», а в іншого «Новачком»."},
+   {q:"Де подивитися мої візити?",a:"Увійдіть в акаунт і відкрийте «Нагороди». Там видно візити в кожного організатора і скільки лишилося до наступного рівня."}]
  },
  organizers:{
   en:[{q:"Who are the organizers?",a:"Venues, communities and teams that publish events on TicketTreat. Each profile shows their upcoming and past events."},

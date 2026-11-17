@@ -8,6 +8,7 @@ import {eventAdminText} from "@/lib/event-admin-i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import { uploadManageGalleryPhoto, addManageEvent, getManageEvents, getManageMe, getSupportSummary } from "@/lib/api";
+import {prepareGalleryPhoto} from "@/lib/gallery-photo";
 import { getWebToken } from "@/lib/session";
 import {localeForLanguage} from "@/lib/i18n";
 import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag} from "@/lib/event-tags";
@@ -157,13 +158,9 @@ export function AdminClient() {
       const starts=String(data.get("starts_at")||"");
       if(!starts)throw new Error("event_start_required");
       if(!reminderMinutes.length||!reminderMessage.trim())throw new Error("reminder_settings_required");
-      const photos=data.getAll("gallery_files").filter((f):f is File=>f instanceof File&&f.size>0);
+      const photos=data.getAll("gallery_files").filter((f):f is File=>f instanceof File&&f.size>0&&(!f.type||f.type.startsWith("image/")));
       const urls=String(data.get("gallery_urls")||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
       if(photos.length+urls.length>8)throw new LocalValidationError(language==="cs"?"Maximálně 8 fotografií.":"Choose at most 8 photos in total.");
-      for(const f of photos){
-        if(f.size>2*1024*1024||!["image/jpeg","image/png","image/webp"].includes(f.type))
-          throw new LocalValidationError(language==="cs"?"Fotografie: JPG, PNG nebo WebP, do 2 MB.":"Photos must be JPG, PNG or WebP, up to 2 MB each.");
-      }
       const event=await addManageEvent(token,{
         title:String(data.get("title")||"").trim(),
         visibility:data.get("visibility")==="link_only"?"link_only":"public",
@@ -185,7 +182,7 @@ export function AdminClient() {
       // The draft already exists: never leave a create form that can duplicate it on retry.
       let failedPhotos=0;
       for(const photo of photos){
-        try{await uploadManageGalleryPhoto(token,event.id,await readPoster(photo));}
+        try{await uploadManageGalleryPhoto(token,event.id,await prepareGalleryPhoto(photo));}
         catch{failedPhotos++;}
       }
       if(failedPhotos){
@@ -319,8 +316,8 @@ export function AdminClient() {
               }}/>
               <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
             {preview&&<img className="event-poster-preview" src={preview} alt="Poster preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/>}
-            <label>{language==="cs"?"Nahrát fotografie z zařízení":"Upload photos from your device"}<input name="gallery_files" type="file" multiple accept="image/jpeg,image/png,image/webp"/>
-              <small className="tp-field-hint">{language==="cs"?"JPG, PNG nebo WebP, do 2 MB za fotografii, celkem nejvýše 8 fotografií včetně odkazů.":"JPG, PNG or WebP, up to 2 MB each, 8 photos total including links."}</small></label>
+            <label>{language==="cs"?"Nahrát fotografie z zařízení":"Upload photos from your device"}<input name="gallery_files" type="file" multiple accept="image/*"/>
+              <small className="tp-field-hint">{language==="cs"?"Jakékoli fotky z telefonu nebo fotoaparátu, velikost zmenšíme sami. Celkem nejvýše 8 včetně odkazů.":"Any photos from your phone or camera, we resize them for you. 8 in total, links included."}</small></label>
             <label>{ui.photo}<textarea name="gallery_urls" rows={3} placeholder="https://example.com/event-photo.jpg"/></label>
             <label>{ui.video}<input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=…"/></label>
           </section>
