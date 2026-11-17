@@ -6,6 +6,7 @@ Marketing communications require a separate subscriber-consent workflow.
 from __future__ import annotations
 
 import html
+import io
 import hashlib
 import hmac
 import json
@@ -98,7 +99,7 @@ class BroadcastImage(Base):
     """Owner-uploaded announcement picture, public only through a random 256-bit URL."""
     __tablename__ = "demo_broadcast_images"
     token = Column(String(43), primary_key=True)
-    owner_account_id = Column(Integer, nullable=False, index=True)
+    owner_account_id = Column(Integer, ForeignKey("demo_web_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     content_type = Column(String(32), nullable=False)
     image_bytes = deferred(Column(LargeBinary, nullable=False))
     created_at = Column(DateTime(timezone=True), nullable=False,
@@ -303,6 +304,7 @@ def install_broadcast_api(app, get_db, main):
         """Private edit permission; public URL is unguessable and safe for Telegram/email."""
         from demo_roles import ensure_manage
         from demo_media_store import normalized_webp
+        from PIL import Image
         ensure_manage(db, account)
         since = datetime.now(timezone.utc) - timedelta(days=1)
         recent = db.query(func.count(BroadcastImage.token)).filter(
@@ -311,14 +313,21 @@ def install_broadcast_api(app, get_db, main):
         if recent >= 20:
             raise HTTPException(429, "broadcast_image_daily_limit")
         _, original = main.decode_demo_poster(payload.data_url)
-        image = normalized_webp(original)
-        token = secrets.token_urlsafe(32)
-        db.add(BroadcastImage(token=token, owner_account_id=account.id,
-                              content_type="image/webp", image_bytes=image))
-        db.commit()
+        # Telegram's sendPhoto accepts JPEG reliably. Decode and re-encode to
+        # strip EXIF/metadata even if a client submits a raw JPEG.
+        with Image.open(io.BytesIO(normalized_webp(original))) as picture:
+            output = io.BytesIO()
+            picture.convert("RGB").save(output, "JPEG", quality=84, optimize=True)
+        image = output.getvalue()
+        if len(image) > 2_000_000:
+            raise HTTPException(413, "broadcast_image_too_large")
         base = (os.getenv("WEB_APP_URL", "").strip() or "https://tickettreat.eu").rstrip("/")
         if not base.startswith("https://"):
             raise HTTPException(503, "public_media_url_not_configured")
+        token = secrets.token_urlsafe(32)
+        db.add(BroadcastImage(token=token, owner_account_id=account.id,
+                              content_type="image/jpeg", image_bytes=image))
+        db.commit()
         return {"image_url": base + "/api/gateway/demo/public/broadcast-media/" + token}
 
     @app.get("/demo/public/broadcast-media/{token}")
