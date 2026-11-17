@@ -27,4 +27,10 @@ test("organizer can edit and pause a previously created reward",async({page})=>{
   await expect(page.getByText("VIP supporter")).toBeVisible();
   await expect(page.getByText("Paused",{exact:true})).toBeVisible();
   expect(edited).toMatchObject({title:"VIP supporter",description:"Updated recognition",kind:"badge",active:false});
+  // Reload from the API fixture: changes must not exist only in React state.
+  await page.reload();
+  await expect(page.getByText("VIP supporter")).toBeVisible();
+  await expect(page.getByText("Paused",{exact:true})).toBeVisible();
+  // Paused catalog items must no longer be available for new awards.
+  await expect(page.getByText("Create a reward for this event's organizer first.")).toBeVisible();
 });

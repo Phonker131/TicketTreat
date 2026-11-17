@@ -69,7 +69,9 @@ test("organizer reward panel creates badge and awards only a checked-in attendee
   await expect.poll(()=>granted).toBe(1);
   await expect(page.getByText("Reward issued.")).toBeVisible();
   await expect(awardForm.getByRole("button",{name:"Award guest"})).toBeDisabled();
-  await expect(page.getByText("Visitor Star").first()).toBeVisible();
+  // The first text match can be an invisible <option> in the award picker.
+  // Assert the issued award is rendered in the visible history instead.
+  await expect(page.locator(".tt-rewards-history").getByText("Visitor Star",{exact:true})).toBeVisible();
 });
 
 test("Czech rewards picker shows the date for two same-title events",async({page})=>{
