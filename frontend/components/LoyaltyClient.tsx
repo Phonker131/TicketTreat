@@ -17,7 +17,7 @@ export function PassportCard({studio,language}:{studio:LoyaltyStudio;language:La
    <strong className={"loyalty-badge loyalty-"+studio.tier}>{levelName(language,studio.season_visits)}</strong>
    {studio.promotional_vip&&<span className="tt-promo-vip-label">VIP promo</span>}
   </div>
-  <RewardsTrack language={language} visits={studio.season_visits}/>
+  <RewardsTrack language={language} visits={studio.season_visits} tierRewards={studio.tier_rewards}/>
  </section>;
 }
 export function LoyaltyClient(){

@@ -1,6 +1,7 @@
 "use client";
 import type {CSSProperties} from "react";
 import type {LanguageCode} from "@/lib/types";
+import type {OrganizerTierBenefit} from "@/lib/api";
 
 /** The loyalty levels as the server counts them (backend demo_loyalty.TIERS).
  * Only the waitlist priority works today; the other perks are marked "soon". */
@@ -61,10 +62,12 @@ export function progressLine(language:LanguageCode,visits:number){
 export function levelName(language:LanguageCode,visits:number){return rewardsCopy[language].names[levelIndex(visits)];}
 
 /** Four stops on one line: where you are, what each level gives and whether it works yet. */
-export function RewardsTrack({language,visits}:{language:LanguageCode;visits:number}){
+export function RewardsTrack({language,visits,tierRewards}:{language:LanguageCode;visits:number;tierRewards?:OrganizerTierBenefit[]}){
  const c=rewardsCopy[language],current=levelIndex(visits);
  return <ol className="tt-rt" aria-label={progressLine(language,visits)}>
   {LEVELS.map((level,i)=>{
+   const benefit=tierRewards?.find(item=>item.tier===level.key);
+   const isLive=benefit ? benefit.enabled && benefit.operational : level.live;
    const next=LEVELS[i+1];
    const fill=next?Math.max(0,Math.min(1,(visits-level.at)/(next.at-level.at))):0;
    return <li key={level.key} className={"tt-rt-stop"+(i<=current?" is-reached":"")+(i===current?" is-current":"")}
@@ -74,8 +77,8 @@ export function RewardsTrack({language,visits}:{language:LanguageCode;visits:num
     <div className="tt-rt-body">
      <small>{c.at[i]}</small>
      <strong>{c.names[i]}</strong>
-     <span>{c.perks[i]}</span>
-     {i>0&&<em className={level.live?"is-live":"is-soon"}>{level.live?c.live:c.soon}</em>}
+     <span>{benefit?(language==="cs"?benefit.label_cs:benefit.label_en):c.perks[i]}</span>
+     {i>0&&<em className={isLive?"is-live":"is-soon"}>{isLive?c.live:c.soon}</em>}
     </div>
    </li>;
   })}
