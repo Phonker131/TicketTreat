@@ -101,12 +101,16 @@ export function TicketTearHero({event,language,storyReady}:{event:TicketTreatEve
  const ry=useSpring(useTransform(px,[-.5,.5],[-12,12]),{stiffness:160,damping:18});
  const shine=useTransform(px,[-.5,.5],["0% 0%","100% 0%"]);
  const [tapped,setTapped]=useState(false);
- const scrollTurn=useTransform(p,[.64,.86],[0,180]);
- const tapTurn=useSpring(0,{stiffness:120,damping:16});
+ // Once the ticket is fully up it turns over by itself once to show the QR; after that every tap turns it.
+ const tapTurn=useSpring(0,{stiffness:110,damping:15});
  useEffect(()=>{tapTurn.set(tapped?180:0)},[tapped,tapTurn]);
- const turnY=useTransform(()=>ry.get()+scrollTurn.get()+tapTurn.get());
- const [turned,setTurned]=useState(false);
- useMotionValueEvent(turnY,"change",v=>{const n=((v%360)+360)%360;setTurned(n>90&&n<270);});
+ const turnY=useTransform(()=>ry.get()+tapTurn.get());
+ const turned=tapped;
+ const shown=useRef(false);
+ useMotionValueEvent(scrollYProgress,"change",v=>{
+  if(v>=.66&&!shown.current){shown.current=true;window.setTimeout(()=>setTapped(true),450);}
+  if(v<.2&&shown.current){shown.current=false;setTapped(false);}
+ });
  const stillTurn=useSpring(0,{stiffness:120,damping:16});
  useEffect(()=>{stillTurn.set(tapped?180:0)},[tapped,stillTurn]);
  const move=(e:PointerEvent<HTMLDivElement>)=>{if(reduce||e.pointerType!=="mouse")return;const r=e.currentTarget.getBoundingClientRect();

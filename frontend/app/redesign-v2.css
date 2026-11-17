@@ -361,3 +361,31 @@ html body .tt-tk3-open{position:absolute!important;bottom:18px;left:0;right:0;te
 html body .tt-tk3-face.is-back{padding-bottom:48px}
 html body .tt-tk3-turn[aria-pressed="true"]{bottom:52px}
 html body main section.tt-v12-screen.tt-night-events{padding-bottom:0!important}
+
+/* ---------- hero ticket, layout pass: the ticket and the buttons sit in one column, never on top of each other ---------- */
+html body .tt-tear:not(.is-still) .tt-tear-stage{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:clamp(14px,2.4svh,26px);padding:78px 16px 28px;box-sizing:border-box}
+@media (max-width:760px){html body .tt-tear:not(.is-still) .tt-tear-stage{padding:72px 16px 108px}}
+html body .tt-tear-actions-wrap{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:2}
+/* the ticket takes its height from the screen, so it always fits with the buttons under it */
+html body .tt-tk3{height:clamp(320px,calc(100svh - 236px),580px)!important;width:auto!important;aspect-ratio:9/16;container-type:size}
+@media (max-width:760px){html body .tt-tk3{height:clamp(300px,calc(100svh - 300px),540px)!important}}
+html body .tt-tear.is-still .tt-tk3{height:clamp(320px,62svh,520px)!important}
+/* everything inside scales with the ticket */
+html body .tt-tk3-face.is-front{padding:4.2cqh 4.2cqh 0}
+html body .tt-tk3-brand{font-size:clamp(13px,4cqh,20px);padding:1.3cqh 1.8cqh 1.1cqh}
+html body .tt-tk3-vbar{height:18cqh;padding:1.2cqh}
+html body .tt-tk3-vbar i{width:6cqh}
+html body .tt-tk3-title{font-size:clamp(24px,8.2cqh,48px);-webkit-line-clamp:2}
+html body .tt-tk3-sub{font-size:clamp(14px,4.4cqh,24px)}
+html body .tt-tk3-no,html body .tt-tk3-rule b{font-size:clamp(10px,2.3cqh,12px)}
+html body .tt-tk3-fields{margin-top:2.4cqh;gap:1.2cqh 2.4cqh}
+html body .tt-tk3-fields dt,html body .tt-tk3-fields dd{font-size:clamp(11px,2.5cqh,13px)}
+html body .tt-tk3-perf{margin:2.6cqh -4.2cqh 0}
+html body .tt-tk3-hbar{height:14cqh;margin:2.4cqh -4.2cqh 0}
+html body .tt-tk3-face.is-back{gap:2.2cqh;padding:9cqh 4cqh 10cqh}
+html body .tt-tk3-face.is-back .tt-tk3-brand{top:4cqh;left:4cqh}
+html body .tt-tk3-qr{width:min(78%,52cqh)}
+html body .tt-tk3-code{font-size:clamp(20px,6cqh,32px)}
+html body .tt-tk3-show{font-size:clamp(12px,2.6cqh,14px)}
+html body .tt-tk3-open{bottom:3.6cqh}
+html body .tt-tk3-turn[aria-pressed="true"]{bottom:9cqh}
