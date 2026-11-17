@@ -3,6 +3,7 @@ on:
   pull_request:
     branches: [dev/frontend-design]
     paths:
+      - frontend/components/AdminEventClient.tsx
       - frontend/app/unsubscribe/**
       - frontend/components/EmailUnsubscribe.tsx
       - frontend/components/BroadcastPreferences.tsx
