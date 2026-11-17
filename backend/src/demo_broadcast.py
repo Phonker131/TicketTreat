@@ -11,6 +11,7 @@ import hmac
 import json
 import logging
 import os
+import secrets
 import threading
 import time
 import urllib.error
@@ -20,8 +21,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import Depends, Header, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, func, and_, or_
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, LargeBinary, ForeignKey, Integer, String, Text, func, and_, or_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -76,6 +78,15 @@ def email_unsubscribe_token(account) -> str:
     return f"{account.id}.{signature}"
 
 
+class BroadcastImage(Base):
+    __tablename__ = "demo_broadcast_images"
+    token = Column(String(64), primary_key=True)
+    account_id = Column(Integer, ForeignKey("demo_web_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    content_type = Column(String(40), nullable=False)
+    image_bytes = Column(LargeBinary, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
 class BroadcastCampaign(Base):
     __tablename__ = "demo_broadcast_campaigns"
     id = Column(Integer, primary_key=True)
@@ -106,6 +117,10 @@ class BroadcastTelegramOutbox(Base):
 class AudienceRequest(BaseModel):
     scope: Literal["global", "event"]
     event_id: int | None = Field(default=None, gt=0)
+
+
+class BroadcastImageUpload(AudienceRequest):
+    data_url: str = Field(max_length=2_800_000)
 
 
 class BroadcastSend(AudienceRequest):
@@ -278,6 +293,34 @@ def install_broadcast_api(app, get_db, main):
             index_elements=["account_id"], set_={k: v for k, v in values.items() if k != "account_id"}))
         db.commit()
         return {"email_enabled": payload.email_enabled, "telegram_enabled": payload.telegram_enabled}
+
+    @app.post("/demo/manage/broadcast-images", status_code=201)
+    def upload_image(payload: BroadcastImageUpload, account=Depends(authorized), db: Session = Depends(get_db)):
+        _authorized_scope(db, account, payload.scope, payload.event_id, main)
+        content_type, blob = main.decode_demo_poster(payload.data_url)
+        if len(blob) > 2 * 1024 * 1024:
+            raise HTTPException(413, "poster_too_large")
+        # Serialize the per-account upload limit across workers.
+        from demo_accounts import WebAccount
+        db.query(WebAccount).filter(WebAccount.id == account.id).with_for_update().one()
+        recent = db.query(BroadcastImage).filter(BroadcastImage.account_id == account.id,
+            BroadcastImage.created_at >= datetime.now(timezone.utc) - timedelta(hours=1)).count()
+        if recent >= 30:
+            raise HTTPException(429, "upload_rate_limited")
+        token = secrets.token_urlsafe(32)
+        db.add(BroadcastImage(token=token, account_id=account.id, content_type=content_type, image_bytes=blob))
+        db.commit()
+        return {"url": "https://tickettreat.eu/api/gateway/api/v1/public/broadcast-images/" + token}
+
+    @app.get("/demo/public/broadcast-images/{token}")
+    def broadcast_image(token: str, db: Session = Depends(get_db)):
+        if len(token) != 43:
+            raise HTTPException(404, "image_not_found")
+        row = db.get(BroadcastImage, token)
+        if row is None:
+            raise HTTPException(404, "image_not_found")
+        return Response(content=row.image_bytes, media_type=row.content_type,
+                        headers={"Cache-Control": "public, max-age=86400", "X-Content-Type-Options": "nosniff"})
 
     @app.post("/demo/manage/broadcasts/preview")
     def preview(payload: AudienceRequest, account=Depends(authorized), db: Session = Depends(get_db)):
