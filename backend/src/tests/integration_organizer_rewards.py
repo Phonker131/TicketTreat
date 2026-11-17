@@ -93,6 +93,18 @@ class OrganizerAwardIntegration(unittest.TestCase):
             })
             self.assertEqual(create.status_code,201,create.text)
             reward_id=create.json()["id"]
+            unauthorized_edit=client.patch(f"/demo/manage/rewards/{reward_id}",json={
+                "title":"Altered award","description":"","kind":"badge","active":True,
+            })
+            self.assertEqual(unauthorized_edit.status_code,401,unauthorized_edit.text)
+            forbidden_edit=client.patch(f"/demo/manage/rewards/{reward_id}",headers=other_auth,json={
+                "title":"Altered award","description":"","kind":"badge","active":True,
+            })
+            self.assertEqual(forbidden_edit.status_code,403,forbidden_edit.text)
+            bad_title=client.patch(f"/demo/manage/rewards/{reward_id}",headers=auth,json={
+                "title":"  ","description":"","kind":"badge","active":True,
+            })
+            self.assertEqual(bad_title.status_code,422,bad_title.text)
             forbidden_create=client.post("/demo/manage/rewards",headers=other_auth,json={
                 "event_id":event_id,"title":"Stolen organizer reward","kind":"badge",
             })
@@ -127,6 +139,25 @@ class OrganizerAwardIntegration(unittest.TestCase):
             passport=client.get("/demo/me/loyalty",headers=guest_auth)
             self.assertEqual(passport.status_code,200,passport.text)
             self.assertTrue(any(g["id"]==grant_id for g in passport.json()["awards"]))
+            edited=client.patch(f"/api/v1/manage/rewards/{reward_id}",headers=auth,json={
+                "title":"VIP attendance recognition","description":"Thank you for joining!",
+                "kind":"recognition","active":False,
+            })
+            self.assertEqual(edited.status_code,200,edited.text)
+            self.assertFalse(edited.json()["active"])
+            blocked=client.post(f"/demo/manage/rewards/{reward_id}/grants",headers=auth,
+                                json={"ticket_id":ticket_id})
+            self.assertEqual(blocked.status_code,404,blocked.text)
+            # Archiving prevents new grants, but the guest keeps the old award.
+            passport=client.get("/demo/me/loyalty",headers=guest_auth)
+            self.assertTrue(any(g["id"]==grant_id and g["title"]=="VIP attendance recognition"
+                                for g in passport.json()["awards"]))
+            restored=client.patch(f"/demo/manage/rewards/{reward_id}",headers=auth,json={
+                "title":"VIP attendance recognition","description":"Thank you for joining!",
+                "kind":"recognition","active":True,
+            })
+            self.assertEqual(restored.status_code,200,restored.text)
+            self.assertTrue(restored.json()["active"])
             other_passport=client.get("/demo/me/loyalty",headers=other_auth)
             self.assertNotIn("qr_token",other_passport.text)
 
