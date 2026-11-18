@@ -68,3 +68,19 @@ def install_categories(app, get_db, admin_account):
         row.active = status.active
         db.commit()
         return list(catalog(db).values())
+
+    @app.patch("/demo/manage/event-categories/{key}")
+    def rename_category(key: str, names: CategoryNames, admin=Depends(admin_account), db: Session = Depends(get_db)):
+        en, cs = names.en.strip(), names.cs.strip()
+        if not en or not cs:
+            raise HTTPException(422, "category_name_required")
+        row = db.get(EventCategory, key)
+        if row is None:
+            if key not in DEFAULTS:
+                raise HTTPException(404, "category_not_found")
+            old_en, old_cs = DEFAULTS[key]
+            row = EventCategory(key=key, en=old_en, cs=old_cs, active=True)
+            db.add(row)
+        row.en, row.cs = en, cs
+        db.commit()
+        return list(catalog(db).values())
