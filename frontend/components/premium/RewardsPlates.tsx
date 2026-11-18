@@ -5,6 +5,7 @@ import type {LanguageCode} from "@/lib/types";
 import {getOrganizerRewards,type OrganizerRewardsDashboard,type OrganizerTierBenefit} from "@/lib/api";
 import {LEVELS,RewardsTrack,configuredLevels,levelIndex,levelName,progressLine,rewardsCopy,visitsLabel} from "@/components/premium/RewardsTrack";
 import {studioFor,useMyLoyalty,useOrganizerTiers} from "@/components/premium/useMyLoyalty";
+import {benefitStatus} from "@/lib/loyalty-status";
 
 const P:Record<LanguageCode,{at:string;guest:string;guestKnown:string;fresh:string;signin:string;how:string;hint:string;card:string}>={
  ru:{guestKnown:"Войдите, и визиты к этому организатору пойдут в зачёт.",at:"Награды у {name}",guest:"Войдите, и визиты к этому организатору пойдут в зачёт. Сколько визитов нужно на каждый уровень, решает организатор.",fresh:"Сколько визитов нужно на каждый уровень, решает организатор. После первого визита здесь появится ваша шкала.",signin:"Войти",how:"Как это работает",hint:"Визит засчитается, когда на входе отсканируют ваш QR.",card:"Награды за визиты"},
@@ -78,12 +79,12 @@ export function GuestLevels({ownerId,tiers,language}:{ownerId:number;tiers?:Orga
   <h2>{g.title}</h2>
   <p className="form-note">{g.lead}</p>
   <ol>{levels.map((level,i)=>{
-   const b=tiers?.find(t=>t.tier===level.key),live=b?b.enabled&&b.operational:level.live;
+   const b=tiers?.find(t=>t.tier===level.key),status=benefitStatus(b,language,level.live);
    return <li key={level.key} className={"is-"+level.key}>
     <small>{i===0?c.at[0]:visitsLabel(level.at,language)}</small>
     <strong>{c.names[i]}</strong>
     <span>{perkLabel(language,i,tiers)}</span>
-    {i>0&&<em className={live?"is-live":"is-soon"}>{live?c.live:c.soon}</em>}
+    {i>0&&<em className={["live","manual"].includes(status.kind)?"is-live":"is-soon"}>{status.text}</em>}
     <b>{attendees===null?"…":counts[i]}<i>{g.guests}</i></b>
    </li>;})}</ol>
  </section>;

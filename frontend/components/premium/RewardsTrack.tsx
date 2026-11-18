@@ -2,6 +2,7 @@
 import type {CSSProperties} from "react";
 import type {LanguageCode} from "@/lib/types";
 import type {OrganizerTierBenefit} from "@/lib/api";
+import {benefitStatus} from "@/lib/loyalty-status";
 
 /** The loyalty levels as the server counts them (backend demo_loyalty.TIERS).
  * Only the waitlist priority works today; the other perks are marked "soon". */
@@ -79,7 +80,7 @@ export function RewardsTrack({language,visits,tierRewards,variant,here=true,unkn
  return <ol className={"tt-rt"+(variant?" is-"+variant:"")} aria-label={progressLine(language,visits,tierRewards)}>
   {levels.map((level,i)=>{
    const benefit=tierRewards?.find(item=>item.tier===level.key);
-   const isLive=benefit ? benefit.enabled && benefit.operational : level.live;
+   const status=benefitStatus(benefit,language,level.live);
    const next=levels[i+1];
    const fill=next?Math.max(0,Math.min(1,(visits-level.at)/(next.at-level.at))):0;
    return <li key={level.key} className={"tt-rt-stop"+(i<=current?" is-reached":"")+(i===current?" is-current":"")}
@@ -92,7 +93,7 @@ export function RewardsTrack({language,visits,tierRewards,variant,here=true,unkn
      <span>{benefit?(language==="cs"?benefit.label_cs:benefit.label_en):c.perks[i]}</span>
      {benefit&&(language==="cs"?benefit.description_cs:benefit.description_en)&&
        <span className="tt-rt-description">{language==="cs"?benefit.description_cs:benefit.description_en}</span>}
-     {i>0&&<em className={isLive?"is-live":"is-soon"}>{isLive?c.live:c.soon}</em>}
+     {i>0&&<em className={["live","manual"].includes(status.kind)?"is-live":"is-soon"}>{status.text}</em>}
     </div>
    </li>;
   })}
