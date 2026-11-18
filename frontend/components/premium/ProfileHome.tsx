@@ -4,7 +4,8 @@ import {useEffect,useState,type FormEvent} from "react";
 import {createSupportTicket,getDemoTickets,getMyAttendance,type AttendanceHistory} from "@/lib/api";
 import type {DemoTicket,LanguageCode,WebProfile} from "@/lib/types";
 import {dateParts} from "@/components/premium/EventLists";
-import {LEVELS,levelIndex,levelName,progressLine,rewardsCopy} from "@/components/premium/RewardsTrack";
+import {LEVELS,configuredLevels,levelIndex,levelName,progressLine,rewardsCopy} from "@/components/premium/RewardsTrack";
+import type {LoyaltyStudio,OrganizerTierBenefit} from "@/lib/api";
 import {useMyLoyalty} from "@/components/premium/useMyLoyalty";
 
 const C:Record<LanguageCode,{
@@ -55,16 +56,25 @@ function useProfileData(profile:WebProfile){
 
 /** The card at the top of the profile: who you are, your best level and three numbers. */
 /** How far the visits go towards the next step, 0..100. */
-function toNext(visits:number){
- const i=levelIndex(visits),next=LEVELS[i+1];
- return next?Math.round(100*visits/next.at):100;
+/** How far the visits go towards the next step of this organizer, 0..100. */
+function toNext(visits:number,rewards?:OrganizerTierBenefit[]){
+ const i=levelIndex(visits,rewards),next=configuredLevels(rewards)[i+1];
+ return next?Math.min(100,Math.round(100*visits/Math.max(1,next.at))):100;
+}
+/** The organizer where the guest stands highest (each organizer has its own steps). */
+function bestStudio(studios:LoyaltyStudio[]):LoyaltyStudio|null{
+ return [...studios].sort((a,b)=>levelIndex(b.season_visits,b.tier_rewards)-levelIndex(a.season_visits,a.tier_rewards)||b.season_visits-a.season_visits)[0]||null;
+}
+function perkAt(language:LanguageCode,i:number,rewards?:OrganizerTierBenefit[]){
+ const b=rewards?.find(r=>r.tier===LEVELS[i]?.key);
+ return b?(language==="cs"?b.label_cs:b.label_en):rewardsCopy[language].perks[i];
 }
 
 /** The card at the top of the profile, drawn as a ticket: who you are and three numbers on the left,
  *  a dark stub on the right with your best level and how close the next one is. */
 export function ProfilePass({profile,roleLabel,language}:{profile:WebProfile;roleLabel:string;language:LanguageCode}){
  const c=C[language],{passport}=useMyLoyalty(),{upcoming}=useProfileData(profile);
- const best=Math.max(0,...(passport?.studios||[]).map(s=>s.season_visits));
+ const best=bestStudio(passport?.studios||[]);
  const since=profile.account.created_at?new Intl.DateTimeFormat(LOCALE[language],{month:"long",year:"numeric"}).format(new Date(profile.account.created_at)):"";
  const name=[profile.account.first_name,profile.account.last_name].filter(Boolean).join(" ");
  return <section className="tt-ph-pass" aria-label={name}>
@@ -83,11 +93,11 @@ export function ProfilePass({profile,roleLabel,language}:{profile:WebProfile;rol
     <div><dt>{c.orgs}</dt><dd>{passport?.studios.length??0}</dd></div>
    </dl>
   </div>
-  <div className={"tt-ph-stub is-"+LEVELS[levelIndex(best)].key}>
+  <div className={"tt-ph-stub is-"+LEVELS[levelIndex(best?.season_visits??0,best?.tier_rewards)].key}>
    <small>{c.level}</small>
-   <strong>{levelName(language,best)}</strong>
-   <span className="tt-ph-bar" aria-hidden="true"><i style={{width:toNext(best)+"%"}}/></span>
-   <p>{progressLine(language,best)}</p>
+   <strong>{levelName(language,best?.season_visits??0,best?.tier_rewards)}</strong>
+   <span className="tt-ph-bar" aria-hidden="true"><i style={{width:toNext(best?.season_visits??0,best?.tier_rewards)+"%"}}/></span>
+   <p>{best?(passport&&passport.studios.length>1?best.organizer_name+": ":"")+progressLine(language,best.season_visits,best.tier_rewards):progressLine(language,0)}</p>
   </div>
  </section>;
 }
@@ -103,7 +113,7 @@ export function ProfileHome({profile,language}:{profile:WebProfile;language:Lang
  const [all,setAll]=useState(false);
  const next=upcoming[0],d=next?.event?dateParts(next.event.starts_at,language):null;
  const been=history?.history||[];
- const studios=[...(passport?.studios||[])].sort((a,b)=>b.season_visits-a.season_visits).slice(0,3);
+ const studios=[...(passport?.studios||[])].sort((a,b)=>levelIndex(b.season_visits,b.tier_rewards)-levelIndex(a.season_visits,a.tier_rewards)||b.season_visits-a.season_visits).slice(0,3);
  return <div className="tt-ph">
   <div className="tt-ph-col">
   <section className="tt-ph-card tt-ph-next">
@@ -138,13 +148,13 @@ export function ProfileHome({profile,language}:{profile:WebProfile;language:Lang
   <section className="tt-ph-card tt-ph-levels">
    <div className="tt-ph-card-head"><h2>{c.levels}</h2><Link href="/loyalty">{c.allRewards}</Link></div>
    {studios.length===0?<p className="tt-ph-muted">{c.noLevels}</p>:<ul>{studios.map(s=>{
-    const i=levelIndex(s.season_visits),next=LEVELS[i+1];
+    const r=s.tier_rewards,i=levelIndex(s.season_visits,r),next=configuredLevels(r)[i+1];
     return <li key={s.organizer_id} className={"is-"+LEVELS[i].key}>
-     <div className="tt-ph-lv-top"><strong>{s.organizer_name}</strong><em>{levelName(language,s.season_visits)}</em></div>
-     <span className="tt-ph-lv-bar" aria-hidden="true"><i style={{width:toNext(s.season_visits)+"%"}}/></span>
+     <div className="tt-ph-lv-top"><strong>{s.organizer_name}</strong><em>{levelName(language,s.season_visits,r)}</em></div>
+     <span className="tt-ph-lv-bar" aria-hidden="true"><i style={{width:toNext(s.season_visits,r)+"%"}}/></span>
      <div className="tt-ph-lv-foot">
       <b>{s.season_visits}{next?" / "+next.at:""}</b>
-      <span>{next?c.nextPerk.replace("{perk}",rewardsCopy[language].perks[i+1]):c.topLevel}</span>
+      <span>{next?c.nextPerk.replace("{perk}",perkAt(language,i+1,r)):c.topLevel}</span>
      </div>
     </li>;})}</ul>}
   </section>

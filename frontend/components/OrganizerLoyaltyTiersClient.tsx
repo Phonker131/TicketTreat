@@ -6,6 +6,7 @@ import {useLanguage} from "@/components/LanguageProvider";
 import {getOrganizerLoyaltyTiers,updateOrganizerLoyaltyTier,updateOrganizerThresholds,
   type OrganizerLoyaltyTiers,type OrganizerTierBenefit} from "@/lib/api";
 import {userFacingError} from "@/lib/user-facing-errors";
+import {GuestLevels} from "@/components/premium/RewardsPlates";
 
 const copy={
   en:{title:"Organizer loyalty rewards",intro:"Earned automatically by visiting one organizer, not issued for individual events.",back:"Organizer dashboard",refresh:"Refresh",org:"Organizer",edit:"Edit reward",save:"Save changes",cancel:"Cancel",saving:"Saving…",nameEn:"Reward (English)",nameCs:"Reward (Czech)",detailsEn:"Details (English)",detailsCs:"Details (Czech)",active:"Enable waitlist priority",live:"Active",soon:"Coming soon",paused:"Paused",levels:["Newcomer","Regular","Insider","VIP"],visits:"verified visits per quarter",rules:"Only QR-confirmed visits count, separately for each organizer. Counts reset every calendar quarter.",limitations:"Waitlist priority is operational. Early registration and companion admission are not implemented in booking yet; editing their descriptions does not activate those benefits.",saved:"Loyalty reward updated.",none:"No organizer events found. Create an event under your organizer account first."},
@@ -53,6 +54,7 @@ export function OrganizerLoyaltyTiersClient(){
        setNotice(language==="cs"?"Počty návštěv byly uloženy.":"Visit thresholds saved.");
       }catch(cause){setError(userFacingError(cause,language));}finally{setBusy(false);}
     }}/>}
+    {org&&<GuestLevels ownerId={org.owner_account_id} tiers={org.tiers} language={language}/>}
     <div className="tt-reward-admin-grid">{org?.tiers.map((b,i)=><section key={`${ownerId}-${b.tier}`} className="panel form-stack">
      <h2>{t.levels[i]}</h2><p className="form-note">{b.required_visits} {t.visits}</p>
      <span className={`status ${b.enabled?"status-success":"status-demo"}`}>{b.enabled?t.live:b.operational?t.paused:t.soon}</span>

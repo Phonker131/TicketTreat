@@ -10,7 +10,6 @@ import {
 import {userFacingError} from "@/lib/user-facing-errors";
 import {localeForLanguage} from "@/lib/i18n";
 import type {LanguageCode} from "@/lib/types";
-import {GuestLevels} from "@/components/premium/RewardsPlates";
 
 const labels={
   en:{
@@ -236,7 +235,6 @@ export function OrganizerRewardsClient(){
     {notice&&<p className="success-banner" role="status">{notice}</p>}
     {loading?<div className="state-card" role="status">{t.loading}</div>:data&&<>
       <p className="form-note">{t.privacy}</p>
-      <GuestLevels attendees={data.attendees} language={language}/>
       <section className="panel"><h2>{language==="cs"?"Jak odměny fungují":"How rewards work"}</h2><ol>
         <li>{language==="cs"?"Vytvořte odznak, ocenění nebo výhodu pro svého pořadatele.":"Create a badge, recognition or benefit for your organizer."}</li>
         <li>{language==="cs"?"Na akci odbavte hosta QR skenerem. Poté vyberte akci, hosta a odměnu.":"Check the guest in with the QR scanner. Then select the event, guest and reward."}</li>
