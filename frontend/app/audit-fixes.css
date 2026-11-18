@@ -305,8 +305,4 @@ html body main.tt-notfound p{margin:0;color:var(--tp-mute);font:400 17px/1.5 var
  html body .tt-business-feature-grid li{padding:14px 16px!important}
 }
 
-/* organizer inbox on phones: the list on top, the conversation below, full width */
-@media (max-width:760px){
- html body .tt-chat-inbox{display:block!important}
- html body .tt-chat-thread-list{max-height:none!important;display:grid!important;grid-auto-flow:column;grid-auto-columns:minmax(220px,80%);overflow-x:auto;border-right:0!important;border-bottom:1px solid var(--tp-line)}
-}
+/* Chat inbox and conversation are separate screens; mobile list stays vertical. */
