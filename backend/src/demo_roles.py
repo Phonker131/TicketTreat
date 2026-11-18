@@ -26,6 +26,7 @@ from pydantic import AfterValidator, BaseModel, Field
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint, Boolean, func
 from sqlalchemy.orm import Session
 from db.base import Base
+from demo_event_categories import DEFAULTS, catalog, install_categories
 from demo_geography import DemoEventPlace, place_dict, save_place
 from demo_accounts import WebAccount, WebSession, token_hash, safe_csv
 from demo_auth_security import guard_rate, record_rate
@@ -110,7 +111,7 @@ class EventDetails(Base):
 
 # Mirrors the mood filter on the home page; the frontend falls back to keyword
 # matching for events whose organizer has not picked a tag yet.
-EVENT_TAGS = ("meet", "friends", "listen", "dance")
+EVENT_TAGS = tuple(DEFAULTS)
 
 
 def validate_venue_url(venue_url):
@@ -135,13 +136,13 @@ def validate_venue_url(venue_url):
 VenueUrl = Annotated[str, AfterValidator(validate_venue_url)]
 
 
-def normalize_tags(tags):
+def normalize_tags(tags, allowed=EVENT_TAGS):
     if tags is None:
         return None
     normalized = []
     for tag in tags:
         value = str(tag).strip().lower()
-        if value not in EVENT_TAGS:
+        if value not in allowed:
             raise HTTPException(status_code=422, detail="invalid_event_tag")
         if value not in normalized:
             normalized.append(value)
@@ -152,7 +153,6 @@ def save_details(db, event_id, venue_url=None, tags=None):
     if venue_url is None and tags is None:
         return
     validate_venue_url(venue_url)
-    tags = normalize_tags(tags)
     details = db.query(EventDetails).filter(EventDetails.event_id == event_id).first()
     if details is None:
         details = EventDetails(event_id=event_id)
@@ -168,7 +168,7 @@ def details_dict(db, event_id) -> dict:
     tags = []
     if details and details.tags_json:
         try:
-            tags = [tag for tag in json.loads(details.tags_json) if tag in EVENT_TAGS]
+            tags = [tag for tag in json.loads(details.tags_json) if isinstance(tag, str)]
         except ValueError:
             tags = []
     return {"venue_url": details.venue_url if details else None, "tags": tags}
@@ -245,7 +245,7 @@ class CreateManageEvent(BaseModel):
     gallery_urls: list[str] = Field(default_factory=list)
     video_url: str | None = None
     venue_url: VenueUrl | None = None
-    tags: list[str] = Field(default_factory=list, max_length=8)
+    tags: list[str] = Field(default_factory=list)
     reminder_minutes: list[int] = Field(default_factory=lambda: [10080, 1440, 180], min_length=1, max_length=4)
     reminder_text: str = Field(default="Your TicketTreat event starts soon.", max_length=1000)
 
@@ -493,7 +493,7 @@ def install_demo_roles(app, get_db, main):
         # Existing bot event-creation logic remains the source of truth.
         values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","venue_url","tags","reminder_minutes","visibility"})
         validate_media_urls(payload.gallery_urls,payload.video_url)
-        normalize_tags(payload.tags)
+        normalized_tags = normalize_tags(payload.tags, {k for k, c in catalog(db).items() if c["active"]})
         from main import EventCreate
         # Price is informational; neither booking nor publication requires
         # organizer payment instructions in registration-only mode.
@@ -516,7 +516,7 @@ def install_demo_roles(app, get_db, main):
         if payload.poster_data_url:
             poster_setup(db,main,request,event,payload.poster_data_url)
         save_media(db,eid,payload.gallery_urls,payload.video_url)
-        save_details(db,eid,payload.venue_url or "",payload.tags)
+        save_details(db,eid,payload.venue_url or "",normalized_tags)
         audit(db,eid,account.id,"create")
         db.commit()
         db.refresh(event)
@@ -724,7 +724,7 @@ def install_demo_roles(app, get_db, main):
             visibility="link_only" if __import__("demo_event_access").is_unlisted(db,event_id) else "public",
             languages=languages,country_code=place.country_code,city=place.city,
             gallery_urls=external,video_url=video,poster_data_url=poster,
-            venue_url=source_details["venue_url"],tags=source_details["tags"],
+            venue_url=source_details["venue_url"],tags=[key for key, cat in catalog(db).items() if cat["active"] and key in source_details["tags"]],
             reminder_minutes=__import__("demo_pilot_ops").effective_settings(db, source.id)["reminder_minutes"],
             reminder_text=(source.reminder_text or "Your TicketTreat event starts soon."),
             payment_instructions="",
@@ -776,7 +776,9 @@ def install_demo_roles(app, get_db, main):
         if "price" in values and values["price"] is None:
             raise HTTPException(status_code=422,detail="invalid_price")
         validate_media_urls(gallery, video)
-        normalize_tags(tags)
+        if tags is not None:
+            allowed = {k for k, c in catalog(db).items() if c["active"]}
+            tags = normalize_tags(tags, allowed.union(details_dict(db, event_id)["tags"]))
         if gallery is not None:
             uploaded = db.query(EventGalleryImage).filter(
                 EventGalleryImage.event_id == event_id
@@ -1304,6 +1306,8 @@ def install_account_moderation(app, get_db):
             raise HTTPException(status_code=403,detail="global_admin_only")
         return account
 
+
+    install_categories(app, get_db, admin_account)
 
     @app.get("/demo/manage/global-admins")
     def list_global_admin_delegations(
