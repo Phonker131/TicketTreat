@@ -140,6 +140,16 @@ def benefits_for_organizer(db: Session, owner_id: int) -> list[dict]:
             for tier, visits, *_ in LEVELS]
 
 
+PUBLIC_BENEFIT_FIELDS = ("tier", "required_visits", "key", "label_en", "label_cs",
+                         "description_en", "description_cs", "operational", "enabled")
+
+
+def public_benefits(benefits: list[dict]) -> list[dict]:
+    """What a guest may see of an organizer's loyalty levels: steps and benefit copy only.
+    Editor-only flags stay private; no attendee, account or count data is involved."""
+    return [{key: benefit[key] for key in PUBLIC_BENEFIT_FIELDS} for benefit in benefits]
+
+
 def priority_enabled(db: Session, owner_id: int) -> bool:
     row = db.query(OrganizerLoyaltyBenefit).filter(
         OrganizerLoyaltyBenefit.owner_account_id == owner_id,

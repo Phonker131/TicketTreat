@@ -267,6 +267,20 @@ def install_organizer_public_profiles(app, get_db, main):
                 "past_events": [to_public(event) for event in history[:30]],
                 "upcoming_count": len(upcoming), "past_count": len(history)}
 
+    @app.get("/demo/public/organizers/{slug}/loyalty")
+    def public_loyalty(slug: str, db: Session = Depends(get_db)):
+        """The organizer's own loyalty steps and benefit names, so event pages can show
+        guests the real levels before their first visit. Published profiles only."""
+        if not SLUG.fullmatch(slug):
+            raise HTTPException(404, "organizer_not_found")
+        row = db.query(OrganizerPublicProfile).filter(
+            OrganizerPublicProfile.slug == slug
+        ).first()
+        if row is None or not is_public(db, row):
+            raise HTTPException(404, "organizer_not_found")
+        from demo_loyalty_benefits import benefits_for_organizer, public_benefits
+        return {"tiers": public_benefits(benefits_for_organizer(db, row.account_id))}
+
     @app.get("/demo/public/organizers/{slug}/media/{kind}")
     def public_image(slug: str, kind: str, db: Session = Depends(get_db)):
         if kind not in {"logo", "cover"} or not SLUG.fullmatch(slug):
