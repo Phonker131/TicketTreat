@@ -28,6 +28,13 @@ test("loyalty rewards are configured per organizer and tier, never per event",as
     }
     return route.fulfill({status:405});
   });
+  await page.route("**/api/gateway/api/v1/manage/loyalty/thresholds/*",async route=>{
+    const owner=Number(new URL(route.request().url()).pathname.split("/").pop());
+    const settings=route.request().postDataJSON();
+    const org=dashboard.organizers.find(o=>o.owner_account_id===owner)!;
+    for(const tier of org.tiers){if(tier.tier!=="newcomer")tier.required_visits=settings[tier.tier];}
+    return route.fulfill({json:{tiers:org.tiers}});
+  });
   await page.goto("/admin/rewards?lang=en");
   await expect(page.getByRole("heading",{name:"Organizer loyalty rewards"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"VIP",exact:true})).toBeVisible();
@@ -48,6 +55,19 @@ test("loyalty rewards are configured per organizer and tier, never per event",as
   await page.getByLabel("Organizer",{exact:true}).selectOption("3");
   await expect(regular.getByText("Priority on the waitlist")).toBeVisible();
   await expect(regular.getByText("Active")).toBeVisible();
+  await page.getByLabel("Regular",{exact:true}).fill("2");
+  await page.getByLabel("Insider",{exact:true}).fill("2");
+  await expect(page.getByRole("button",{name:"Save visit thresholds"})).toBeDisabled();
+  await page.getByLabel("Insider",{exact:true}).fill("5");
+  await page.getByLabel("VIP",{exact:true}).fill("9");
+  await page.getByRole("button",{name:"Save visit thresholds"}).click();
+  await expect(page.getByRole("status").filter({hasText:"Visit thresholds saved."})).toBeVisible();
+  await expect(regular.getByText("2 verified visits per quarter")).toBeVisible();
+  await page.reload();
+  await page.getByLabel("Organizer",{exact:true}).selectOption("3");
+  await expect(page.getByLabel("VIP",{exact:true})).toHaveValue("9");
+  await page.getByLabel("Organizer",{exact:true}).selectOption("2");
+  await expect(page.getByLabel("VIP",{exact:true})).toHaveValue("12");
   // The dashboard no longer asks users to choose an individual event/guest.
   await expect(page.getByRole("button",{name:"Award guest"})).toHaveCount(0);
 });

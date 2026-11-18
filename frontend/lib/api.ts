@@ -1064,3 +1064,7 @@ export function getBroadcastPreferences():Promise<BroadcastPreferencesData>{
 export function saveBroadcastPreferences(data:BroadcastPreferencesData):Promise<BroadcastPreferencesData>{
   return request("/demo/auth/broadcast-preferences",{method:"PUT",body:JSON.stringify(data)});
 }
+
+export function updateOrganizerThresholds(ownerId:number, settings:{regular:number;insider:number;vip:number}):Promise<{tiers:OrganizerTierBenefit[]}>{
+ return request(`/demo/manage/loyalty/thresholds/${ownerId}`,{method:"PUT",body:JSON.stringify(settings)});
+}

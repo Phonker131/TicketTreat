@@ -51,31 +51,32 @@ export const rewardsCopy:Record<LanguageCode,{
   signin:"Увійти",find:"Переглянути події"},
 };
 
-export function levelIndex(visits:number){
- let i=0;LEVELS.forEach((l,k)=>{if(visits>=l.at)i=k;});return i;
+function configuredLevels(rewards?:OrganizerTierBenefit[]){return LEVELS.map(l=>({...l,at:rewards?.find(r=>r.tier===l.key)?.required_visits??l.at}));}
+export function levelIndex(visits:number,rewards?:OrganizerTierBenefit[]){
+ let i=0;configuredLevels(rewards).forEach((l,k)=>{if(visits>=l.at)i=k;});return i;
 }
-export function progressLine(language:LanguageCode,visits:number){
- const c=rewardsCopy[language],i=levelIndex(visits);
+export function progressLine(language:LanguageCode,visits:number,rewards?:OrganizerTierBenefit[]){
+ const c=rewardsCopy[language],i=levelIndex(visits,rewards);
  if(i===LEVELS.length-1)return c.top;
- return c.progress.replace("{n}",String(visits)).replace("{next}",String(LEVELS[i+1].at)).replace("{name}",c.names[i+1]);
+ return c.progress.replace("{n}",String(visits)).replace("{next}",String(configuredLevels(rewards)[i+1].at)).replace("{name}",c.names[i+1]);
 }
-export function levelName(language:LanguageCode,visits:number){return rewardsCopy[language].names[levelIndex(visits)];}
+export function levelName(language:LanguageCode,visits:number,rewards?:OrganizerTierBenefit[]){return rewardsCopy[language].names[levelIndex(visits,rewards)];}
 
 /** Four stops on one line: where you are, what each level gives and whether it works yet. */
 export function RewardsTrack({language,visits,tierRewards}:{language:LanguageCode;visits:number;tierRewards?:OrganizerTierBenefit[]}){
- const c=rewardsCopy[language],current=levelIndex(visits);
- return <ol className="tt-rt" aria-label={progressLine(language,visits)}>
-  {LEVELS.map((level,i)=>{
+ const c=rewardsCopy[language],current=levelIndex(visits,tierRewards),levels=configuredLevels(tierRewards);
+ return <ol className="tt-rt" aria-label={progressLine(language,visits,tierRewards)}>
+  {levels.map((level,i)=>{
    const benefit=tierRewards?.find(item=>item.tier===level.key);
    const isLive=benefit ? benefit.enabled && benefit.operational : level.live;
-   const next=LEVELS[i+1];
+   const next=levels[i+1];
    const fill=next?Math.max(0,Math.min(1,(visits-level.at)/(next.at-level.at))):0;
    return <li key={level.key} className={"tt-rt-stop"+(i<=current?" is-reached":"")+(i===current?" is-current":"")}
      style={{"--fill":fill} as CSSProperties} aria-current={i===current?"step":undefined}>
     <span className="tt-rt-dot" data-at={level.at} aria-hidden="true"/>
     {i===current&&<span className="tt-rt-here">{c.here}</span>}
     <div className="tt-rt-body">
-     <small>{c.at[i]}</small>
+     <small>{i===0?c.at[0]:`${level.at} ${language==="cs"?"návštěv":"visits"}`}</small>
      <strong>{c.names[i]}</strong>
      <span>{benefit?(language==="cs"?benefit.label_cs:benefit.label_en):c.perks[i]}</span>
      {benefit&&(language==="cs"?benefit.description_cs:benefit.description_en)&&
