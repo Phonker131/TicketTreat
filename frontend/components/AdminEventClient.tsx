@@ -1,4 +1,5 @@
 "use client";
+import {useCategories} from "@/components/EventCategories";
 import Link from "next/link";
 import {OrganizerRules} from "@/components/OrganizerRules";
 import {useRouter} from "next/navigation";
@@ -23,7 +24,7 @@ import {
 import { getWebToken } from "@/lib/session";
 import {prepareGalleryPhoto} from "@/lib/gallery-photo";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
-import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag,type EventTag} from "@/lib/event-tags";
+import {TagIcon,type EventTag} from "@/lib/event-tags";
 import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff} from "@/lib/api";
 
 type Tab="overview"|"details"|"media"|"guests"|"notify"|"analytics"|"moderation";
@@ -45,6 +46,7 @@ function formattedError(e:unknown,language:LanguageCode):string {
 function posterData(file:File):Promise<string> {return prepareGalleryPhoto(file);}
 export function AdminEventClient(){
   const {language}=useLanguage();
+  const categories=useCategories(language);
   const tr=(phrase:string)=>eventAdminText(language,phrase);
   const router=useRouter();
   const params=useParams<{id:string}>(),eventId=Number(params?.id);
@@ -129,7 +131,7 @@ export function AdminEventClient(){
     setDescription(ev.description||"");setGallery((ev.external_gallery_urls||ev.gallery_urls||[]).filter(s=>!s.startsWith("/api/gateway/demo/events/")).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
     setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
-    setVenueUrl(ev.venue_url||"");setTags((ev.tags||[]).filter(isEventTag));
+    setVenueUrl(ev.venue_url||"");setTags((ev.tags||[]));
     setOwner(ev.owner_account_id==null?"":String(ev.owner_account_id));
     if(me.role==="global_admin"){
       const [list,history]=await Promise.all([
@@ -615,10 +617,10 @@ export function AdminEventClient(){
         <fieldset className="event-language-fieldset"><legend>{tr("Категории")}</legend>
         <p className="tp-field-hint">{tr("По ним гости фильтруют афишу на главной. Можно выбрать несколько.")}</p>
         <div className="event-language-options">
-          {EVENT_TAGS.map(tag=><label className="event-language-option" key={tag}>
+          {categories.activeKeys.map(tag=><label className="event-language-option" key={tag}>
             <input type="checkbox" checked={tags.includes(tag)} onChange={e=>setTags(s=>e.target.checked?[...s,tag]:s.filter(x=>x!==tag))}/>
             <span className="event-language-flag" aria-hidden="true"><TagIcon tag={tag}/></span>
-            <span className="event-language-name">{TAG_LABELS[language][tag]}</span>
+            <span className="event-language-name">{categories.label(tag)}</span>
           </label>)}
         </div></fieldset>
         <fieldset className="event-language-fieldset"><legend>{tr("Языки")}</legend>

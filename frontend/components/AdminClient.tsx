@@ -1,4 +1,5 @@
 "use client";
+import {useCategories,CategoryManager} from "@/components/EventCategories";
 import Link from "next/link";
 import {OrganizerRules} from "@/components/OrganizerRules";
 import { FormEvent, useEffect, useState } from "react";
@@ -11,7 +12,7 @@ import { uploadManageGalleryPhoto, addManageEvent, getManageEvents, getManageMe,
 import {prepareGalleryPhoto} from "@/lib/gallery-photo";
 import { getWebToken } from "@/lib/session";
 import {localeForLanguage} from "@/lib/i18n";
-import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag} from "@/lib/event-tags";
+import {TagIcon} from "@/lib/event-tags";
 import type { LanguageCode, ManageEvent, ManageIdentity } from "@/lib/types";
 
 class LocalValidationError extends Error {}
@@ -57,6 +58,7 @@ function DashIcon({name}:{name:string}){
 
 export function AdminClient() {
   const {language}=useLanguage();
+  const categories=useCategories(language);
   const tr=(phrase:string)=>eventAdminText(language,phrase);
   const ui=ADMIN_UI[language];
   const x=EXTRA_UI[language];
@@ -165,7 +167,7 @@ export function AdminClient() {
         gallery_urls:[],
         video_url:String(data.get("video_url")||"").trim(),
         venue_url:String(data.get("venue_url")||"").trim(),
-        tags:data.getAll("tags").map(String).filter(isEventTag),
+        tags:data.getAll("tags").map(String),
         location:String(data.get("location")||"").trim(),
         country_code:"CZ",city:"",
         max_participants:Number(data.get("max_participants")||30),
@@ -252,6 +254,7 @@ export function AdminClient() {
     </div>}
     {notice&&<div className="success-banner" role="status">{show(notice)}</div>}
     {loading?<div className="state-card">{ui.loading}</div>:identity&&identity.role!=="participant"&&<>
+      {identity.role==="global_admin"&&<CategoryManager language={language}/>}
       {events.length>0&&<div className="tp-admin-summary" aria-label={ui.events}>
         <div><DashIcon name="published"/><strong>{summary.published}</strong><span>{x.published}</span></div>
         <div><DashIcon name="drafts"/><strong>{summary.drafts}</strong><span>{x.drafts}</span></div>
@@ -283,10 +286,10 @@ export function AdminClient() {
             <fieldset className="event-language-fieldset"><legend>{x.tags}</legend>
               <p className="tp-field-hint">{x.tagsHint}</p>
               <div className="event-language-options">
-                {EVENT_TAGS.map(tag=><label className="event-language-option" key={tag}>
+                {categories.activeKeys.map(tag=><label className="event-language-option" key={tag}>
                   <input type="checkbox" name="tags" value={tag}/>
                   <span className="event-language-flag" aria-hidden="true"><TagIcon tag={tag}/></span>
-                  <span className="event-language-name">{TAG_LABELS[language][tag]}</span>
+                  <span className="event-language-name">{categories.label(tag)}</span>
                 </label>)}
               </div></fieldset>
             <fieldset className="event-language-fieldset"><legend>{x.languages}</legend><div className="event-language-options">

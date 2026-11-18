@@ -1,8 +1,8 @@
 import type {LanguageCode} from "@/lib/types";
 
 /** Event sub-themes. Organizers pick them in the dashboard; the home page filters by them. */
-export type EventTag="meet"|"friends"|"listen"|"dance";
-export const EVENT_TAGS:EventTag[]=["meet","friends","listen","dance"];
+export type EventTag=string;
+export const DEFAULT_TAGS:EventTag[]=["meet","friends","listen","dance"];
 
 export const TAG_LABELS:Record<LanguageCode,Record<EventTag,string>>={
  ru:{meet:"Познакомиться",friends:"С друзьями",listen:"Послушать",dance:"Потанцевать"},
@@ -19,16 +19,12 @@ const KEYWORDS:Record<EventTag,RegExp>={
  dance:/dance|танц|танцю|taneč|party|dj|klub|club|disco/i
 };
 
-export function isEventTag(value:unknown):value is EventTag{
- return typeof value==="string"&&(EVENT_TAGS as string[]).includes(value);
-}
-
 /** Explicit organizer tags win; otherwise the title and description are matched by keywords. */
-export function eventTags(event:{tags?:string[]|null;title:string;description?:string|null}):EventTag[]{
- const explicit=(event.tags||[]).filter(isEventTag);
+export function eventTags(event:{tags?:string[]|null;title:string;description?:string|null}, active:string[]=DEFAULT_TAGS):EventTag[]{
+ const explicit=event.tags||[];
  if(explicit.length)return explicit;
  const text=[event.title,event.description||""].join(" ");
- return EVENT_TAGS.filter(tag=>KEYWORDS[tag].test(text));
+ return active.filter(tag=>KEYWORDS[tag]?.test(text));
 }
 
 const ICONS:Record<EventTag|"all"|"saved",React.ReactNode>={
@@ -41,5 +37,5 @@ const ICONS:Record<EventTag|"all"|"saved",React.ReactNode>={
 };
 
 export function TagIcon({tag,size=18}:{tag:EventTag|"all"|"saved";size?:number}){
- return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{ICONS[tag]}</svg>;
+ return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{ICONS[tag]??ICONS.all}</svg>;
 }

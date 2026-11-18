@@ -1,4 +1,5 @@
 "use client";
+import {useCategories} from "@/components/EventCategories";
 import {useEffect,useState} from "react";
 import * as M from "motion/react-m";
 import {EventCard} from "@/components/EventCard";
@@ -7,7 +8,7 @@ import {MoodEmpty} from "@/components/premium/EventsPlaceholders";
 import {premium} from "@/components/premium/copy";
 import {t} from "@/lib/i18n";
 import {eventDisplayDate} from "@/lib/format";
-import {EVENT_TAGS,TAG_LABELS,TagIcon,eventTags,type EventTag} from "@/lib/event-tags";
+import {TagIcon,eventTags,type EventTag} from "@/lib/event-tags";
 import {useWanted} from "@/lib/wanted";
 import type {LanguageCode,TicketTreatEvent} from "@/lib/types";
 
@@ -39,12 +40,13 @@ const MODE_ICON:Record<Mode,React.ReactNode>={
 
 export function EventDiscovery({events,language}:{events:TicketTreatEvent[];language:LanguageCode}){
  const tr=copy[language];
+  const categories=useCategories(language);
  const [mode,setMode]=useState<Mode>("list");
  const [mood,setMood]=useState<Mood>("all");
  const [index,setIndex]=useState(0);
  const [feedback,setFeedback]=useState("");
  const [wanted,setWanted]=useWanted();
- const filtered=events.filter(e=>mood==="all"||eventTags(e).includes(mood));
+ const filtered=events.filter(e=>mood==="all"||eventTags(e,categories.activeKeys).includes(mood));
  const saved=events.filter(e=>wanted.includes(e.id));
  const current=filtered[index];
  const advance=(action:"want"|"pass"|"view")=>{
@@ -54,7 +56,7 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
    setIndex(i=>i+1);
  };
  useEffect(()=>{setIndex(0);setFeedback("");},[mood,mode]);
- const moodButtons:Mood[]=["all",...EVENT_TAGS];
+ const moodButtons:Mood[]=["all",...categories.activeKeys];
  const modeButtons:Mode[]=["list","swipe","saved"];
  return <div className="tt-discovery">
    <div className="tt-discovery-controls tp-filterbar">
@@ -69,7 +71,7 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
      {mode!=="saved"&&<div className="tp-moods" role="group" aria-label={tr.mood}>
        {moodButtons.map(m=><button type="button" key={m} className="tp-mood" aria-pressed={mood===m} onClick={()=>setMood(m)}>
          <TagIcon tag={m}/>
-         <span>{m==="all"?tr.all:TAG_LABELS[language][m]}</span></button>)}
+         <span>{m==="all"?tr.all:categories.label(m)}</span></button>)}
      </div>}
    </div>
    {mode==="saved"?(saved.length===0
