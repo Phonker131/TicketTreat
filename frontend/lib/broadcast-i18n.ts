@@ -203,16 +203,16 @@ const translations: Array<[string,string,string,string]> = [
     "Напиши важливу інформацію для учасників…"
   ],
   [
-    "Ссылка на изображение (необязательно)",
-    "Image URL (optional)",
-    "Odkaz na obrázek (volitelné)",
-    "Посилання на зображення (необов’язково)"
+    "Загрузить изображение (необязательно)",
+    "Upload image (optional)",
+    "Nahrát obrázek (volitelné)",
+    "Завантажити зображення (необов’язково)"
   ],
   [
-    "Публичный HTTPS-адрес картинки для Telegram и email. Необязательно.",
-    "Public HTTPS image URL for Telegram and email. Optional.",
-    "Veřejná HTTPS adresa obrázku pro Telegram a e-mail. Volitelné.",
-    "Публічна HTTPS-адреса зображення для Telegram та email. Необов’язково."
+    "Выбери изображение с телефона или компьютера для Telegram и email.",
+    "Choose an image from your phone or computer for Telegram and email.",
+    "Vyber obrázek z telefonu nebo počítače pro Telegram a e-mail.",
+    "Вибери зображення з телефона або комп’ютера для Telegram та email."
   ],
   [
     "Текст сообщения появится здесь.",

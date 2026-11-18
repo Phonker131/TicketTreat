@@ -21,6 +21,32 @@ test("organizer can select posters and gallery photos without entering image URL
   await expect(form.locator(".event-poster-preview")).toBeVisible();
 });
 
+test("event editor keeps old galleries on details save and offers a device file picker",async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem("tickettreat_web_auth","browser-session"));
+  // This verifies the edit flow keeps legacy external gallery entries without
+  // making the organizer copy their URLs into a text area.
+  const source={id:42,title:"Photo test",location:"Prague",organizer:"Amber Events",description:"Test",external_gallery_urls:["https://example.com/old.jpg"],gallery_urls:["https://example.com/old.jpg"],uploaded_gallery:[],video_url:"",starts_at:"2026-11-24T19:00:00",max_participants:30,price:"0",currency:"CZK",languages:["en"],tags:[],venue_url:"",owner_account_id:2,publication:{status:"draft",visible:false}};
+  let saved:Record<string,unknown>|null=null;
+  await page.route("**/api/gateway/**",route=>{
+    const url=new URL(route.request().url()).pathname;
+    if(url.endsWith("/manage/me"))return route.fulfill({json:{account_id:2,role:"organizer"}});
+    if(url.endsWith("/manage/events/42/participants"))return route.fulfill({json:{tickets:[],waitlist:[]}});
+    if(url.endsWith("/manage/events/42")&&route.request().method()==="PATCH"){
+      saved=route.request().postDataJSON();return route.fulfill({json:{...source,...saved}});
+    }
+    if(url.endsWith("/manage/events/42"))return route.fulfill({json:source});
+    return route.fulfill({json:[]});
+  });
+  await page.goto("/admin/events/42?lang=en");
+  await page.getByRole("tab",{name:"Details"}).click();
+  await expect(page.getByText("Photos in gallery: 1 / 8")).toBeVisible();
+  await expect(page.getByLabel("Event photos from your device")).toHaveAttribute("type","file");
+  await expect(page.getByText(/HTTPS, one URL per line/)).toHaveCount(0);
+  await page.getByRole("button",{name:"Save changes"}).click();
+  await expect.poll(()=>saved).not.toBeNull();
+  expect(saved).not.toHaveProperty("gallery_urls");
+});
+
 test("organizer logo upload converts the selected device photo before sending",async({page})=>{
   await page.addInitScript(()=>localStorage.setItem("tickettreat_web_auth","browser-session"));
   const profile={slug:"organizer-test",display_name:"Organizer test",bio:"Test description",city:"Prague",website_url:"",instagram:"",published:false,logo_url:null,cover_url:null};

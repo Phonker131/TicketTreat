@@ -39,6 +39,16 @@ test("loyalty rewards are configured per organizer and tier, never per event",as
   await expect(page.getByRole("heading",{name:"Organizer loyalty rewards"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"VIP",exact:true})).toBeVisible();
   await expect(page.locator(".tt-reward-admin-grid > section")).toHaveCount(4);
+  const vip=page.locator(".tt-reward-admin-grid > section").filter({has:page.getByRole("heading",{name:"VIP",exact:true})});
+  await expect(vip.getByText("Provided by organizer")).toBeVisible();
+  const insider=page.locator(".tt-reward-admin-grid > section").filter({has:page.getByRole("heading",{name:"Insider",exact:true})});
+  await expect(insider.getByText("Coming soon")).toBeVisible();
+  await insider.getByRole("button",{name:"Edit reward"}).click();
+  await insider.getByLabel("Details (English)").fill("A free drink at the entrance, provided by the organizer.");
+  await insider.getByLabel("Details (Czech)").fill("Nápoj při vstupu poskytuje pořadatel.");
+  await insider.getByRole("button",{name:"Save changes"}).click();
+  await expect(insider.getByText("Provided by organizer")).toBeVisible();
+  await expect(page.getByText(/Early registration and companion tickets are not yet automated/)).toBeVisible();
   const regular=page.locator(".tt-reward-admin-grid > section").filter({has:page.getByRole("heading",{name:"Regular"})});
   await regular.getByRole("button",{name:"Edit reward"}).click();
   await regular.getByLabel("Reward (English)").fill("VIP queue priority");

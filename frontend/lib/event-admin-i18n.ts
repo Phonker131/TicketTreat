@@ -319,10 +319,10 @@ const messages: Array<[string,string,string,string]> = [
     "Зберігаємо…"
   ],
   [
-    "Загружай фотографии с прошлых мероприятий (JPG, PNG, WebP; до 2 МБ каждая, максимум 8 включая HTTPS-ссылки). Файлы сохраняются на сервере TicketTreat.",
-    "Upload photos from previous events (JPG, PNG or WebP; max. 2 MB each and 8 including HTTPS links). Files are stored on TicketTreat.",
-    "Nahraj fotografie z minulých akcí (JPG, PNG či WebP; do 2 MB, maximálně 8 včetně odkazů HTTPS). Soubory se ukládají na TicketTreat.",
-    "Завантажуй фото з минулих подій (JPG, PNG або WebP; до 2 МБ, максимум 8 разом із HTTPS-посиланнями). Файли зберігаються на TicketTreat."
+    "Загружай до 8 фотографий с устройства (JPG, PNG или WebP, до 25 МБ каждая). Мы уменьшим их перед загрузкой.",
+    "Upload up to 8 photos from your device (JPG, PNG or WebP; up to 25 MB each). We resize them before upload.",
+    "Nahraj až 8 fotografií ze zařízení (JPG, PNG nebo WebP; do 25 MB každá). Před nahráním je zmenšíme.",
+    "Завантажуй до 8 фото з пристрою (JPG, PNG або WebP; до 25 МБ кожне). Ми зменшимо їх перед завантаженням."
   ],
   [
     "Добавить фотографии",

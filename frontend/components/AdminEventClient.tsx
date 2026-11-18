@@ -110,7 +110,7 @@ export function AdminEventClient(){
   },[poster]);
   const [title,setTitle]=useState(""),[location,setLocation]=useState("");
   const [organizer,setOrganizer]=useState(""),[description,setDescription]=useState("");
-  const [gallery,setGallery]=useState(""),[video,setVideo]=useState("");
+  const [video,setVideo]=useState("");
   const [startsAt,setStartsAt]=useState(""),[capacity,setCapacity]=useState("30");
   const [price,setPrice]=useState("0"),[currency,setCurrency]=useState("CZK");
   const [languages,setLanguages]=useState<LanguageCode[]>(["en","ru"]);
@@ -128,7 +128,7 @@ export function AdminEventClient(){
     void getPilotSettings(token,eventId).then(setPilotSettings).catch(()=>{});
     void getPilotStaff(token,eventId).then(setPilotStaff).catch(()=>setPilotStaff([]));
     setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"TicketTreat");
-    setDescription(ev.description||"");setGallery((ev.external_gallery_urls||ev.gallery_urls||[]).filter(s=>!s.startsWith("/api/gateway/demo/events/")).join("\n"));setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
+    setDescription(ev.description||"");setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
     setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
     setVenueUrl(ev.venue_url||"");setTags((ev.tags||[]).filter(isEventTag));
@@ -171,7 +171,9 @@ export function AdminEventClient(){
       if(!languages.length)throw new LocalValidationError(tr("Выбери язык."));
       const payload:Record<string,unknown>={
         title:title.trim(),organizer:organizer.trim(),description,location,
-        gallery_urls:gallery.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),video_url:video.trim(),
+        // Omit gallery_urls: existing legacy images must survive a normal
+        // details save. New images are uploaded through the file picker.
+        video_url:video.trim(),
         country_code:"CZ",city:"",
         max_participants:Number(capacity),
         price:String(price),currency,
@@ -600,10 +602,12 @@ export function AdminEventClient(){
         <label>{tr("Описание")}<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>
         <OrganizerRules/>
         <label>{language==="cs"?"Fotografie akce ze zařízení":"Event photos from your device"}
-          <input type="file" multiple accept="image/*" disabled={busy}
+          <input type="file" multiple accept="image/*" disabled={busy||galleryIsFull}
             onChange={e=>{void uploadPhotos(e.target.files);e.currentTarget.value="";}}/>
           <small className="tp-field-hint">{language==="cs"?"Vyberte až 8 fotek z telefonu nebo počítače. Fotografie se nahrají hned a již uložené zůstanou zachované.":"Choose up to 8 photos from your phone or computer. Photos upload immediately; existing photos are kept."}</small>
         </label>
+        <p className="form-note" role="status">{language==="cs"?`Fotografie v galerii: ${event.gallery_urls?.length||0} / 8`:`Photos in gallery: ${event.gallery_urls?.length||0} / 8`}{upload?` · ${upload.done}/${upload.total}`:""}</p>
+        {(event.uploaded_gallery?.length||0)>0&&<div className="event-media-gallery tt-gal-grid" aria-label={language==="cs"?"Nahrané fotografie":"Uploaded photos"}>{event.uploaded_gallery?.map(photo=><img key={photo.id} src={photo.url} alt={language==="cs"?"Fotografie akce":"Event photo"} loading="lazy"/>)}</div>}
         <label>{tr("Видео (YouTube/Vimeo)")}<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
         <div className="two-col"><label>{tr("Дата и время")}<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
           <label>{tr("Количество мест")}<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
