@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {useSearchParams} from "next/navigation";
+import {usePathname,useSearchParams} from "next/navigation";
 import {useCallback,useEffect,useRef,useState,type FormEvent} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
@@ -28,10 +28,11 @@ const labels={
   reopen:"Reopen",close:"Close conversation",unread:"New",
   loadOlder:"Older messages",refresh:"Refresh",loading:"Loading messages…",unavailable:"Organizer messaging is unavailable for this event.",
   note:"Do not share passwords, payment card details or sensitive documents in chat.",
-  support:"Contact TicketTreat support",everyone:"All",openOnly:"Open",count:"conversations",
+  support:"Contact TicketTreat support",everyone:"All",openOnly:"Open",count:"conversations",countOne:"conversation",
   noAccess:"Sign in with your organizer account and complete MFA to see your inbox.",
   time:"Conversation updates automatically while this page is open.",
-  noThread:"Select a conversation to read it.",retry:"Try again",
+  noThread:"This conversation is no longer available.",retry:"Try again",
+  allChats:"All conversations",noOpen:"No open conversations.",closedLabel:"Closed",
  },
  cs:{
   messageOrganizer:"Napsat pořadateli",chatHelp:"Zeptejte se pořadatele na tuto akci. Zprávy jsou soukromé a oddělené od podpory TicketTreat.",
@@ -45,10 +46,11 @@ const labels={
   reopen:"Znovu otevřít",close:"Uzavřít konverzaci",unread:"Nové",
   loadOlder:"Starší zprávy",refresh:"Obnovit",loading:"Načítání zpráv…",unavailable:"Zprávy pořadateli nejsou pro tuto akci dostupné.",
   note:"V chatu nesdílejte hesla, údaje o platební kartě ani citlivé dokumenty.",
-  support:"Kontaktovat podporu TicketTreat",everyone:"Vše",openOnly:"Otevřené",count:"konverzací",
+  support:"Kontaktovat podporu TicketTreat",everyone:"Vše",openOnly:"Otevřené",count:"konverzací",countOne:"konverzace",
   noAccess:"Přihlaste se jako pořadatel a dokončete MFA.",
   time:"Konverzace se automaticky aktualizuje, dokud je stránka otevřená.",
-  noThread:"Vyberte konverzaci.",retry:"Zkusit znovu",
+  noThread:"Tato konverzace již není dostupná.",retry:"Zkusit znovu",
+  allChats:"Všechny konverzace",noOpen:"Žádné otevřené konverzace.",closedLabel:"Uzavřeno",
  }
 } as const;
 
@@ -85,6 +87,7 @@ export function ConversationPane({mode,threadId,eventId,inviteToken,onChange}:{
  const [loadingOlder,setLoadingOlder]=useState(false),[changing,setChanging]=useState(false);
  const pending=useRef<{text:string;nonce:string}|null>(null);
  const paneRef=useRef<HTMLDivElement|null>(null);
+ const positioned=useRef(false);
  const activeId=data?.thread?.id ?? threadId ?? null;
  const reload=useCallback(async()=>{
   const next=mode==="organizer"
@@ -99,7 +102,7 @@ export function ConversationPane({mode,threadId,eventId,inviteToken,onChange}:{
  },[mode,threadId,eventId,inviteToken]);
  useEffect(()=>{
   let live=true;
-  setWaiting(true);setError("");setNotice("");setData(null);pending.current=null;setDraft("");
+  setWaiting(true);setError("");setNotice("");setData(null);pending.current=null;positioned.current=false;setDraft("");
   const load=async()=>{try{await reload();if(live)setError("")}
    catch(e){if(live)setError(e instanceof Error?e.message:"chat_unavailable")}
    finally{if(live)setWaiting(false)}};
@@ -110,10 +113,17 @@ export function ConversationPane({mode,threadId,eventId,inviteToken,onChange}:{
   return()=>{live=false;window.clearInterval(timer)};
  },[reload]);
  useEffect(()=>{
-  if(!activeId||waiting||document.visibilityState!=="visible")return;
+  if(!activeId||waiting||!data?.thread?.unread||document.visibilityState!=="visible")return;
   const task=mode==="organizer"?readManageConversation(activeId):readMyConversation(activeId);
-  void task.catch(()=>{});
- },[mode,activeId,waiting,data?.thread?.unread]);
+  void task.then(()=>onChange?.()).catch(()=>{});
+ },[mode,activeId,waiting,data?.thread?.unread,onChange]);
+ useEffect(()=>{
+  const pane=paneRef.current;
+  if(waiting||!pane||!data?.messages.length)return;
+  if(!positioned.current||pane.scrollHeight-pane.scrollTop-pane.clientHeight<96)
+   pane.scrollTop=pane.scrollHeight;
+  positioned.current=true;
+ },[waiting,data?.messages.length]);
  async function retryLoad(){
   setWaiting(true);
   try{
@@ -182,8 +192,8 @@ export function ConversationPane({mode,threadId,eventId,inviteToken,onChange}:{
    unavailable?<p className="form-note">{t.unavailable}</p>:
    <>
     {data?.thread&&<div className="tt-chat-thread-head">
-     <div><strong>{data.thread.event_title}</strong>
-      {mode==="organizer"&&data.thread.participant_name&&<small>{data.thread.participant_name}</small>}
+     <div><strong>{mode==="participant"?data.thread.organizer:data.thread.participant_name||data.thread.event_title}</strong>
+      <small>{data.thread.event_title}</small>
      </div>
      {mode==="organizer"&&<button type="button" disabled={changing}
       className="button button-outline" onClick={()=>void changeClosed(data.thread!.status!=="closed")}>
@@ -209,7 +219,7 @@ export function ConversationPane({mode,threadId,eventId,inviteToken,onChange}:{
      <form className="tt-chat-compose" onSubmit={send}>
       <label className="sr-only" htmlFor={"tt-chat-compose-"+mode+"-"+(eventId||threadId)}>{t.placeholder}</label>
       <textarea id={"tt-chat-compose-"+mode+"-"+(eventId||threadId)}
-       rows={3} maxLength={2000} required minLength={2} value={draft}
+       rows={2} maxLength={2000} required minLength={2} value={draft}
        placeholder={t.placeholder} onChange={e=>{setDraft(e.target.value);if(pending.current?.text!==e.target.value.trim())pending.current=null;}}
        onKeyDown={e=>{
         if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();e.currentTarget.form?.requestSubmit();}
@@ -242,40 +252,46 @@ export function EventOrganizerChat({eventId,inviteToken}:{
 export function EventChatInbox({mode}:{mode:Mode}){
  const {language}=useLanguage(),lang=language==="cs"?"cs":"en",t=labels[lang];
  const search=useSearchParams();
+ const pathname=usePathname();
  const queryThread=Number(search.get("thread"));
  const [threads,setThreads]=useState<EventChatThread[]>([]);
- const [selected,setSelected]=useState<number|null>(null);
  const [loading,setLoading]=useState(true),[error,setError]=useState("");
  const [onlyOpen,setOnlyOpen]=useState(false);
  const load=useCallback(async()=>{
   const result=mode==="organizer"?await getManageEventChats():await getMyEventChats();
-  setThreads(result.threads);
+  setThreads([...result.threads].sort((a,b)=>Date.parse(b.updated_at)-Date.parse(a.updated_at)));
   return result.threads;
  },[mode]);
+ const refreshThreads=useCallback(()=>{void load().catch(()=>{})},[load]);
  useEffect(()=>{
   let live=true;
-  const fetchAll=async()=>{try{const items=await load();if(live){
-   setSelected(prev=>prev&&items.some(x=>x.id===prev)?prev:
-     Number.isInteger(queryThread)&&queryThread>0&&items.some(x=>x.id===queryThread)
-     ?queryThread:items[0]?.id||null);
-  }}catch(e){if(live)setError(e instanceof Error?e.message:"chat_unavailable")}
+  const fetchAll=async()=>{try{await load();if(live)setError("")}
+   catch(e){if(live)setError(e instanceof Error?e.message:"chat_unavailable")}
   finally{if(live)setLoading(false)}};
   void fetchAll();
   const timer=window.setInterval(()=>{
    if(document.visibilityState==="visible")void load().catch(()=>{});
   },15000);
   return()=>{live=false;window.clearInterval(timer)};
- },[load,queryThread]);
+ },[load]);
  const visible=threads.filter(x=>!onlyOpen||x.status==="open");
  const guest=mode==="participant"&&!!error&&requiresLogin(error);
+ const selected=search.has("thread")&&Number.isSafeInteger(queryThread)&&queryThread>0?queryThread:null;
  const current=threads.find(x=>x.id===selected);
+ const threadHref=(id:number|null)=>{
+  const params=new URLSearchParams(search.toString());
+  if(id===null)params.delete("thread");else params.set("thread",String(id));
+  const suffix=params.toString();
+  return pathname+(suffix?"?"+suffix:"");
+ };
  return <div className="app-shell"><AppHeader/><main className="page tt-chat-page">
-  <Link href={mode==="organizer"?"/admin":"/"} className="back-link">{mode==="organizer"?(lang==="cs"?"Správa akcí":"Organizer dashboard"):(lang==="cs"?"Akce":"Events")}</Link>
-  <div className="section-heading"><div><h1>{mode==="organizer"?t.staffTitle:t.title}</h1>
+  {selected!==null?<Link href={threadHref(null)} className="back-link tt-chat-back">{t.allChats}</Link>:
+   <Link href={mode==="organizer"?"/admin":"/"} className="back-link">{mode==="organizer"?(lang==="cs"?"Správa akcí":"Organizer dashboard"):(lang==="cs"?"Akce":"Events")}</Link>}
+  {selected===null&&<div className="section-heading"><div><h1>{mode==="organizer"?t.staffTitle:t.title}</h1>
    <p>{mode==="organizer"?t.staffIntro:t.intro}</p></div>
-   {!guest&&<button type="button" className="button button-outline" onClick={()=>void load().catch(e=>setError(String(e)))}>
+   {!guest&&<button type="button" className="button button-outline" onClick={()=>void load().then(()=>setError("")).catch(e=>setError(String(e)))}>
     {t.refresh}</button>}
-  </div>
+  </div>}
   {error&&!guest&&<div role="alert" className="state-card state-error">
     {mode==="organizer"?t.noAccess:userFacingError(new Error(error),language)}
     {requiresLogin(error)&&<Link href="/login" className="button button-primary">{t.login}</Link>}
@@ -289,27 +305,28 @@ export function EventChatInbox({mode}:{mode:Mode}){
   !threads.length?<div className="panel tt-chat-inbox-empty">
     <p>{t.empty}</p>{mode==="participant"&&<Link href="/" className="button button-primary">{lang==="cs"?"Najít akci":"Explore events"}</Link>}
   </div>:
-  <div className="tt-chat-inbox">
-   <aside className="tt-chat-thread-list" aria-label={t.title}>
-    <div className="tt-chat-list-head"><strong>{threads.length} {t.count}</strong>
+  selected===null?<section className="tt-chat-inbox" aria-label={t.title}>
+   <div className="tt-chat-thread-list">
+    <div className="tt-chat-list-head"><strong>{threads.length} {threads.length===1?t.countOne:t.count}</strong>
      <button type="button" className={"tt-chat-filter"+(onlyOpen?" is-active":"")}
       onClick={()=>setOnlyOpen(v=>!v)} aria-pressed={onlyOpen}>
       {onlyOpen?t.openOnly:t.everyone}</button>
     </div>
-    {visible.map(thread=><button key={thread.id} type="button"
-     className={"tt-chat-list-item"+(thread.id===selected?" is-selected":"")}
-     aria-current={thread.id===selected?"true":undefined}
-     onClick={()=>setSelected(thread.id)}>
-      <strong>{thread.event_title}</strong>
-      {mode==="organizer"&&thread.participant_name&&<small>{thread.participant_name}</small>}
-      <span>{date(thread.updated_at,lang)} {thread.unread&&<b className="tt-chat-unread">{t.unread}</b>}</span>
-     </button>)}
-   </aside>
-   <div className="tt-chat-inbox-content">
-    {current?<ConversationPane key={mode+"-"+current.id} mode={mode} threadId={current.id}
-     onChange={()=>{void load().catch(()=>{})}}/>:
-     <p className="state-card">{t.noThread}</p>}
+    {!visible.length&&<p className="tt-chat-empty-list">{t.noOpen}</p>}
+    {visible.map(thread=><Link key={thread.id} href={threadHref(thread.id)}
+     className="tt-chat-list-item">
+      <span className="tt-chat-avatar" aria-hidden="true">{(mode==="participant"?thread.organizer:thread.participant_name||thread.event_title).slice(0,1).toUpperCase()}</span>
+      <span className="tt-chat-list-copy"><strong>{mode==="participant"?thread.organizer:thread.participant_name||thread.event_title}</strong>
+       <small>{thread.event_title}</small>
+       {thread.status==="closed"&&<em>{t.closedLabel}</em>}</span>
+      <span className="tt-chat-list-meta"><time dateTime={thread.updated_at}>{date(thread.updated_at,lang)}</time>
+       {thread.unread&&<b className="tt-chat-unread">{t.unread}</b>}<span aria-hidden="true">›</span></span>
+     </Link>)}
    </div>
+  </section>:<div className="tt-chat-single">
+   {current?<ConversationPane key={mode+"-"+current.id} mode={mode} threadId={current.id}
+    onChange={refreshThreads}/>:
+    <p className="state-card">{t.noThread}</p>}
   </div>}
   <p className="form-note tt-chat-poll-note">{t.time}</p>
  </main></div>;

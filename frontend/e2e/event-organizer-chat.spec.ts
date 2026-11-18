@@ -29,7 +29,11 @@ for(const width of [320,390,1280]){
   });
   await page.goto("/messages?lang=en",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("heading",{name:"Messages"})).toBeVisible();
-  await expect(page.getByText("Werewolf Night").first()).toBeVisible();
+  await expect(page.getByText("Amber Events").first()).toBeVisible();
+  await expect(page.getByRole("log",{name:"Messages"})).toHaveCount(0);
+  expect(await page.locator(".tt-chat-thread-list").evaluate(el=>getComputedStyle(el).flexDirection)).toBe("column");
+  await page.getByRole("link",{name:/Amber Events.*Werewolf Night/}).click();
+  await expect(page).toHaveURL(/\/messages\?lang=en&thread=4/);
   const log=page.getByRole("log",{name:"Messages"});
   await expect(log.getByText("Can I bring a friend?")).toBeVisible();
   await expect(log.getByText(/You can ask at the door:/)).toBeVisible();
@@ -37,9 +41,30 @@ for(const width of [320,390,1280]){
   await page.getByPlaceholder("Write a message…").fill("Thanks for the details!");
   await page.getByRole("button",{name:"Send",exact:true}).click();
   await expect(log.getByText("Thanks for the details!")).toBeVisible();
+  await page.getByRole("link",{name:"All conversations"}).click();
+  await expect(log).toHaveCount(0);
+  await expect(page).toHaveURL(/\/messages\?lang=en$/);
+  await page.goBack();
+  await expect(log).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
  });
 }
+
+test("direct chat link opens the conversation and keeps Czech navigation",async({page})=>{
+ await page.setViewportSize({width:390,height:760});
+ await page.route("**/api/gateway/api/v1/me/chats**",route=>{
+  const path=new URL(route.request().url()).pathname;
+  if(path.endsWith("/me/chats"))return route.fulfill({json:{threads:[fixture]}});
+  if(path.endsWith("/read"))return route.fulfill({json:{status:"read"}});
+  return route.fulfill({json:{thread:fixture,messages:[sender],has_more:false}});
+ });
+ await page.goto("/messages?thread=4&lang=cs");
+ await expect(page.getByRole("link",{name:"Všechny konverzace"})).toBeVisible();
+ await expect(page.getByRole("log",{name:"Zprávy"}).getByText("Can I bring a friend?")).toBeVisible();
+ await page.getByRole("link",{name:"Všechny konverzace"}).click();
+ await expect(page.getByRole("heading",{name:"Zprávy"})).toBeVisible();
+ await expect(page.getByRole("log")).toHaveCount(0);
+});
 
 test("organizer can reply and close a thread",async({page})=>{
  await page.setViewportSize({width:390,height:760});
@@ -69,6 +94,8 @@ test("organizer can reply and close a thread",async({page})=>{
  });
  await page.goto("/admin/messages?lang=en",{waitUntil:"domcontentloaded"});
  await expect(page.getByRole("heading",{name:"Organizer inbox"})).toBeVisible();
+  await page.getByRole("link",{name:/Guest Example.*Werewolf Night/}).click();
+  await expect(page).toHaveURL(/\/admin\/messages\?lang=en&thread=4/);
  await page.getByPlaceholder("Write a message…").fill("Yes, you can.");
  await page.getByRole("button",{name:"Send",exact:true}).click();
  await expect(page.getByText("Yes, you can.")).toBeVisible();
@@ -99,6 +126,7 @@ test("failed message POST keeps draft and composer instead of replacing chat wit
       body:JSON.stringify({thread,messages:[],has_more:false})});
   });
   await page.goto("/messages?lang=en",{waitUntil:"domcontentloaded"});
+  await page.getByRole("link",{name:/Amber Events.*Werewolf Night/}).click();
   await page.getByPlaceholder("Write a message…").fill("Question about ticket?");
   await page.getByRole("button",{name:"Send",exact:true}).click();
   await expect(page.getByPlaceholder("Write a message…")).toHaveValue("Question about ticket?");
