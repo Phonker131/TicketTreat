@@ -15,6 +15,15 @@ class LoyaltyRulesTests(unittest.TestCase):
         self.assertFalse(benefit_payload("insider",None)["operational"])
         self.assertFalse(benefit_payload("vip",None)["enabled"])
 
+    def test_custom_threshold_boundaries_and_progress(self):
+        benefits=[{"tier":tier,"required_visits":n} for tier,n in
+                  (("newcomer",0),("regular",2),("insider",8),("vip",15))]
+        for visits,tier in ((1,"newcomer"),(2,"regular"),(7,"regular"),(8,"insider"),(15,"vip")):
+            self.assertEqual(tier_for(visits,benefits)["tier"],tier)
+        self.assertEqual(tier_for(5,benefits)["progress_percent"],50)
+        self.assertEqual(tier_for(5,benefits)["remaining"],3)
+        self.assertEqual(tier_for(5)["next_threshold"],6)
+
     def test_tiers_never_credit_bookings(self):
         for visits, expected, following in (
             (0, "newcomer", 3), (2, "newcomer", 3),
