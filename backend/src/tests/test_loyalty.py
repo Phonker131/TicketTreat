@@ -24,6 +24,28 @@ class LoyaltyRulesTests(unittest.TestCase):
         self.assertEqual(tier_for(5,benefits)["remaining"],3)
         self.assertEqual(tier_for(5)["next_threshold"],6)
 
+    def test_waitlist_uses_organizer_thresholds_and_preserves_fifo(self):
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock, patch
+        from demo_loyalty import priority_waitlist_entry
+        db=MagicMock()
+        db.get.return_value=SimpleNamespace(owner_account_id=42)
+        first=SimpleNamespace(guest_id=1)
+        second=SimpleNamespace(guest_id=2)
+        query=db.query.return_value.filter.return_value.order_by.return_value
+        query.all.side_effect=lambda: [first,second]
+        event=SimpleNamespace(id=10,organizer="Studio")
+        main=SimpleNamespace(DemoWaitlist=MagicMock())
+        benefits=[{"tier":tier,"required_visits":n} for tier,n in
+                  (("newcomer",0),("regular",5),("insider",8),("vip",15))]
+        with patch("demo_loyalty.attendance_counts",return_value={1:0,2:3}), \
+             patch("demo_loyalty_benefits.loyalty_alias_lookup",return_value={}), \
+             patch("demo_loyalty_benefits.priority_enabled",return_value=True), \
+             patch("demo_loyalty_benefits.benefits_for_organizer",return_value=benefits):
+            self.assertIs(priority_waitlist_entry(db,event,main),first)
+            benefits[1]["required_visits"]=2
+            self.assertIs(priority_waitlist_entry(db,event,main),second)
+
     def test_tiers_never_credit_bookings(self):
         for visits, expected, following in (
             (0, "newcomer", 3), (2, "newcomer", 3),
