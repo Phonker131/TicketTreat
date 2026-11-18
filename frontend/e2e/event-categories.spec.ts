@@ -25,3 +25,36 @@ for(const locale of ["en","cs"] as const){
   await expect(page.getByText("Friday board games",{exact:true})).toBeVisible();
  });
 }
+
+test("global admin creates, renames and archives event categories",async({page})=>{
+ let rows=[...categories];
+ await page.route("**/api/gateway/api/v1/manage/me",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({role:"global_admin",account_id:1})}));
+ await page.route("**/api/gateway/api/v1/event-categories",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(rows)}));
+ await page.route("**/api/gateway/api/v1/manage/event-categories",route=>{
+  const names=route.request().postDataJSON();
+  rows=[...rows,{key:"cat_fedcba9876543210fedcba9876543210",en:names.en,cs:names.cs,active:true}];
+  return route.fulfill({status:201,contentType:"application/json",body:JSON.stringify(rows)});
+ });
+ await page.route("**/api/gateway/api/v1/manage/event-categories/*",route=>{
+  const key=route.request().url().split("/").pop();
+  const body=route.request().postDataJSON();
+  rows=rows.map(row=>row.key===key?{...row,...body}:row);
+  return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(rows)});
+ });
+ await page.goto("/admin/categories?lang=en");
+ await expect(page.getByRole("heading",{name:"Event categories"})).toBeVisible();
+ await page.getByRole("textbox",{name:"English name"}).first().fill("Chess events");
+ await page.getByRole("textbox",{name:"Czech name"}).first().fill("Šachové akce");
+ await page.getByRole("button",{name:"Add category"}).click();
+ const cat=page.getByText("Chess events",{exact:true});
+ await expect(cat).toBeVisible();
+ await cat.locator("xpath=../..").getByRole("button",{name:"Edit"}).click();
+ const edit=page.locator("form").filter({has:page.getByRole("button",{name:"Save names"})});
+ await edit.getByRole("textbox",{name:"English name"}).fill("Board games");
+ await edit.getByRole("button",{name:"Save names"}).click();
+ const updated=page.getByText("Board games",{exact:true});
+ await expect(updated).toBeVisible();
+ await updated.locator("xpath=../..").getByRole("button",{name:"Archive"}).click();
+ await expect(page.locator("section.panel").last()).toContainText("Board games");
+ await expect(page.locator("section.panel").last().getByRole("button",{name:"Restore"})).toBeVisible();
+});
