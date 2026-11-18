@@ -3,7 +3,7 @@ import Link from "next/link";
 import {FormEvent,useEffect,useState} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
-import {getOrganizerLoyaltyTiers,updateOrganizerLoyaltyTier,
+import {getOrganizerLoyaltyTiers,updateOrganizerLoyaltyTier,updateOrganizerThresholds,
   type OrganizerLoyaltyTiers,type OrganizerTierBenefit} from "@/lib/api";
 import {userFacingError} from "@/lib/user-facing-errors";
 
@@ -43,9 +43,16 @@ export function OrganizerLoyaltyTiersClient(){
   {notice&&<p role="status" className="success-banner">{notice}</p>}
   {loading?<div className="state-card" role="status">…</div>:data&&<>
    {data.organizers.length===0?<section className="panel"><p>{t.none}</p></section>:<>
-    <section className="panel"><label htmlFor="tt-loyalty-organizer-select">{t.org}</label><select id="tt-loyalty-organizer-select" value={ownerId??""} onChange={e=>{setOwnerId(Number(e.target.value));setEditing(null);setNotice("");}}>
+    <section className="panel"><label htmlFor="tt-loyalty-organizer-select">{t.org}</label><select id="tt-loyalty-organizer-select" value={ownerId??""} disabled={busy} onChange={e=>{setOwnerId(Number(e.target.value));setEditing(null);setNotice("");}}>
      {data.organizers.map(o=><option key={o.owner_account_id} value={o.owner_account_id}>{o.name}{(repeatedNames.get(o.name.trim().toLocaleLowerCase())??0)>1?` · #${o.owner_account_id}`:""}</option>)}
     </select><p className="form-note">{t.rules}</p></section>
+    {org&&<ThresholdEditor key={org.owner_account_id} org={org} language={language} busy={busy} onSave={async values=>{
+      setBusy(true);setError("");setNotice("");
+      try{const result=await updateOrganizerThresholds(org.owner_account_id,values);
+       setData(current=>current?{organizers:current.organizers.map(o=>o.owner_account_id===org.owner_account_id?{...o,tiers:result.tiers}:o)}:current);
+       setNotice(language==="cs"?"Počty návštěv byly uloženy.":"Visit thresholds saved.");
+      }catch(cause){setError(userFacingError(cause,language));}finally{setBusy(false);}
+    }}/>}
     <div className="tt-reward-admin-grid">{org?.tiers.map((b,i)=><section key={`${ownerId}-${b.tier}`} className="panel form-stack">
      <h2>{t.levels[i]}</h2><p className="form-note">{b.required_visits} {t.visits}</p>
      <span className={`status ${b.enabled?"status-success":"status-demo"}`}>{b.enabled?t.live:b.operational?t.paused:t.soon}</span>
@@ -62,4 +69,18 @@ export function OrganizerLoyaltyTiersClient(){
    </>}
   </>}
  </main></div>;
+}
+
+function ThresholdEditor({org,language,busy,onSave}:{org:OrganizerLoyaltyTiers["organizers"][number];language:string;busy:boolean;onSave:(v:{regular:number;insider:number;vip:number})=>Promise<void>}){
+ const [values,setValues]=useState(()=>org.tiers.slice(1).map(t=>String(t.required_visits)));
+ const numbers=values.map(Number);
+ const valid=values.every(v=>/^\d+$/.test(v))&&numbers.every(n=>Number.isInteger(n)&&n>0&&n<=10000)&&numbers[0]<numbers[1]&&numbers[1]<numbers[2];
+ const cs=language==="cs";
+ return <form className="panel form-stack" onSubmit={e=>{e.preventDefault();if(valid&&!busy)void onSave({regular:numbers[0],insider:numbers[1],vip:numbers[2]});}}>
+  <h2>{cs?"Návštěvy pro jednotlivé úrovně":"Visits required for each level"}</h2>
+  <p className="form-note">{cs?"Celkový počet ověřených návštěv za čtvrtletí u tohoto pořadatele. Nováček začíná na 0. Změna ihned přepočítá úrovně všech hostů.":"Total verified visits this quarter with this organizer. Newcomer starts at 0. Changes immediately recalculate all guests’ levels."}</p>
+  {["Regular","Insider","VIP"].map((name,i)=><label key={name}>{name}<input type="number" inputMode="numeric" min={1} max={10000} step={1} required value={values[i]} disabled={busy} onChange={e=>setValues(v=>v.map((old,j)=>i===j?e.target.value:old))}/></label>)}
+  {!valid&&<p role="alert">{cs?"Zadejte rostoucí celá čísla: 0 < Regular < Insider < VIP (nejvýše 10000).":"Enter increasing whole numbers: 0 < Regular < Insider < VIP (up to 10000)."}</p>}
+  <button className="button button-primary" disabled={busy||!valid}>{cs?"Uložit počty návštěv":"Save visit thresholds"}</button>
+ </form>;
 }
