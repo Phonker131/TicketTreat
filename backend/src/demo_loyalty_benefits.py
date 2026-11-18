@@ -1,7 +1,7 @@
 """Organizer-wide loyalty benefit settings (never a per-event award).
 
-The thresholds and entitlement calculations remain server-owned. Editors may
-change bilingual benefit copy and opt out of the already-operational waitlist
+Organizers configure increasing visit thresholds and bilingual benefit copy.
+Entitlement calculations remain server-owned. Editors may opt out of waitlist
 priority, but cannot turn on unimplemented booking or companion privileges.
 """
 from __future__ import annotations
@@ -38,6 +38,21 @@ class OrganizerLoyaltyBenefit(Base):
     description_en = Column(String(300), nullable=False, default="")
     description_cs = Column(String(300), nullable=False, default="")
     priority_enabled = Column(Boolean, nullable=False, default=True)
+
+
+class OrganizerLoyaltyThresholds(Base):
+    __tablename__ = "organizer_loyalty_thresholds"
+    __table_args__ = (CheckConstraint("regular > 0 AND insider > regular AND vip > insider AND vip <= 10000", name="ck_loyalty_threshold_order"),)
+    owner_account_id = Column(Integer, ForeignKey("demo_web_accounts.id"), primary_key=True)
+    regular = Column(Integer, nullable=False, default=3)
+    insider = Column(Integer, nullable=False, default=6)
+    vip = Column(Integer, nullable=False, default=12)
+
+
+class ThresholdUpdate(BaseModel):
+    regular: int = Field(strict=True, ge=1, le=10000)
+    insider: int = Field(strict=True, ge=1, le=10000)
+    vip: int = Field(strict=True, ge=1, le=10000)
 
 
 class OrganizerLoyaltyAlias(Base):
@@ -119,7 +134,10 @@ def benefits_for_organizer(db: Session, owner_id: int) -> list[dict]:
     rows = db.query(OrganizerLoyaltyBenefit).filter(
         OrganizerLoyaltyBenefit.owner_account_id == owner_id).all()
     by_tier = {row.tier: row for row in rows}
-    return [benefit_payload(tier, by_tier.get(tier)) for tier, *_ in LEVELS]
+    config = db.get(OrganizerLoyaltyThresholds, owner_id)
+    return [{**benefit_payload(tier, by_tier.get(tier)),
+             "required_visits": getattr(config, tier) if config and tier != "newcomer" else visits}
+            for tier, visits, *_ in LEVELS]
 
 
 def priority_enabled(db: Session, owner_id: int) -> bool:
@@ -164,6 +182,29 @@ def install_loyalty_benefits_api(app, get_db, main):
             for owner_id, name in sorted(owners.items())
         ]}
 
+    @app.put("/demo/manage/loyalty/thresholds/{owner_id}")
+    def update_thresholds(owner_id: int, payload: ThresholdUpdate,
+                          account = Depends(current), db: Session = Depends(get_db)):
+        if owner_id not in scoped_owners(db, account):
+            raise HTTPException(403, "organizer_not_owned")
+        if not payload.regular < payload.insider < payload.vip:
+            raise HTTPException(422, "loyalty_thresholds_must_increase")
+        # Serialize initial creation as well as updates on the stable owner row.
+        db.query(type(account)).filter(type(account).id == owner_id).with_for_update().one()
+        row = db.get(OrganizerLoyaltyThresholds, owner_id)
+        if row is None:
+            row = OrganizerLoyaltyThresholds(owner_account_id=owner_id)
+            db.add(row)
+        old = f"{row.regular}/{row.insider}/{row.vip}"
+        row.regular, row.insider, row.vip = payload.regular, payload.insider, payload.vip
+        event_id = db.query(EventOwnership.event_id).filter(
+            EventOwnership.owner_account_id == owner_id).order_by(EventOwnership.event_id).first()
+        if event_id:
+            audit(db, int(event_id[0]), account.id, "edit_loyalty_thresholds",
+                  f"owner={owner_id} old={old} new={payload.regular}/{payload.insider}/{payload.vip}")
+        db.commit()
+        return {"tiers": benefits_for_organizer(db, owner_id)}
+
     @app.put("/demo/manage/loyalty/tiers/{owner_id}/{tier}")
     def update_tier(owner_id: int, tier: str, payload: TierBenefitUpdate,
                     account = Depends(current), db: Session = Depends(get_db)):
@@ -195,4 +236,4 @@ def install_loyalty_benefits_api(app, get_db, main):
         audit(db, int(event_id[0]), account.id, "edit_loyalty_tier",
               f"owner={owner_id} tier={tier} priority={row.priority_enabled}")
         db.commit()
-        return benefit_payload(tier, row)
+        return next(b for b in benefits_for_organizer(db, owner_id) if b["tier"] == tier)
