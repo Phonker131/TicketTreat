@@ -4,31 +4,31 @@ import {useEffect,useState,type FormEvent} from "react";
 import {createSupportTicket,getDemoTickets,getMyAttendance,type AttendanceHistory} from "@/lib/api";
 import type {DemoTicket,LanguageCode,WebProfile} from "@/lib/types";
 import {dateParts} from "@/components/premium/EventLists";
-import {LEVELS,levelIndex,levelName,progressLine} from "@/components/premium/RewardsTrack";
+import {LEVELS,levelIndex,levelName,progressLine,rewardsCopy} from "@/components/premium/RewardsTrack";
 import {useMyLoyalty} from "@/components/premium/useMyLoyalty";
 
 const C:Record<LanguageCode,{
  since:string;visits:string;ahead:string;orgs:string;level:string;next:string;noTicket:string;find:string;qr:string;
  levels:string;noLevels:string;allRewards:string;been:string;noBeen:string;more:string;less:string;
  wish:string;wishLead:string;wishText:string;wishLink:string;send:string;sending:string;sent:string;openSupport:string;
- wishShort:string;wishSubject:string;linkLabel:string;
+ wishShort:string;wishSubject:string;linkLabel:string;nextPerk:string;topLevel:string;
 }>={
  ru:{since:"С нами с {d}",visits:"Визитов",ahead:"Билетов впереди",orgs:"Организаторов",level:"Уровень",next:"Ближайший билет",noTicket:"Пока нет билетов на будущие ивенты.",find:"Смотреть ивенты",qr:"Показать QR",
   levels:"Ваши уровни",noLevels:"Сходите на первый ивент, и здесь появится ваш уровень у этого организатора.",allRewards:"Все награды",been:"Где вы были",noBeen:"Здесь появятся ивенты, на которых вы отметились на входе.",more:"Показать все",less:"Свернуть",
   wish:"Хочу такой ивент",wishLead:"Напишите, куда хотите сходить, или пришлите ссылку на похожий ивент. Команда TicketTreat прочитает и ответит вам в поддержке.",wishText:"Например: квиз по кино на английском в пятницу вечером",wishLink:"Ссылка на похожий ивент (необязательно)",send:"Отправить идею",sending:"Отправляем…",sent:"Спасибо, идея у нас. Ответ придёт в поддержку.",openSupport:"Открыть поддержку",
-  wishShort:"Опишите идею чуть подробнее (от 15 символов) или добавьте ссылку.",wishSubject:"Хочу такой ивент",linkLabel:"Ссылка"},
+  wishShort:"Опишите идею чуть подробнее (от 15 символов) или добавьте ссылку.",wishSubject:"Хочу такой ивент",linkLabel:"Ссылка",nextPerk:"Дальше: {perk}",topLevel:"Все плюшки открыты"},
  en:{since:"With us since {d}",visits:"Visits",ahead:"Tickets ahead",orgs:"Organizers",level:"Level",next:"Next ticket",noTicket:"No tickets for upcoming events yet.",find:"Explore events",qr:"Show QR",
   levels:"Your levels",noLevels:"Go to your first event and your level with that organizer appears here.",allRewards:"All rewards",been:"Where you've been",noBeen:"Events where you checked in at the door will appear here.",more:"Show all",less:"Show less",
   wish:"I want an event like this",wishLead:"Tell us where you would like to go, or send a link to a similar event. The TicketTreat team reads every idea and replies in support.",wishText:"For example: a movie quiz in English on a Friday evening",wishLink:"Link to a similar event (optional)",send:"Send the idea",sending:"Sending…",sent:"Thank you, we have your idea. The reply will come to support.",openSupport:"Open support",
-  wishShort:"Describe the idea a bit more (15 characters or more) or add a link.",wishSubject:"I want an event like this",linkLabel:"Link"},
+  wishShort:"Describe the idea a bit more (15 characters or more) or add a link.",wishSubject:"I want an event like this",linkLabel:"Link",nextPerk:"Next: {perk}",topLevel:"Every perk unlocked"},
  cs:{since:"S námi od {d}",visits:"Návštěvy",ahead:"Vstupenky předem",orgs:"Pořadatelé",level:"Úroveň",next:"Nejbližší vstupenka",noTicket:"Zatím nemáte vstupenky na nadcházející akce.",find:"Zobrazit akce",qr:"Ukázat QR",
   levels:"Vaše úrovně",noLevels:"Přijďte na první akci a tady se objeví vaše úroveň u daného pořadatele.",allRewards:"Všechny odměny",been:"Kde jste byli",noBeen:"Tady se objeví akce, na kterých vás odbavili u vstupu.",more:"Zobrazit vše",less:"Skrýt",
   wish:"Chci takovou akci",wishLead:"Napište, kam byste chtěli jít, nebo pošlete odkaz na podobnou akci. Tým TicketTreat každý nápad přečte a odpoví vám v podpoře.",wishText:"Například: filmový kvíz v angličtině v pátek večer",wishLink:"Odkaz na podobnou akci (nepovinné)",send:"Poslat nápad",sending:"Odesíláme…",sent:"Děkujeme, nápad máme. Odpověď přijde do podpory.",openSupport:"Otevřít podporu",
-  wishShort:"Popište nápad trochu víc (aspoň 15 znaků) nebo přidejte odkaz.",wishSubject:"Chci takovou akci",linkLabel:"Odkaz"},
+  wishShort:"Popište nápad trochu víc (aspoň 15 znaků) nebo přidejte odkaz.",wishSubject:"Chci takovou akci",linkLabel:"Odkaz",nextPerk:"Dále: {perk}",topLevel:"Všechny výhody odemčené"},
  uk:{since:"З нами з {d}",visits:"Візитів",ahead:"Квитків попереду",orgs:"Організаторів",level:"Рівень",next:"Найближчий квиток",noTicket:"Поки немає квитків на майбутні події.",find:"Переглянути події",qr:"Показати QR",
   levels:"Ваші рівні",noLevels:"Сходіть на першу подію, і тут з'явиться ваш рівень у цього організатора.",allRewards:"Усі нагороди",been:"Де ви були",noBeen:"Тут з'являться події, на яких вас відмітили на вході.",more:"Показати всі",less:"Згорнути",
   wish:"Хочу таку подію",wishLead:"Напишіть, куди хочете піти, або надішліть посилання на схожу подію. Команда TicketTreat прочитає і відповість вам у підтримці.",wishText:"Наприклад: квіз про кіно англійською в п'ятницю ввечері",wishLink:"Посилання на схожу подію (необов'язково)",send:"Надіслати ідею",sending:"Надсилаємо…",sent:"Дякуємо, ідея в нас. Відповідь прийде в підтримку.",openSupport:"Відкрити підтримку",
-  wishShort:"Опишіть ідею трохи докладніше (від 15 символів) або додайте посилання.",wishSubject:"Хочу таку подію",linkLabel:"Посилання"},
+  wishShort:"Опишіть ідею трохи докладніше (від 15 символів) або додайте посилання.",wishSubject:"Хочу таку подію",linkLabel:"Посилання",nextPerk:"Далі: {perk}",topLevel:"Усі бонуси відкриті"},
 };
 const LOCALE:Record<LanguageCode,string>={ru:"ru-RU",en:"en-GB",cs:"cs-CZ",uk:"uk-UA"};
 
@@ -54,26 +54,41 @@ function useProfileData(profile:WebProfile){
 }
 
 /** The card at the top of the profile: who you are, your best level and three numbers. */
+/** How far the visits go towards the next step, 0..100. */
+function toNext(visits:number){
+ const i=levelIndex(visits),next=LEVELS[i+1];
+ return next?Math.round(100*visits/next.at):100;
+}
+
+/** The card at the top of the profile, drawn as a ticket: who you are and three numbers on the left,
+ *  a dark stub on the right with your best level and how close the next one is. */
 export function ProfilePass({profile,roleLabel,language}:{profile:WebProfile;roleLabel:string;language:LanguageCode}){
  const c=C[language],{passport}=useMyLoyalty(),{upcoming}=useProfileData(profile);
  const best=Math.max(0,...(passport?.studios||[]).map(s=>s.season_visits));
  const since=profile.account.created_at?new Intl.DateTimeFormat(LOCALE[language],{month:"long",year:"numeric"}).format(new Date(profile.account.created_at)):"";
  const name=[profile.account.first_name,profile.account.last_name].filter(Boolean).join(" ");
  return <section className="tt-ph-pass" aria-label={name}>
-  <div className="tt-ph-id">
-   <b className="tt-ph-avatar" aria-hidden="true">{profile.account.first_name.charAt(0).toUpperCase()}</b>
-   <div>
-    <h1>{name}</h1>
-    <p>{profile.account.email||"Telegram, @TicketTreatBot"}</p>
+  <div className="tt-ph-main">
+   <div className="tt-ph-id">
+    <b className="tt-ph-avatar" aria-hidden="true">{profile.account.first_name.charAt(0).toUpperCase()}</b>
+    <div>
+     <h1>{name}</h1>
+     <p>{profile.account.email||"Telegram, @TicketTreatBot"}</p>
+    </div>
    </div>
-   <span className={"tt-ph-level is-"+LEVELS[levelIndex(best)].key}><small>{c.level}</small>{levelName(language,best)}</span>
+   <div className="tt-ph-meta"><span className="tt-ph-role">{roleLabel}</span>{since&&<span>{c.since.replace("{d}",since)}</span>}</div>
+   <dl className="tt-ph-stats">
+    <div><dt>{c.visits}</dt><dd>{profile.guest.visits}</dd></div>
+    <div><dt>{c.ahead}</dt><dd>{upcoming.length}</dd></div>
+    <div><dt>{c.orgs}</dt><dd>{passport?.studios.length??0}</dd></div>
+   </dl>
   </div>
-  <div className="tt-ph-meta"><span className="tt-ph-role">{roleLabel}</span>{since&&<span>{c.since.replace("{d}",since)}</span>}</div>
-  <dl className="tt-ph-stats">
-   <div><dt>{c.visits}</dt><dd>{profile.guest.visits}</dd></div>
-   <div><dt>{c.ahead}</dt><dd>{upcoming.length}</dd></div>
-   <div><dt>{c.orgs}</dt><dd>{passport?.studios.length??0}</dd></div>
-  </dl>
+  <div className={"tt-ph-stub is-"+LEVELS[levelIndex(best)].key}>
+   <small>{c.level}</small>
+   <strong>{levelName(language,best)}</strong>
+   <span className="tt-ph-bar" aria-hidden="true"><i style={{width:toNext(best)+"%"}}/></span>
+   <p>{progressLine(language,best)}</p>
+  </div>
  </section>;
 }
 
@@ -123,11 +138,14 @@ export function ProfileHome({profile,language}:{profile:WebProfile;language:Lang
   <section className="tt-ph-card tt-ph-levels">
    <div className="tt-ph-card-head"><h2>{c.levels}</h2><Link href="/loyalty">{c.allRewards}</Link></div>
    {studios.length===0?<p className="tt-ph-muted">{c.noLevels}</p>:<ul>{studios.map(s=>{
-    const i=levelIndex(s.season_visits);
-    return <li key={s.organizer_id}>
-     <div><strong>{s.organizer_name}</strong><span>{progressLine(language,s.season_visits)}</span></div>
-     <em className={"is-"+LEVELS[i].key}>{levelName(language,s.season_visits)}</em>
-     <span className="tt-ph-dots" aria-hidden="true">{LEVELS.map((l,k)=><i key={l.key} className={k<=i?"on":""}/>)}</span>
+    const i=levelIndex(s.season_visits),next=LEVELS[i+1];
+    return <li key={s.organizer_id} className={"is-"+LEVELS[i].key}>
+     <div className="tt-ph-lv-top"><strong>{s.organizer_name}</strong><em>{levelName(language,s.season_visits)}</em></div>
+     <span className="tt-ph-lv-bar" aria-hidden="true"><i style={{width:toNext(s.season_visits)+"%"}}/></span>
+     <div className="tt-ph-lv-foot">
+      <b>{s.season_visits}{next?" / "+next.at:""}</b>
+      <span>{next?c.nextPerk.replace("{perk}",rewardsCopy[language].perks[i+1]):c.topLevel}</span>
+     </div>
     </li>;})}</ul>}
   </section>
 

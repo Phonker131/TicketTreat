@@ -647,10 +647,10 @@ html body .tt-rw-plate{margin:0 0 22px;padding:18px 20px 16px;border-radius:24px
 html body .tt-rw-plate-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 16px;margin-bottom:6px}
 html body .tt-rw-plate-head h2{margin:0!important;font:700 18px/1.25 var(--u)!important;text-transform:none!important;letter-spacing:0!important;color:var(--tp-fg)}
 html body .tt-rw-plate-head .tt-rw-progress{margin:6px 0 0;font-size:14px;color:var(--tp-mute)}
-html body .tt-rw-plate-level,html body .tt-ph-level,html body .tt-ph-levels em{flex:none;padding:7px 12px;border-radius:999px;font:800 13px/1 var(--u);font-style:normal;background:var(--paper);color:var(--ink)}
-html body :is(.tt-rw-plate-level,.tt-ph-levels em).is-regular{background:var(--yel);color:var(--ink)}
-html body :is(.tt-rw-plate-level,.tt-ph-levels em).is-insider{background:var(--tom);color:var(--ink)}
-html body :is(.tt-rw-plate-level,.tt-ph-levels em).is-vip{background:var(--plum,#5b2a86);color:var(--paper)}
+html body .tt-rw-plate-level{flex:none;padding:7px 12px;border-radius:999px;font:800 13px/1 var(--u);font-style:normal;background:var(--paper);color:var(--ink)}
+html body .tt-rw-plate-level.is-regular{background:var(--yel);color:var(--ink)}
+html body .tt-rw-plate-level.is-insider{background:var(--tom);color:var(--ink)}
+html body .tt-rw-plate-level.is-vip{background:var(--plum,#5b2a86);color:var(--paper)}
 html body .tt-rw-plate .tt-rt{margin-top:14px}
 html body .tt-rw-plate-foot{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--tp-line);font:500 13px/1.4 var(--u);color:var(--tp-mute)}
 html body .tt-rw-plate-foot span:empty{display:none}
@@ -683,23 +683,6 @@ html body .tt-guest-levels b i{font:600 13px/1 var(--u);font-style:normal;color:
    Participant profile: a pass card on top, then next ticket, levels, where you've been
    and the "I want an event like this" form.
    ===================================================================================== */
-html body .tt-ph-pass{position:relative;margin:0 0 6px;padding:22px 24px 0;border-radius:28px;color:var(--ink);overflow:hidden;
- background:radial-gradient(70% 90% at 100% 0%,rgba(255,255,255,.32) 0,transparent 60%),linear-gradient(112deg,#0297DE 0%,#53B3EA 26%,#C9A6C9 54%,#F7967A 78%,#FC734D 100%);
- -webkit-mask:radial-gradient(circle 12px at 0 calc(100% - 92px),#0000 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 12px at 100% calc(100% - 92px),#0000 97%,#000) right/51% 100% no-repeat;
- mask:radial-gradient(circle 12px at 0 calc(100% - 92px),#0000 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 12px at 100% calc(100% - 92px),#0000 97%,#000) right/51% 100% no-repeat}
-html body .tt-ph-id{display:flex;align-items:center;gap:16px;min-width:0}
-html body .tt-ph-avatar{flex:none;display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--ink);color:var(--paper);font:900 30px/1 var(--d)}
-html body .tt-ph-id>div{min-width:0;flex:1}
-html body .tt-ph-id h1{margin:0!important;font:900 clamp(34px,4.4vw,56px)/.9 var(--d)!important;text-transform:uppercase;color:var(--ink)!important;overflow-wrap:anywhere}
-html body .tt-ph-id p{margin:6px 0 0;font:500 14px/1.3 var(--u);color:rgba(2,7,10,.72);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-html body .tt-ph-level{display:grid;gap:4px;justify-items:center;padding:10px 14px;border-radius:14px;background:var(--ink)!important;color:var(--paper)!important;font:900 22px/1 var(--d)!important;text-transform:uppercase}
-html body .tt-ph-level small{font:700 10px/1 var(--m);letter-spacing:.08em;color:rgba(240,235,225,.7)}
-html body .tt-ph-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:14px 0 20px;font:600 13px/1.3 var(--u);color:rgba(2,7,10,.78)}
-html body .tt-ph-role{padding:6px 10px;border-radius:999px;background:rgba(240,235,225,.75);color:var(--ink)}
-html body .tt-ph-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 -24px;padding:16px 24px 18px;border-top:2px dashed rgba(2,7,10,.3);height:92px;box-sizing:border-box}
-html body .tt-ph-stats div{display:grid;gap:4px;align-content:start}
-html body .tt-ph-stats dt{font:700 11px/1.1 var(--m);letter-spacing:.06em;text-transform:uppercase;color:rgba(2,7,10,.66)}
-html body .tt-ph-stats dd{margin:0;font:900 38px/1 var(--d);font-variant-numeric:tabular-nums}
 html body .tt-ph-tabs{display:flex;gap:6px;margin:16px 0 14px;overflow-x:auto;scrollbar-width:none;padding:2px}
 html body .tt-ph-tabs::-webkit-scrollbar{display:none}
 html body .tt-ph-tabs .button{flex:none;min-height:42px;padding:0 16px;font-size:14px}
@@ -729,14 +712,6 @@ html body .tt-ph-ticket .button{flex:none}
 html body .tt-ph-empty{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 html body .tt-ph-empty p{margin:0;color:var(--tp-mute)}
 html body .tt-ph-levels ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-html body .tt-ph-levels li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:14px;border-radius:16px;border:1px solid var(--tp-line);background:var(--tp-bg)}
-html body .tt-ph-levels li>div{display:grid;gap:3px;min-width:0}
-html body .tt-ph-levels li strong{font:700 15px/1.2 var(--u);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-html body .tt-ph-levels li>div span{font:500 13px/1.3 var(--u);color:var(--tp-mute)}
-html body .tt-ph-dots{grid-column:1 / -1;position:relative;display:flex;justify-content:space-between}
-html body .tt-ph-dots::before{content:"";position:absolute;left:6px;right:6px;top:50%;height:2px;margin-top:-1px;background:var(--tp-line)}
-html body .tt-ph-dots i{position:relative;width:12px;height:12px;border-radius:50%;box-sizing:border-box;border:2px solid var(--tp-line);background:var(--tp-surf)}
-html body .tt-ph-dots i.on{border-color:var(--tom);background:var(--tom)}
 html body .tt-ph-been ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:14px}
 html body .tt-ph-been li{display:grid;gap:4px;align-content:start;min-width:0}
 html body .tt-ph-been .tt-ph-poster{width:100%}
@@ -757,12 +732,6 @@ html body .tt-ph-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
  html body .tt-ph>*{grid-column:1!important;grid-row:auto!important}
 }
 @media (max-width:560px){
- html body .tt-ph-pass{padding:18px 18px 0;border-radius:24px}
- html body .tt-ph-id{flex-wrap:wrap;gap:12px}
- html body .tt-ph-avatar{width:52px;height:52px;font-size:24px}
- html body .tt-ph-level{order:3;width:100%;grid-auto-flow:column;justify-content:space-between;align-items:center;font-size:20px!important;padding:10px 14px}
- html body .tt-ph-stats{margin:0 -18px;padding:14px 18px 16px}
- html body .tt-ph-stats dd{font-size:32px}
  html body .tt-ph-card{padding:16px;border-radius:20px}
  html body .tt-ph-ticket{flex-wrap:wrap}
  html body .tt-ph-ticket .button{width:100%;justify-content:center}
@@ -807,3 +776,73 @@ html body .tt-rw-plate{container-type:inline-size}
 html body .tt-ph-date{margin-bottom:4px}
 /* event page: the big date keeps a little air above the title */
 html body main.ev2 .ev2-date{margin-bottom:10px!important}
+
+/* =====================================================================================
+   Profile ticket: identity and numbers on the gradient, a dark stub with the level.
+   Each level has its own colour (--lv), used by the stub and the level rows.
+   ===================================================================================== */
+html body .tt-ph-stub,html body .tt-ph-levels li{--lv:var(--paper)}
+html body :is(.tt-ph-stub,.tt-ph-levels li).is-regular{--lv:var(--yel)}
+html body :is(.tt-ph-stub,.tt-ph-levels li).is-insider{--lv:var(--tom)}
+html body :is(.tt-ph-stub,.tt-ph-levels li).is-vip{--lv:#B58CF0}
+html body .tt-ph-pass{--stub:260px;position:relative;display:grid;grid-template-columns:minmax(0,1fr) var(--stub);margin:0 0 6px;border-radius:26px;overflow:hidden;color:var(--ink);
+ background:radial-gradient(70% 120% at 0% 0%,rgba(255,255,255,.3) 0,transparent 55%),linear-gradient(112deg,#0297DE 0%,#53B3EA 30%,#C9A6C9 62%,#F7967A 88%,#FC734D 100%);
+ -webkit-mask:radial-gradient(circle 11px at calc(100% - var(--stub)) 0,#0000 97%,#000) top/100% 51% no-repeat,radial-gradient(circle 11px at calc(100% - var(--stub)) 100%,#0000 97%,#000) bottom/100% 51% no-repeat;
+ mask:radial-gradient(circle 11px at calc(100% - var(--stub)) 0,#0000 97%,#000) top/100% 51% no-repeat,radial-gradient(circle 11px at calc(100% - var(--stub)) 100%,#0000 97%,#000) bottom/100% 51% no-repeat}
+html body .tt-ph-main{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id stats" "meta stats";align-items:center;gap:12px 32px;padding:22px 28px;min-width:0}
+html body .tt-ph-id{grid-area:id;display:flex;align-items:center;gap:16px;min-width:0}
+html body .tt-ph-avatar{flex:none;display:grid;place-items:center;width:60px;height:60px;border-radius:50%;background:var(--ink);color:var(--paper);font:900 28px/1 var(--d)}
+html body .tt-ph-id>div{min-width:0;flex:1}
+html body .tt-ph-id h1{margin:0!important;font:900 clamp(32px,3.6vw,52px)/.9 var(--d)!important;text-transform:uppercase;color:var(--ink)!important;overflow-wrap:anywhere}
+html body .tt-ph-id p{margin:6px 0 0;font:500 14px/1.3 var(--u);color:rgba(2,7,10,.72);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html body .tt-ph-meta{grid-area:meta;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font:600 13px/1.3 var(--u);color:rgba(2,7,10,.8)}
+html body .tt-ph-role{padding:6px 10px;border-radius:999px;background:rgba(240,235,225,.78);color:var(--ink)}
+html body .tt-ph-stats{grid-area:stats;display:flex;gap:28px;margin:0;padding:0 0 0 28px;border-left:2px dashed rgba(2,7,10,.28);align-self:stretch;align-items:center}
+html body .tt-ph-stats div{display:grid;gap:6px}
+html body .tt-ph-stats dt{font:700 11px/1.1 var(--m);letter-spacing:.06em;text-transform:uppercase;color:rgba(2,7,10,.66);white-space:nowrap}
+html body .tt-ph-stats dd{margin:0;font:900 44px/.9 var(--d);font-variant-numeric:tabular-nums}
+html body .tt-ph-stub{display:grid;align-content:center;gap:8px;padding:20px 24px;background:var(--ink);color:var(--paper)}
+html body .tt-ph-stub small{font:700 11px/1 var(--m);letter-spacing:.08em;text-transform:uppercase;color:rgba(240,235,225,.6)}
+html body .tt-ph-stub strong{font:900 40px/.9 var(--d);text-transform:uppercase;color:var(--lv)}
+html body .tt-ph-bar{display:block;height:8px;border-radius:99px;background:rgba(240,235,225,.16);overflow:hidden}
+html body .tt-ph-bar i{display:block;height:100%;border-radius:inherit;background:var(--lv)}
+html body .tt-ph-stub p{margin:0;font:500 13px/1.35 var(--u);color:rgba(240,235,225,.78)}
+
+/* levels with each organizer: coloured rows, a thick bar and the next perk */
+html body .tt-ph-levels ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+html body .tt-ph-levels li{display:grid;gap:10px;padding:16px;border-radius:18px;border:1px solid color-mix(in srgb,var(--lv) 38%,transparent);
+ background:linear-gradient(135deg,color-mix(in srgb,var(--lv) 20%,var(--tp-surf)) 0%,var(--tp-surf) 70%)}
+html body .tt-ph-lv-top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+html body .tt-ph-lv-top strong{font:700 15px/1.2 var(--u);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html body .tt-ph-lv-top em{flex:none;font:900 22px/1 var(--d);font-style:normal;text-transform:uppercase;color:var(--lv)}
+html body .tt-ph-lv-bar{display:block;height:10px;border-radius:99px;background:color-mix(in srgb,var(--tp-fg) 12%,transparent);overflow:hidden}
+html body .tt-ph-lv-bar i{display:block;height:100%;border-radius:inherit;background:var(--lv)}
+html body .tt-ph-lv-foot{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font:500 13px/1.3 var(--u);color:var(--tp-mute)}
+html body .tt-ph-lv-foot b{font:900 20px/1 var(--d);color:var(--tp-fg);font-variant-numeric:tabular-nums}
+html body .tt-ph-lv-foot span{text-align:right}
+/* light theme: the newcomer colour must read on paper */
+html[data-theme="light"] body :is(.tt-ph-levels li){--lv:var(--ink)}
+html[data-theme="light"] body .tt-ph-levels li.is-regular{--lv:#E2552E}
+html[data-theme="light"] body .tt-ph-levels li.is-insider{--lv:var(--tom)}
+html[data-theme="light"] body .tt-ph-levels li.is-vip{--lv:#6A3FB0}
+
+@media (max-width:1100px){
+ html body .tt-ph-main{grid-template-columns:1fr;grid-template-areas:"id" "meta" "stats"}
+ html body .tt-ph-stats{padding:14px 0 0;border-left:0;border-top:2px dashed rgba(2,7,10,.28);gap:24px}
+}
+@media (max-width:640px){
+ html body .tt-ph-pass{grid-template-columns:1fr;-webkit-mask:none;mask:none;border-radius:24px}
+ html body .tt-ph-main{padding:18px 18px 16px;gap:12px}
+ html body .tt-ph-avatar{width:50px;height:50px;font-size:23px}
+ html body .tt-ph-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ html body .tt-ph-stats dd{font-size:34px}
+ html body .tt-ph-stats dt{white-space:normal}
+ html body .tt-ph-stub{padding:16px 18px;grid-template-columns:auto 1fr;align-items:center;gap:6px 14px}
+ html body .tt-ph-stub small{grid-column:1 / -1}
+ html body .tt-ph-stub strong{font-size:32px}
+ html body .tt-ph-stub p{grid-column:1 / -1}
+}
+/* dark theme: the stub is a deep blue-black so it never melts into the page */
+html:not([data-theme="light"]) body .tt-ph-stub{background:color-mix(in srgb,var(--ink) 82%,var(--tom) 18%)}
+/* Reduce Motion on phones: the still ticket leaves room for its buttons above the bottom bar */
+@media (max-width:760px){html body .tt-tear.is-still .tt-tk3{height:clamp(280px,calc(100svh - 360px),520px)!important}}

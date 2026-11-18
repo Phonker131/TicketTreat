@@ -43,8 +43,13 @@ function Ticket({event,language,rx,ry,shine,turned,onTurn}:{event:TicketTreatEve
  const d=event?dateParts(event.starts_at,language):null;
  const code=event?`TT-${String(event.id).padStart(4,"0")}`:"TT-0000";
  const no=event?String(event.id).padStart(6,"0"):"000000";
+ // Which side faces the viewer is decided from the angle, not only by backface-visibility:
+ // Safari can flatten the 3D ticket and would then paint the QR side over the front.
+ const back=useTransform(ry,v=>{const a=((v%360)+360)%360;return a>90&&a<270?1:0});
+ const front=useTransform(back,b=>1-b);
+ const backClicks=useTransform(back,b=>b?"auto":"none"),frontClicks=useTransform(back,b=>b?"none":"auto");
  return <M.div className="tt-tk3" style={{rotateX:rx,rotateY:ry}}>
-  <div className="tt-tk3-face is-front" aria-hidden={turned||undefined}>
+  <M.div className="tt-tk3-face is-front" style={{opacity:front,pointerEvents:frontClicks}} aria-hidden={turned||undefined}>
    <div className="tt-tk3-top">
     <span className="tt-tk3-brand">TICKETTREAT</span>
     <span className="tt-tk3-vbar" aria-hidden="true"><i/><small>{no}</small></span>
@@ -62,8 +67,8 @@ function Ticket({event,language,rx,ry,shine,turned,onTurn}:{event:TicketTreatEve
    <span className="tt-tk3-perf" aria-hidden="true"/>
    <span className="tt-tk3-hbar" aria-hidden="true"/>
    <M.span className="tt-tk-shine" style={{backgroundPosition:shine}} aria-hidden="true"/>
-  </div>
-  <div className="tt-tk3-face is-back" aria-hidden={!turned||undefined}>
+  </M.div>
+  <M.div className="tt-tk3-face is-back" style={{opacity:back,pointerEvents:backClicks}} aria-hidden={!turned||undefined}>
    <span className="tt-tk3-brand">TICKETTREAT</span>
    <div className="tt-tk3-qr">
     <Qr value={"https://tickettreat.eu/events/"+(event?.id??"")} size={200} className="tt-tk3-qrsvg"/>
@@ -72,7 +77,7 @@ function Ticket({event,language,rx,ry,shine,turned,onTurn}:{event:TicketTreatEve
    <strong className="tt-tk3-code">{code}</strong>
    <span className="tt-tk3-show">{k.show}</span>
    {event&&<Link href={`/events/${event.id}`} className="tt-tk3-open">{k.open}</Link>}
-  </div>
+  </M.div>
   <button type="button" className="tt-tk3-turn" onClick={onTurn} aria-pressed={turned} aria-label={k.flip}/>
  </M.div>;
 }
