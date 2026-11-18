@@ -25,6 +25,12 @@ class EventCategoryTests(unittest.TestCase):
             created = client.post(manage, headers=auth, json=names)
             self.assertEqual(created.status_code, 201, created.text)
             key = next(row["key"] for row in created.json() if row["en"] == names["en"])
+            renamed = {"en": "Ceramics", "cs": "Keramika"}
+            self.assertEqual(client.patch(f"{manage}/{key}", headers=organizer, json=renamed).status_code, 403)
+            patched = client.patch(f"{manage}/{key}", headers=auth, json=renamed)
+            self.assertEqual(patched.status_code, 200, patched.text)
+            self.assertIn(dict(key=key, active=True, **renamed), patched.json())
+            self.assertEqual(client.patch(f"{manage}/missing", headers=auth, json=renamed).status_code, 404)
             events = "/api/v1/manage/events"
             event = {"title": "Clay", "starts_at": "2030-10-10T10:00:00Z", "languages": ["en"], "tags": [key]}
             result = client.post(events, headers=organizer, json=event)
