@@ -1068,3 +1068,14 @@ export function saveBroadcastPreferences(data:BroadcastPreferencesData):Promise<
 export function updateOrganizerThresholds(ownerId:number, settings:{regular:number;insider:number;vip:number}):Promise<{tiers:OrganizerTierBenefit[]}>{
  return request(`/demo/manage/loyalty/thresholds/${ownerId}`,{method:"PUT",body:JSON.stringify(settings)});
 }
+
+export type EventCategory = {key:string; en:string; cs:string; active:boolean};
+export function getEventCategories() {
+  return request<EventCategory[]>("/demo/event-categories");
+}
+export function addEventCategory(en:string, cs:string) {
+  return request<EventCategory[]>("/demo/manage/event-categories", {method:"POST", body:JSON.stringify({en,cs})});
+}
+export function setEventCategoryActive(key:string, active:boolean) {
+  return request<EventCategory[]>(`/demo/manage/event-categories/${encodeURIComponent(key)}`, {method:"PUT", body:JSON.stringify({active})});
+}

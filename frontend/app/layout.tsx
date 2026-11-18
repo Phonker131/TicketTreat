@@ -1,3 +1,4 @@
+import {EventCategoriesProvider} from "@/components/EventCategories";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import {Sofia_Sans_Extra_Condensed,Onest,IBM_Plex_Mono} from "next/font/google";
@@ -91,14 +92,14 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
         <LanguageProvider>
-          <MotionProvider>
+          <EventCategoriesProvider><MotionProvider>
             <PwaBootstrap />
             <DuoFilters />
             <Delights />
             {children}
             <LegalFooter />
             <CookieConsentBanner />
-          </MotionProvider>
+          </MotionProvider></EventCategoriesProvider>
         </LanguageProvider>
       </body>
     </html>

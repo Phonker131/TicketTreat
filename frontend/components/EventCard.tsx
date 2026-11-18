@@ -1,5 +1,6 @@
 "use client";
 
+import {useCategories} from "@/components/EventCategories";
 import Link from "next/link";
 import {useEffect,useRef,useState} from "react";
 
@@ -9,7 +10,7 @@ import {PosterArt} from "@/components/premium/PosterArt";
 import {localeForLanguage,t} from "@/lib/i18n";
 import type {LanguageCode,TicketTreatEvent} from "@/lib/types";
 import {eventDisplayDate} from "@/lib/format";
-import {eventTags,TAG_LABELS} from "@/lib/event-tags";
+import {eventTags} from "@/lib/event-tags";
 import {useWanted} from "@/lib/wanted";
 
 function formatPrice(event:TicketTreatEvent,language:LanguageCode):string{
@@ -31,6 +32,7 @@ const WORDS={
 /** One event in the feed or in the saved list: a 4:5 poster, date and price on the poster, two-line title, one-line place. */
 export function EventCard({event}:{event:TicketTreatEvent}){
   const {language}=useLanguage();
+  const categories=useCategories(language);
   const words=WORDS[language];
   const [wanted,setWanted]=useWanted();
   const isWanted=wanted.includes(event.id);
@@ -50,7 +52,7 @@ export function EventCard({event}:{event:TicketTreatEvent}){
     ?new Intl.DateTimeFormat(locale,{weekday:"short",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit",timeZone:startsAt.timeZone}).format(startsAt.date)
     :"-";
   const href=`/events/${event.id}?lang=${language}`;
-  const tags=eventTags(event);
+  const tags=eventTags(event,categories.activeKeys);
   const langs=(event.languages||[]).map(code=>code.toUpperCase()).join(", ");
 
   return (
@@ -79,7 +81,7 @@ export function EventCard({event}:{event:TicketTreatEvent}){
           {event.location&&<span>{event.location}</span>}
         </p>
         {(tags.length>0||langs)&&<ul className="tp-ecard-tags" aria-label={t(language,"languages")}>
-          {tags.map(tag=><li key={tag}>{TAG_LABELS[language][tag]}</li>)}
+          {tags.map(tag=><li key={tag}>{categories.label(tag)}</li>)}
           {langs&&<li className="is-lang">{langs}</li>}
         </ul>}
         <div className="event-card-footer tp-ecard-foot">

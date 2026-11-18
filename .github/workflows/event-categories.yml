@@ -1,0 +1,27 @@
+name: Event category editor
+on:
+  pull_request:
+    branches: [dev/frontend-design]
+    paths:
+      - frontend/components/EventCategories.tsx
+      - frontend/e2e/event-categories.spec.ts
+      - .github/workflows/event-categories.yml
+permissions:
+  contents: read
+jobs:
+  editor:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+        env:
+          BACKEND_API_URL: http://127.0.0.1:8000
+      - run: npx playwright install --only-shell chromium
+      - run: npx playwright test e2e/event-categories.spec.ts
