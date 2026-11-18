@@ -16,6 +16,7 @@ import type {
 } from "@/lib/types";
 
 const API_URL = "/api/gateway";
+export type EventCategory={key:string;en:string;cs:string;active:boolean};
 function browserWebSession():boolean{
   if(typeof window==="undefined")return false;
   // The old marker remains readable for one-time migration to TicketTreat keys.
@@ -89,6 +90,22 @@ export function getEvents(
     `/events${includePast ? "?include_past=true" : ""}`,
     {signal},
   );
+}
+
+/** Public discovery catalog, including archived categories for existing events. */
+export function getEventCategories():Promise<EventCategory[]> {
+  return request("/demo/event-categories");
+}
+
+/** Only server-authorized global admins may alter the platform category catalog. */
+export function addEventCategory(en:string,cs:string):Promise<EventCategory[]> {
+  return request("/demo/manage/event-categories",{method:"POST",body:JSON.stringify({en,cs})});
+}
+export function setEventCategoryActive(key:string,active:boolean):Promise<EventCategory[]> {
+  return request(`/demo/manage/event-categories/${encodeURIComponent(key)}`,{method:"PUT",body:JSON.stringify({active})});
+}
+export function renameEventCategory(key:string,en:string,cs:string):Promise<EventCategory[]> {
+  return request(`/demo/manage/event-categories/${encodeURIComponent(key)}`,{method:"PATCH",body:JSON.stringify({en,cs})});
 }
 
 /** 256-bit invitation is sent in a header, never embedded in API query/log URLs. */

@@ -13,7 +13,8 @@ import {downloadCalendar,mapQuery} from "@/lib/event-actions";
 import { CONSENT_EVENT,hasExternalMediaConsent,openCookieSettings } from "@/lib/cookie-consent";
 import { formatDate, formatPrice } from "@/lib/format";
 import { LANGUAGE_NAMES, t } from "@/lib/i18n";
-import {eventTags,TAG_LABELS} from "@/lib/event-tags";
+import {eventTags} from "@/lib/event-tags";
+import {useEventCategories,categoryFor,categoryLabel} from "@/lib/event-categories";
 import type { TicketTreatEvent } from "@/lib/types";
 import {PageFaq} from "@/components/premium/PageFaq";
 import {dateParts} from "@/components/premium/EventLists";
@@ -28,6 +29,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   const source=(query.get("utm_source")||query.get("ref")||"").toLowerCase();
   const attributed=/^[a-z0-9_-]{1,40}$/.test(source)?`&utm_source=${encodeURIComponent(source)}`:"";
   const {language} = useLanguage();
+  const categories=useEventCategories();
   const previewWords={
     en:{manage:"Manage event",title:"Preview: only the organizer can see this.",published:"This event is also published.",draft:"This draft is not visible to guests and does not accept registrations.",card:"Event preview",cardInfo:"Registration is unavailable in preview mode. Publish the event in the dashboard to open registration.",showMap:"Show map",hideMap:"Hide map",mapTitle:"Event venue map"},
     cs:{manage:"Spravovat akci",title:"Náhled: viditelný pouze pořadateli.",published:"Akce je také zveřejněna.",draft:"Tento koncept není viditelný hostům a nepřijímá registrace.",card:"Náhled akce",cardInfo:"Registrace není v náhledu dostupná. Zveřejněte akci ve správě, aby se hosté mohli registrovat.",showMap:"Zobrazit mapu",hideMap:"Skrýt mapu",mapTitle:"Mapa místa konání"},
@@ -153,7 +155,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
             </div>
             <h1>{event.title}</h1>
             <p className="ev2-where">{[event.location,organizerName].filter(Boolean).join(", ")}</p>
-            {eventTags(event).length>0&&<ul className="tp-ecard-tags is-hero">{eventTags(event).map(tag=><li key={tag}>{TAG_LABELS[language][tag]}</li>)}</ul>}
+            {eventTags(event).length>0&&<ul className="tp-ecard-tags is-hero">{eventTags(event).map(tag=><li key={tag}>{categoryFor(tag,categories)?categoryLabel(categoryFor(tag,categories)!,language):tag}</li>)}</ul>}
           </div>
         </section>
 
