@@ -23,7 +23,8 @@ import {
 import { getWebToken } from "@/lib/session";
 import {prepareGalleryPhoto} from "@/lib/gallery-photo";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
-import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag,type EventTag} from "@/lib/event-tags";
+import {TagIcon,isEventTag,type EventTag} from "@/lib/event-tags";
+import {useEventCategories,categoryLabel} from "@/lib/event-categories";
 import type {EventEmailStatus,PilotInsights,PilotSettings,CheckinStaff} from "@/lib/api";
 
 type Tab="overview"|"details"|"media"|"guests"|"notify"|"analytics"|"moderation";
@@ -49,6 +50,7 @@ export function AdminEventClient(){
   const router=useRouter();
   const params=useParams<{id:string}>(),eventId=Number(params?.id);
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
+  const categories=useEventCategories();
   const [event,setEvent]=useState<ManageEvent|null>(null);
   const [data,setData]=useState<AdminEventTickets|null>(null);
   type RemoveTarget={kind:"ticket"|"waitlist";id:number;name:string;paid:boolean};
@@ -615,10 +617,10 @@ export function AdminEventClient(){
         <fieldset className="event-language-fieldset"><legend>{tr("Категории")}</legend>
         <p className="tp-field-hint">{tr("По ним гости фильтруют афишу на главной. Можно выбрать несколько.")}</p>
         <div className="event-language-options">
-          {EVENT_TAGS.map(tag=><label className="event-language-option" key={tag}>
-            <input type="checkbox" checked={tags.includes(tag)} onChange={e=>setTags(s=>e.target.checked?[...s,tag]:s.filter(x=>x!==tag))}/>
-            <span className="event-language-flag" aria-hidden="true"><TagIcon tag={tag}/></span>
-            <span className="event-language-name">{TAG_LABELS[language][tag]}</span>
+          {categories.filter(category=>category.active||tags.includes(category.key)).map(category=><label className="event-language-option" key={category.key}>
+            <input type="checkbox" checked={tags.includes(category.key)} onChange={e=>setTags(s=>e.target.checked?[...s,category.key]:s.filter(x=>x!==category.key))}/>
+            <span className="event-language-flag" aria-hidden="true"><TagIcon tag={category.key}/></span>
+            <span className="event-language-name">{categoryLabel(category,language)}{!category.active?` (${language==="cs"?"archivováno":"archived"})`:""}</span>
           </label>)}
         </div></fieldset>
         <fieldset className="event-language-fieldset"><legend>{tr("Языки")}</legend>

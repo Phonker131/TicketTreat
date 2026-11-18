@@ -11,7 +11,8 @@ import { uploadManageGalleryPhoto, addManageEvent, getManageEvents, getManageMe,
 import {prepareGalleryPhoto} from "@/lib/gallery-photo";
 import { getWebToken } from "@/lib/session";
 import {localeForLanguage} from "@/lib/i18n";
-import {EVENT_TAGS,TAG_LABELS,TagIcon,isEventTag} from "@/lib/event-tags";
+import {TagIcon} from "@/lib/event-tags";
+import {useEventCategories,categoryLabel} from "@/lib/event-categories";
 import type { LanguageCode, ManageEvent, ManageIdentity } from "@/lib/types";
 
 class LocalValidationError extends Error {}
@@ -97,6 +98,7 @@ export function AdminClient() {
     },
   }[language];
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
+  const categories=useEventCategories();
   const [events,setEvents]=useState<ManageEvent[]>([]);
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
@@ -165,7 +167,7 @@ export function AdminClient() {
         gallery_urls:[],
         video_url:String(data.get("video_url")||"").trim(),
         venue_url:String(data.get("venue_url")||"").trim(),
-        tags:data.getAll("tags").map(String).filter(isEventTag),
+        tags:data.getAll("tags").map(String).filter(tag=>categories.some(category=>category.key===tag&&category.active)),
         location:String(data.get("location")||"").trim(),
         country_code:"CZ",city:"",
         max_participants:Number(data.get("max_participants")||30),
@@ -223,6 +225,7 @@ export function AdminClient() {
       <li><Link href="/admin/organizer-profile"><DashIcon name="profile"/>{x.profile}</Link></li>
       {identity.role==="global_admin"&&<>
         <li><Link href="/admin/accounts"><DashIcon name="accounts"/>{x.accounts}</Link></li>
+        <li><Link href="/admin/categories"><DashIcon name="events"/>{language==="cs"?"Kategorie akcí":"Event categories"}</Link></li>
         <li><Link href="/admin/broadcasts"><DashIcon name="broadcast"/>{ui.broadcast}</Link></li>
         <li><Link href="/admin/support"><DashIcon name="support"/>{ui.support}{supportUnread!==null&&supportUnread>0&&<b className="tp-badge">{supportUnread}</b>}</Link></li>
         <li><Link href="/admin/privacy"><DashIcon name="privacy"/>{x.privacy}</Link></li>
@@ -283,10 +286,10 @@ export function AdminClient() {
             <fieldset className="event-language-fieldset"><legend>{x.tags}</legend>
               <p className="tp-field-hint">{x.tagsHint}</p>
               <div className="event-language-options">
-                {EVENT_TAGS.map(tag=><label className="event-language-option" key={tag}>
-                  <input type="checkbox" name="tags" value={tag}/>
-                  <span className="event-language-flag" aria-hidden="true"><TagIcon tag={tag}/></span>
-                  <span className="event-language-name">{TAG_LABELS[language][tag]}</span>
+                {categories.filter(category=>category.active).map(category=><label className="event-language-option" key={category.key}>
+                  <input type="checkbox" name="tags" value={category.key}/>
+                  <span className="event-language-flag" aria-hidden="true"><TagIcon tag={category.key}/></span>
+                  <span className="event-language-name">{categoryLabel(category,language)}</span>
                 </label>)}
               </div></fieldset>
             <fieldset className="event-language-fieldset"><legend>{x.languages}</legend><div className="event-language-options">

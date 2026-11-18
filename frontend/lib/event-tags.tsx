@@ -1,7 +1,7 @@
 import type {LanguageCode} from "@/lib/types";
 
 /** Event sub-themes. Organizers pick them in the dashboard; the home page filters by them. */
-export type EventTag="meet"|"friends"|"listen"|"dance";
+export type EventTag=string;
 export const EVENT_TAGS:EventTag[]=["meet","friends","listen","dance"];
 
 export const TAG_LABELS:Record<LanguageCode,Record<EventTag,string>>={
@@ -20,7 +20,7 @@ const KEYWORDS:Record<EventTag,RegExp>={
 };
 
 export function isEventTag(value:unknown):value is EventTag{
- return typeof value==="string"&&(EVENT_TAGS as string[]).includes(value);
+ return typeof value==="string"&&/^(?:cat_[a-f0-9]{32}|meet|friends|listen|dance)$/.test(value);
 }
 
 /** Explicit organizer tags win; otherwise the title and description are matched by keywords. */
@@ -41,5 +41,5 @@ const ICONS:Record<EventTag|"all"|"saved",React.ReactNode>={
 };
 
 export function TagIcon({tag,size=18}:{tag:EventTag|"all"|"saved";size?:number}){
- return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{ICONS[tag]}</svg>;
+ return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{ICONS[tag]||<><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 12h8"/></>}</svg>;
 }
