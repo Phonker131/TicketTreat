@@ -4,14 +4,14 @@ import Link from "next/link";
 import {useEffect,useState,type FormEvent} from "react";
 import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
-import {getManageMe,getEventCategories,addEventCategory,setEventCategoryActive,type EventCategory} from "@/lib/api";
+import {getManageMe,getEventCategories,addEventCategory,setEventCategoryActive,renameEventCategory,type EventCategory} from "@/lib/api";
 import {invalidateEventCategories,categoryLabel} from "@/lib/event-categories";
 import {userFacingError} from "@/lib/user-facing-errors";
 import {getWebToken} from "@/lib/session";
 
 const words={
- en:{title:"Event categories",intro:"Manage the categories used by organizers and the event discovery filters. Only global administrators can make changes.",back:"Dashboard",en:"English name",cs:"Czech name",add:"Add category",active:"Available categories",archived:"Archived categories",archive:"Archive",restore:"Restore",empty:"No archived categories",loading:"Loading categories…",saving:"Saving…",success:"Categories updated.",history:"Archiving removes a category from new event choices and discovery filters, but preserves it on existing events.",denied:"Only global administrators can manage categories.",verify:"Verify MFA"},
- cs:{title:"Kategorie akcí",intro:"Spravujte kategorie používané pořadateli a filtry akcí. Změny mohou provádět pouze hlavní administrátoři.",back:"Administrace",en:"Anglický název",cs:"Český název",add:"Přidat kategorii",active:"Aktivní kategorie",archived:"Archivované kategorie",archive:"Archivovat",restore:"Obnovit",empty:"Žádné archivované kategorie",loading:"Načítání kategorií…",saving:"Ukládání…",success:"Kategorie byly aktualizovány.",history:"Archivace odebere kategorii z výběru nových akcí a z filtrů, ale ponechá ji u stávajících akcí.",denied:"Kategorie mohou spravovat pouze hlavní administrátoři.",verify:"Ověřit MFA"},
+ en:{title:"Event categories",intro:"Manage the categories used by organizers and the event discovery filters. Only global administrators can make changes.",back:"Dashboard",en:"English name",cs:"Czech name",add:"Add category",active:"Available categories",archived:"Archived categories",archive:"Archive",restore:"Restore",edit:"Edit",save:"Save names",cancel:"Cancel",empty:"No archived categories",loading:"Loading categories…",saving:"Saving…",success:"Categories updated.",history:"Archiving removes a category from new event choices and discovery filters, but preserves it on existing events.",denied:"Only global administrators can manage categories.",verify:"Verify MFA"},
+ cs:{title:"Kategorie akcí",intro:"Spravujte kategorie používané pořadateli a filtry akcí. Změny mohou provádět pouze hlavní administrátoři.",back:"Administrace",en:"Anglický název",cs:"Český název",add:"Přidat kategorii",active:"Aktivní kategorie",archived:"Archivované kategorie",archive:"Archivovat",restore:"Obnovit",edit:"Upravit",save:"Uložit názvy",cancel:"Zrušit",empty:"Žádné archivované kategorie",loading:"Načítání kategorií…",saving:"Ukládání…",success:"Kategorie byly aktualizovány.",history:"Archivace odebere kategorii z výběru nových akcí a z filtrů, ale ponechá ji u stávajících akcí.",denied:"Kategorie mohou spravovat pouze hlavní administrátoři.",verify:"Ověřit MFA"},
 } as const;
 
 export function AdminCategoriesClient(){
@@ -22,6 +22,7 @@ export function AdminCategoriesClient(){
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
  const [en,setEn]=useState(""),[cs,setCs]=useState("");
+ const [editing,setEditing]=useState<{key:string;en:string;cs:string}|null>(null);
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
  useEffect(()=>{let live=true;
   async function load(){
@@ -47,6 +48,27 @@ export function AdminCategoriesClient(){
   try{setCategories(await setEventCategoryActive(category.key,!category.active));invalidateEventCategories();setNotice(tr.success);}
   catch(e){setError(userFacingError(e,language));}finally{setBusy(false);}
  }
+ async function rename(e:FormEvent<HTMLFormElement>){
+  e.preventDefault();if(busy||!editing?.en.trim()||!editing?.cs.trim())return;
+  setBusy(true);setError("");setNotice("");
+  try{setCategories(await renameEventCategory(editing.key,editing.en.trim(),editing.cs.trim()));invalidateEventCategories();setEditing(null);setNotice(tr.success);}
+  catch(e){setError(userFacingError(e,language));}finally{setBusy(false);}
+ }
+ function categoryRow(category:EventCategory){
+  return <div key={category.key} className="form-stack">
+   <div className="admin-event-actions" style={{justifyContent:"space-between",alignItems:"center",flexWrap:"wrap"}}>
+    <div><strong>{categoryLabel(category,language)}</strong><small style={{display:"block",opacity:.75}}>{language==="cs"?category.en:category.cs}</small></div>
+    <div className="admin-event-actions"><button type="button" className="button button-outline" disabled={busy} onClick={()=>setEditing({key:category.key,en:category.en,cs:category.cs})}>{tr.edit}</button>
+     <button type="button" className="button button-outline" disabled={busy} onClick={()=>void toggle(category)}>{category.active?tr.archive:tr.restore}</button></div>
+   </div>
+   {editing?.key===category.key&&<form className="form-stack" onSubmit={rename}>
+    <div className="two-col"><label>{tr.en}<input required maxLength={80} value={editing.en} onChange={e=>setEditing({...editing,en:e.target.value})}/></label>
+     <label>{tr.cs}<input required maxLength={80} value={editing.cs} onChange={e=>setEditing({...editing,cs:e.target.value})}/></label></div>
+    <div className="admin-event-actions"><button className="button button-primary" disabled={busy||!editing.en.trim()||!editing.cs.trim()}>{tr.save}</button>
+     <button type="button" className="button button-outline" disabled={busy} onClick={()=>setEditing(null)}>{tr.cancel}</button></div>
+   </form>}
+  </div>;
+ }
 
  return <div className="app-shell"><AppHeader/><main className="page tt-dash-page">
   <div className="tt-dash-main" style={{maxWidth:900,margin:"0 auto"}}>
@@ -63,17 +85,11 @@ export function AdminCategoriesClient(){
      <div><button type="submit" className="button button-primary" disabled={busy||!en.trim()||!cs.trim()}>{busy?tr.saving:tr.add}</button></div>
     </form>
     <section className="panel"><h2>{tr.active}</h2><p className="form-note">{tr.history}</p>
-     <div className="form-stack">{categories.filter(c=>c.active).map(category=><div key={category.key} className="admin-event-actions" style={{justifyContent:"space-between",alignItems:"center"}}>
-      <div><strong>{categoryLabel(category,language)}</strong><small style={{display:"block",opacity:.75}}>{language==="cs"?category.en:category.cs}</small></div>
-      <button type="button" className="button button-outline" disabled={busy} onClick={()=>void toggle(category)}>{tr.archive}</button>
-     </div>)}</div>
+     <div className="form-stack">{categories.filter(c=>c.active).map(categoryRow)}</div>
     </section>
     <section className="panel"><h2>{tr.archived}</h2>
      {categories.filter(c=>!c.active).length===0?<p className="form-note">{tr.empty}</p>:
-     <div className="form-stack">{categories.filter(c=>!c.active).map(category=><div key={category.key} className="admin-event-actions" style={{justifyContent:"space-between",alignItems:"center"}}>
-      <div><strong>{categoryLabel(category,language)}</strong><small style={{display:"block",opacity:.75}}>{language==="cs"?category.en:category.cs}</small></div>
-      <button type="button" className="button button-outline" disabled={busy} onClick={()=>void toggle(category)}>{tr.restore}</button>
-     </div>)}</div>}
+     <div className="form-stack">{categories.filter(c=>!c.active).map(categoryRow)}</div>}
     </section>
    </>}
   </div>

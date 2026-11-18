@@ -104,6 +104,9 @@ export function addEventCategory(en:string,cs:string):Promise<EventCategory[]> {
 export function setEventCategoryActive(key:string,active:boolean):Promise<EventCategory[]> {
   return request(`/demo/manage/event-categories/${encodeURIComponent(key)}`,{method:"PUT",body:JSON.stringify({active})});
 }
+export function renameEventCategory(key:string,en:string,cs:string):Promise<EventCategory[]> {
+  return request(`/demo/manage/event-categories/${encodeURIComponent(key)}`,{method:"PATCH",body:JSON.stringify({en,cs})});
+}
 
 /** 256-bit invitation is sent in a header, never embedded in API query/log URLs. */
 function inviteHeader(invite?:string|null):HeadersInit {
