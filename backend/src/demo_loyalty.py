@@ -33,9 +33,10 @@ def season_bounds(now: datetime | None = None) -> tuple[str, datetime, datetime]
     return f"{local.year}-Q{(first_month - 1) // 3 + 1}", start.astimezone(timezone.utc), end.astimezone(timezone.utc)
 
 
-def tier_for(visits: int) -> dict:
-    name, threshold = max((t for t in TIERS if visits >= t[1]), key=lambda t: t[1])
-    next_at = next((v for v in NEXT if visits < v), None)
+def tier_for(visits: int, benefits: list[dict] | None = None) -> dict:
+    tiers = tuple((b["tier"], b["required_visits"]) for b in benefits) if benefits else TIERS
+    name, threshold = max((t for t in tiers if visits >= t[1]), key=lambda t: t[1])
+    next_at = next((v for _, v in tiers[1:] if visits < v), None)
     return {
         "tier": name, "threshold": threshold, "next_threshold": next_at,
         "remaining": max(0, next_at - visits) if next_at is not None else 0,
@@ -107,14 +108,14 @@ def passport_for(db: Session, guest_id: int, main, *, now: datetime | None = Non
         tier_benefits = benefits_for_organizer(db, studio["organizer_id"])
         result.append({
             **studio, "season_visits": count, "lifetime_visits": lifetime,
-            **tier_for(count),
+            **tier_for(count, tier_benefits),
             "tier_rewards": tier_benefits,
             # Only queue priority is live in V1 pilot. Other roadmap perks
             # require organizer inventory, publication windows or funding.
             "perks": [
-                {"key": "priority_waitlist", "required_visits": 3, "available": count >= 3 and tier_benefits[1]["enabled"], "operational": tier_benefits[1]["enabled"]},
-                {"key": "early_access", "required_visits": 6, "available": False, "operational": False},
-                {"key": "vip_companion", "required_visits": 12, "available": False, "operational": False},
+                {"key": "priority_waitlist", "required_visits": tier_benefits[1]["required_visits"], "available": count >= tier_benefits[1]["required_visits"] and tier_benefits[1]["enabled"], "operational": tier_benefits[1]["enabled"]},
+                {"key": "early_access", "required_visits": tier_benefits[2]["required_visits"], "available": False, "operational": False},
+                {"key": "vip_companion", "required_visits": tier_benefits[3]["required_visits"], "available": False, "operational": False},
             ],
         })
     # A new user can receive an organizer VIP promotion before attending any
@@ -130,16 +131,17 @@ def passport_for(db: Session, guest_id: int, main, *, now: datetime | None = Non
             promotion["organizer_id"], promotion["organizer_name"], aliases)
         studio = next((s for s in result if s["organizer_id"] == studio_owner), None)
         if studio is None:
+            tier_benefits = benefits_for_organizer(db, studio_owner)
             studio = {
                 "organizer_id": studio_owner,
                 "organizer_name": promotion["organizer_name"],
-                "season_visits": 0, "lifetime_visits": 0, **tier_for(0),
-                "tier_rewards": benefits_for_organizer(db, studio_owner),
+                "season_visits": 0, "lifetime_visits": 0, **tier_for(0, tier_benefits),
+                "tier_rewards": tier_benefits,
                 "perks": [
-                    {"key": "priority_waitlist", "required_visits": 3, "available": False,
+                    {"key": "priority_waitlist", "required_visits": tier_benefits[1]["required_visits"], "available": False,
                      "operational": benefits_for_organizer(db, studio_owner)[1]["enabled"]},
-                    {"key": "early_access", "required_visits": 6, "available": False, "operational": False},
-                    {"key": "vip_companion", "required_visits": 12, "available": False, "operational": False},
+                    {"key": "early_access", "required_visits": tier_benefits[2]["required_visits"], "available": False, "operational": False},
+                    {"key": "vip_companion", "required_visits": tier_benefits[3]["required_visits"], "available": False, "operational": False},
                 ],
             }
             result.append(studio)
@@ -176,7 +178,9 @@ def priority_waitlist_entry(db: Session, event, main):
     counts = attendance_counts(db, studio_owner,
                                [int(entry.guest_id) for entry in waiting], main=main)
     # Python stable sort preserves already-ordered FIFO entries in a level.
-    waiting.sort(key=lambda entry: -tier_for(counts.get(int(entry.guest_id), 0))["threshold"])
+    from demo_loyalty_benefits import benefits_for_organizer
+    tier_benefits = benefits_for_organizer(db, studio_owner)
+    waiting.sort(key=lambda entry: -tier_for(counts.get(int(entry.guest_id), 0), tier_benefits)["threshold"])
     return waiting[0]
 
 
