@@ -31,7 +31,7 @@ test("event editor keeps old galleries on details save and offers a device file 
     const url=new URL(route.request().url()).pathname;
     if(url.endsWith("/manage/me"))return route.fulfill({json:{account_id:2,role:"organizer"}});
     if(url.endsWith("/manage/events/42/participants"))return route.fulfill({json:{tickets:[],waitlist:[]}});
-    if(url.endsWith("/manage/events/42")&&route.request().method()==="PUT"){
+    if(url.endsWith("/manage/events/42")&&route.request().method()==="PATCH"){
       saved=route.request().postDataJSON();return route.fulfill({json:{...source,...saved}});
     }
     if(url.endsWith("/manage/events/42"))return route.fulfill({json:source});
