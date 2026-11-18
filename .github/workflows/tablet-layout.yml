@@ -1,0 +1,21 @@
+name: Tablet layout
+on:
+  pull_request:
+    paths: [frontend/app/tablet-layout.css, frontend/e2e/tablet-layout.spec.ts, .github/workflows/tablet-layout.yml]
+jobs:
+  tablet:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+        env:
+          BACKEND_API_URL: http://127.0.0.1:8000
+      - run: npx playwright install --only-shell chromium
+      - run: npx playwright test e2e/tablet-layout.spec.ts
