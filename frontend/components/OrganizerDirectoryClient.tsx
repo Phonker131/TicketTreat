@@ -27,7 +27,7 @@ export function OrganizerDirectoryClient({profiles}:{profiles:OrganizerPublicSum
        <h2>{p.display_name}</h2>
        {p.city&&<p>{p.city}</p>}
        <p>{p.bio}</p>
-       <OrganizerRewardsNote name={p.display_name} language={language}/>
+       <OrganizerRewardsNote name={p.display_name} slug={p.slug} language={language}/>
        <strong className="tt-organizer-link">{t.view}</strong>
      </Link>)}
      {!profiles.length&&<div className="panel tt-organizer-ghost" aria-label={t.future}>

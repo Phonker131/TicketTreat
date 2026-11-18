@@ -192,7 +192,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
           <div className="detail-item"><span>{t(language, "organizer")}</span><strong>{event.organizer_profile ? <Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-organizer-link">{event.organizer_profile.display_name}</Link> : (event.organizer === "Crowdly" ? "TicketTreat" : (event.organizer || "TicketTreat"))}</strong></div>
           <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
         </section>
-        {!event.is_cancelled&&!preview&&event.organizer&&event.organizer!=="Crowdly"&&<RewardsPlate organizer={event.organizer} language={language}/>}
+        {!event.is_cancelled&&!preview&&event.organizer&&event.organizer!=="Crowdly"&&<RewardsPlate organizer={event.organizer} slug={event.organizer_profile?.slug} title={event.organizer_profile?.display_name} language={language}/>}
         {event.description && <section className="ev2-about"><h2>{({en:"About the event",cs:"O akci",ru:"Об ивенте",uk:"Про подію"})[language]}</h2><p className="event-description">{event.description}</p></section>}
         {(galleryUrls.length>0 || event.video_url) && <details open className="panel"><summary>{({en:"Photos and video",cs:"Fotografie a video",ru:"Фото и видео",uk:"Фото та відео"})[language]}</summary>
           <div className="event-media-gallery">{galleryUrls.map((url,index)=><a key={url+index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Event gallery photo ${index+1}`} loading="lazy" referrerPolicy="no-referrer"/></a>)}</div>

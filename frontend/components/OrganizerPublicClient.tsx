@@ -43,7 +43,7 @@ export function OrganizerPublicClient({data}:{data:OrganizerPublicDetail}){
         <div><strong>{data.upcoming_count}</strong><span>{w.planned}</span></div>
       </div>
     </section>
-    <RewardsPlate organizer={data.upcoming_events[0]?.organizer||data.past_events[0]?.organizer||data.display_name} title={data.display_name} language={language}/>
+    <RewardsPlate organizer={data.upcoming_events[0]?.organizer||data.past_events[0]?.organizer||data.display_name} slug={data.slug} title={data.display_name} language={language}/>
     <section className="tt-organizer-section">
       <h2>{w.upcoming}</h2>
       {data.upcoming_events.length>0?<EventBoard events={data.upcoming_events} language={language}/>:<div className="state-card">{w.none}</div>}
