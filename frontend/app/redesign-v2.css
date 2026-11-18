@@ -56,12 +56,6 @@ html body .tt-tear-actions{display:flex;flex-wrap:wrap;justify-content:center;ga
 html body .tt-tear-actions .button{width:auto!important}
 html body .tt-tear .button-secondary{background:color-mix(in srgb,var(--tp-bg) 70%,transparent)!important}
 
-/* Reduce Motion: no tearing, the ticket and the headline sit still */
-html body .tt-night-hero.tt-tear.is-still{height:auto}
-html body .tt-tear.is-still .tt-tear-stage{position:relative;height:auto;min-height:0;gap:28px;padding:48px 16px 56px;align-content:center}
-html body .tt-tear.is-still .tt-tear-still-copy{position:relative;z-index:1;display:grid;justify-items:center;gap:12px;text-align:center;color:var(--tp-fg)}
-html body .tt-tear.is-still .tt-tear-word{font-size:clamp(84px,20vw,220px)!important}
-html body .tt-tear.is-still .tt-tear-actions{position:relative;z-index:1}
 
 html body .tt-rail{list-style:none;display:grid;grid-auto-flow:column;grid-auto-columns:clamp(210px,64vw,280px);gap:14px;
  margin:clamp(28px,4vw,48px) -16px 0;padding:0 16px 8px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding-inline:16px;scrollbar-width:none}
@@ -333,7 +327,6 @@ html body .tt-dash-main .tp-admin-card .tp-admin-guests{grid-area:guests;display
 
 /* both halves of the torn sheet must be identical: the h1 copy must not pick up the old hero headline rules */
 html body .tt-night-hero.tt-tear :is(h1,p).tt-tear-word{display:block!important;max-width:none!important;width:auto!important;margin:0!important;font:900 clamp(104px,25vw,330px)/.8 var(--d)!important;font-stretch:normal!important;letter-spacing:-.01em!important;text-transform:uppercase!important;color:inherit!important;text-shadow:.045em .045em 0 var(--tom)!important;white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;hyphens:none!important}
-html body .tt-night-hero.tt-tear.is-still :is(h1,p).tt-tear-word{font-size:clamp(84px,20vw,220px)!important}
 html body .tt-night-hero.tt-tear p.tt-tear-line{display:block!important;margin:0!important;max-width:32ch!important;font:600 clamp(15px,1.5vw,19px)/1.35 var(--u)!important;color:inherit!important;opacity:.82;text-align:center!important}
 
 /* =====================================================================================
@@ -395,7 +388,6 @@ html body .tt-tear-actions-wrap{position:relative!important;left:auto!important;
 /* the ticket takes its height from the screen, so it always fits with the buttons under it */
 html body .tt-tk3{height:clamp(320px,calc(100svh - 236px),580px)!important;width:auto!important;aspect-ratio:9/16;container-type:size}
 @media (max-width:760px){html body .tt-tk3{height:clamp(300px,calc(100svh - 300px),540px)!important}}
-html body .tt-tear.is-still .tt-tk3{height:clamp(320px,62svh,520px)!important}
 /* everything inside scales with the ticket */
 html body .tt-tk3-face.is-front{padding:4.2cqh 4.2cqh 0}
 html body .tt-tk3-brand{font-size:clamp(13px,4cqh,20px);padding:1.3cqh 1.8cqh 1.1cqh}
@@ -844,5 +836,8 @@ html[data-theme="light"] body .tt-ph-levels li.is-vip{--lv:#6A3FB0}
 }
 /* dark theme: the stub is a deep blue-black so it never melts into the page */
 html:not([data-theme="light"]) body .tt-ph-stub{background:color-mix(in srgb,var(--ink) 82%,var(--tom) 18%)}
-/* Reduce Motion on phones: the still ticket leaves room for its buttons above the bottom bar */
-@media (max-width:760px){html body .tt-tear.is-still .tt-tk3{height:clamp(280px,calc(100svh - 360px),520px)!important}}
+
+/* Reduce Motion: the ticket sides cross-fade, so the back face lies flat and is never hidden by backface rules */
+html body .tt-tk3.is-fade .tt-tk3-face.is-back{transform:none!important;-webkit-backface-visibility:visible!important;backface-visibility:visible!important}
+/* Reduce Motion: the faded sheet stays in place, so it must not catch taps meant for the ticket */
+html body .tt-tear.is-soft .tt-tear-half{pointer-events:none}

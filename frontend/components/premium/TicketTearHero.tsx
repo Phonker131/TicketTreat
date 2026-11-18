@@ -38,17 +38,19 @@ const BACK={
 
 /** The hero ticket: a bright gradient front (after a boarding-pass poster) and a paper back with the QR.
  *  It turns over as the page scrolls on, and on a tap. */
-function Ticket({event,language,rx,ry,shine,turned,onTurn}:{event:TicketTreatEvent|null;language:LanguageCode;rx:MotionValue<number>;ry:MotionValue<number>;shine:MotionValue<string>;turned:boolean;onTurn:()=>void}){
+function Ticket({event,language,rx,ry,shine,turned,onTurn,fade}:{event:TicketTreatEvent|null;language:LanguageCode;rx:MotionValue<number>;ry:MotionValue<number>;shine:MotionValue<string>;turned:boolean;onTurn:()=>void;fade?:MotionValue<number>}){
  const c=COPY[language],k=BACK[language];
  const d=event?dateParts(event.starts_at,language):null;
  const code=event?`TT-${String(event.id).padStart(4,"0")}`:"TT-0000";
  const no=event?String(event.id).padStart(6,"0"):"000000";
  // Which side faces the viewer is decided from the angle, not only by backface-visibility:
  // Safari can flatten the 3D ticket and would then paint the QR side over the front.
- const back=useTransform(ry,v=>{const a=((v%360)+360)%360;return a>90&&a<270?1:0});
+ const angle=useTransform<number,number>(ry,v=>{const a=((v%360)+360)%360;return a>90&&a<270?1:0});
+ // Reduce Motion: no turn in space, the two sides cross-fade instead.
+ const back:MotionValue<number>=fade??angle;
  const front=useTransform(back,b=>1-b);
- const backClicks=useTransform(back,b=>b?"auto":"none"),frontClicks=useTransform(back,b=>b?"none":"auto");
- return <M.div className="tt-tk3" style={{rotateX:rx,rotateY:ry}}>
+ const backClicks=useTransform(back,b=>b>.5?"auto":"none"),frontClicks=useTransform(back,b=>b>.5?"none":"auto");
+ return <M.div className={"tt-tk3"+(fade?" is-fade":"")} style={{rotateX:rx,rotateY:ry}}>
   <M.div className="tt-tk3-face is-front" style={{opacity:front,pointerEvents:frontClicks}} aria-hidden={turned||undefined}>
    <div className="tt-tk3-top">
     <span className="tt-tk3-brand">TICKETTREAT</span>
@@ -88,18 +90,20 @@ export function TicketTearHero({event,language,storyReady}:{event:TicketTreatEve
  const c=COPY[language];
  const ref=useRef<HTMLElement>(null);
  const reduce=useReducedMotion();
- // Server and first client render are the same; the still version switches in after mount.
- const [still,setStill]=useState(false);
- useEffect(()=>setStill(!!reduce),[reduce]);
+ // Reduce Motion gets the same story without movement: the sheet fades, the ticket appears in place,
+ // its sides cross-fade. Server and first client render are the same; the soft variant switches in after mount.
+ const [soft,setSoft]=useState(false);
+ useEffect(()=>setSoft(!!reduce),[reduce]);
  const {scrollYProgress}=useScroll({target:ref,offset:["start start","end end"]});
  const p=useSpring(scrollYProgress,{stiffness:140,damping:26,mass:.4});
  const lx=useTransform(p,[.04,.5],["0%","-88%"]),rxs=useTransform(p,[.04,.5],["0%","88%"]);
  const lr=useTransform(p,[.04,.5],[0,-6]),rr=useTransform(p,[.04,.5],[0,6]);
  const ty=useTransform(p,[.18,.62],["38%","0%"]),ts=useTransform(p,[.18,.62],[.82,1]),to=useTransform(p,[.14,.4],[0,1]);
  const co=useTransform(p,[.6,.8],[0,1]),cy=useTransform(p,[.6,.8],[16,0]);
+ const sheetO=useTransform(p,[.02,.2],[1,0]),still0=useMotionValue(0);
  // The header waits until the ticket is fully up (desktop only, see polish-v3.css).
- useEffect(()=>{const root=document.documentElement;root.dataset.hero=still?"open":"closed";return()=>{delete root.dataset.hero;};},[still]);
- useMotionValueEvent(scrollYProgress,"change",v=>{if(!still)document.documentElement.dataset.hero=v>=.62?"open":"closed";});
+ useEffect(()=>{const root=document.documentElement;root.dataset.hero="closed";return()=>{delete root.dataset.hero;};},[]);
+ useMotionValueEvent(scrollYProgress,"change",v=>{document.documentElement.dataset.hero=v>=.62?"open":"closed";});
  // The ticket turns towards the pointer, like the tiger's eyes following it.
  const px=useMotionValue(0),py=useMotionValue(0);
  const rx=useSpring(useTransform(py,[-.5,.5],[9,-9]),{stiffness:160,damping:18});
@@ -116,8 +120,8 @@ export function TicketTearHero({event,language,storyReady}:{event:TicketTreatEve
   if(v>=.66&&!shown.current){shown.current=true;window.setTimeout(()=>setTapped(true),450);}
   if(v<.2&&shown.current){shown.current=false;setTapped(false);}
  });
- const stillTurn=useSpring(0,{stiffness:120,damping:16});
- useEffect(()=>{stillTurn.set(tapped?180:0)},[tapped,stillTurn]);
+ const fade=useSpring(0,{stiffness:170,damping:28});
+ useEffect(()=>{fade.set(tapped?1:0)},[tapped,fade]);
  const move=(e:PointerEvent<HTMLDivElement>)=>{if(reduce||e.pointerType!=="mouse")return;const r=e.currentTarget.getBoundingClientRect();
   px.set((e.clientX-r.left)/r.width-.5);py.set((e.clientY-r.top)/r.height-.5);};
  const leave=()=>{px.set(0);py.set(0);};
@@ -126,25 +130,15 @@ export function TicketTearHero({event,language,storyReady}:{event:TicketTreatEve
   <button type="button" className="button button-secondary" disabled={!storyReady} onClick={()=>window.dispatchEvent(new Event("tickettreat-open-story"))}>{c.how}</button>
  </div>;
 
- if(still){
-  return <section ref={ref} className="tt-night-hero tt-tear is-still" aria-labelledby="tt-night-title">
-   <div className="tt-tear-stage">
-    <WaveShader className="tt-tear-bg"/>
-    <div className="tt-tear-still-copy"><p className="tt-tear-line">{c.line}</p><h1 id="tt-night-title" className="tt-tear-word">{c.word}</h1></div>
-    <div className="tt-tear-ticket-wrap"><Ticket event={event} language={language} rx={rx} ry={stillTurn} shine={shine} turned={tapped} onTurn={()=>setTapped(v=>!v)}/></div>
-    {actions}
-   </div>
-  </section>;
- }
- return <section ref={ref} className="tt-night-hero tt-tear" aria-labelledby="tt-night-title">
+ return <section ref={ref} className={"tt-night-hero tt-tear"+(soft?" is-soft":"")} aria-labelledby="tt-night-title">
   <div className="tt-tear-stage" onPointerMove={move} onPointerLeave={leave}>
    <WaveShader className="tt-tear-bg"/>
-   <M.div className="tt-tear-ticket-wrap" style={{y:ty,scale:ts,opacity:to}}>
-    <Ticket event={event} language={language} rx={rx} ry={turnY} shine={shine} turned={turned} onTurn={()=>setTapped(v=>!v)}/>
+   <M.div className="tt-tear-ticket-wrap" style={soft?{opacity:to}:{y:ty,scale:ts,opacity:to}}>
+    <Ticket event={event} language={language} rx={soft?still0:rx} ry={soft?still0:turnY} shine={shine} turned={turned} onTurn={()=>setTapped(v=>!v)} fade={soft?fade:undefined}/>
    </M.div>
-   <M.div className="tt-tear-actions-wrap" style={{opacity:co,y:cy}}>{actions}</M.div>
-   <M.div className="tt-tear-half is-left" style={{x:lx,rotate:lr,clipPath:LEFT}}><Sheet line={c.line} word={c.word}/></M.div>
-   <M.div className="tt-tear-half is-right" style={{x:rxs,rotate:rr,clipPath:RIGHT}}><Sheet line={c.line} word={c.word} hidden/></M.div>
+   <M.div className="tt-tear-actions-wrap" style={soft?{opacity:co}:{opacity:co,y:cy}}>{actions}</M.div>
+   <M.div className="tt-tear-half is-left" style={soft?{opacity:sheetO,clipPath:LEFT}:{x:lx,rotate:lr,clipPath:LEFT}}><Sheet line={c.line} word={c.word}/></M.div>
+   <M.div className="tt-tear-half is-right" style={soft?{opacity:sheetO,clipPath:RIGHT}:{x:rxs,rotate:rr,clipPath:RIGHT}}><Sheet line={c.line} word={c.word} hidden/></M.div>
   </div>
  </section>;
 }
