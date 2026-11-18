@@ -616,3 +616,194 @@ html body .tt-gal-grid .admin-event-actions .button:nth-child(3){flex:1;min-widt
  html body main.ev2 .event-hero-copy{grid-column:2;margin:0 0 20px!important}
  html body main.ev2>.tp-faq{grid-column:1 / -1;margin-top:32px}
 }
+
+/* =====================================================================================
+   Rewards scale, two more sizes: "small" (event and organizer pages) and "stack"
+   (top to bottom, for narrow organizer cards).
+   ===================================================================================== */
+html body .tt-rt.is-small{padding-top:26px}
+html body .tt-rt.is-small .tt-rt-here{top:-26px}
+html body .tt-rt.is-small .tt-rt-stop{padding:34px 12px 0 0}
+html body .tt-rt.is-small .tt-rt-body strong{font-size:clamp(20px,1.7vw,26px)}
+html body .tt-rt.is-small .tt-rt-body span{font-size:13px}
+html body .tt-rt.is-stack{display:grid;grid-template-columns:1fr;padding:0}
+html body .tt-rt.is-stack .tt-rt-stop{padding:0 0 10px 34px}
+html body .tt-rt.is-stack .tt-rt-stop:last-child{padding-bottom:0}
+html body .tt-rt.is-stack .tt-rt-stop:not(:last-child)::before,html body .tt-rt.is-stack .tt-rt-stop:not(:last-child)::after{top:11px;left:10px;width:2px!important;height:100%}
+html body .tt-rt.is-stack .tt-rt-stop:not(:last-child)::after{height:calc(100% * var(--fill,0))}
+html body .tt-rt.is-stack .tt-rt-dot{width:22px;height:22px;display:grid;place-items:center}
+html body .tt-rt.is-stack .tt-rt-dot::before{content:attr(data-at);font:800 10px/1 var(--u);color:var(--tp-mute)}
+html body .tt-rt.is-stack .tt-rt-stop.is-reached .tt-rt-dot::before{color:var(--ink)}
+html body .tt-rt.is-stack .tt-rt-stop.is-current .tt-rt-dot{box-shadow:0 0 0 4px color-mix(in srgb,var(--tom) 24%,transparent)}
+html body .tt-rt.is-stack .tt-rt-here{position:absolute;top:0;right:0;left:auto;font-size:10px;padding:3px 7px}
+html body .tt-rt.is-stack .tt-rt-body{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
+html body .tt-rt.is-stack .tt-rt-body small{display:none}
+html body .tt-rt.is-stack .tt-rt-body strong{font-size:18px;line-height:1.05}
+html body .tt-rt.is-stack .tt-rt-body span{flex-basis:100%;font-size:13px;line-height:1.3}
+html body .tt-rt.is-stack .tt-rt-body em{order:2;margin:0;padding:3px 7px;font-size:10px}
+
+/* the plate on the event page and the organizer page */
+html body .tt-rw-plate{margin:0 0 22px;padding:18px 20px 16px;border-radius:24px;background:var(--tp-surf);border:1px solid var(--tp-line)}
+html body .tt-rw-plate-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 16px;margin-bottom:6px}
+html body .tt-rw-plate-head h2{margin:0!important;font:700 18px/1.25 var(--u)!important;text-transform:none!important;letter-spacing:0!important;color:var(--tp-fg)}
+html body .tt-rw-plate-head .tt-rw-progress{margin:6px 0 0;font-size:14px;color:var(--tp-mute)}
+html body .tt-rw-plate-level,html body .tt-ph-level,html body .tt-ph-levels em{flex:none;padding:7px 12px;border-radius:999px;font:800 13px/1 var(--u);font-style:normal;background:var(--paper);color:var(--ink)}
+html body :is(.tt-rw-plate-level,.tt-ph-levels em).is-regular{background:var(--yel);color:var(--ink)}
+html body :is(.tt-rw-plate-level,.tt-ph-levels em).is-insider{background:var(--tom);color:var(--ink)}
+html body :is(.tt-rw-plate-level,.tt-ph-levels em).is-vip{background:var(--plum,#5b2a86);color:var(--paper)}
+html body .tt-rw-plate .tt-rt{margin-top:14px}
+html body .tt-rw-plate-foot{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--tp-line);font:500 13px/1.4 var(--u);color:var(--tp-mute)}
+html body .tt-rw-plate-foot span:empty{display:none}
+html body .tt-rw-plate-foot .button{min-height:40px;padding:0 16px}
+html body .tt-rw-plate-link{margin-left:auto;font:700 13px/1 var(--u);color:var(--tp-fg)!important;text-decoration:underline;text-underline-offset:3px}
+html body main.tt-organizer-public>.tt-rw-plate{margin:24px 0 8px}
+
+/* inside the organizer cards on /organizers */
+html body .tt-rw-note{width:100%;margin-top:6px;padding-top:12px;border-top:1px solid var(--tp-line)}
+html body .tt-rw-note-h{margin:0 0 4px!important;font:700 12px/1.2 var(--m)!important;letter-spacing:.05em;text-transform:uppercase;color:var(--tp-mute)!important;-webkit-line-clamp:unset!important;display:block!important}
+html body .tt-rw-note-progress{margin:0 0 10px!important;font:600 13px/1.3 var(--u)!important;color:var(--tp-fg)!important;display:block!important}
+html body .tt-rw-note .tt-rt{margin-top:8px}
+
+/* organizer dashboard: guests by level */
+html body .tt-guest-levels h2{margin:0 0 6px}
+html body .tt-guest-levels ol{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+html body .tt-guest-levels li{display:grid;align-content:start;justify-items:start;gap:5px;padding:16px;border-radius:18px;border:1px solid var(--tp-line);background:var(--tp-bg)}
+html body .tt-guest-levels small{font:600 11px/1 var(--m);letter-spacing:.05em;text-transform:uppercase;color:var(--tp-mute)}
+html body .tt-guest-levels strong{font:900 26px/.95 var(--d);text-transform:uppercase}
+html body .tt-guest-levels span{font:500 13px/1.35 var(--u)}
+html body .tt-guest-levels em{padding:4px 8px;border-radius:999px;font:700 11px/1 var(--u);font-style:normal}
+html body .tt-guest-levels em.is-live{background:color-mix(in srgb,var(--tom) 18%,transparent);color:var(--tom)}
+html body .tt-guest-levels em.is-soon{border:1px solid var(--tp-line);color:var(--tp-mute)}
+html body .tt-guest-levels b{margin-top:6px;display:flex;align-items:baseline;gap:6px;font:900 40px/1 var(--d);font-variant-numeric:tabular-nums}
+html body .tt-guest-levels b i{font:600 13px/1 var(--u);font-style:normal;color:var(--tp-mute)}
+@media (max-width:900px){html body .tt-guest-levels ol{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:420px){html body .tt-guest-levels ol{grid-template-columns:1fr}}
+
+/* =====================================================================================
+   Participant profile: a pass card on top, then next ticket, levels, where you've been
+   and the "I want an event like this" form.
+   ===================================================================================== */
+html body .tt-ph-pass{position:relative;margin:0 0 6px;padding:22px 24px 0;border-radius:28px;color:var(--ink);overflow:hidden;
+ background:radial-gradient(70% 90% at 100% 0%,rgba(255,255,255,.32) 0,transparent 60%),linear-gradient(112deg,#0297DE 0%,#53B3EA 26%,#C9A6C9 54%,#F7967A 78%,#FC734D 100%);
+ -webkit-mask:radial-gradient(circle 12px at 0 calc(100% - 92px),#0000 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 12px at 100% calc(100% - 92px),#0000 97%,#000) right/51% 100% no-repeat;
+ mask:radial-gradient(circle 12px at 0 calc(100% - 92px),#0000 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 12px at 100% calc(100% - 92px),#0000 97%,#000) right/51% 100% no-repeat}
+html body .tt-ph-id{display:flex;align-items:center;gap:16px;min-width:0}
+html body .tt-ph-avatar{flex:none;display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--ink);color:var(--paper);font:900 30px/1 var(--d)}
+html body .tt-ph-id>div{min-width:0;flex:1}
+html body .tt-ph-id h1{margin:0!important;font:900 clamp(34px,4.4vw,56px)/.9 var(--d)!important;text-transform:uppercase;color:var(--ink)!important;overflow-wrap:anywhere}
+html body .tt-ph-id p{margin:6px 0 0;font:500 14px/1.3 var(--u);color:rgba(2,7,10,.72);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html body .tt-ph-level{display:grid;gap:4px;justify-items:center;padding:10px 14px;border-radius:14px;background:var(--ink)!important;color:var(--paper)!important;font:900 22px/1 var(--d)!important;text-transform:uppercase}
+html body .tt-ph-level small{font:700 10px/1 var(--m);letter-spacing:.08em;color:rgba(240,235,225,.7)}
+html body .tt-ph-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:14px 0 20px;font:600 13px/1.3 var(--u);color:rgba(2,7,10,.78)}
+html body .tt-ph-role{padding:6px 10px;border-radius:999px;background:rgba(240,235,225,.75);color:var(--ink)}
+html body .tt-ph-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 -24px;padding:16px 24px 18px;border-top:2px dashed rgba(2,7,10,.3);height:92px;box-sizing:border-box}
+html body .tt-ph-stats div{display:grid;gap:4px;align-content:start}
+html body .tt-ph-stats dt{font:700 11px/1.1 var(--m);letter-spacing:.06em;text-transform:uppercase;color:rgba(2,7,10,.66)}
+html body .tt-ph-stats dd{margin:0;font:900 38px/1 var(--d);font-variant-numeric:tabular-nums}
+html body .tt-ph-tabs{display:flex;gap:6px;margin:16px 0 14px;overflow-x:auto;scrollbar-width:none;padding:2px}
+html body .tt-ph-tabs::-webkit-scrollbar{display:none}
+html body .tt-ph-tabs .button{flex:none;min-height:42px;padding:0 16px;font-size:14px}
+
+html body .tt-ph{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+html body .tt-ph-card{margin:0;padding:20px;border-radius:24px;background:var(--tp-surf);border:1px solid var(--tp-line);min-width:0}
+html body .tt-ph-card h2{display:flex;align-items:baseline;gap:8px;margin:0 0 14px!important;font:900 26px/1 var(--d)!important;text-transform:uppercase;color:var(--tp-fg)}
+html body .tt-ph-card h2 small{font:700 14px/1 var(--u);color:var(--tp-mute)}
+html body .tt-ph-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+html body .tt-ph-card-head a{font:700 13px/1 var(--u);color:var(--tp-fg);text-decoration:underline;text-underline-offset:3px}
+html body .tt-ph-muted{margin:0;font:500 14px/1.45 var(--u);color:var(--tp-mute)}
+html body .tt-ph-next{grid-column:1}
+html body .tt-ph-levels{grid-column:2;grid-row:1 / span 2}
+html body .tt-ph-been{grid-column:1}
+html body .tt-ph-wish{grid-column:2}
+html body .tt-ph-ticket{display:flex;align-items:center;gap:16px}
+html body .tt-ph-poster{flex:none;position:relative;display:block;width:88px;aspect-ratio:4/5;border-radius:12px;overflow:hidden;background:var(--tp-surf2)}
+html body .tt-ph-poster img{display:block;width:100%;height:100%;object-fit:cover}
+html body .tt-ph-poster i{position:absolute;inset:0;display:grid;place-items:center;font:900 26px/1 var(--d);font-style:normal;color:var(--tp-mute)}
+html body .tt-ph-ticket-body{flex:1;min-width:0;display:grid;gap:4px}
+html body .tt-ph-date{display:flex;align-items:center;gap:8px;margin:0}
+html body .tt-ph-date b{font:900 40px/.85 var(--d)}
+html body .tt-ph-date span{font:700 12px/1.2 var(--u);text-transform:uppercase;color:var(--tp-mute)}
+html body .tt-ph-ticket-body strong{font:900 24px/1 var(--d);text-transform:uppercase;overflow-wrap:anywhere}
+html body .tt-ph-ticket-body>span{font:500 13px/1.3 var(--u);color:var(--tp-mute)}
+html body .tt-ph-ticket .button{flex:none}
+html body .tt-ph-empty{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+html body .tt-ph-empty p{margin:0;color:var(--tp-mute)}
+html body .tt-ph-levels ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+html body .tt-ph-levels li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:14px;border-radius:16px;border:1px solid var(--tp-line);background:var(--tp-bg)}
+html body .tt-ph-levels li>div{display:grid;gap:3px;min-width:0}
+html body .tt-ph-levels li strong{font:700 15px/1.2 var(--u);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html body .tt-ph-levels li>div span{font:500 13px/1.3 var(--u);color:var(--tp-mute)}
+html body .tt-ph-dots{grid-column:1 / -1;position:relative;display:flex;justify-content:space-between}
+html body .tt-ph-dots::before{content:"";position:absolute;left:6px;right:6px;top:50%;height:2px;margin-top:-1px;background:var(--tp-line)}
+html body .tt-ph-dots i{position:relative;width:12px;height:12px;border-radius:50%;box-sizing:border-box;border:2px solid var(--tp-line);background:var(--tp-surf)}
+html body .tt-ph-dots i.on{border-color:var(--tom);background:var(--tom)}
+html body .tt-ph-been ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:14px}
+html body .tt-ph-been li{display:grid;gap:4px;align-content:start;min-width:0}
+html body .tt-ph-been .tt-ph-poster{width:100%}
+html body .tt-ph-been li strong{font:700 14px/1.2 var(--u);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+html body .tt-ph-been li span{font:500 12px/1.3 var(--u);color:var(--tp-mute)}
+html body .tt-ph-been>.button{margin-top:14px}
+html body .tt-ph-wish{display:grid;gap:10px}
+html body .tt-ph-wish h2{margin-bottom:0!important}
+html body .tt-ph-wish textarea,html body .tt-ph-wish input{width:100%;box-sizing:border-box}
+html body .tt-ph-wish .button{justify-self:start}
+html body .tt-ph-error{margin:0;font:600 13px/1.4 var(--u);color:var(--yel)}
+html body .tt-ph-sent{display:grid;gap:10px;justify-items:start}
+html body .tt-ph-sent p{margin:0;font:600 15px/1.4 var(--u)}
+html body .tt-ph-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+
+@media (max-width:860px){
+ html body .tt-ph{grid-template-columns:1fr}
+ html body .tt-ph>*{grid-column:1!important;grid-row:auto!important}
+}
+@media (max-width:560px){
+ html body .tt-ph-pass{padding:18px 18px 0;border-radius:24px}
+ html body .tt-ph-id{flex-wrap:wrap;gap:12px}
+ html body .tt-ph-avatar{width:52px;height:52px;font-size:24px}
+ html body .tt-ph-level{order:3;width:100%;grid-auto-flow:column;justify-content:space-between;align-items:center;font-size:20px!important;padding:10px 14px}
+ html body .tt-ph-stats{margin:0 -18px;padding:14px 18px 16px}
+ html body .tt-ph-stats dd{font-size:32px}
+ html body .tt-ph-card{padding:16px;border-radius:20px}
+ html body .tt-ph-ticket{flex-wrap:wrap}
+ html body .tt-ph-ticket .button{width:100%;justify-content:center}
+ html body .tt-ph-poster{width:72px}
+ html body .tt-ph-been ul{grid-template-columns:repeat(2,minmax(0,1fr))}
+ html body .tt-ph-wish .button{justify-self:stretch}
+ html body .tt-rw-plate{padding:16px}
+}
+/* on phones the small scale goes top to bottom like the big one */
+@media (max-width:760px){
+ html body .tt-rt.is-small{padding-top:0}
+ html body .tt-rt.is-small .tt-rt-here{top:2px}
+ html body .tt-rt.is-small .tt-rt-stop{padding:0 0 12px 42px}
+ html body .tt-rt.is-small .tt-rt-stop:last-child{padding-bottom:0}
+}
+/* profile overview: two independent columns on wide screens, one column in reading order on narrow ones */
+html body .tt-ph-col{display:grid;gap:16px;align-content:start;min-width:0}
+html body .tt-ph>.tt-ph-col>*{grid-column:auto!important;grid-row:auto!important}
+@media (max-width:860px){
+ html body .tt-ph-col{display:contents}
+ html body .tt-ph-next{order:1}html body .tt-ph-levels{order:2}html body .tt-ph-been{order:3}html body .tt-ph-wish{order:4}
+}
+/* the plate's scale goes top to bottom whenever the plate itself is narrow (tablet columns, phones) */
+html body .tt-rw-plate{container-type:inline-size}
+@container (max-width:560px){
+ .tt-rw-plate .tt-rt.is-small{display:grid;grid-template-columns:1fr;padding:0}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-stop{padding:0 0 12px 40px}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-stop:last-child{padding-bottom:0}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-stop:not(:last-child)::before,.tt-rw-plate .tt-rt.is-small .tt-rt-stop:not(:last-child)::after{top:13px;left:12px;width:2px!important;height:100%}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-stop:not(:last-child)::after{height:calc(100% * var(--fill,0))}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-dot{width:26px;height:26px;display:grid;place-items:center}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-dot::before{content:attr(data-at);font:800 11px/1 var(--u);color:var(--tp-mute)}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-stop.is-reached .tt-rt-dot::before{color:var(--ink)}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-here{position:absolute;top:2px;right:0;left:auto}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-body{display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-body small{display:none}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-body strong{font-size:22px;line-height:1}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-body span{flex-basis:100%;font-size:13px}
+ .tt-rw-plate .tt-rt.is-small .tt-rt-body em{order:2;margin:0}
+}
+/* profile: the big date never touches the title under it */
+html body .tt-ph-date{margin-bottom:4px}
+/* event page: the big date keeps a little air above the title */
+html body main.ev2 .ev2-date{margin-bottom:10px!important}

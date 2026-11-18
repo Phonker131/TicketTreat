@@ -1,5 +1,6 @@
 "use client";
 import {LoginArt} from "@/components/premium/LoginArt";
+import {ProfileHome,ProfilePass} from "@/components/premium/ProfileHome";
 import {BroadcastPreferences} from "@/components/BroadcastPreferences";
 import {ProfileAwards} from "@/components/ProfileAwards";
 
@@ -790,21 +791,9 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
             <Link href="/login" className="button button-outline">{tr.login}</Link>
           </> : loading ? <div className="state-card">{tr.loading}</div> : profile ? (
           <>
-            <section className="panel profile-overview">
-              <div className="profile-top">
-                <div className="profile-avatar">{profile.account.first_name.charAt(0).toUpperCase()}</div>
-                <div className="profile-identity">
-                  <h1>{profile.account.first_name} {profile.account.last_name}</h1>
-                  <p>{profile.account.email || "Telegram, @TicketTreatBot"}</p>
-                </div>
-              </div>
-              <div className="profile-identity-meta">
-                <span className="profile-role-chip">
-                  {profile.account.role === "participant" ? ui.roleParticipant : profile.account.role === "global_admin" ? (language==="ru"?"Главный администратор":language==="cs"?"Hlavní administrátor":language==="uk"?"Головний адміністратор":"Global administrator") : ui.roleOrganizer}
-                </span>
-              </div>
-            </section>
-            <div role="tablist" aria-label={tr.profile} style={{display:"flex",flexWrap:"wrap",gap:".5rem"}}>
+            <ProfilePass profile={profile} language={language}
+              roleLabel={profile.account.role === "participant" ? ui.roleParticipant : profile.account.role === "global_admin" ? (language==="ru"?"Главный администратор":language==="cs"?"Hlavní administrátor":language==="uk"?"Головний адміністратор":"Global administrator") : ui.roleOrganizer}/>
+            <div role="tablist" aria-label={tr.profile} className="tt-ph-tabs">
               {profileTabs.map((tab, index) => (
                 <button key={tab} type="button" role="tab" id={`profile-tab-${tab}`}
                   aria-selected={activeTab === tab} aria-controls={`profile-panel-${tab}`}
@@ -829,16 +818,12 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
             {error && <div className="state-card state-error" role="alert">{error.startsWith("ui:")?displayMessage(error):userFacingError(error,language)}</div>}
             {notice && <div className="success-banner" role="status">{displayMessage(notice)}</div>}
             <div id="profile-panel-overview" role="tabpanel" aria-labelledby="profile-tab-overview" hidden={activeTab !== "overview"}>
-              <section className="panel form-stack">
-              <div className="profile-facts">
-                <div className="profile-fact"><span>{tr.visits}</span><strong>{profile.guest.visits}</strong></div>
-                <div className="profile-fact"><span>{profileTabLabels[language].achievements}</span><button type="button" className="button button-outline" onClick={()=>{setActiveTab("achievements");document.getElementById("profile-tab-achievements")?.focus();}}>{profileTabLabels[language].achievements}</button></div>
-                <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">{tr.tickets}</Link></div>
+              {activeTab === "overview" && <ProfileHome profile={profile} language={language}/>}
+              <div className="tt-ph-links">
+                <Link href="/tickets" className="button button-outline">{tr.tickets}</Link>
+                {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary">{ui.organizerDashboard}</Link>}
+                {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
               </div>
-              {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary">{ui.organizerDashboard}</Link>}
-
-              {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
-              </section>
             </div>
             <div id="profile-panel-achievements" role="tabpanel" aria-labelledby="profile-tab-achievements" hidden={activeTab !== "achievements"}>
               {activeTab === "achievements" && <ProfileAwards/>}

@@ -5,6 +5,7 @@ import {EventBoard} from "@/components/premium/EventLists";
 import {useLanguage} from "@/components/LanguageProvider";
 import type {OrganizerPublicDetail,LanguageCode} from "@/lib/types";
 import {PageFaq} from "@/components/premium/PageFaq";
+import {RewardsPlate} from "@/components/premium/RewardsPlates";
 
 const W:Record<LanguageCode,Record<string,string>>={
   en:{back:"All organizers",about:"About organizer",upcoming:"Upcoming events",past:"Past events",held:"Held",planned:"Upcoming",none:"No events in this section yet.",instagram:"Instagram",website:"Website"},
@@ -42,6 +43,7 @@ export function OrganizerPublicClient({data}:{data:OrganizerPublicDetail}){
         <div><strong>{data.upcoming_count}</strong><span>{w.planned}</span></div>
       </div>
     </section>
+    <RewardsPlate organizer={data.upcoming_events[0]?.organizer||data.past_events[0]?.organizer||data.display_name} title={data.display_name} language={language}/>
     <section className="tt-organizer-section">
       <h2>{w.upcoming}</h2>
       {data.upcoming_events.length>0?<EventBoard events={data.upcoming_events} language={language}/>:<div className="state-card">{w.none}</div>}

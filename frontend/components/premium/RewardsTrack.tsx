@@ -5,7 +5,7 @@ import type {OrganizerTierBenefit} from "@/lib/api";
 
 /** The loyalty levels as the server counts them (backend demo_loyalty.TIERS).
  * Only the waitlist priority works today; the other perks are marked "soon". */
-const LEVELS=[
+export const LEVELS=[
  {key:"newcomer",at:0,live:true},
  {key:"regular",at:3,live:true},
  {key:"insider",at:6,live:false},
@@ -51,7 +51,7 @@ export const rewardsCopy:Record<LanguageCode,{
   signin:"Увійти",find:"Переглянути події"},
 };
 
-function configuredLevels(rewards?:OrganizerTierBenefit[]){return LEVELS.map(l=>({...l,at:rewards?.find(r=>r.tier===l.key)?.required_visits??l.at}));}
+export function configuredLevels(rewards?:OrganizerTierBenefit[]){return LEVELS.map(l=>({...l,at:rewards?.find(r=>r.tier===l.key)?.required_visits??l.at}));}
 export function levelIndex(visits:number,rewards?:OrganizerTierBenefit[]){
  let i=0;configuredLevels(rewards).forEach((l,k)=>{if(visits>=l.at)i=k;});return i;
 }
@@ -62,10 +62,21 @@ export function progressLine(language:LanguageCode,visits:number,rewards?:Organi
 }
 export function levelName(language:LanguageCode,visits:number,rewards?:OrganizerTierBenefit[]){return rewardsCopy[language].names[levelIndex(visits,rewards)];}
 
-/** Four stops on one line: where you are, what each level gives and whether it works yet. */
-export function RewardsTrack({language,visits,tierRewards}:{language:LanguageCode;visits:number;tierRewards?:OrganizerTierBenefit[]}){
+/** "3 visits" in the page language. */
+export function visitsLabel(n:number,language:LanguageCode){
+ const one=n%10===1&&n%100!==11,few=n%10>=2&&n%10<=4&&(n%100<10||n%100>=20);
+ if(language==="ru")return n+" "+(one?"визит":few?"визита":"визитов");
+ if(language==="uk")return n+" "+(one?"візит":few?"візити":"візитів");
+ if(language==="cs")return n+" "+(n===1?"návštěva":n>=2&&n<=4?"návštěvy":"návštěv");
+ return n+" "+(n===1?"visit":"visits");
+}
+
+/** Four stops on one line: where you are, what each level gives and whether it works yet.
+ *  "stack" lays the stops out top to bottom (narrow cards), "small" is the same line in smaller type.
+ *  "unknown": the organizer's own visit counts are not known here (guest), so no numbers are shown. */
+export function RewardsTrack({language,visits,tierRewards,variant,here=true,unknown=false}:{language:LanguageCode;visits:number;tierRewards?:OrganizerTierBenefit[];variant?:"stack"|"small";here?:boolean;unknown?:boolean}){
  const c=rewardsCopy[language],current=levelIndex(visits,tierRewards),levels=configuredLevels(tierRewards);
- return <ol className="tt-rt" aria-label={progressLine(language,visits,tierRewards)}>
+ return <ol className={"tt-rt"+(variant?" is-"+variant:"")} aria-label={progressLine(language,visits,tierRewards)}>
   {levels.map((level,i)=>{
    const benefit=tierRewards?.find(item=>item.tier===level.key);
    const isLive=benefit ? benefit.enabled && benefit.operational : level.live;
@@ -73,10 +84,10 @@ export function RewardsTrack({language,visits,tierRewards}:{language:LanguageCod
    const fill=next?Math.max(0,Math.min(1,(visits-level.at)/(next.at-level.at))):0;
    return <li key={level.key} className={"tt-rt-stop"+(i<=current?" is-reached":"")+(i===current?" is-current":"")}
      style={{"--fill":fill} as CSSProperties} aria-current={i===current?"step":undefined}>
-    <span className="tt-rt-dot" data-at={level.at} aria-hidden="true"/>
-    {i===current&&<span className="tt-rt-here">{c.here}</span>}
+    <span className="tt-rt-dot" data-at={unknown?(i===0?"0":""):level.at} aria-hidden="true"/>
+    {here&&i===current&&<span className="tt-rt-here">{c.here}</span>}
     <div className="tt-rt-body">
-     <small>{i===0?c.at[0]:`${level.at} ${language==="cs"?"návštěv":"visits"}`}</small>
+     <small>{i===0?c.at[0]:unknown?" ":visitsLabel(level.at,language)}</small>
      <strong>{c.names[i]}</strong>
      <span>{benefit?(language==="cs"?benefit.label_cs:benefit.label_en):c.perks[i]}</span>
      {benefit&&(language==="cs"?benefit.description_cs:benefit.description_en)&&

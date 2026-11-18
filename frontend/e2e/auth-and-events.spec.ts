@@ -185,7 +185,7 @@ test("Google linking explains missing TicketTreat password instead of silently d
   await page.locator('form input[type="email"]').first().fill("browser-e2e@example.invalid");
   await page.locator('form input[type="password"]').first().fill("Browser-only-testing-passphrase-2026");
   await page.locator('form button[type="submit"]').first().click();
-  await expect(page.locator(".profile-overview")).toBeVisible();
+  await expect(page.locator(".tt-ph-pass")).toBeVisible();
   const button=page.getByRole("button",{name:/Link Google account|Привязать Google|Propojit účet Google|Прив’язати Google/});
   await expect(button).toBeEnabled();
   await button.click();

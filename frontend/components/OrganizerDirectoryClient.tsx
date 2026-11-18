@@ -7,6 +7,7 @@ import {LaptopFrame} from "@/components/premium/Device";
 import {LaptopScreenView} from "@/components/premium/Screens";
 import {premium} from "@/components/premium/copy";
 import {PageFaq} from "@/components/premium/PageFaq";
+import {OrganizerRewardsNote} from "@/components/premium/RewardsPlates";
 
 const W:Record<LanguageCode,{title:string;intro:string;empty:string;view:string;future:string;futureHint:string;example:string}>={
  ru:{title:"Организаторы",intro:"Познакомься с организаторами мероприятий TicketTreat и найди их будущие и прошедшие события.",empty:"Публичные профили появятся здесь, когда организаторы опубликуют их.",view:"Открыть профиль",future:"Здесь будет профиль",futureHint:"Он появится, когда организатор его опубликует.",example:"Пример"},
@@ -26,6 +27,7 @@ export function OrganizerDirectoryClient({profiles}:{profiles:OrganizerPublicSum
        <h2>{p.display_name}</h2>
        {p.city&&<p>{p.city}</p>}
        <p>{p.bio}</p>
+       <OrganizerRewardsNote name={p.display_name} language={language}/>
        <strong className="tt-organizer-link">{t.view}</strong>
      </Link>)}
      {!profiles.length&&<div className="panel tt-organizer-ghost" aria-label={t.future}>
