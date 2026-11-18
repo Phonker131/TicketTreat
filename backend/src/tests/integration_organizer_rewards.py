@@ -121,6 +121,7 @@ class OrganizerAwardIntegration(unittest.TestCase):
             db.add(ticket);db.flush()
             event_id,repeat_event_id,ticket_id,guest_id=ev.id,repeat_event.id,ticket.id,guest.id
             organizer_id=organizer.id
+            other_id=other.id
             db.commit()
 
         with TestClient(main.app) as client:
@@ -247,6 +248,25 @@ class OrganizerAwardIntegration(unittest.TestCase):
             self.assertEqual(owned_studio["tier_rewards"][1]["label_en"],"Priority booking queue")
             self.assertEqual(owned_studio["tier_rewards"][1]["description_en"],"For verified repeat visitors")
             self.assertFalse(owned_studio["tier_rewards"][1]["enabled"])
+            url=f"/demo/manage/loyalty/thresholds/{organizer_id}"
+            settings={"regular":1,"insider":4,"vip":8}
+            self.assertEqual(client.put(url,headers=other_auth,json=settings).status_code,403)
+            self.assertEqual(client.put(url,headers=guest_auth,json=settings).status_code,403)
+            for invalid in ({"regular":4,"insider":4,"vip":8},
+                            {"regular":0,"insider":4,"vip":8},
+                            {"regular":1.5,"insider":4,"vip":8}):
+                self.assertEqual(client.put(url,headers=auth,json=invalid).status_code,422)
+            updated=client.put(url,headers=auth,json=settings)
+            self.assertEqual(updated.status_code,200,updated.text)
+            self.assertEqual([b["required_visits"] for b in updated.json()["tiers"]],[0,1,4,8])
+            passport=client.get("/demo/me/loyalty",headers=guest_auth).json()
+            studio=next(s for s in passport["studios"] if s["organizer_id"]==organizer_id)
+            self.assertEqual(studio["tier"],"regular")
+            self.assertEqual(studio["next_threshold"],4)
+            self.assertEqual(studio["perks"][0]["required_visits"],1)
+            with SessionLocal() as db:
+                from demo_loyalty_benefits import benefits_for_organizer
+                self.assertEqual([b["required_visits"] for b in benefits_for_organizer(db,other_id)],[0,3,6,12])
             other_passport=client.get("/demo/me/loyalty",headers=other_auth)
             self.assertNotIn("qr_token",other_passport.text)
 
