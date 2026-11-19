@@ -105,7 +105,9 @@ export function AdminClient() {
   const [showForm,setShowForm]=useState(false);
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
+  const [photos,setPhotos]=useState<File[]>([]);
   const [preview,setPreview]=useState("");
+  useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview);},[preview]);
   useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview);},[preview]);
   const [reminderMinutes,setReminderMinutes]=useState<number[]>([10080,1440,180]);
   const [reminderMessage,setReminderMessage]=useState(() => tr("Your TicketTreat event starts soon."));
@@ -153,7 +155,6 @@ export function AdminClient() {
       const starts=String(data.get("starts_at")||"");
       if(!starts)throw new Error("event_start_required");
       if(!reminderMinutes.length||!reminderMessage.trim())throw new Error("reminder_settings_required");
-      const photos=data.getAll("gallery_files").filter((f):f is File=>f instanceof File&&f.size>0);
       if(photos.some(f=>f.size>25*1024*1024))
         throw new LocalValidationError(language==="cs"?"Každá fotografie musí mít maximálně 25 MB.":"Each photo must be smaller than 25 MB.");
       if(photos.some(f=>f.type&&!f.type.startsWith("image/")))
@@ -187,7 +188,7 @@ export function AdminClient() {
         window.location.assign(`/admin/events/${event.id}?photo_upload_failed=${failedPhotos}`);
         return;
       }
-      form.reset();setPreview("");setShowForm(false);
+      form.reset();setPreview("");setPhotos([]);setShowForm(false);
       setReminderMinutes([10080,1440,180]);setReminderMessage(tr("Your TicketTreat event starts soon."));setNotice("msg:created");
     }catch(e){setError(errorText(e,language));}
     finally{setSaving(false);}
@@ -240,7 +241,7 @@ export function AdminClient() {
         <Link href="/" className="tt-organizer-back-to-guests">{language==="ru"?"Сайт для гостей":language==="cs"?"Web pro návštěvníky":language==="uk"?"Сайт для гостей":"Guest website"}</Link>
       </div>
       {identity&&identity.role!=="participant"&&<div className="admin-event-actions tp-admin-primary">
-        <button type="button" className="button button-primary" onClick={()=>setShowForm(v=>!v)} aria-expanded={showForm}>{showForm?ui.close:ui.create}</button>
+        <button type="button" className="button button-primary" disabled={saving} onClick={()=>{setPhotos([]);setPreview("");setShowForm(v=>!v)}} aria-expanded={showForm}>{showForm?ui.close:ui.create}</button>
         <Link className="button button-sun" href="/admin/check-in">{ui.scan}</Link>
       </div>}
     </div>
@@ -315,9 +316,21 @@ export function AdminClient() {
               }}/>
               <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
             {preview&&<img className="event-poster-preview" src={preview} alt="Poster preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/>}
-            <label>{language==="cs"?"Nahrát fotografie z zařízení":"Upload photos from your device"}<input name="gallery_files" type="file" multiple accept="image/*"/>
+            {preview&&<button type="button" className="button button-outline" disabled={saving} onClick={e=>{
+              const input=e.currentTarget.form?.elements.namedItem("poster");
+              if(input instanceof HTMLInputElement)input.value="";
+              setPreview("");
+            }}>{language==="cs"?"Zrušit výběr plakátu":"Discard selected poster"}</button>}
+            <label>{language==="cs"?"Nahrát fotografie z zařízení":"Upload photos from your device"}<input name="gallery_files" type="file" multiple accept="image/*" disabled={saving}
+              onChange={e=>{const selected=Array.from(e.target.files||[]);setPhotos(previous=>[...previous,...selected]);e.target.value="";}}/>
               <small className="tp-field-hint">{language==="cs"?"Jakékoli fotky z telefonu nebo fotoaparátu, velikost zmenšíme sami. Celkem nejvýše 8 fotografií.":"Any photos from your phone or camera, we resize them for you. 8 photos in total."}</small></label>
             
+            {photos.map((file,index)=><div className="admin-event-actions" key={`${index}-${file.name}`}>
+              <span style={{overflowWrap:"anywhere"}}>{file.name}</span>
+              <button type="button" className="button button-outline" disabled={saving}
+                aria-label={`${language==="cs"?"Odebrat fotografii":"Remove photo"}: ${file.name}`}
+                onClick={()=>setPhotos(previous=>previous.filter((_,i)=>i!==index))}>{language==="cs"?"Odebrat fotografii":"Remove photo"}</button>
+            </div>)}
             <label>{ui.video}<input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=…"/></label>
           </section>
           <section className="tp-form-section is-wide">
@@ -335,7 +348,7 @@ export function AdminClient() {
           <div className="tp-form-actions">
             {error&&<p role="alert" className="state-card state-error">{show(error)}</p>}
             <button className="button button-primary" disabled={saving}>{saving?ui.saving:ui.createDraft}</button>
-            <button type="button" className="button button-outline" onClick={()=>setShowForm(false)}>{ui.close}</button>
+            <button type="button" className="button button-outline" disabled={saving} onClick={()=>{setPhotos([]);setPreview("");setShowForm(false)}}>{ui.close}</button>
           </div>
         </div>
       </form>}
