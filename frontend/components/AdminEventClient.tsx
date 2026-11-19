@@ -14,7 +14,7 @@ import {formatDate} from "@/lib/format";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   getManageMe,getManageEvent,getManageParticipants,getEventEmailStatus,
-  editManageEvent,cancelManageEvent,deleteManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,orderManageGallery,
+  editManageEvent,cancelManageEvent,deleteManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,deleteManageGalleryLink,deleteManagePoster,orderManageGallery,
   setManagePublication,setManageVisibility,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
   getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
@@ -304,13 +304,18 @@ export function AdminEventClient(){
     ].filter(Boolean).join(" ");
     if(problems)setError(problems);
   }
-  async function removePhoto(imageId:number){
+  async function removePhoto(photo:{id:number}|{url:string}|"poster"){
     const token=getWebToken();if(!token)return;
-    if(!window.confirm(tr("Удалить фотографию из галереи?")))return;
+    const confirmation=photo==="poster"?(language==="cs"?"Odebrat plakát této akce?":"Remove this event’s poster?"):tr("Удалить фотографию из галереи?");
+    if(!window.confirm(confirmation))return;
     setBusy(true);setError("");setNotice("");
     try{
-      await deleteManageGalleryPhoto(token,eventId,imageId);
-      await reload();setNotice(tr("Фотография удалена."));
+      if(photo==="poster")await deleteManagePoster(token,eventId);
+      else if("id" in photo)await deleteManageGalleryPhoto(token,eventId,photo.id);
+      else await deleteManageGalleryLink(token,eventId,photo.url);
+      setEvent(await getManageEvent(eventId,token));
+      if(photo==="poster"){setPosterStatus("");setPosterError("");}
+      setNotice(photo==="poster"?(language==="cs"?"Plakát byl odebrán.":"Poster removed."):tr("Фотография удалена."));
     }catch(e){setError(formattedError(e,language))}
     finally{setBusy(false)}
   }
@@ -504,6 +509,34 @@ export function AdminEventClient(){
     }
     catch(e){setError(formattedError(e,language));}finally{setBusy(false);}
   }
+  function removePhotoButton(photo:{id:number}|{url:string}){
+    return <button type="button" className="button button-outline" disabled={busy}
+      onClick={()=>void removePhoto(photo)}>{language==="cs"?"Odebrat fotografii":"Remove photo"}</button>;
+  }
+  const removePosterButton=<button type="button" className="button button-outline" disabled={busy}
+    onClick={()=>void removePhoto("poster")}>{language==="cs"?"Odebrat plakát":"Remove poster"}</button>;
+  const gallery=(event?.gallery_urls?.length||0)>0&&<div className="event-media-gallery tt-gal-grid">
+          {(event?.uploaded_gallery||[]).map((photo,i)=><div key={photo.id} className={photo.is_cover?"is-cover":undefined}>
+            <img src={photo.url} alt={tr("Фотография мероприятия")} />
+            {photo.is_cover&&<span className="tt-gal-cover">{tr("Обложка")}</span>}
+            <div className="admin-event-actions">
+              {tab==="media"&&<>
+              <button type="button" className="button button-outline" disabled={busy||i===0}
+                onClick={()=>updateMediaOrder(photo.id,-1)} aria-label={tr("Переместить фото назад")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+              <button type="button" className="button button-outline" disabled={busy||i===(event?.uploaded_gallery?.length||0)-1}
+                onClick={()=>updateMediaOrder(photo.id,1)} aria-label={tr("Переместить фото вперёд")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+              <button type="button" className="button button-outline" disabled={busy||photo.is_cover}
+                onClick={()=>updateMediaOrder(photo.id,0)}>
+                {photo.is_cover?tr("✓ Обложка"):tr("Сделать обложкой")}</button>
+              </>}
+              {removePhotoButton({id:photo.id})}
+            </div>
+          </div>)}
+          {(event?.external_gallery_urls||[]).map((url,i)=><div key={`${i}-${url}`}>
+            <img src={url} alt={tr("Фотография мероприятия")} loading="lazy"/>
+            <div className="admin-event-actions">{removePhotoButton({url})}</div>
+          </div>)}
+        </div>;
   const galleryIsFull=(event?.gallery_urls?.length||0)>=8;
   return <div className="app-shell"><AppHeader/><main className="page">
     <Link href="/admin" className="back-link">{tr("Organizer dashboard")}</Link>
@@ -607,7 +640,7 @@ export function AdminEventClient(){
           <small className="tp-field-hint">{language==="cs"?"Vyberte až 8 fotek z telefonu nebo počítače. Fotografie se nahrají hned a již uložené zůstanou zachované.":"Choose up to 8 photos from your phone or computer. Photos upload immediately; existing photos are kept."}</small>
         </label>
         <p className="form-note" role="status">{language==="cs"?`Fotografie v galerii: ${event.gallery_urls?.length||0} / 8`:`Photos in gallery: ${event.gallery_urls?.length||0} / 8`}{upload?` · ${upload.done}/${upload.total}`:""}</p>
-        {(event.uploaded_gallery?.length||0)>0&&<div className="event-media-gallery tt-gal-grid" aria-label={language==="cs"?"Nahrané fotografie":"Uploaded photos"}>{event.uploaded_gallery?.map(photo=><img key={photo.id} src={photo.url} alt={language==="cs"?"Fotografie akce":"Event photo"} loading="lazy"/>)}</div>}
+        {gallery}
         <label>{tr("Видео (YouTube/Vimeo)")}<input type="url" value={video} onChange={e=>setVideo(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
         <div className="two-col"><label>{tr("Дата и время")}<input type="datetime-local" required value={startsAt} onChange={e=>setStartsAt(e.target.value)}/></label>
           <label>{tr("Количество мест")}<input type="number" min="1" value={capacity} onChange={e=>setCapacity(e.target.value)}/></label></div>
@@ -652,15 +685,20 @@ export function AdminEventClient(){
           <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
         {(posterPreview||event.image_url)&&<img src={posterPreview||event.image_url!} alt={posterPreview?"Selected event poster":"Event poster"} className="event-poster-preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/>}
         {poster&&<p className="form-note"><strong>{poster.name} · {(poster.size/1024/1024).toFixed(2)} MB</strong><br/>{language==="cs"?"Náhled nového plakátu. Pro zveřejnění klikněte na Uložit změny.":"New poster preview. Click Save changes to publish it."}</p>}
+        {poster?<button className="button button-outline" type="button" disabled={busy} onClick={()=>{
+          setPoster(null);setPosterStatus("");setPosterError("");
+          if(posterInputRef.current)posterInputRef.current.value="";
+        }}>{language==="cs"?"Zrušit výběr plakátu":"Discard selected poster"}</button>:(event.image_url||event.telegram_photo_file_id)&&removePosterButton}
         {posterStatus&&<p role="status" className="success-banner">{posterStatus}</p>}
         {posterError&&<p role="alert" className="error-banner">{posterError}</p>}
         <button className="button button-primary" disabled={busy}>{busy?tr("Сохраняем…"):tr("Сохранить изменения")}</button>
       </form>}
       </div>}
       {tab==="media"&&<div className="tp-tabpanel">
-      {event.image_url&&<section className="panel form-stack">
+      {(event.image_url||event.telegram_photo_file_id)&&<section className="panel form-stack">
         <h2>{tr("Постер")}</h2>
-        <img src={event.image_url} alt="" className="event-poster-preview"/>
+        {event.image_url&&<img src={event.image_url} alt="" className="event-poster-preview"/>}
+        {!event.is_cancelled&&removePosterButton}
         <p className="form-note">{tr("Новый постер загружается на вкладке «Описание».")}</p>
       </section>}
       {!event.is_cancelled&&<section className="panel form-stack tt-gal">
@@ -680,23 +718,7 @@ export function AdminEventClient(){
           <small>{tr("Подойдут любые фото с телефона или камеры, размер уменьшим сами. Лучше всего смотрятся горизонтальные.")}</small>
           {upload&&<span className="tt-gal-progress" aria-hidden="true"><i style={{width:`${Math.max(6,upload.done/upload.total*100)}%`}}/></span>}
         </label>
-        <div className="event-media-gallery tt-gal-grid">
-          {(event.uploaded_gallery||[]).map((photo,i)=><div key={photo.id} className={photo.is_cover?"is-cover":undefined}>
-            <img src={photo.url} alt={tr("Фотография мероприятия")} />
-            {photo.is_cover&&<span className="tt-gal-cover">{tr("Обложка")}</span>}
-            <div className="admin-event-actions">
-              <button type="button" className="button button-outline" disabled={busy||i===0}
-                onClick={()=>updateMediaOrder(photo.id,-1)} aria-label={tr("Переместить фото назад")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
-              <button type="button" className="button button-outline" disabled={busy||i===(event.uploaded_gallery?.length||0)-1}
-                onClick={()=>updateMediaOrder(photo.id,1)} aria-label={tr("Переместить фото вперёд")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
-              <button type="button" className="button button-outline" disabled={busy||photo.is_cover}
-                onClick={()=>updateMediaOrder(photo.id,0)}>
-                {photo.is_cover?tr("✓ Обложка"):tr("Сделать обложкой")}</button>
-              <button type="button" className="button button-outline" disabled={busy}
-                onClick={()=>removePhoto(photo.id)} aria-label={tr("Удалить")} title={tr("Удалить")}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
-            </div>
-          </div>)}
-        </div>
+        {gallery}
       </section>}
       </div>}
       <dialog ref={cancelDialogRef} className="tt-event-cancel-dialog" aria-labelledby="tt-event-cancel-title"

@@ -31,6 +31,7 @@ export type TicketTreatEvent = {
   payment_status?: string;
   payment_instructions_configured?: boolean;
   image_url: string | null;
+  telegram_photo_file_id?: string|null;
   gallery_urls?: string[];
   external_gallery_urls?: string[];
   uploaded_gallery?: {id:number;url:string;position?:number;is_cover?:boolean}[];

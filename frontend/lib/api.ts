@@ -414,6 +414,14 @@ export function deleteManageGalleryPhoto(token:string,eventId:number,imageId:num
     method:"DELETE",headers:accountHeaders(token)
   });
 }
+export function deleteManageGalleryLink(token:string,eventId:number,url:string):Promise<{status:string}> {
+  return request(`/demo/manage/events/${eventId}/gallery/remove-link`,{
+    method:"POST",headers:accountHeaders(token),body:JSON.stringify({url})
+  });
+}
+export function deleteManagePoster(token:string,eventId:number):Promise<{status:string}> {
+  return request(`/demo/manage/events/${eventId}/poster`,{method:"DELETE",headers:accountHeaders(token)});
+}
 export function getManageParticipants(token:string, eventId:number): Promise<AdminEventTickets> {
   return request(`/demo/manage/events/${eventId}/participants`,{headers:accountHeaders(token)});
 }

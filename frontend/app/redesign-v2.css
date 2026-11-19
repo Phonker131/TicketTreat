@@ -564,7 +564,7 @@ html body .tt-rt-here{top:-30px;left:0}
 @media (max-width:760px){html body .tt-rt{padding-top:0}}
 /* gallery: four small buttons fit one row under each photo */
 html body .tt-gal-grid{grid-template-columns:repeat(auto-fill,minmax(232px,1fr))!important}
-html body .tt-gal-grid .admin-event-actions{flex-wrap:nowrap!important}
+html body .tt-gal-grid .admin-event-actions{flex-wrap:wrap!important}
 html body .tt-gal-grid .admin-event-actions .button{flex:none;padding:0 10px!important}
 html body .tt-gal-grid .admin-event-actions .button:nth-child(3){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* rewards on phones: the visit count sits in the dot, each level is two short lines */
