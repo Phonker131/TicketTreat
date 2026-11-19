@@ -30,6 +30,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, deferred
 
 from db.base import Base
+from demo_event_alerts import EventAlertOptOut
 
 LOG = logging.getLogger("tickettreat.broadcast")
 MAX_AUDIENCE_PER_CHANNEL = 50000
@@ -47,6 +48,7 @@ class BroadcastPreference(Base):
 class BroadcastPreferenceUpdate(BaseModel):
     email_enabled: bool
     telegram_enabled: bool
+    new_events_enabled: bool | None = None
 
 
 def email_broadcast_enabled(db: Session, account_id: int) -> bool:
@@ -285,7 +287,8 @@ def install_broadcast_api(app, get_db, main):
     def preferences(account=Depends(preferences_account), db: Session = Depends(get_db)):
         row = db.get(BroadcastPreference, account.id)
         return {"email_enabled": row.email_enabled if row else True,
-                "telegram_enabled": row.telegram_enabled if row else True}
+                "telegram_enabled": row.telegram_enabled if row else True,
+                "new_events_enabled": db.get(EventAlertOptOut, account.id) is None}
 
     @app.put("/demo/auth/broadcast-preferences")
     def update_preferences(payload: BroadcastPreferenceUpdate, account=Depends(preferences_account),
@@ -295,8 +298,12 @@ def install_broadcast_api(app, get_db, main):
                   "telegram_enabled": payload.telegram_enabled, "updated_at": datetime.now(timezone.utc)}
         db.execute(pg_insert(BroadcastPreference.__table__).values(**values).on_conflict_do_update(
             index_elements=["account_id"], set_={k: v for k, v in values.items() if k != "account_id"}))
+        if payload.new_events_enabled is True:
+            db.query(EventAlertOptOut).filter_by(account_id=account.id).delete()
+        elif payload.new_events_enabled is False:
+            db.execute(pg_insert(EventAlertOptOut).values(account_id=account.id).on_conflict_do_nothing())
         db.commit()
-        return {"email_enabled": payload.email_enabled, "telegram_enabled": payload.telegram_enabled}
+        return preferences(account, db)
 
     @app.post("/demo/manage/broadcasts/media", status_code=201)
     def upload_image(payload: BroadcastImageUpload, account=Depends(authorized),

@@ -506,7 +506,7 @@ def install_demo_roles(app, get_db, main):
         # configured offset. Email can deliver all configured offsets.
         values["reminder_minutes_before"]=min(reminder_intervals)
         values["reminder_text"]=reminder_message
-        created=main.create_event(EventCreate(**values),db=db)
+        created=main.create_event_record(EventCreate(**values),db,commit=False)
         if not isinstance(created,dict) or "id" not in created:
             raise HTTPException(status_code=422,detail=created.get("error","create_failed") if isinstance(created,dict) else "create_failed")
         eid=created["id"]
@@ -627,6 +627,8 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(404,"event_not_found")
         from demo_event_access import set_visibility, is_unlisted
         previous="link_only" if is_unlisted(db,event_id) else "public"
+        from demo_event_alerts import track_event
+        track_event(db,event_id,already_public=previous=="public" and publication_state(db,event_id)["visible"])
         set_visibility(db,event_id,payload.visibility)
         audit(db,event_id,account.id,"visibility",f"{previous}->{payload.visibility}")
         db.commit()
@@ -688,6 +690,9 @@ def install_demo_roles(app, get_db, main):
                     raise HTTPException(422,"publish_at_must_precede_event")
             elif payload.publish_at is not None:
                 raise HTTPException(422,"publish_at_only_for_scheduled")
+        from demo_event_access import is_unlisted
+        from demo_event_alerts import track_event
+        track_event(db,event_id,already_public=publication_state(db,event_id)["visible"] and not is_unlisted(db,event_id))
         set_publication(db,event_id,payload.status,payload.publish_at)
         audit(db,event_id,account.id,"publication",payload.status)
         db.commit()

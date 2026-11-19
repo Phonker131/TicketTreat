@@ -33,11 +33,11 @@ class BroadcastPreferenceIntegration(unittest.TestCase):
             path="/api/v1/auth/broadcast-preferences"
             self.assertEqual(client.get(path).status_code,401)
             self.assertEqual(client.get(path,headers=auth).json(),
-                {"email_enabled":True,"telegram_enabled":True})
+                {"email_enabled":True,"telegram_enabled":True,"new_events_enabled":True})
             result=client.put(path,headers=auth,json={"email_enabled":False,"telegram_enabled":False})
             self.assertEqual(result.status_code,200,result.text)
             self.assertEqual(client.get(path,headers=other_auth).json(),
-                {"email_enabled":True,"telegram_enabled":True})
+                {"email_enabled":True,"telegram_enabled":True,"new_events_enabled":True})
             with SessionLocal() as db:
                 emails,ids=_audience(db,"global",None,main)
                 self.assertNotIn(aid,[row[0] for row in emails])
@@ -74,6 +74,7 @@ class BroadcastPreferenceIntegration(unittest.TestCase):
                     loaded = client.get(path, headers=headers)
                     self.assertEqual(loaded.status_code, 200, loaded.text)
                     self.assertEqual(loaded.json(), {
+                        "new_events_enabled": True,
                         "email_enabled": True, "telegram_enabled": True,
                     })
                     disabled = client.put(path, headers=headers, json={
@@ -81,6 +82,7 @@ class BroadcastPreferenceIntegration(unittest.TestCase):
                     })
                     self.assertEqual(disabled.status_code, 200, disabled.text)
                     self.assertEqual(client.get(path, headers=headers).json(), {
+                        "new_events_enabled": True,
                         "email_enabled": False, "telegram_enabled": False,
                     })
                     # Re-enabling and repeated saves also use ordinary session auth.
@@ -150,7 +152,7 @@ class EmailUnsubscribeIntegration(unittest.TestCase):
                 response=client.post(path,json={"token":token})
                 self.assertEqual(response.status_code,200,response.text)
             self.assertEqual(client.get("/api/v1/auth/broadcast-preferences",headers=auth).json(),
-                {"email_enabled":False,"telegram_enabled":False})
+                {"email_enabled":False,"telegram_enabled":False,"new_events_enabled":True})
         with SessionLocal() as db:
             self.assertIsNone(render_broadcast_email(queued,db))
 
