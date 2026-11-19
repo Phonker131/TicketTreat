@@ -322,7 +322,7 @@ def render_message(row: TelegramNotificationOutbox, event, notice) -> tuple[str,
     if row.kind == "new_event":
         keyboard["inline_keyboard"].append([{
             "text": "Nastavení upozornění" if lang == "cs" else "Notification settings",
-            "web_app": {"url": f"{url}/profile#broadcasts"},
+            "web_app": {"url": f"{url}/profile?tab=broadcasts"},
         }])
     return "\n\n".join(sections)[:4000], keyboard
 
