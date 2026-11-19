@@ -4,6 +4,7 @@ on:
     branches: [dev/frontend-design]
     paths:
       - frontend/e2e/organizer-media-feedback.spec.ts
+      - frontend/e2e/broadcast-preferences.spec.ts
       - frontend/components/AdminClient.tsx
       - frontend/components/OrganizerProfileEditor.tsx
       - frontend/components/AdminEventClient.tsx
@@ -31,6 +32,6 @@ jobs:
         env:
           BACKEND_API_URL: http://127.0.0.1:8000
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test e2e/organizer-media-feedback.spec.ts
+      - run: npx playwright test e2e/organizer-media-feedback.spec.ts e2e/broadcast-preferences.spec.ts
         env:
           BACKEND_API_URL: http://127.0.0.1:8000
