@@ -42,6 +42,12 @@ test("removing a linked gallery photo keeps unsaved event edits",async({page})=>
   await page.goto("/admin/events/42?lang=en#details");
   const title=page.locator("form.panel").getByRole("textbox").first();
   await title.fill("Unsaved title");
+  await page.getByRole("button",{name:"View photo 1",exact:true}).click();
+  const viewer=page.getByRole("dialog",{name:"Photo gallery"});
+  await expect(viewer.getByRole("img")).toHaveAttribute("src",photo);
+  await expect(viewer.getByRole("button",{name:"Next photo"})).toHaveCount(0);
+  await viewer.getByRole("button",{name:"Close"}).click();
+  await expect(title).toHaveValue("Unsaved title");
   const remove=page.getByRole("button",{name:"Remove photo",exact:true});
   page.once("dialog",dialog=>dialog.dismiss());
   await remove.click();
@@ -51,4 +57,38 @@ test("removing a linked gallery photo keeps unsaved event edits",async({page})=>
   await expect(remove).toHaveCount(0);
   await expect(title).toHaveValue("Unsaved title");
   await expect(page.getByText("Photos in gallery: 0 / 8")).toBeVisible();
+});
+
+test("event gallery opens in place and restores focus on close",async({page,context})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>localStorage.setItem("tickettreat_web_auth","browser-session"));
+  const photos=["/test-first.png","/test-second.png"];
+  const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1sAAAAASUVORK5CYII=","base64");
+  await page.route("**/test-*.png",route=>route.fulfill({contentType:"image/png",body:png}));
+  await page.route("**/api/gateway/**",route=>{
+    const path=new URL(route.request().url()).pathname;
+    if(path.endsWith("/manage/events/42"))return route.fulfill({json:{
+      id:42,title:"Gallery test",starts_at:"2030-10-10T10:00:00",languages:["en"],tags:[],
+      gallery_urls:photos,publication:{status:"draft",visible:false}
+    }});
+    return route.fulfill({json:{}});
+  });
+  await page.goto("/admin/events/42/preview?lang=en");
+  const startUrl=page.url();
+  const trigger=page.getByRole("button",{name:"View photo 2"});
+  await trigger.click();
+  const viewer=page.getByRole("dialog",{name:"Photo gallery"});
+  await expect(viewer.getByRole("img")).toHaveAttribute("src",photos[1]);
+  await viewer.getByRole("button",{name:"Next photo"}).click();
+  await expect(viewer.getByRole("img")).toHaveAttribute("src",photos[0]);
+  await page.keyboard.press("ArrowLeft");
+  await expect(viewer.getByRole("img")).toHaveAttribute("src",photos[1]);
+  await page.keyboard.press("Escape");
+  await expect(viewer).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await viewer.getByRole("button",{name:"Close"}).click();
+  await expect(viewer).toBeHidden();
+  await expect(page).toHaveURL(startUrl);
+  expect(context.pages()).toHaveLength(1);
 });

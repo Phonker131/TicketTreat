@@ -8,6 +8,7 @@ import {eventAdminText} from "@/lib/event-admin-i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import { uploadManageGalleryPhoto, addManageEvent, getManageEvents, getManageMe, getSupportSummary } from "@/lib/api";
+import {PhotoViewer, PosterViewer} from "./PhotoViewer";
 import {prepareGalleryPhoto} from "@/lib/gallery-photo";
 import { getWebToken } from "@/lib/session";
 import {localeForLanguage} from "@/lib/i18n";
@@ -106,8 +107,13 @@ export function AdminClient() {
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
   const [photos,setPhotos]=useState<File[]>([]);
+  const [draftPhotos,setDraftPhotos]=useState<{file:File;url:string}[]>([]);
+  useEffect(()=>{
+    const items=photos.map(file=>({file,url:URL.createObjectURL(file)}));
+    setDraftPhotos(items);
+    return ()=>items.forEach(item=>URL.revokeObjectURL(item.url));
+  },[photos]);
   const [preview,setPreview]=useState("");
-  useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview);},[preview]);
   useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview);},[preview]);
   const [reminderMinutes,setReminderMinutes]=useState<number[]>([10080,1440,180]);
   const [reminderMessage,setReminderMessage]=useState(() => tr("Your TicketTreat event starts soon."));
@@ -315,7 +321,7 @@ export function AdminClient() {
                 setPreview(URL.createObjectURL(f));
               }}/>
               <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
-            {preview&&<img className="event-poster-preview" src={preview} alt="Poster preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/>}
+            {preview&&<PosterViewer src={preview}><img className="event-poster-preview" src={preview} alt="Poster preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/></PosterViewer>}
             {preview&&<button type="button" className="button button-outline" disabled={saving} onClick={e=>{
               const input=e.currentTarget.form?.elements.namedItem("poster");
               if(input instanceof HTMLInputElement)input.value="";
@@ -325,12 +331,15 @@ export function AdminClient() {
               onChange={e=>{const selected=Array.from(e.target.files||[]);setPhotos(previous=>[...previous,...selected]);e.target.value="";}}/>
               <small className="tp-field-hint">{language==="cs"?"Jakékoli fotky z telefonu nebo fotoaparátu, velikost zmenšíme sami. Celkem nejvýše 8 fotografií.":"Any photos from your phone or camera, we resize them for you. 8 photos in total."}</small></label>
             
-            {photos.map((file,index)=><div className="admin-event-actions" key={`${index}-${file.name}`}>
+            {draftPhotos.length>0&&<PhotoViewer sources={draftPhotos.map(item=>item.url)}>{thumbnail=>
+              <div className="event-media-gallery tt-gal-grid">{draftPhotos.map(({file,url},index)=><div key={url}>
+              {thumbnail(index,<img src={url} alt="" loading="lazy"/>)}
               <span style={{overflowWrap:"anywhere"}}>{file.name}</span>
               <button type="button" className="button button-outline" disabled={saving}
                 aria-label={`${language==="cs"?"Odebrat fotografii":"Remove photo"}: ${file.name}`}
                 onClick={()=>setPhotos(previous=>previous.filter((_,i)=>i!==index))}>{language==="cs"?"Odebrat fotografii":"Remove photo"}</button>
-            </div>)}
+            </div>)}</div>}
+            </PhotoViewer>}
             <label>{ui.video}<input type="url" name="video_url" placeholder="https://www.youtube.com/watch?v=…"/></label>
           </section>
           <section className="tp-form-section is-wide">
