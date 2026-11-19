@@ -23,11 +23,12 @@ export function BroadcastPreferences(){
  }
  return <section className="panel form-stack">
    <h2>{cs?"Rozesílky":"Broadcasts"}</h2>
-   <p>{cs?"Vyberte, kde chcete přijímat hromadné zprávy od TicketTreat a pořadatelů. Vypnutím obou možností se odhlásíte ze všech těchto rozesílek.":"Choose where to receive bulk messages from TicketTreat and organizers. Turn off both options to unsubscribe from these broadcasts."}</p>
+   <p>{cs?"Vyberte, kde chcete přijímat hromadné zprávy od TicketTreat a pořadatelů. Vypnutím rozesílek přes Telegram se vypnou také upozornění na nové akce.":"Choose where to receive bulk messages from TicketTreat and organizers. Turning off Telegram broadcasts also turns off new event notifications."}</p>
    {error&&<div className="state-card state-error" role="alert">{error}</div>}
    {loading?<p role="status">{cs?"Načítání…":"Loading…"}</p>:value?<form className="form-stack" onSubmit={save}>
      <label style={{display:"flex",alignItems:"center",gap:12}}><input style={{width:"auto"}} type="checkbox" checked={value.email_enabled} disabled={busy} onChange={e=>{setValue({...value,email_enabled:e.target.checked});setSaved(false)}}/>{cs?"Rozesílky e-mailem":"Email broadcasts"}</label>
      <label style={{display:"flex",alignItems:"center",gap:12}}><input style={{width:"auto"}} type="checkbox" checked={value.telegram_enabled} disabled={busy} onChange={e=>{setValue({...value,telegram_enabled:e.target.checked});setSaved(false)}}/>{cs?"Rozesílky přes Telegram":"Telegram broadcasts"}</label>
+     <label style={{display:"flex",alignItems:"center",gap:12}}><input style={{width:"auto"}} type="checkbox" checked={value.telegram_enabled && (value.new_events_enabled ?? true)} disabled={busy||!value.telegram_enabled} onChange={e=>{setValue({...value,new_events_enabled:e.target.checked});setSaved(false)}}/>{cs?"Nové veřejné akce v Telegramu":"New public events on Telegram"}</label>
      <button type="submit" className="button button-primary" disabled={busy}>{busy?(cs?"Ukládání…":"Saving…"):(cs?"Uložit nastavení":"Save preferences")}</button>
      {saved&&<p role="status">{cs?"Nastavení bylo uloženo.":"Your preferences have been saved."}</p>}
    </form>:<button type="button" className="button button-outline" onClick={()=>setAttempt(n=>n+1)}>{cs?"Zkusit znovu":"Try again"}</button>}

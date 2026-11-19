@@ -342,6 +342,12 @@ const profileTabLabels = {
 
 export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"recovery"}) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
+  useEffect(()=>{
+    const openBroadcasts=()=>{if(window.location.hash==="#broadcasts")setActiveTab("broadcasts")};
+    openBroadcasts();
+    window.addEventListener("hashchange",openBroadcasts);
+    return ()=>window.removeEventListener("hashchange",openBroadcasts);
+  },[]);
   const {language} = useLanguage();
   const tr = COPY[language];
   const ui = PROFILE_UI[language];
