@@ -196,6 +196,10 @@ class GallerySort(BaseModel):
     cover_id: int | None = None
 
 
+class GalleryLinkRemoval(BaseModel):
+    url: str = Field(min_length=1, max_length=2048)
+
+
 class GalleryUpload(BaseModel):
     data_url: str = Field(min_length=40,max_length=2900000)
 
@@ -744,17 +748,21 @@ def install_demo_roles(app, get_db, main):
         db.commit()
         return event_data(db.get(main.Event,result["id"]),db,main)
 
+    def lock_editable_event(db, event_id):
+        event = db.query(main.Event).filter(main.Event.id == event_id).with_for_update().first()
+        if event is None:
+            raise HTTPException(404, "event_not_found")
+        if event.is_cancelled:
+            raise HTTPException(409, "event_is_cancelled")
+        return event
+
     @app.patch("/demo/manage/events/{event_id}")
     def modify_event(
         event_id: int,payload: UpdateManageEvent,request:Request,
         account:WebAccount=Depends(managing),db:Session=Depends(get_db),
     ):
         ensure_owner(db,event_id,account)
-        event=db.query(main.Event).filter(main.Event.id==event_id).first()
-        if event is None:
-            raise HTTPException(status_code=404,detail="event_not_found")
-        if event.is_cancelled:
-            raise HTTPException(status_code=409,detail="event_is_cancelled")
+        event=lock_editable_event(db, event_id)
         values=payload.model_dump(exclude_unset=True)
         poster=values.pop("poster_data_url",None)
         gallery=values.pop("gallery_urls",None)
@@ -895,13 +903,37 @@ def install_demo_roles(app, get_db, main):
                         headers={"Cache-Control":"private, no-store" if __import__("demo_event_access").is_unlisted(db,event_id) else "public, max-age=3600",
                                  "X-Content-Type-Options":"nosniff"})
 
+    @app.delete("/demo/manage/events/{event_id}/poster")
+    def delete_poster(event_id:int, account:WebAccount=Depends(managing), db:Session=Depends(get_db)):
+        ensure_owner(db, event_id, account)
+        event = lock_editable_event(db, event_id)
+        db.query(main.DemoEventPoster).filter(main.DemoEventPoster.event_id == event_id).delete()
+        event.image_url = None
+        event.telegram_photo_file_id = None
+        audit(db, event_id, account.id, "poster_delete")
+        db.commit()
+        return {"status": "deleted"}
+
+    @app.post("/demo/manage/events/{event_id}/gallery/remove-link")
+    def remove_gallery_link(event_id:int, payload:GalleryLinkRemoval,
+                            account:WebAccount=Depends(managing), db:Session=Depends(get_db)):
+        ensure_owner(db, event_id, account)
+        lock_editable_event(db, event_id)
+        media = db.get(EventMedia, event_id)
+        urls = json.loads(media.gallery_json or "[]") if media else []
+        if payload.url not in urls:
+            raise HTTPException(404, "gallery_image_not_found")
+        urls.remove(payload.url)
+        media.gallery_json = json.dumps(urls, ensure_ascii=False)
+        audit(db, event_id, account.id, "gallery_delete", "linked photo")
+        db.commit()
+        return {"status": "deleted"}
+
     @app.post("/demo/manage/events/{event_id}/gallery",status_code=201)
     def upload_gallery(event_id:int,payload:GalleryUpload,
                        account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
         ensure_owner(db,event_id,account)
-        event=db.query(main.Event).filter(main.Event.id==event_id).with_for_update().first()
-        if event is None:raise HTTPException(404,"event_not_found")
-        if event.is_cancelled:raise HTTPException(409,"event_is_cancelled")
+        lock_editable_event(db, event_id)
         media=db.get(EventMedia,event_id)
         urls=json.loads(media.gallery_json or "[]") if media else []
         uploaded=db.query(EventGalleryImage).filter(EventGalleryImage.event_id==event_id).count()
@@ -925,11 +957,19 @@ def install_demo_roles(app, get_db, main):
     def delete_gallery(event_id:int,image_id:int,account:WebAccount=Depends(managing),
                        db:Session=Depends(get_db)):
         ensure_owner(db,event_id,account)
+        lock_editable_event(db, event_id)
         image=db.query(EventGalleryImage).filter(
             EventGalleryImage.id==image_id,EventGalleryImage.event_id==event_id
         ).first()
         if image is None:raise HTTPException(404,"gallery_image_not_found")
         key=image.object_key
+        others = db.query(EventGalleryImage).filter(
+            EventGalleryImage.event_id == event_id, EventGalleryImage.id != image_id
+        ).order_by(EventGalleryImage.position, EventGalleryImage.id).all()
+        for position, other in enumerate(others):
+            other.position = position
+            if image.is_cover:
+                other.is_cover = position == 0
         db.delete(image)
         audit(db,event_id,account.id,"gallery_delete",f"image:{image_id}")
         db.commit()
@@ -942,6 +982,7 @@ def install_demo_roles(app, get_db, main):
     def gallery_order(event_id:int,payload:GallerySort,
                       account:WebAccount=Depends(managing),db:Session=Depends(get_db)):
         ensure_owner(db,event_id,account)
+        lock_editable_event(db, event_id)
         images=db.query(EventGalleryImage).filter(EventGalleryImage.event_id==event_id).all()
         actual={image.id for image in images}
         if len(set(payload.ordered_ids))!=len(payload.ordered_ids) or set(payload.ordered_ids)!=actual:
