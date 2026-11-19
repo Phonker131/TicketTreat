@@ -342,6 +342,9 @@ const profileTabLabels = {
 
 export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"recovery"}) {
   const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
+  useEffect(()=>{
+    if(new URLSearchParams(window.location.search).get("tab")==="broadcasts")setActiveTab("broadcasts");
+  },[]);
   const {language} = useLanguage();
   const tr = COPY[language];
   const ui = PROFILE_UI[language];

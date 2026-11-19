@@ -1082,7 +1082,7 @@ export function setManageConversationClosed(id:number,closed:boolean):Promise<{s
   return request("/demo/manage/chats/"+id+"/status",{method:"POST",body:JSON.stringify({closed})});
 }
 
-export type BroadcastPreferencesData = {email_enabled:boolean;telegram_enabled:boolean};
+export type BroadcastPreferencesData = {email_enabled:boolean;telegram_enabled:boolean;new_events_enabled:boolean};
 export function getBroadcastPreferences():Promise<BroadcastPreferencesData>{
   return request("/demo/auth/broadcast-preferences");
 }
