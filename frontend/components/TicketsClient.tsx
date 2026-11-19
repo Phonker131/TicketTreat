@@ -78,7 +78,7 @@ export function TicketsClient() {
         {loading ? <div className="state-card">{t(language, "loading")}</div> :
           <>
           {error && <div className="state-card state-error" role="alert">{userFacingError(error,language)}</div>}
-          <div className="profile-actions" role="group" aria-label={t(language,"tickets")}>
+          <div className="profile-actions" style={{marginBottom: "clamp(16px, 2vw, 20px)"}} role="group" aria-label={t(language,"tickets")}>
             {[false,true].map((past,i)=><button type="button" key={words[i]} aria-pressed={past===history}
               className={past===history?"button button-primary":"button button-outline"} onClick={()=>setHistory(past)}>{words[i]}</button>)}
           </div>
