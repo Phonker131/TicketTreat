@@ -274,7 +274,10 @@ def render_message(row: TelegramNotificationOutbox, event, notice) -> tuple[str,
     lang = row.language if row.language in COPY else "en"
     cancel, change, announcement, reminder, reason, message, date, location, button = COPY[lang]
     title = html.escape(str(event.title or "Event")[:180])
-    if row.kind == "ticket_removed":
+    if row.kind == "new_event":
+        heading = "Nová akce na TicketTreat" if lang == "cs" else "New event on TicketTreat"
+        label, body = "", ""
+    elif row.kind == "ticket_removed":
         heading={
             "en":"Your registration was cancelled",
             "cs":"Vaše registrace byla zrušena",
@@ -316,6 +319,11 @@ def render_message(row: TelegramNotificationOutbox, event, notice) -> tuple[str,
         url = "https://tickettreat.eu"
     link = f"{url}/events/{int(event.id)}"
     keyboard = {"inline_keyboard": [[{"text": "🎟 " + button, "url": link}]]}
+    if row.kind == "new_event":
+        keyboard["inline_keyboard"].append([{
+            "text": "Nastavení upozornění" if lang == "cs" else "Notification settings",
+            "web_app": {"url": f"{url}/profile?tab=broadcasts"},
+        }])
     return "\n\n".join(sections)[:4000], keyboard
 
 
@@ -357,7 +365,7 @@ def _deliver_one(db: Session, main) -> bool:
         TelegramNotificationOutbox.state == "pending",
         TelegramNotificationOutbox.attempts < MAX_ATTEMPTS,
         TelegramNotificationOutbox.next_attempt_at <= now,
-    ).order_by(TelegramNotificationOutbox.id).with_for_update(skip_locked=True).first()
+    ).order_by(TelegramNotificationOutbox.kind == "new_event", TelegramNotificationOutbox.id).with_for_update(skip_locked=True).first()
     if row is None:
         return False
     row.attempts += 1
@@ -377,6 +385,14 @@ def _deliver_one(db: Session, main) -> bool:
                 row.state = "sent"
         elif event is None:
             row.state = "skipped"
+        elif row.kind == "new_event":
+            from demo_event_alerts import can_deliver
+            if can_deliver(db, event, main, row.telegram_id):
+                text, keyboard = render_message(row, event, None)
+                _send_message(int(row.telegram_id), text, keyboard)
+                row.state = "sent"
+            else:
+                row.state = "skipped"
         elif row.kind == "reminder":
             start = venue_start(event)
             offsets = reminder_offsets(db, event)
@@ -487,6 +503,10 @@ def install_notification_worker(app, session_factory, main) -> None:
             while True:
                 try:
                     if time.monotonic() - last_sync >= 60:
+                        from demo_event_alerts import queue_public_events
+                        with session_factory() as db:
+                            queue_public_events(db, main, datetime.now(timezone.utc))
+                            db.commit()
                         with session_factory() as db:
                             _materialize_upcoming(db, main)
                         last_sync = time.monotonic()

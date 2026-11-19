@@ -54,6 +54,7 @@ from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
 from demo_roles import WebAccountRole, OrganizerApplication, GlobalAdminDelegation, EventGalleryImage, EventOwnership, EventModerationLog, AccountAdminAudit, install_demo_roles, install_account_moderation
 from demo_organizer_profiles import OrganizerPublicProfile, install_organizer_public_profiles, profile_for_event
 from demo_email import EmailOutbox, EventNotice, queue_email, queue_event_reminder, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
+from demo_event_alerts import track_event
 from demo_broadcast import BroadcastCampaign, BroadcastTelegramOutbox, install_broadcast_api, install_broadcast_worker
 from demo_telegram_notifications import TelegramNotificationOutbox, install_notification_worker
 from demo_privacy import PrivacyRequest, install_privacy_routes
@@ -1508,6 +1509,10 @@ def create_event(
     payload: EventCreate,
     db: Session = Depends(get_db),
 ):
+    return create_event_record(payload, db, commit=True)
+
+
+def create_event_record(payload, db, *, commit):
     payment_instructions = (
         payload.payment_instructions.strip()
         if payload.payment_instructions
@@ -1568,8 +1573,11 @@ def create_event(
             )
         )
 
-    db.commit()
-    db.refresh(event)
+    track_event(db, event.id)
+    db.flush()
+    if commit:
+        db.commit()
+        db.refresh(event)
 
     return event_to_dict(
         event,
