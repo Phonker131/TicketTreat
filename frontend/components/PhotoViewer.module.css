@@ -1,0 +1,48 @@
+.thumbnail {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: zoom-in;
+}
+.thumbnail:focus-visible { outline: 3px solid var(--tom, #159fda); outline-offset: 3px; }
+.viewer {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  border: 0;
+  max-width: calc(100vw - 1rem);
+  max-height: calc(100dvh - 1rem);
+  border-radius: 16px;
+  color: #fff;
+  background: #10161a;
+}
+.viewer::backdrop { background: rgb(0 0 0 / 85%); }
+:global(html):has(.viewer[open]) { overflow: hidden; }
+.frame { display: grid; gap: 6px; padding: 8px; }
+.controls, .navigation { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.controls span { padding-inline-start: 10px; font-variant-numeric: tabular-nums; }
+.frame button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: #273138;
+  color: white;
+  cursor: pointer;
+  font: 24px/1 sans-serif;
+}
+.fullImage {
+  display: block;
+  margin: auto;
+  width: auto;
+  height: auto;
+  max-width: min(1100px, calc(100vw - 2rem));
+  max-height: calc(100vh - 140px);
+  max-height: calc(100dvh - 140px);
+  object-fit: contain;
+}

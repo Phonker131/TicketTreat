@@ -1,5 +1,6 @@
 "use client";
 
+import {PhotoViewer, PosterViewer} from "./PhotoViewer";
 import {PosterArt} from "@/components/premium/PosterArt";
 import Link from "next/link";
 import { useParams,useSearchParams } from "next/navigation";
@@ -141,7 +142,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
           <div className="ev2-media">
           {posterUrl && !posterUnavailable ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="event-image" src={posterUrl} alt="" onError={()=>setPosterUnavailable(true)} />
+            <PosterViewer src={posterUrl}><img className="event-image" src={posterUrl} alt="" onError={()=>setPosterUnavailable(true)} /></PosterViewer>
           ) : (
             <PosterArt seed={event.id} className="event-image tp-event-art" label={event.title}/>
           )}
@@ -195,7 +196,11 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         {!event.is_cancelled&&!preview&&event.organizer&&event.organizer!=="Crowdly"&&<RewardsPlate organizer={event.organizer} slug={event.organizer_profile?.slug} title={event.organizer_profile?.display_name} language={language}/>}
         {event.description && <section className="ev2-about"><h2>{({en:"About the event",cs:"O akci",ru:"Об ивенте",uk:"Про подію"})[language]}</h2><p className="event-description">{event.description}</p></section>}
         {(galleryUrls.length>0 || event.video_url) && <details open className="panel"><summary>{({en:"Photos and video",cs:"Fotografie a video",ru:"Фото и видео",uk:"Фото та відео"})[language]}</summary>
-          <div className="event-media-gallery">{galleryUrls.map((url,index)=><a key={url+index} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`Event gallery photo ${index+1}`} loading="lazy" referrerPolicy="no-referrer"/></a>)}</div>
+          {galleryUrls.length>0&&<PhotoViewer sources={galleryUrls}>{thumbnail=>
+            <div className="event-media-gallery">{galleryUrls.map((url,index)=>
+              <div key={url+index}>{thumbnail(index,<img src={url} alt="" loading="lazy" referrerPolicy="no-referrer"/>)}</div>
+            )}</div>
+          }</PhotoViewer>}
         {event.video_url && <>
           <a className="button button-outline" href={event.video_url} target="_blank" rel="noopener noreferrer">
           {language==="ru"?"Смотреть видео":language==="uk"?"Дивитися відео":language==="cs"?"Zobrazit video":"Watch video"}</a>

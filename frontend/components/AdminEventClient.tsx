@@ -21,6 +21,7 @@ import {
   removeManageParticipant,removeManageWaitlistGuest,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
+import {PhotoViewer, PosterViewer} from "./PhotoViewer";
 import {prepareGalleryPhoto} from "@/lib/gallery-photo";
 import type { AdminEventTickets,ManageEvent,ManageIdentity,OrganizerIdentity,LanguageCode } from "@/lib/types";
 import {TagIcon,isEventTag,type EventTag} from "@/lib/event-tags";
@@ -515,9 +516,12 @@ export function AdminEventClient(){
   }
   const removePosterButton=<button type="button" className="button button-outline" disabled={busy}
     onClick={()=>void removePhoto("poster")}>{language==="cs"?"Odebrat plakát":"Remove poster"}</button>;
-  const gallery=(event?.gallery_urls?.length||0)>0&&<div className="event-media-gallery tt-gal-grid">
-          {(event?.uploaded_gallery||[]).map((photo,i)=><div key={photo.id} className={photo.is_cover?"is-cover":undefined}>
-            <img src={photo.url} alt={tr("Фотография мероприятия")} />
+  const uploaded=event?.uploaded_gallery||[];
+  const linked=event?.external_gallery_urls||[];
+  const photos=[...uploaded.map(photo=>photo.url),...linked];
+  const gallery=photos.length>0&&<PhotoViewer sources={photos}>{thumbnail=><div className="event-media-gallery tt-gal-grid">
+          {uploaded.map((photo,i)=><div key={photo.id} className={photo.is_cover?"is-cover":undefined}>
+            {thumbnail(i,<img src={photo.url} alt="" referrerPolicy="no-referrer"/>)}
             {photo.is_cover&&<span className="tt-gal-cover">{tr("Обложка")}</span>}
             <div className="admin-event-actions">
               {tab==="media"&&<>
@@ -532,11 +536,11 @@ export function AdminEventClient(){
               {removePhotoButton({id:photo.id})}
             </div>
           </div>)}
-          {(event?.external_gallery_urls||[]).map((url,i)=><div key={`${i}-${url}`}>
-            <img src={url} alt={tr("Фотография мероприятия")} loading="lazy"/>
+          {linked.map((url,i)=><div key={`${i}-${url}`}>
+            {thumbnail(uploaded.length+i,<img src={url} alt="" loading="lazy" referrerPolicy="no-referrer"/>)}
             <div className="admin-event-actions">{removePhotoButton({url})}</div>
           </div>)}
-        </div>;
+        </div>}</PhotoViewer>;
   const galleryIsFull=(event?.gallery_urls?.length||0)>=8;
   return <div className="app-shell"><AppHeader/><main className="page">
     <Link href="/admin" className="back-link">{tr("Organizer dashboard")}</Link>
@@ -683,7 +687,7 @@ export function AdminEventClient(){
             if(file)setPosterStatus(language==="cs"?"Soubor je vybraný. Klikněte na Uložit změny.":"File selected. Click Save changes to upload it.");
           }}/>
           <small className="tp-field-hint">{tr("Размер постера: 1080×1350 px (вертикальный 4:5), минимум 800×1000 px. Важное держите в центре, в ленте края могут обрезаться. Цвета остаются как в файле.")}</small></label>
-        {(posterPreview||event.image_url)&&<img src={posterPreview||event.image_url!} alt={posterPreview?"Selected event poster":"Event poster"} className="event-poster-preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/>}
+        {(posterPreview||event.image_url)&&<PosterViewer src={posterPreview||event.image_url!}><img src={posterPreview||event.image_url!} alt={posterPreview?"Selected event poster":"Event poster"} className="event-poster-preview" style={{objectFit:"contain",height:"auto",maxHeight:520}}/></PosterViewer>}
         {poster&&<p className="form-note"><strong>{poster.name} · {(poster.size/1024/1024).toFixed(2)} MB</strong><br/>{language==="cs"?"Náhled nového plakátu. Pro zveřejnění klikněte na Uložit změny.":"New poster preview. Click Save changes to publish it."}</p>}
         {poster?<button className="button button-outline" type="button" disabled={busy} onClick={()=>{
           setPoster(null);setPosterStatus("");setPosterError("");
@@ -697,7 +701,7 @@ export function AdminEventClient(){
       {tab==="media"&&<div className="tp-tabpanel">
       {(event.image_url||event.telegram_photo_file_id)&&<section className="panel form-stack">
         <h2>{tr("Постер")}</h2>
-        {event.image_url&&<img src={event.image_url} alt="" className="event-poster-preview"/>}
+        {event.image_url&&<PosterViewer src={event.image_url}><img src={event.image_url} alt="" className="event-poster-preview"/></PosterViewer>}
         {!event.is_cancelled&&removePosterButton}
         <p className="form-note">{tr("Новый постер загружается на вкладке «Описание».")}</p>
       </section>}
