@@ -6,7 +6,7 @@ Key facts:
 
 - Where: Czechia, mostly Prague. Pages are in English and Czech.
 - Registration on TicketTreat is free. Guests sign in with email, Google or Telegram; Telegram is optional.
-- Payments: during the current pilot TicketTreat does not take card payments. For priced events the organizer sets the price and payment is made directly to the organizer, not through TicketTreat. A QR ticket is issued right after registration.
+- Payments: during the current pilot TicketTreat does not take card payments. For priced events the organizer sets the price and payment is made directly to the organizer, not through TicketTreat. Free events give a QR ticket at once; for some priced events the organizer confirms the place first, and the ticket shows its status under My tickets.
 - Entry: the guest shows the ticket's QR code at the door; each QR works once and only for its event.
 - Full events can have a waiting list; joining it does not guarantee a ticket.
 - Rewards: guests earn levels for repeat visits to the same organizer. A visit counts only when the QR is scanned at the door. Each organizer sets how many visits each level needs and what it gives; counts start over every quarter.
