@@ -97,6 +97,19 @@ html body .tt-legal-content{background:var(--tp-surf)!important;border:1px solid
 html body .tt-legal-content :is(p,li){max-width:72ch}
 html body .tt-legal-content section + section{border-top-color:var(--tp-line)}
 html body .tt-legal-content a{color:var(--tp-fg);text-decoration:underline}
+/* The v11 paper-page link color still wins by specificity in dark mode.
+   Match the themed article itself so every legal link stays readable in both themes. */
+html body .app-shell .tt-legal-page .tt-legal-content a:not(.button){
+ color:var(--tp-fg)!important;
+ text-decoration:underline;
+ text-underline-offset:3px;
+ text-decoration-color:currentColor;
+}
+html body .app-shell .tt-legal-page .tt-legal-content a:not(.button):focus-visible{
+ outline:2px solid var(--tp-fg);
+ outline-offset:3px;
+}
+
 html body .tt-legal-content code{font:500 .9em/1.2 var(--m)}
 html body .tt-legal-operator{background:var(--tp-surf2)!important;border:1px solid var(--tp-line)!important;box-shadow:none!important;color:var(--tp-fg)}
 html body .tt-legal-operator :is(h2,h3,p,strong,a){color:var(--tp-fg)!important}
