@@ -19,3 +19,5 @@ jobs:
           BACKEND_API_URL: http://127.0.0.1:8000
       - run: npx playwright install --only-shell chromium
       - run: npx playwright test e2e/tablet-layout.spec.ts e2e/event-footer.spec.ts
+        env:
+          BACKEND_API_URL: http://127.0.0.1:8000
