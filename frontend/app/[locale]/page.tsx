@@ -3,6 +3,7 @@ import {notFound,permanentRedirect} from "next/navigation";
 import {HomeClient} from "@/components/HomeClient";
 import {publicEvents} from "@/lib/public-events";
 import {homeAlternates} from "@/lib/faq-seo";
+import {jsonLd,siteSchema} from "@/lib/site-schema";
 type Props={params:Promise<{locale:string}>};
 const languageMeta={
   cs:{title:"Akce a vstupenky v Česku",description:"Objevujte akce v Česku, rezervujte místa a ukládejte QR vstupenky v TicketTreat."},
@@ -22,5 +23,8 @@ export default async function LocalizedHome({params}:Props){
   const {locale}=await params;
   if(locale==="uk")permanentRedirect("/en");
   if(!supported(locale))notFound();
-  return <HomeClient forcedLanguage={locale} initialEvents={await publicEvents()}/>;
+  return <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLd(siteSchema())}}/>
+    <HomeClient forcedLanguage={locale} initialEvents={await publicEvents()}/>
+  </>;
 }
