@@ -44,7 +44,7 @@ function sitemapLocations(xml: string): string[] {
 }
 
 for (const [agent, userAgent] of [["Googlebot", googlebot], ["browser", "Mozilla/5.0"]]) {
-  for (const [path, mime] of [["/sitemap.xml", /application\/xml|text\/xml/i], ["/robots.txt", /text\/plain/i]] as const) {
+  for (const [path, mime] of [["/sitemap.xml", /application\/xml|text\/xml/i], ["/sitemap-pages.xml", /application\/xml|text\/xml/i], ["/robots.txt", /text\/plain/i]] as const) {
     test(`${agent}: GET and HEAD ${path} are directly accessible`, async ({request}) => {
       const options = {headers: {"user-agent": userAgent}, maxRedirects: 0};
       const get = await request.get(path, options);
@@ -78,22 +78,27 @@ test("static diagnostic sitemap is valid XML and independent of API",async({requ
 });
 
 test("sitemap is valid XML with unique canonical public URLs", async ({request}) => {
-  const response = await request.get("/sitemap.xml", {headers: {"user-agent": googlebot}, maxRedirects: 0});
-  expect(response.status()).toBe(200);
-  const locations = sitemapLocations(await response.text());
-  const normalized = locations.map(loc => new URL(loc).href);
-  expect(new Set(normalized).size).toBe(normalized.length);
-  expect(normalized).toEqual(expect.arrayContaining([origin + "/", origin + "/cs",origin + "/en",origin + "/cs/faq", origin + "/en/faq",origin + "/privacy-policy",origin + "/terms",origin + "/cookie-policy",origin + "/legal-notice", origin + "/organizers"]));
+  let original: string[] | undefined;
+  for(const path of ["/sitemap.xml", "/sitemap-pages.xml"]){
+    const response = await request.get(path, {headers: {"user-agent": googlebot}, maxRedirects: 0});
+    expect(response.status()).toBe(200);
+    const locations = sitemapLocations(await response.text());
+    const normalized = locations.map(loc => new URL(loc).href);
+    expect(new Set(normalized).size,path).toBe(normalized.length);
+    expect(normalized).toEqual(expect.arrayContaining([origin + "/", origin + "/cs",origin + "/en",origin + "/cs/faq", origin + "/en/faq",origin + "/privacy-policy",origin + "/terms",origin + "/cookie-policy",origin + "/legal-notice", origin + "/organizers",origin + "/business",origin + "/promotions"]));
+    if(original)expect(normalized).toEqual(original);
+    else original=normalized;
+  }
 });
 
 test("robots allows noindex HTML routes while blocking API",async({request})=>{
   const response=await request.get("/robots.txt",{maxRedirects:0});
   expect(response.status()).toBe(200);
   const robots=robotsParser(origin+"/robots.txt",await response.text());
-  expect(robots.getSitemaps()).toEqual([origin+"/sitemap.xml",origin+"/sitemap-events.xml"]);
+  expect(robots.getSitemaps()).toEqual([origin+"/sitemap-pages.xml",origin+"/sitemap-events.xml"]);
   for(const agent of ["Googlebot","Bingbot","TicketTreatAuditBot"]){
-    for(const path of ["/","/sitemap.xml","/cs/faq","/en/faq",
-      "/organizers","/events/910001","/privacy-policy","/cookie-policy","/terms","/legal-notice",
+    for(const path of ["/","/sitemap.xml","/sitemap-pages.xml","/cs/faq","/en/faq",
+      "/organizers","/business","/promotions","/events/910001","/privacy-policy","/cookie-policy","/terms","/legal-notice",
       "/admin","/profile","/tickets","/checkout/910001","/support","/privacy"]){
       expect(robots.isAllowed(origin+path,agent),agent+": "+path).toBe(true);
     }
@@ -110,6 +115,24 @@ test("private HTML routes include HTTP noindex and no-store",async({request})=>{
     const response=await request.get(path,{headers:{"user-agent":googlebot},maxRedirects:0});
     expect(response.headers()["x-robots-tag"],path).toMatch(/noindex/i);
     expect(response.headers()["cache-control"],path).toMatch(/no-store/i);
+  }
+});
+
+test("auth routes are noindex and new public pages have self canonical",async({request})=>{
+  for(const path of ["/login","/password-recovery"]){
+    const response=await request.get(path,{maxRedirects:0});
+    expect(response.status(),path).toBe(200);
+    const dom=new JSDOM(await response.text());
+    expect(dom.window.document.querySelector('meta[name="robots"]')?.getAttribute("content"),path).toMatch(/noindex/i);
+    dom.window.close();
+  }
+  for(const path of ["/business","/promotions"]){
+    const response=await request.get(path,{maxRedirects:0});
+    expect(response.status(),path).toBe(200);
+    const dom=new JSDOM(await response.text());
+    expect(dom.window.document.querySelector('meta[name="robots"]')?.getAttribute("content"),path).toMatch(/index, follow/i);
+    expect(dom.window.document.querySelector('link[rel="canonical"]')?.getAttribute("href"),path).toBe(origin+path);
+    dom.window.close();
   }
 });
 
@@ -159,19 +182,23 @@ test("missing event returns HTTP 404, not a soft-404 HTML page",async({request})
 });
 
 test("stable primary sitemap remains complete during upstream outages",async({request})=>{
-  const expected=["https://tickettreat.eu/","https://tickettreat.eu/cs","https://tickettreat.eu/en","https://tickettreat.eu/cs/faq","https://tickettreat.eu/en/faq","https://tickettreat.eu/privacy-policy","https://tickettreat.eu/terms","https://tickettreat.eu/cookie-policy","https://tickettreat.eu/legal-notice","https://tickettreat.eu/organizers"];
-  const first=await request.get("/sitemap.xml",{maxRedirects:0});
-  expect(first.status()).toBe(200);
-  expect(sitemapLocations(await first.text())).toEqual(expected);
+  const expected=["https://tickettreat.eu/","https://tickettreat.eu/cs","https://tickettreat.eu/en","https://tickettreat.eu/cs/faq","https://tickettreat.eu/en/faq","https://tickettreat.eu/privacy-policy","https://tickettreat.eu/terms","https://tickettreat.eu/cookie-policy","https://tickettreat.eu/legal-notice","https://tickettreat.eu/organizers","https://tickettreat.eu/business","https://tickettreat.eu/promotions"];
+  for(const path of ["/sitemap.xml","/sitemap-pages.xml"]){
+    const first=await request.get(path,{maxRedirects:0});
+    expect(first.status()).toBe(200);
+    expect(sitemapLocations(await first.text())).toEqual(expected);
+  }
   // General CI has live FastAPI, whereas the SEO contract workflow supplies the
   // isolated 8100 failure-injection fixture. Validate the static file in both.
   if(process.env.TICKETTREAT_SEO_FIXTURE==="1")
   for(const [fail,recover] of [["fail-events","recover-events"],["fail-organizers","recover-organizers"]]){
     await request.get("http://127.0.0.1:8100/_fixture/"+fail);
     try{
-      const stable=await request.get("/sitemap.xml",{maxRedirects:0,headers:{"user-agent":googlebot}});
-      expect(stable.status()).toBe(200);
-      expect(sitemapLocations(await stable.text())).toEqual(expected);
+      for(const path of ["/sitemap.xml","/sitemap-pages.xml"]){
+        const stable=await request.get(path,{maxRedirects:0,headers:{"user-agent":googlebot}});
+        expect(stable.status()).toBe(200);
+        expect(sitemapLocations(await stable.text())).toEqual(expected);
+      }
       const optional=await request.get("/sitemap-events.xml",{maxRedirects:0});
       expect(optional.status()).toBe(503);
     }finally{await request.get("http://127.0.0.1:8100/_fixture/"+recover);}
@@ -215,6 +242,7 @@ test("localized home pages have search-friendly descriptions and reciprocal href
 test("advertised dynamic sitemap fails with retryable 503 and no false empty XML",async({request})=>{
   test.skip(process.env.TICKETTREAT_SEO_FIXTURE!=="1","Requires isolated SEO fixture");
   const robotsText=await (await request.get("/robots.txt")).text();
+  expect(robotsText).toContain("Sitemap: "+origin+"/sitemap-pages.xml");
   expect(robotsText).toContain("Sitemap: "+origin+"/sitemap-events.xml");
   await request.get("http://127.0.0.1:8100/_fixture/fail-events");
   try{
@@ -222,9 +250,11 @@ test("advertised dynamic sitemap fails with retryable 503 and no false empty XML
     expect(response.status()).toBe(503);
     expect(response.headers()["cache-control"]).toMatch(/no-store/i);
     expect(await response.text()).not.toContain("<urlset");
-    const stable=await request.get("/sitemap.xml",{headers:{"user-agent":googlebot}});
-    expect(stable.status()).toBe(200);
-    expect(sitemapLocations(await stable.text())).toHaveLength(10);
+    for(const path of ["/sitemap.xml","/sitemap-pages.xml"]){
+      const stable=await request.get(path,{headers:{"user-agent":googlebot}});
+      expect(stable.status()).toBe(200);
+      expect(sitemapLocations(await stable.text())).toHaveLength(12);
+    }
   }finally{
     await request.get("http://127.0.0.1:8100/_fixture/recover-events");
   }
