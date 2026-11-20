@@ -17,7 +17,7 @@ for(const theme of ["dark","light"] as const){
           root.querySelector<HTMLAnchorElement>('a[href="/terms"]')
         ];
         const rgb=(v:string)=>{
-          const m=v.match(/rgba?\\(\\s*([\\d.]+)[,\\s]+([\\d.]+)[,\\s]+([\\d.]+)/i);
+          const m=v.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
           if(!m)throw Error("Unexpected CSS color: "+v);
           return m.slice(1,4).map(Number);
         };
