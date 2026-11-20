@@ -172,7 +172,8 @@ html body main.ev2 .panel{margin:0 0 20px!important;padding:18px!important;borde
 /* phone: a booking bar at the bottom instead of the tab bar */
 html body main.ev2 .ev2-bar{display:none}
 @media (max-width:999px){
- html body main.ev2{padding-bottom:104px!important}
+ /* Reserve space after the footer, including taller translated or zoomed bars. */
+ html body:has(main.ev2 .ev2-bar){padding-bottom:calc(var(--event-booking-bar-height, 104px) + max(10px, env(safe-area-inset-bottom)) + 16px)!important}
  html body main.ev2 .ev2-book .button{display:none!important}
  html body main.ev2 .ev2-book{grid-template-columns:minmax(0,1fr)}
  html body main.ev2 .ev2-bar{position:fixed;z-index:95;left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:12px;
