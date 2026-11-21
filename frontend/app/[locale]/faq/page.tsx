@@ -2,6 +2,8 @@ import type {Metadata} from "next";
 import {notFound,permanentRedirect} from "next/navigation";
 import {FaqClient} from "@/components/FaqClient";
 import {faqAlternates} from "@/lib/faq-seo";
+import {faqCopy} from "@/lib/faq-content";
+import {jsonLd} from "@/lib/site-schema";
 type Params={params:Promise<{locale:string}>};
 const meta={
  cs:{title:"Často kladené otázky",description:"Odpovědi na otázky o akcích, vstupenkách s QR kódem, Telegramu a podpoře TicketTreat."},
@@ -26,5 +28,11 @@ export default async function LocalizedFaq({params}:Params){
   const {locale}=await params;
   if(locale==="uk")permanentRedirect("/en/faq");
   if(!supported(locale))notFound();
-  return <FaqClient forcedLanguage={locale}/>;
+  const faq={"@context":"https://schema.org","@type":"FAQPage","inLanguage":locale,
+    "mainEntity":faqCopy[locale].sections.flatMap(s=>s.items).map(item=>({"@type":"Question","name":item.q,
+      "acceptedAnswer":{"@type":"Answer","text":item.a}}))};
+  return <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLd(faq)}}/>
+    <FaqClient forcedLanguage={locale}/>
+  </>;
 }

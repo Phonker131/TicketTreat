@@ -8,6 +8,11 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Next 15.2+ streams page metadata into <body> for most clients. Crawlers that do not
+  // run JavaScript (AI search bots) then see no title/description, and Google ignores
+  // canonical/hreflang outside <head>. Treat every client as "HTML limited" so metadata
+  // is always rendered blocking, inside <head>.
+  htmlLimitedBots: /.*/,
   async headers() {
     return [
       {source: "/:path*", headers: [
