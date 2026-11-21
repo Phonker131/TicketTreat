@@ -1,7 +1,7 @@
 name: Tablet layout
 on:
   pull_request:
-    paths: [frontend/app/tablet-layout.css, frontend/app/redesign-v2.css, frontend/components/EventBookingBar.tsx, frontend/components/EventDetailClient.tsx, frontend/e2e/event-footer.spec.ts, frontend/e2e/tablet-layout.spec.ts, .github/workflows/tablet-layout.yml]
+    paths: [frontend/app/tablet-layout.css, frontend/app/redesign-v2.css, frontend/components/EventBookingBar.tsx, frontend/components/EventDetailClient.tsx, frontend/e2e/event-footer.spec.ts, frontend/e2e/tablet-layout.spec.ts, frontend/components/TicketsClient.tsx, frontend/e2e/participant-navigation.spec.ts, .github/workflows/tablet-layout.yml]
 jobs:
   tablet:
     runs-on: ubuntu-latest
@@ -19,5 +19,9 @@ jobs:
           BACKEND_API_URL: http://127.0.0.1:8000
       - run: npx playwright install --only-shell chromium
       - run: npx playwright test e2e/tablet-layout.spec.ts e2e/event-footer.spec.ts
+        env:
+          BACKEND_API_URL: http://127.0.0.1:8000
+      - name: Open a ticket from the mobile ticket list
+        run: npx playwright test e2e/participant-navigation.spec.ts --grep "upcoming ticket"
         env:
           BACKEND_API_URL: http://127.0.0.1:8000
