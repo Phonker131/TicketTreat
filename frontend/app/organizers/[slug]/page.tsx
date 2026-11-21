@@ -3,6 +3,7 @@ import {notFound} from "next/navigation";
 import {OrganizerPublicClient} from "@/components/OrganizerPublicClient";
 import {publicOrganizer} from "@/lib/public-organizers";
 import {seoImageUrl} from "@/lib/seo-image";
+import {jsonLd,organizerSchema} from "@/lib/site-schema";
 
 type Props={params:Promise<{slug:string}>};
 export const dynamic="force-dynamic";
@@ -27,5 +28,8 @@ export default async function OrganizerPage({params}:Props){
   const {slug}=await params;
   const p=await publicOrganizer(slug);
   if(!p)notFound();
-  return <OrganizerPublicClient data={p}/>;
+  return <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLd(organizerSchema(p))}}/>
+    <OrganizerPublicClient data={p}/>
+  </>;
 }

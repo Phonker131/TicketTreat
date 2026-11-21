@@ -97,9 +97,50 @@ test("robots allows noindex HTML routes while blocking API",async({request})=>{
       "/admin","/profile","/tickets","/checkout/910001","/support","/privacy"]){
       expect(robots.isAllowed(origin+path,agent),agent+": "+path).toBe(true);
     }
-    for(const path of ["/api/","/api/gateway/demo/health"]){
+    for(const path of ["/api/","/api/gateway/demo/health","/api/gateway/demo/events/910001",
+      "/api/gateway/api/v1/me/tickets","/api/gateway/demo/public/organizers/seo-fixture"]){
       expect(robots.isAllowed(origin+path,agent),agent+": "+path).toBe(false);
     }
+    // Images referenced by og:image and JSON-LD must be fetchable by crawlers.
+    for(const path of ["/api/gateway/demo/events/910001/poster","/api/gateway/demo/events/910001/gallery/3",
+      "/api/gateway/demo/public/organizers/seo-fixture/media/cover"]){
+      expect(robots.isAllowed(origin+path,agent),agent+": "+path).toBe(true);
+    }
+  }
+});
+
+// JSDOM's querySelector finds tags anywhere; crawlers only honour title/description,
+// canonical and hreflang inside <head>. Check the raw server HTML, before any JavaScript.
+test("metadata is rendered inside <head> for crawlers and browsers",async({request})=>{
+  for(const agent of [googlebot,"GPTBot/1.1","Mozilla/5.0"]){
+    for(const path of ["/","/cs","/en/faq","/organizers"]){
+      const response=await request.get(path,{maxRedirects:0,headers:{"user-agent":agent}});
+      expect(response.status(),path).toBe(200);
+      const dom=new JSDOM(await response.text());
+      const head=dom.window.document.head;
+      expect(head.querySelector("title")?.textContent,agent+" "+path).toBeTruthy();
+      expect(head.querySelector('meta[name="description"]'),agent+" "+path).not.toBeNull();
+      expect(head.querySelector('link[rel="canonical"]'),agent+" "+path).not.toBeNull();
+      dom.window.close();
+    }
+  }
+});
+
+test("home and FAQ describe the platform with structured data",async({request})=>{
+  const read=async(path:string)=>{
+    const dom=new JSDOM(await (await request.get(path,{maxRedirects:0})).text());
+    const data=Array.from(dom.window.document.querySelectorAll('script[type="application/ld+json"]'))
+      .map(node=>{try{return JSON.parse(node.textContent||"null");}catch{return null;}});
+    dom.window.close();
+    return data.flatMap(value=>value?.["@graph"]??[value]).filter(Boolean);
+  };
+  for(const path of ["/","/cs"]){
+    const types=(await read(path)).map(item=>item["@type"]);
+    expect(types,path).toEqual(expect.arrayContaining(["Organization","WebSite"]));
+  }
+  for(const path of ["/cs/faq","/en/faq"]){
+    const faq=(await read(path)).find(item=>item["@type"]==="FAQPage");
+    expect(faq?.mainEntity?.length,path).toBeGreaterThan(5);
   }
 });
 
@@ -232,5 +273,22 @@ test("SEO preview images resolve absolute HTTPS URLs without unsafe schemes",()=
     "javascript:alert(1)", "https://user:password@images.example.test/a.png",
     "/\\\\evil.test/cover.png", "/path\nheader", "  /poster.png"]){
     expect(seoImageUrl(value),value).toBeUndefined();
+  }
+});
+
+test("event structured data uses the venue time and published address fields", async ({request}) => {
+  test.skip(process.env.TICKETTREAT_SEO_FIXTURE !== "1", "Requires isolated SEO fixture");
+  for (const [id, expected] of [["910008", "2099-07-20T17:00:00.000Z"], ["910009", "2099-01-20T18:00:00.000Z"]]) {
+    const response = await request.get("/events/" + id);
+    expect(response.status()).toBe(200);
+    const dom = new JSDOM(await response.text());
+    const script = dom.window.document.querySelector('script[type="application/ld+json"]');
+    const event = JSON.parse(script?.textContent || "null");
+    expect(event.startDate).toBe(expected);
+    if (id === "910008") {
+      expect(event.location.name).toBe("Hall 42");
+      expect(event.location.address).toEqual({"@type":"PostalAddress", addressLocality:"Brno", addressCountry:"CZ"});
+    }
+    dom.window.close();
   }
 });
