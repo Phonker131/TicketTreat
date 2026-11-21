@@ -24,6 +24,8 @@ const organizer = {
 let eventsAvailable=true,organizersAvailable=true,emptyContent=false;
 const routes = new Map([
   ["/health", {ok: true}], ["/events", events], ["/events/910001", event],
+  ["/events/910008", {...event, id:910008, location:"Hall 42", city:"Brno", starts_at:"2099-07-20T19:00:00"}],
+  ["/events/910009", {...event, id:910009, starts_at:"2099-01-20T19:00:00"}],
   ["/demo/public/organizers", [organizer]],
   ["/demo/public/organizers/seo-fixture", {...organizer, upcoming_events: [event], past_events: [], upcoming_count: 1, past_count: 0}],
 ]);
