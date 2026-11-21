@@ -23,10 +23,10 @@ export function TicketsClient() {
   const [error, setError] = useState("");
   const [history, setHistory] = useState(false);
   const words = {
-    cs:["Nadcházející","Historie","Zobrazit QR kód","Zatím tu nejsou žádné vstupenky.","Prohlédnout akce","Zatím žádné minulé rezervace.","Čeká na potvrzení pořadatele","Registrace přes Telegram","Přihlásit se"],
-    en:["Upcoming","History","Show QR code","No upcoming tickets yet.","Find an event","No past bookings yet.","Awaiting organizer confirmation","Telegram registration","Sign in"],
-    ru:["Предстоящие","История","Показать QR-код","Пока нет предстоящих билетов.","Найти событие","Пока нет прошлых записей.","Ожидает подтверждения организатора","Запись через Telegram","Войти"],
-    uk:["Майбутні","Історія","Показати QR-код","Поки немає майбутніх квитків.","Знайти подію","Поки немає минулих записів.","Очікує підтвердження організатора","Реєстрація через Telegram","Увійти"]
+    cs:["Nadcházející","Historie","Zatím tu nejsou žádné vstupenky.","Prohlédnout akce","Zatím žádné minulé rezervace.","Čeká na potvrzení pořadatele","Registrace přes Telegram","Přihlásit se"],
+    en:["Upcoming","History","No upcoming tickets yet.","Find an event","No past bookings yet.","Awaiting organizer confirmation","Telegram registration","Sign in"],
+    ru:["Предстоящие","История","Пока нет предстоящих билетов.","Найти событие","Пока нет прошлых записей.","Ожидает подтверждения организатора","Запись через Telegram","Войти"],
+    uk:["Майбутні","Історія","Поки немає майбутніх квитків.","Знайти подію","Поки немає минулих записів.","Очікує підтвердження організатора","Реєстрація через Telegram","Увійти"]
   }[language];
   const day = (date:Date, timeZone:string) => new Intl.DateTimeFormat("sv-SE", {timeZone}).format(date);
   const today = day(new Date(), "Europe/Prague");
@@ -82,18 +82,17 @@ export function TicketsClient() {
             {[false,true].map((past,i)=><button type="button" key={words[i]} aria-pressed={past===history}
               className={past===history?"button button-primary":"button button-outline"} onClick={()=>setHistory(past)}>{words[i]}</button>)}
           </div>
-          {!error && !rows.length && <section className="panel"><p>{history ? words[5] : words[3]}</p>
-            {!history && <div className="tt-btn-row"><Link className="button button-primary" href="/#events">{words[4]}</Link>
-            {!guest && <Link className="button button-outline" href="/login">{words[8]}</Link>}</div>}
+          {!error && !rows.length && <section className="panel"><p>{history ? words[4] : words[2]}</p>
+            {!history && <div className="tt-btn-row"><Link className="button button-primary" href="/#events">{words[3]}</Link>
+            {!guest && <Link className="button button-outline" href="/login">{words[7]}</Link>}</div>}
           </section>}
           <div className="ticket-list">{rows.map(({event,ticket,cancelled})=>{
-            const qr = ticket?.ticket_status==="active" && !history && !cancelled && ticket.payment_status!=="pending";
             const label = cancelled ? t(language,"cancelledTicket") : ticket?.checked_in_at ? t(language,"checkedIn")
-              : (ticket?.payment_status ?? event?.payment_status)==="pending" ? words[6] : ticket ? t(language,"ticket") : words[7];
+              : (ticket?.payment_status ?? event?.payment_status)==="pending" ? words[5] : ticket ? t(language,"ticket") : words[6];
             return <Link className="ticket-row" key={ticket ? "ticket-"+ticket.id : "event-"+event?.id}
-              href={ticket ? `/tickets/${ticket.id}${qr?"?show=qr":""}` : `/events/${event?.id}`}>
+              href={ticket ? `/tickets/${ticket.id}` : `/events/${event?.id}`}>
               <div><small>{label}</small><h3>{event?.title || t(language,"ticket")}</h3><p>{formatDate(event?.starts_at ?? null,language)}</p></div>
-              <span className="button button-outline">{qr ? words[2] : t(language,"details")}</span>
+              <span className="button button-outline">{t(language, ticket ? "viewTicket" : "details")}</span>
             </Link>;
           })}</div>
           {history&&attendance&&<section className="panel" style={{marginTop:20}}>
