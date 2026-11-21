@@ -227,6 +227,7 @@ export function AdminClient() {
       <li><Link href="/admin/check-in"><DashIcon name="scan"/>{ui.scan}</Link></li>
       <li><Link href="/admin/analytics"><DashIcon name="analytics"/>{x.analytics}</Link></li>
       <li><Link href="/admin/rewards"><DashIcon name="rewards"/>{x.rewards}</Link></li>
+      <li><Link href="/admin/organizer-rewards"><DashIcon name="rewards"/>{language==="cs"?"Odměny pro pořadatele":"Organizer Rewards"}</Link></li>
       <li><Link href="/admin/messages"><DashIcon name="messages"/>{language==="cs"?"Zprávy účastníků":"Attendee messages"}</Link></li>
       <li><Link href="/admin/promotions"><DashIcon name="campaigns"/>{language==="cs"?"Kampaně":"Campaigns"}</Link></li>
       <li><Link href="/admin/organizer-profile"><DashIcon name="profile"/>{x.profile}</Link></li>

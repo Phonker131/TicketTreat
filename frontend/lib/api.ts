@@ -742,6 +742,29 @@ export function getOrganizerAnalytics():Promise<OrganizerAnalytics>{
   return request("/demo/manage/analytics/overview");
 }
 
+/** Preview only: a possible future subscription discount, never a billing change. */
+export type OrganizerSubscriptionRewardLevel = {
+  tier:"starter"|"bronze"|"silver"|"gold"|"platinum";
+  min_events:number;discount_pct:number;
+};
+export type OrganizerSubscriptionRewardPreview = {
+  period_months:3;period_start:string;period_end:string;
+  billing_active:false;discount_applied:false;preview_only:true;editable:boolean;
+  levels:OrganizerSubscriptionRewardLevel[];
+  organizers:{owner_account_id:number;name:string;qualified_events:number;
+    tier:OrganizerSubscriptionRewardLevel["tier"];discount_pct:number;
+    next_tier:OrganizerSubscriptionRewardLevel["tier"]|null;
+    next_threshold:number|null;events_to_next:number;}[];
+};
+export function getOrganizerSubscriptionRewards():Promise<OrganizerSubscriptionRewardPreview>{
+  return request("/demo/manage/organizer-subscription-rewards");
+}
+export function saveOrganizerSubscriptionRewardLevels(levels:OrganizerSubscriptionRewardLevel[]):Promise<{levels:OrganizerSubscriptionRewardLevel[];preview_only:true}>{
+  return request("/demo/manage/organizer-subscription-rewards/levels",{
+    method:"PUT",body:JSON.stringify({levels}),
+  });
+}
+
 /** Organizer-owned read-only performance metrics. */
 export type PilotInsights = {
   event_id:number; capacity:number|null; registered:number;
