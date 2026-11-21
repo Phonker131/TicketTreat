@@ -4,6 +4,7 @@ import {lookupPublicEvent,isUpcomingEvent} from "@/lib/public-events";
 import {notFound} from "next/navigation";
 import type {TicketTreatEvent} from "@/lib/types";
 import {seoImageUrl} from "@/lib/seo-image";
+import {eventPlace,pragueDateTime} from "@/lib/site-schema";
 
 type Props={params:Promise<{id:string}>;searchParams:Promise<{invite?:string}>};
 const validInvite=(s?:string)=>s&&/^[A-Za-z0-9_-]{43}$/.test(s)?s:undefined;
@@ -18,11 +19,11 @@ export async function generateMetadata({params,searchParams}:Props):Promise<Meta
   const event=found.event;
   if(event.visibility==="link_only")return {title:event.title,robots:{index:false,follow:false},referrer:"no-referrer"};
   if(!isUpcomingEvent(event))return {
-    title:"Мероприятие",
+    title:event.title.trim().slice(0,160)||"Event",
     robots:{index:false,follow:true},
   };
   const name=event.title.trim().slice(0,160);
-  const description=(event.description||"Узнайте подробности мероприятия и забронируйте билет на TicketTreat.")
+  const description=(event.description||"Event details and registration on TicketTreat.")
     .replace(/\s+/g," ").trim().slice(0,280);
   const image=seoImageUrl(event.image_url);
   const poster=image?[{url:image,alt:name}]:undefined;
@@ -38,27 +39,22 @@ export async function generateMetadata({params,searchParams}:Props):Promise<Meta
 }
 
 function structuredEvent(event:TicketTreatEvent):Record<string,unknown>|null {
-  if(!isUpcomingEvent(event)||!event.location?.trim()||!event.starts_at)return null;
+  const startDate=pragueDateTime(event.starts_at);
+  if(!isUpcomingEvent(event)||!event.location?.trim()||!startDate)return null;
   const url=`${origin}/events/${event.id}`;
   const result:Record<string,unknown>={
     "@context":"https://schema.org",
     "@type":"Event",
     name:event.title,
-    startDate:event.starts_at,
+    startDate,
     eventStatus:"https://schema.org/EventScheduled",
     eventAttendanceMode:"https://schema.org/OfflineEventAttendanceMode",
     url,
-    location:{
-      "@type":"Place",
-      name:event.location,
-      address:{
-        "@type":"PostalAddress",
-        ...(event.city?{addressLocality:event.city}:{}),
-        addressCountry:event.country_code||"CZ",
-      },
-    },
+    location:eventPlace(event),
     ...(event.description?{description:event.description}:{}),
-    ...(event.organizer?{organizer:{"@type":"Organization",name:event.organizer}}:{}),
+    ...(event.organizer_profile?{organizer:{"@type":"Organization",name:event.organizer_profile.display_name,
+      url:`${origin}/organizers/${event.organizer_profile.slug}`}}
+      :event.organizer?{organizer:{"@type":"Organization",name:event.organizer}}:{}),
   };
   const image=seoImageUrl(event.image_url);
   if(image)result.image=image;

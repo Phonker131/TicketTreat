@@ -4,8 +4,8 @@ import {publicOrganizers} from "@/lib/public-organizers";
 
 export const dynamic="force-dynamic";
 export const metadata:Metadata={
-  title:"Организаторы мероприятий в Чехии",
-  description:"Познакомьтесь с организаторами событий на TicketTreat, изучите их профили и предстоящие мероприятия.",
+  title:"Event organizers in Czechia",
+  description:"Meet the people behind game nights, quizzes and workshops in Prague and across Czechia, and see their upcoming events on TicketTreat.",
   alternates:{canonical:"/organizers"}
 };
 
