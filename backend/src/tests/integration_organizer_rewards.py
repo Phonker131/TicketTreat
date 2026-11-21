@@ -71,6 +71,28 @@ class OrganizerAwardIntegration(unittest.TestCase):
             for header,password in ((current_auth,current_pw),(old_auth,old_pw),
                                     (stranger_auth,stranger_pw)):
                 enroll_mfa(client,header,password)
+            # Future subscription rewards are read-only for organizers,
+            # reuse explicitly reviewed aliases, and never reveal tickets.
+            reward_preview=client.get("/demo/manage/organizer-subscription-rewards",
+                                      headers=current_auth)
+            self.assertEqual(reward_preview.status_code,200,reward_preview.text)
+            self.assertTrue(reward_preview.json()["preview_only"])
+            self.assertFalse(reward_preview.json()["billing_active"])
+            self.assertFalse(reward_preview.json()["discount_applied"])
+            self.assertEqual(reward_preview.json()["period_months"],3)
+            self.assertEqual([(o["owner_account_id"],o["qualified_events"])
+                              for o in reward_preview.json()["organizers"]],[(current_id,2)])
+            self.assertNotIn("qr_token",reward_preview.text)
+            self.assertNotIn("access_token",reward_preview.text)
+            old_preview=client.get("/demo/manage/organizer-subscription-rewards",headers=old_auth)
+            self.assertEqual([(o["owner_account_id"],o["qualified_events"])
+                              for o in old_preview.json()["organizers"]],[(old_id,1)])
+            stranger_preview=client.get("/demo/manage/organizer-subscription-rewards",
+                                        headers=stranger_auth)
+            self.assertEqual([(o["owner_account_id"],o["qualified_events"])
+                              for o in stranger_preview.json()["organizers"]],[(stranger_id,1)])
+            self.assertEqual(client.put("/demo/manage/organizer-subscription-rewards/levels",
+                            headers=current_auth,json={"levels":[]}).status_code,403)
             current_studios=client.get("/demo/manage/loyalty/tiers",headers=current_auth)
             self.assertEqual(current_studios.status_code,200,current_studios.text)
             self.assertEqual([(r["owner_account_id"],r["name"]) for r in current_studios.json()["organizers"]],
