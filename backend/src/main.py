@@ -56,6 +56,7 @@ from demo_organizer_profiles import OrganizerPublicProfile, install_organizer_pu
 from demo_email import EmailOutbox, EventNotice, queue_email, queue_event_reminder, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
 from demo_event_alerts import track_event
 from demo_broadcast import BroadcastCampaign, BroadcastTelegramOutbox, install_broadcast_api, install_broadcast_worker
+from demo_indexnow import install_indexnow
 from demo_telegram_notifications import TelegramNotificationOutbox, install_notification_worker
 from demo_privacy import PrivacyRequest, install_privacy_routes
 from demo_mfa import MFAFactor, MFASession, install_mfa
@@ -3541,6 +3542,7 @@ install_event_chat_api(app, get_db, __import__("sys").modules[__name__])
 install_broadcast_api(app, get_db, __import__("sys").modules[__name__])
 install_broadcast_worker(app, SessionLocal)
 # Operational cancellations, changes and reminders use a separate durable queue.
+install_indexnow(app, SessionLocal)
 install_notification_worker(app, SessionLocal, __import__("sys").modules[__name__])
 
 # Opt-in dedicated expiry worker. Configure on only one Railway backend instance.
