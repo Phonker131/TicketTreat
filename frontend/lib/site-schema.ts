@@ -56,14 +56,28 @@ export function organizerSchema(p:OrganizerPublicDetail){
   };
 }
 
+/** Street and city written in the venue field, e.g. "Nerd Alert, Bulharská 924/26, Praha 10".
+ * A single value without commas ("Hall 42") is treated as the venue name only. */
+function venueAddress(location:string){
+  const parts=location.split(",").map(part=>part.trim()).filter(Boolean);
+  if(parts.length<2)return {street:"",city:""};
+  const city=parts.find(part=>/^(praha|prague)\b/i.test(part))||"";
+  const rest=parts.filter(part=>part!==city);
+  const street=(rest.length>1?rest.slice(1):rest).filter(part=>/\d/.test(part)).join(", ");
+  return {street,city};
+}
+
 export function eventPlace(event:TicketTreatEvent){
+  const written=venueAddress(event.location||"");
+  const city=event.city?.trim()||written.city;
   return {
     "@type":"Place",
     name:event.location?.trim(),
-    ...(event.city || event.country_code ? {
+    ...(written.street || city || event.country_code ? {
       address:{
         "@type":"PostalAddress",
-        ...(event.city ? {addressLocality:event.city} : {}),
+        ...(written.street ? {streetAddress:written.street} : {}),
+        ...(city ? {addressLocality:city} : {}),
         ...(event.country_code ? {addressCountry:event.country_code} : {}),
       },
     } : {}),

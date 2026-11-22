@@ -109,7 +109,7 @@ export function AdminEventClient(){
     const url=URL.createObjectURL(poster);setPosterPreview(url);
     return()=>URL.revokeObjectURL(url);
   },[poster]);
-  const [title,setTitle]=useState(""),[location,setLocation]=useState("");
+  const [title,setTitle]=useState(""),[location,setLocation]=useState(""),[city,setCity]=useState("");
   const [organizer,setOrganizer]=useState(""),[description,setDescription]=useState("");
   const [video,setVideo]=useState("");
   const [startsAt,setStartsAt]=useState(""),[capacity,setCapacity]=useState("30");
@@ -128,7 +128,7 @@ export function AdminEventClient(){
     void getPilotInsights(token,eventId).then(setPilotInsights).catch(()=>setPilotInsights(null));
     void getPilotSettings(token,eventId).then(setPilotSettings).catch(()=>{});
     void getPilotStaff(token,eventId).then(setPilotStaff).catch(()=>setPilotStaff([]));
-    setTitle(ev.title);setLocation(ev.location||"");setOrganizer(ev.organizer||"TicketTreat");
+    setTitle(ev.title);setLocation(ev.location||"");setCity(ev.city||"Praha");setOrganizer(ev.organizer||"TicketTreat");
     setDescription(ev.description||"");setVideo(ev.video_url||"");setStartsAt(asLocal(ev.starts_at));
     setCapacity(String(ev.max_participants??30));setPrice(String(ev.price??0));
     setCurrency(ev.currency||"CZK");setLanguages(ev.languages||[]);
@@ -175,7 +175,7 @@ export function AdminEventClient(){
         // Omit gallery_urls: existing legacy images must survive a normal
         // details save. New images are uploaded through the file picker.
         video_url:video.trim(),
-        country_code:"CZ",city:"",
+        country_code:"CZ",city:city.trim(),
         max_participants:Number(capacity),
         price:String(price),currency,
         starts_at:startsAt+":00",languages,
@@ -633,7 +633,9 @@ export function AdminEventClient(){
         <h2>{tr("Редактировать информацию")}</h2>
         <label>{tr("Название")}<input value={title} required onChange={e=>setTitle(e.target.value)}/></label>
         <label>{tr("Организатор")}<input value={organizer} onChange={e=>setOrganizer(e.target.value)}/></label>
-        <label>{tr("Адрес или место проведения")}<input value={location} onChange={e=>setLocation(e.target.value)}/></label>
+        <label>{tr("Адрес или место проведения")}<input value={location} onChange={e=>setLocation(e.target.value)}/>
+          <small className="tp-field-hint">{tr("Площадка и улица с номером дома, например: Nerd Alert, Bulharská 924/26. По адресу Google покажет ивент на карте.")}</small></label>
+        <label>{tr("Город")}<input value={city} maxLength={100} onChange={e=>setCity(e.target.value)}/></label>
         <label>{tr("Ссылка на площадку")}<input type="url" inputMode="url" value={venueUrl} onChange={e=>setVenueUrl(e.target.value)} placeholder="https://…"/>
           <small className="tp-field-hint">{tr("Сайт, Instagram или страница места на карте. Гости увидят кнопку «Сайт площадки» на странице ивента.")}</small></label>
         <label>{tr("Описание")}<textarea rows={5} value={description} onChange={e=>setDescription(e.target.value)}/></label>

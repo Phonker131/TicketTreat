@@ -7,6 +7,18 @@ import {adminTranslate} from "@/lib/admin-i18n";
  */
 const messages: Array<[string,string,string,string]> = [
   [
+    "Город",
+    "City",
+    "Město",
+    "Місто"
+  ],
+  [
+    "Площадка и улица с номером дома, например: Nerd Alert, Bulharská 924/26. По адресу Google покажет ивент на карте.",
+    "Venue and street with number, for example: Nerd Alert, Bulharská 924/26. Google uses the address to show the event on the map.",
+    "Místo a ulice s číslem, například: Nerd Alert, Bulharská 924/26. Podle adresy Google ukáže akci na mapě.",
+    "Майданчик і вулиця з номером, наприклад: Nerd Alert, Bulharská 924/26. За адресою Google покаже подію на мапі."
+  ],
+  [
     "Сначала войди в профиль.",
     "Sign in to your profile first.",
     "Nejprve se přihlas ke svému profilu.",
