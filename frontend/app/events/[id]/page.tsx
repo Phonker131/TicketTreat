@@ -81,6 +81,6 @@ export default async function EventPage({params,searchParams}:Props){
     {schema&&<script type="application/ld+json" dangerouslySetInnerHTML={{
       __html:JSON.stringify(schema).replace(/</g,"\\u003c"),
     }}/>}
-    <EventDetailClient initialEvent={event}/>
+    <EventDetailClient key={event.id} initialEvent={event}/>
   </>;
 }

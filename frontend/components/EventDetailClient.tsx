@@ -39,7 +39,8 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
     ru:{manage:"Управление ивентом",title:"Предпросмотр: доступен только организатору.",published:"Ивент также опубликован.",draft:"Черновик пока не виден гостям и не принимает регистрации.",card:"Предпросмотр карточки",cardInfo:"Регистрация в режиме предпросмотра недоступна. Чтобы открыть её для гостей, опубликуй мероприятие в админке.",showMap:"Показать карту",hideMap:"Скрыть карту",mapTitle:"Карта места проведения"},
     uk:{manage:"Керування подією",title:"Попередній перегляд: доступний лише організатору.",published:"Подію також опубліковано.",draft:"Чернетку ще не видно гостям, і вона не приймає реєстрації.",card:"Попередній перегляд події",cardInfo:"Реєстрація в режимі попереднього перегляду недоступна. Опублікуй подію в панелі організатора.",showMap:"Показати карту",hideMap:"Сховати карту",mapTitle:"Карта місця проведення"}
   }[language];
-  const [event, setEvent] = useState<TicketTreatEvent | null>(initialEvent);
+  const [loadedEvent, setEvent] = useState<TicketTreatEvent | null>(null);
+  const event = preview ? loadedEvent : initialEvent ?? loadedEvent;
   const [error, setError] = useState<string | null>(null);
   const [demoPayments,setDemoPayments]=useState(false);
   const [mapOpen,setMapOpen]=useState(false);
@@ -56,11 +57,16 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   useEffect(()=>setPosterUnavailable(false),[event?.image_url]);
 
   useEffect(() => {
-    if (!params?.id) return;
+    if (!params?.id || (!preview && initialEvent?.id === Number(params.id))) return;
+    let active = true;
+    setError(null);
     const token=getWebToken();
     const result=preview ? (token ? getManageEvent(Number(params.id),token) : Promise.reject(new Error("Login required"))) : getEvent(params.id,undefined,inviteToken);
-    result.then(setEvent).catch((e) => setError(e instanceof Error ? e.message : "error"));
-  }, [params?.id,preview,inviteToken]);
+    result.then(data => { if (active) setEvent(data); }).catch(e => {
+      if (active) setError(e instanceof Error ? e.message : "error");
+    });
+    return () => { active = false; };
+  }, [params?.id,preview,inviteToken,initialEvent]);
 
   useEffect(()=>{getBookingConfig().then(cfg=>setDemoPayments(cfg.demo_payment_mode)).catch(()=>{});},[]);
 
