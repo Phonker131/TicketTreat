@@ -35,24 +35,19 @@ export function siteSchema(){
   };
 }
 
-/** Organizer page: who runs the events, where, and what is coming up. */
+/** Organizer page: the organizer only. Full Event structured data is emitted on
+ * each event detail page; abbreviated duplicates here produce Google warnings. */
 export function organizerSchema(p:OrganizerPublicDetail){
   const url=`${origin}/organizers/${p.slug}`;
   const sameAs=[p.website_url,p.instagram?`https://www.instagram.com/${encodeURIComponent(p.instagram)}/`:""]
     .filter(link=>/^https:\/\//.test(link));
   const logo=seoImageUrl(p.logo_url),image=seoImageUrl(p.cover_url);
-  const events=p.upcoming_events.slice(0,20).flatMap(e=>{
-    const startDate=pragueDateTime(e.starts_at);
-    return startDate?[{"@type":"Event","name":e.title,"url":`${origin}/events/${e.id}`,startDate,
-      ...(e.location?{location:eventPlace(e)}:{})}]:[];
-  });
   return {
     "@context":"https://schema.org","@type":"Organization","@id":url+"#org","name":p.display_name,url,
     ...(p.bio?{"description":p.bio.replace(/\s+/g," ").trim().slice(0,600)}:{}),
     ...(logo?{logo}:{}),...(image?{image}:{}),
     ...(p.city?{"address":{"@type":"PostalAddress","addressLocality":p.city,"addressCountry":"CZ"}}:{}),
     ...(sameAs.length?{sameAs}:{}),
-    ...(events.length?{"event":events}:{}),
   };
 }
 
