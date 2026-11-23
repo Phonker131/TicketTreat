@@ -259,6 +259,14 @@ test("separate dynamic event sitemap discovers only eligible fixtures",async({re
     expect(page.status(),path).toBe(200);
     const dom=new JSDOM(await page.text());
     expect(dom.window.document.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(origin+path);
+    // Google should read complete Event data on its canonical event URL only.
+    // Nested summaries in organizer JSON-LD created duplicate, incomplete Event results.
+    if(path.startsWith("/organizers/")){
+      const scripts=Array.from(dom.window.document.querySelectorAll('script[type="application/ld+json"]'));
+      const entities=scripts.map(node=>JSON.parse(node.textContent||"null"));
+      expect(entities.some(value=>value?.["@type"]==="Organization"),path).toBe(true);
+      expect(entities.every(value=>!value?.event),path).toBe(true);
+    }
     dom.window.close();
   }
 });
