@@ -56,6 +56,8 @@ def install_principal_api(app,get_db,main):
                 main.DemoGuest.id==account.guest_id).first()
         if guest is None:
             raise HTTPException(404,"identity_profile_missing")
+        from demo_account_bans import require_guest_active
+        require_guest_active(db, guest.id)
         return guest
 
     @app.post("/demo/me/events/{event_id}/paid-reservations",status_code=201)
