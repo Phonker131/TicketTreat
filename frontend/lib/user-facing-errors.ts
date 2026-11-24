@@ -64,6 +64,12 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
     "ru": "Действие доступно только главному администратору. Войди в административный аккаунт и подтверди MFA.",
     "uk": "Дія доступна лише головному адміністратору. Увійди в адміністративний акаунт і підтвердь MFA."
   },
+  "account_banned": {
+    "en": "This TicketTreat account has been blocked by an administrator. If you believe this is a mistake, contact TicketTreat support.",
+    "cs": "Tento účet TicketTreat byl zablokován správcem. Pokud jde o omyl, kontaktujte podporu TicketTreat.",
+    "ru": "Этот аккаунт TicketTreat заблокирован администратором. Если считаешь это ошибкой, свяжись с поддержкой TicketTreat.",
+    "uk": "Цей акаунт TicketTreat заблоковано адміністратором. Якщо це помилка, звернися до підтримки TicketTreat."
+  },
   "ticket_already_checked_in": {
     "en": "This ticket was already scanned. Check the attendee's record; do not admit them twice.",
     "cs": "Tato vstupenka již byla načtena. Zkontrolujte záznam účastníka a neodbavujte ho dvakrát.",

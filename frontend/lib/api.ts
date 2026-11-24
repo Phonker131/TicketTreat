@@ -471,6 +471,7 @@ export type ManagedAccount = {
   account_id: number; email: string|null; name: string;
   role: "participant" | "organizer" | "global_admin";
   merged_into_account_id?:number|null;
+  banned:boolean; ban_reason?:string|null; banned_at?:string|null;
 };
 export function getManagedAccounts(token:string,includeMerged=false):Promise<ManagedAccount[]> {
   return request(`/demo/manage/accounts${includeMerged?"?include_merged=true":""}`,
@@ -480,6 +481,21 @@ export function setManagedAccountRole(token:string,accountId:number,role:"partic
   return request(`/demo/manage/accounts/${accountId}/role`,{
     method:"PUT",headers:accountHeaders(token),body:JSON.stringify({role})
   });
+}
+/** Reversible global-admin-only account access moderation; server revokes all web sessions. */
+export function banManagedAccount(token:string,accountId:number,reason:string):Promise<{account_id:number;banned:true;ban_reason:string;banned_at:string}> {
+  return request(`/demo/manage/accounts/${accountId}/ban`,{
+    method:"POST",headers:accountHeaders(token),body:JSON.stringify({reason})
+  });
+}
+export function unbanManagedAccount(token:string,accountId:number):Promise<{account_id:number;banned:false}> {
+  return request(`/demo/manage/accounts/${accountId}/ban`,{
+    method:"DELETE",headers:accountHeaders(token)
+  });
+}
+export type AccountBanHistory = {action:"ban"|"unban";reason:string;actor_account_id:number;created_at:string};
+export function getAccountBanHistory(token:string,accountId:number):Promise<AccountBanHistory[]> {
+  return request(`/demo/manage/accounts/${accountId}/ban-history`,{headers:accountHeaders(token)});
 }
 
 export type GlobalAdminDelegation = {account_id:number;email:string;granted_at:string};

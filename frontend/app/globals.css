@@ -983,6 +983,16 @@ input:focus, textarea:focus, select:focus {
 .account-management-role[data-role="organizer"] { background: #f7e1f0; color: #99106f; }
 .account-management-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
 .account-management-actions .button { min-width: 120px; }
+.account-ban-warning { margin: 2px 0 0; color: var(--tom, #f66); font-size: 13px; line-height: 1.45; }
+.account-ban-warning span, .account-ban-history span { display: block; overflow-wrap: anywhere; }
+.account-ban-form, .account-ban-history { flex: 1 1 100%; width: 100%; min-width: 0; padding: 14px; border: 1px solid var(--line, #333); border-radius: 12px; }
+.account-ban-form { display: grid; gap: 12px; }
+.account-ban-form label { display: grid; gap: 8px; }
+.account-ban-form textarea { width: 100%; resize: vertical; }
+.account-ban-form .button { justify-self: start; }
+.account-ban-history p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.account-ban-history p:last-child { margin-bottom: 0; }
+.account-management-actions .account-ban-button, .account-ban-form .account-ban-button { border-color: var(--tom, #f66); }
 @media(max-width:650px){
   .account-management-row { align-items: stretch; flex-direction: column; gap: 13px; }
   .account-management-info { flex-basis: auto; width: 100%; }
