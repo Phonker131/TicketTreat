@@ -98,6 +98,10 @@ class AccountBanTests(unittest.TestCase):
                 self.assertEqual(client.post("/demo/telegram/auth", json={"init_data":signed}).status_code,403)
                 self.assertEqual(client.get("/demo/me/tickets",
                     headers={"X-Telegram-Init-Data":signed}).status_code,403)
+                self.assertEqual(client.get(f"/profile/{telegram_id}").status_code,403)
+                self.assertEqual(client.get(f"/users/{telegram_id}/events").status_code,403)
+                self.assertEqual(client.post("/events/987654321/register",
+                    json={"telegram_id":telegram_id}).status_code,403)
                 self.assertEqual(client.get(f"/demo/guests/{guest_token}/tickets",
                     headers={"X-Telegram-Init-Data":signed}).status_code,403)
                 listed = client.get("/demo/manage/accounts",headers=headers)
