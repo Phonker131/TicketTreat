@@ -30,6 +30,7 @@ class DisposableEmailTests(unittest.TestCase):
             "person@mail.tm",
             "person@sub.mail.tm",
             "person@euploading.com.",
+            "person@sub。euploading。com。",
         ):
             with self.subTest(email=email):
                 self.assertTrue(is_disposable_email(email))
@@ -56,6 +57,21 @@ class DisposableEmailTests(unittest.TestCase):
             self.assertFalse(is_disposable_email("user@test-disposable.example"))
             self.assertTrue(is_disposable_email("user@sub.test-disposable.example"))
             self.assertTrue(is_disposable_email("user@second-disposable.example"))
+
+    def test_invalid_domain_fails_closed(self):
+        for email in ("guest@bad_domain.example", "guest@-invalid.example", "guest@bad..example"):
+            with self.subTest(email=email), self.assertRaises(HTTPException) as error:
+                require_signup_email_allowed(email)
+            self.assertEqual(error.exception.detail, "invalid_email")
+
+    def test_empty_domain_data_fails_closed(self):
+        from io import StringIO
+        from demo_disposable_email import LIST_PATH
+        _bundled_domains.cache_clear()
+        with patch.object(type(LIST_PATH), "open", return_value=StringIO("# no domains")):
+            with self.assertRaises(HTTPException) as error:
+                require_signup_email_allowed("guest@example.org")
+            self.assertEqual(error.exception.status_code, 503)
 
     def test_missing_domain_data_fails_closed(self):
         from demo_disposable_email import LIST_PATH

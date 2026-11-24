@@ -80,6 +80,9 @@ def serialized_ticket(db,t,admin=False,read=None):
 
 def rate_limit(db,account_id,for_new):
     # Rate limiting is enforced by durable, server-owned history (no IP headers).
+    from demo_accounts import WebAccount
+    # Serialize the quota check and the write until the caller commits.
+    db.query(WebAccount.id).filter(WebAccount.id == account_id).with_for_update().one()
     current=now()
     if for_new:
         count=db.query(func.count(SupportTicket.id)).filter(
