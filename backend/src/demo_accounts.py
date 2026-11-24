@@ -182,6 +182,8 @@ def install_demo_accounts(
 ):
     from demo_roles import WebAccountRole, OrganizerApplication, role_for, permanent_global_admin_emails
     def issue_session(db: Session, account: WebAccount) -> str:
+        from demo_account_bans import require_account_active
+        require_account_active(db, account)
         # New sessions last 7 days. Old sessions retain their original expiry;
         # no existing account is logged out by this deployment.
         now = datetime.now(timezone.utc)
@@ -224,6 +226,8 @@ def install_demo_accounts(
         account = db.query(WebAccount).filter(WebAccount.id == session.account_id).first()
         if account is None:
             raise HTTPException(status_code=401, detail="invalid_session")
+        from demo_account_bans import require_account_active
+        require_account_active(db, account)
         return account
 
     def reject_authenticated_signup(authorization: str | None, db: Session) -> None:
