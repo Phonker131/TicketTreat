@@ -578,7 +578,7 @@ button.tt-support-unread{border-left:7px solid var(--tt-tomato);}
 .tt-support-ticket-heading{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;}
 .tt-support-ticket-heading h2{overflow-wrap:anywhere;margin:0;}
 .tt-support-thread{display:grid;gap:14px;margin:16px 0;max-height:650px;overflow:auto;overscroll-behavior:contain;}
-.tt-support-message{background:var(--tt-paper);border:1px solid var(--tt-keyline);
+.tt-support-message{background:var(--tt-paper);color:var(--tt-keyline);border:1px solid var(--tt-keyline);
   padding:17px;border-radius:14px;min-width:0;}
 .tt-support-message.is-staff{background:#fff3dd;border-left:5px solid var(--tt-fire);}
 .tt-support-message p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;margin:10px 0;}
