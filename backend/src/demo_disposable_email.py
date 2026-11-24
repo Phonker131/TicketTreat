@@ -21,7 +21,7 @@ def _domain(value: str) -> str:
     """Canonical domain; never match arbitrary substrings like 'mail.tm.test'."""
     candidate = value.strip().casefold().rstrip(".")
     try:
-        return candidate.encode("idna").decode("ascii")
+        return candidate.encode("idna").decode("ascii").removesuffix(".")
     except UnicodeError:
         return ""
 
@@ -29,7 +29,10 @@ def _domain(value: str) -> str:
 @lru_cache(maxsize=1)
 def _bundled_domains() -> frozenset[str]:
     with LIST_PATH.open(encoding="utf-8") as file:
-        return frozenset(_domain(line) for line in file if line.strip() and not line.startswith("#"))
+        domains = frozenset(_domain(line) for line in file if line.strip() and not line.startswith("#"))
+    if not domains or "" in domains:
+        raise ValueError("Invalid signup domain list")
+    return domains
 
 
 def _configured_domains(variable: str) -> frozenset[str]:
@@ -38,8 +41,10 @@ def _configured_domains(variable: str) -> frozenset[str]:
 
 def is_disposable_email(email: str) -> bool:
     domain = _domain(email.rsplit("@", 1)[-1])
-    if not domain:
-        return False  # Email-format validation remains the caller's job.
+    if len(domain) > 253 or not re.fullmatch(
+        r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", domain
+    ):
+        raise HTTPException(422, "invalid_email")
     allowed = _configured_domains("SIGNUP_EMAIL_DOMAIN_ALLOWLIST")
     if domain in allowed:
         return False
@@ -54,7 +59,7 @@ def is_disposable_email(email: str) -> bool:
 def require_signup_email_allowed(normalized_email: str) -> None:
     try:
         blocked = is_disposable_email(normalized_email)
-    except OSError:
+    except (OSError, ValueError):
         # Never silently disable the signup filter if deployment omitted data.
         raise HTTPException(503, "signup_email_filter_unavailable") from None
     if blocked:
