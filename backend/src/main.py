@@ -1245,6 +1245,8 @@ def save_profile(
     payload: ProfileCreate,
     db: Session = Depends(get_db),
 ):
+    from demo_account_bans import require_telegram_account_active
+    require_telegram_account_active(db, payload.telegram_id)
     contact_preference = normalize_contact_preference(
         payload.contact_preference
     )
@@ -1307,6 +1309,8 @@ def get_profile(
     telegram_id: int,
     db: Session = Depends(get_db),
 ):
+    from demo_account_bans import require_telegram_account_active
+    require_telegram_account_active(db, telegram_id)
     user = (
         db.query(User)
         .filter(User.telegram_id == telegram_id)
@@ -1938,6 +1942,8 @@ def register_to_event(
     db: Session = Depends(get_db),
     x_event_invite: str | None = Header(default=None),
 ):
+    from demo_account_bans import require_telegram_account_active
+    require_telegram_account_active(db, payload.telegram_id)
     use_canonical = not DEMO_ISOLATED_API and _canonical_bot_registration_enabled()
     if use_canonical:
         if payload.telegram_id <= 0:
@@ -2448,6 +2454,8 @@ def get_user_events(
     include_web_tickets: bool = False,
     db: Session = Depends(get_db),
 ):
+    from demo_account_bans import require_telegram_account_active
+    require_telegram_account_active(db, telegram_id)
     user = (
         db.query(User)
         .filter(
