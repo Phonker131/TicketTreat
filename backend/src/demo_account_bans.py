@@ -62,3 +62,13 @@ def require_guest_active(db: Session, guest_id: int) -> None:
     account_id = db.query(WebAccount.id).filter(WebAccount.guest_id == guest_id).scalar()
     if account_id is not None and active_ban(db, account_id) is not None:
         raise HTTPException(status_code=403, detail="account_banned")
+
+
+def require_telegram_account_active(db: Session, telegram_id: int) -> None:
+    """Apply an existing web ban to the legacy private Telegram bot channel."""
+    from demo_telegram import DemoTelegramIdentity
+    identity = db.query(DemoTelegramIdentity.guest_id).filter(
+        DemoTelegramIdentity.telegram_id == telegram_id,
+    ).scalar()
+    if identity is not None:
+        require_guest_active(db, identity)
