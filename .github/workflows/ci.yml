@@ -105,6 +105,12 @@ jobs:
         run: |
           expected="$(find backend/migrations -maxdepth 1 -name '20*.sql' -type f | wc -l | tr -d '[:space:]')"
           psql -h 127.0.0.1 -U tickettreat -d tickettreat_ci -tAc "SELECT count(*) FROM tickettreat_schema_migrations" | grep -qx "$expected"
+      - name: Match PostgreSQL client major to CI server
+        run: |
+          mkdir -p "$RUNNER_TEMP/pg16-client"
+          ln -s "$GITHUB_WORKSPACE/scripts/ci_pg_dump_16.sh" "$RUNNER_TEMP/pg16-client/pg_dump"
+          echo "$RUNNER_TEMP/pg16-client" >> "$GITHUB_PATH"
+          docker run --rm postgres:16 pg_dump --version
       - name: Backup and restore rehearsal on disposable PostgreSQL
         env:
           PGPASSWORD: test_only_password
@@ -112,7 +118,10 @@ jobs:
           mkdir -p "$RUNNER_TEMP/private-backups"
           python scripts/backup_postgres.py --output-dir "$RUNNER_TEMP/private-backups"
           createdb -h 127.0.0.1 -U tickettreat -O tickettreat -T template0 tickettreat_restore_ci
-          pg_restore -h 127.0.0.1 -U tickettreat --no-owner --no-acl -d tickettreat_restore_ci "$RUNNER_TEMP"/private-backups/*.dump
+          docker run --rm --network host --volume "$RUNNER_TEMP:$RUNNER_TEMP" \
+            --env PGPASSWORD postgres:16 \
+            pg_restore -h 127.0.0.1 -U tickettreat --no-owner --no-acl \
+            -d tickettreat_restore_ci "$RUNNER_TEMP"/private-backups/*.dump
           for table in users registrations demo_tickets demo_legacy_ticket_claims demo_mfa_factors demo_privacy_requests; do
             original="$(psql -h 127.0.0.1 -U tickettreat -d tickettreat_ci -tAc "SELECT count(*) FROM $table")"
             restored="$(psql -h 127.0.0.1 -U tickettreat -d tickettreat_restore_ci -tAc "SELECT count(*) FROM $table")"

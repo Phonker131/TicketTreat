@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from db.base import Base
 from demo_accounts import WebAccount, WebSession, normalize_email, token_hash
+from demo_disposable_email import require_signup_email_allowed
 from demo_account_recovery import VerifiedEmail
 from demo_auth_security import guard_rate, record_rate, verify_password
 from demo_mfa import session_for, require_privileged_mfa, utc
@@ -263,6 +264,7 @@ def install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict):
             else:
                 if db.query(WebAccount.id).filter(WebAccount.email == email).first():
                     raise HTTPException(409, "google_link_required")
+                require_signup_email_allowed(email)
                 first = str(claims.get("given_name") or claims.get("name") or "Google user").strip()[:100]
                 last = str(claims.get("family_name") or "").strip()[:100]
                 guest = DemoGuest(access_token=secrets.token_urlsafe(32), first_name=first, last_name=last, email=email)
