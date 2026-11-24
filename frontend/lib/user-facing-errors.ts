@@ -64,6 +64,24 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
     "ru": "Действие доступно только главному администратору. Войди в административный аккаунт и подтверди MFA.",
     "uk": "Дія доступна лише головному адміністратору. Увійди в адміністративний акаунт і підтвердь MFA."
   },
+  "account_banned": {
+    "en": "This TicketTreat account has been blocked by an administrator. If you believe this is a mistake, contact TicketTreat support.",
+    "cs": "Tento účet TicketTreat byl zablokován správcem. Pokud jde o omyl, kontaktujte podporu TicketTreat.",
+    "ru": "Этот аккаунт TicketTreat заблокирован администратором. Если считаешь это ошибкой, свяжись с поддержкой TicketTreat.",
+    "uk": "Цей акаунт TicketTreat заблоковано адміністратором. Якщо це помилка, звернися до підтримки TicketTreat."
+  },
+  "disposable_email_not_allowed": {
+    "en": "Temporary or disposable email addresses can't be used to create TicketTreat accounts. Please use a permanent email address.",
+    "cs": "Pro registraci do TicketTreat nelze použít dočasný ani jednorázový e-mail. Použijte prosím trvalou e-mailovou adresu.",
+    "ru": "Для регистрации в TicketTreat нельзя использовать временную почту. Укажи постоянный email.",
+    "uk": "Для реєстрації в TicketTreat не можна використовувати тимчасову пошту. Укажи постійну email-адресу."
+  },
+  "signup_email_filter_unavailable": {
+    "en": "Email registration is temporarily unavailable. Please try again later.",
+    "cs": "Registrace e-mailem je dočasně nedostupná. Zkuste to prosím později.",
+    "ru": "Регистрация по email временно недоступна. Попробуй позже.",
+    "uk": "Реєстрація за email тимчасово недоступна. Спробуй пізніше."
+  },
   "ticket_already_checked_in": {
     "en": "This ticket was already scanned. Check the attendee's record; do not admit them twice.",
     "cs": "Tato vstupenka již byla načtena. Zkontrolujte záznam účastníka a neodbavujte ho dvakrát.",
