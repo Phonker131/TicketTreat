@@ -1359,6 +1359,18 @@ def install_account_moderation(app, get_db):
             raise HTTPException(status_code=403,detail="global_admin_only")
         return account
 
+    def security_moderation_admin(
+        authorization: str | None = Header(default=None),
+        db: Session = Depends(get_db),
+    ) -> WebAccount:
+        """Banning users is privileged and requires a current MFA challenge."""
+        from demo_mfa import session_for, require_privileged_mfa
+        account, session = session_for(db, authorization)
+        if role_for(db, account) != "global_admin":
+            raise HTTPException(403, "global_admin_only")
+        require_privileged_mfa(db, account, session)
+        return account
+
 
     install_categories(app, get_db, admin_account)
 
@@ -1588,7 +1600,7 @@ def install_account_moderation(app, get_db):
     @app.post("/demo/manage/accounts/{account_id}/ban")
     def ban_account(
         account_id: int, payload: AccountBanRequest,
-        admin: WebAccount = Depends(admin_account), db: Session = Depends(get_db),
+        admin: WebAccount = Depends(security_moderation_admin), db: Session = Depends(get_db),
     ):
         reason=payload.reason.strip()
         if len(reason)<8:
@@ -1615,7 +1627,7 @@ def install_account_moderation(app, get_db):
 
     @app.delete("/demo/manage/accounts/{account_id}/ban")
     def unban_account(
-        account_id: int, admin: WebAccount = Depends(admin_account),
+        account_id: int, admin: WebAccount = Depends(security_moderation_admin),
         db: Session = Depends(get_db),
     ):
         target=(db.query(WebAccount).filter(WebAccount.id==account_id)
@@ -1634,7 +1646,7 @@ def install_account_moderation(app, get_db):
 
     @app.get("/demo/manage/accounts/{account_id}/ban-history")
     def account_ban_history(
-        account_id: int, _admin: WebAccount = Depends(admin_account),
+        account_id: int, _admin: WebAccount = Depends(security_moderation_admin),
         db: Session = Depends(get_db),
     ):
         if db.get(WebAccount,account_id) is None:

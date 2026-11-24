@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from db.base import Base
 from demo_accounts import WebAccount,normalize_email
+from demo_disposable_email import require_signup_email_allowed
 from demo_auth_security import guard_rate,record_rate,hash_password
 from demo_account_recovery import VerifiedEmail,send_code
 
@@ -61,6 +62,7 @@ def install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict,reject_
         if payload.privacy_accepted is not True:
             raise HTTPException(422,"privacy_acceptance_required")
         email=normalize_email(payload.email)
+        require_signup_email_allowed(email)
         ip=request.client.host if request.client else "unknown"
         guard_rate(db,"quick_ip",ip,12,3600)
         guard_rate(db,"quick_email",email,4,3600)
@@ -98,6 +100,7 @@ def install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict,reject_
         guard_rate(db,"quick_confirm_ip",ip,20,3600)
         record_rate(db,"quick_confirm_ip",ip,3600)
         email=normalize_email(payload.email)
+        require_signup_email_allowed(email)
         row=db.query(QuickSignupPending).filter(
             QuickSignupPending.email==email).with_for_update().first()
         if row is None or utc(row.expires_at)<=datetime.now(timezone.utc) or row.attempts>=5:

@@ -31,6 +31,7 @@ from sqlalchemy.orm import Session
 from db.base import Base
 from demo_geography import DemoAccountPlace, clean_location, place_dict, save_place
 from demo_email import queue_email
+from demo_disposable_email import require_signup_email_allowed
 from demo_auth_security import AuthRateBucket, DUMMY_PASSWORD_HASH, hash_password, verify_password, needs_rehash, validate_new_password, guard_rate, record_rate, clear_rate
 
 SESSION_DAYS = 7
@@ -301,10 +302,11 @@ def install_demo_accounts(
         reject_parallel_signup_inside_telegram(request)
         reject_authenticated_signup(authorization, db)
         source_ip = request.client.host if request.client else "unknown"
-        guard_rate(db, "signup_ip", source_ip, 40, 600)
+        guard_rate(db, "signup_ip", source_ip, 20, 600)
         record_rate(db, "signup_ip", source_ip, 600)
         validate_new_password(payload.password)
         email = normalize_email(payload.email)
+        require_signup_email_allowed(email)
         if db.query(WebAccount.id).filter(WebAccount.email == email).first():
             raise HTTPException(status_code=409, detail="email_already_registered")
         require_otp = os.getenv("REQUIRE_SIGNUP_EMAIL_OTP", "false").lower() in {"1", "true", "yes"}

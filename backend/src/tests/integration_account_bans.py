@@ -78,6 +78,17 @@ class AccountBanTests(unittest.TestCase):
                 url = f"/demo/manage/accounts/{target_id}/ban"
                 self.assertEqual(client.post(url, headers=target_headers,
                     json={"reason":"dangerous scripted activity"}).status_code, 403)
+                # A global-admin cookie alone must not be able to ban users.
+                with SessionLocal() as db:
+                    db.query(MFASession).filter(
+                        MFASession.session_hash == token_hash(admin_token)).delete()
+                    db.commit()
+                self.assertEqual(client.post(url, headers=headers,
+                    json={"reason":"dangerous scripted activity"}).status_code, 403)
+                with SessionLocal() as db:
+                    db.add(MFASession(session_hash=token_hash(admin_token),
+                        account_id=admin_id, verified_until=now+timedelta(hours=1)))
+                    db.commit()
                 self.assertEqual(client.post(f"/demo/manage/accounts/{admin_id}/ban",
                     headers=headers, json={"reason":"self-ban attempt"}).status_code, 403)
                 self.assertEqual(client.post(f"/demo/manage/accounts/{protected_id}/ban",
