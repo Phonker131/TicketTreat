@@ -86,6 +86,8 @@ def session_for(db: Session, authorization: str | None) -> tuple[WebAccount, Web
     account=db.query(WebAccount).filter(WebAccount.id == session.account_id).first()
     if account is None:
         raise HTTPException(401, "invalid_session")
+    from demo_account_bans import require_account_active
+    require_account_active(db, account)
     return account,session
 
 

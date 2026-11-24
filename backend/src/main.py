@@ -52,6 +52,7 @@ from demo_site_content import SiteLanding, install_site_content
 from demo_telegram import DemoTelegramIdentity, install_telegram_auth, verified_telegram_id_for_guest, verified_telegram_user, send_miniapp_ticket_notice
 from demo_geography import DemoAccountPlace, DemoEventPlace, place_dict
 from demo_roles import WebAccountRole, OrganizerApplication, GlobalAdminDelegation, EventGalleryImage, EventOwnership, EventModerationLog, AccountAdminAudit, install_demo_roles, install_account_moderation
+from demo_account_bans import AccountBanAction
 from demo_organizer_profiles import OrganizerPublicProfile, install_organizer_public_profiles, profile_for_event
 from demo_email import EmailOutbox, EventNotice, queue_email, queue_event_reminder, ticket_language, install_email_worker, enabled as email_enabled, configured as email_configured
 from demo_event_alerts import track_event
@@ -1244,6 +1245,8 @@ def save_profile(
     payload: ProfileCreate,
     db: Session = Depends(get_db),
 ):
+    from demo_account_bans import require_telegram_account_active
+    require_telegram_account_active(db, payload.telegram_id)
     contact_preference = normalize_contact_preference(
         payload.contact_preference
     )
@@ -1306,6 +1309,8 @@ def get_profile(
     telegram_id: int,
     db: Session = Depends(get_db),
 ):
+    from demo_account_bans import require_telegram_account_active
+    require_telegram_account_active(db, telegram_id)
     user = (
         db.query(User)
         .filter(User.telegram_id == telegram_id)
@@ -1937,6 +1942,8 @@ def register_to_event(
     db: Session = Depends(get_db),
     x_event_invite: str | None = Header(default=None),
 ):
+    from demo_account_bans import require_telegram_account_active
+    require_telegram_account_active(db, payload.telegram_id)
     use_canonical = not DEMO_ISOLATED_API and _canonical_bot_registration_enabled()
     if use_canonical:
         if payload.telegram_id <= 0:
@@ -2447,6 +2454,8 @@ def get_user_events(
     include_web_tickets: bool = False,
     db: Session = Depends(get_db),
 ):
+    from demo_account_bans import require_telegram_account_active
+    require_telegram_account_active(db, telegram_id)
     user = (
         db.query(User)
         .filter(
@@ -2917,7 +2926,9 @@ def authorize_guest_request(
     register an event or cancel registrations. Both authentication methods
     resolve to the exact same underlying guest_id.
     """
+    from demo_account_bans import require_guest_active
     if os.getenv("APP_ENV", "development").strip().lower() != "production":
+        require_guest_active(db, guest.id)
         return
 
     if telegram_init_data:
@@ -2931,6 +2942,7 @@ def authorize_guest_request(
         ).first()
         if link is None:
             raise HTTPException(status_code=403, detail="guest_identity_mismatch")
+        require_guest_active(db, guest.id)
         return
 
     if authorization and authorization.startswith("Bearer "):
@@ -2949,6 +2961,7 @@ def authorize_guest_request(
                 ).first()
                 if account and expiry and expiry > utc_now():
                     if email_is_verified(db, account.id):
+                        require_guest_active(db, guest.id)
                         return
                     # Telegram-only web sessions are first-party sessions for
                     # the already HMAC/OIDC-verified Telegram identity. Never
@@ -2959,6 +2972,7 @@ def authorize_guest_request(
                             and db.query(DemoTelegramIdentity.telegram_id).filter(
                                 DemoTelegramIdentity.guest_id == guest.id,
                                 DemoTelegramIdentity.telegram_id == guest.telegram_id).first()):
+                        require_guest_active(db, guest.id)
                         return
         raise HTTPException(status_code=403, detail="guest_identity_mismatch")
 

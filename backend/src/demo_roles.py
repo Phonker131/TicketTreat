@@ -26,6 +26,7 @@ from pydantic import AfterValidator, BaseModel, Field
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint, Boolean, func
 from sqlalchemy.orm import Session
 from db.base import Base
+from demo_account_bans import AccountBanAction, active_ban, active_bans_for
 from demo_event_categories import DEFAULTS, catalog, install_categories
 from demo_geography import DemoEventPlace, place_dict, save_place
 from demo_accounts import WebAccount, WebSession, token_hash, safe_csv
@@ -363,6 +364,8 @@ def account_lookup(db: Session, authorization: str | None) -> WebAccount:
     account = db.query(WebAccount).filter(WebAccount.id == row.account_id).first()
     if account is None:
         raise HTTPException(status_code=401, detail="invalid_session")
+    from demo_account_bans import require_account_active
+    require_account_active(db, account)
     from demo_mfa import require_privileged_mfa
     require_privileged_mfa(db,account,row)
     return account
@@ -1296,6 +1299,10 @@ class AccountRoleChange(BaseModel):
     role: str = Field(pattern="^(participant|organizer)$")
 
 
+class AccountBanRequest(BaseModel):
+    reason: str = Field(min_length=8, max_length=500)
+
+
 def install_account_moderation(app, get_db):
     @app.post("/demo/auth/admin-claim")
     def claim_global_admin(
@@ -1379,6 +1386,8 @@ def install_account_moderation(app, get_db):
         target = db.query(WebAccount).filter(WebAccount.email == email).with_for_update().first()
         if target is None:
             raise HTTPException(404, "account_not_found_sign_up_first")
+        if active_ban(db, target.id):
+            raise HTTPException(409, "account_banned")
         if not email_is_verified(db, target.id):
             raise HTTPException(403, "target_email_verification_required")
         if target.id in global_admin_ids():
@@ -1482,6 +1491,8 @@ def install_account_moderation(app, get_db):
         target=db.query(WebAccount).filter(WebAccount.id==account_id).first()
         if target is None or (payload.approve and not email_is_verified(db,target.id)):
             raise HTTPException(409,"account_or_verification_missing")
+        if payload.approve and active_ban(db, account_id):
+            raise HTTPException(409, "account_banned")
         application.status="approved" if payload.approve else "rejected"
         application.decided_at=datetime.now(timezone.utc);application.decided_by=admin.id
         if payload.approve:
@@ -1563,12 +1574,75 @@ def install_account_moderation(app, get_db):
     ):
         archives=merged_account_archives(db)
         rows=db.query(WebAccount).order_by(WebAccount.id.desc()).limit(300).all()
+        bans=active_bans_for(db,[a.id for a in rows])
         return [{
             "account_id":a.id,"email":a.email,
             "name":f"{a.first_name} {a.last_name}",
             "role":role_for(db,a),
             "merged_into_account_id":archives.get(a.id),
+            "banned":a.id in bans,
+            "ban_reason":bans[a.id].reason if a.id in bans else None,
+            "banned_at":bans[a.id].created_at if a.id in bans else None,
         } for a in rows if include_merged or a.id not in archives]
+
+    @app.post("/demo/manage/accounts/{account_id}/ban")
+    def ban_account(
+        account_id: int, payload: AccountBanRequest,
+        admin: WebAccount = Depends(admin_account), db: Session = Depends(get_db),
+    ):
+        reason=payload.reason.strip()
+        if len(reason)<8:
+            raise HTTPException(422,"ban_reason_required")
+        target=(db.query(WebAccount).filter(WebAccount.id==account_id)
+                .with_for_update().first())
+        if target is None:
+            raise HTTPException(404,"account_not_found")
+        if target.id==admin.id or role_for(db,target)=="global_admin":
+            raise HTTPException(403,"cannot_ban_global_admin")
+        if target.id in merged_account_archives(db):
+            raise HTTPException(409,"merged_account_locked")
+        if active_ban(db,account_id):
+            raise HTTPException(409,"account_already_banned")
+        action=AccountBanAction(account_id=account_id,actor_account_id=admin.id,
+                                action="ban",reason=reason)
+        db.add(action)
+        db.query(WebSession).filter(WebSession.account_id==account_id).delete(synchronize_session=False)
+        db.add(AccountAdminAudit(actor_account_id=admin.id,target_account_id=account_id,
+                                 action="account_banned"))
+        db.commit()
+        return {"account_id":account_id,"banned":True,"ban_reason":reason,
+                "banned_at":action.created_at}
+
+    @app.delete("/demo/manage/accounts/{account_id}/ban")
+    def unban_account(
+        account_id: int, admin: WebAccount = Depends(admin_account),
+        db: Session = Depends(get_db),
+    ):
+        target=(db.query(WebAccount).filter(WebAccount.id==account_id)
+                .with_for_update().first())
+        if target is None:
+            raise HTTPException(404,"account_not_found")
+        if not active_ban(db,account_id):
+            raise HTTPException(409,"account_not_banned")
+        db.add(AccountBanAction(account_id=account_id,actor_account_id=admin.id,
+                                action="unban",reason="Administrator lifted the ban"))
+        db.add(AccountAdminAudit(actor_account_id=admin.id,target_account_id=account_id,
+                                 action="account_unbanned"))
+        db.commit()
+        # Sessions revoked on ban remain revoked after unban.
+        return {"account_id":account_id,"banned":False}
+
+    @app.get("/demo/manage/accounts/{account_id}/ban-history")
+    def account_ban_history(
+        account_id: int, _admin: WebAccount = Depends(admin_account),
+        db: Session = Depends(get_db),
+    ):
+        if db.get(WebAccount,account_id) is None:
+            raise HTTPException(404,"account_not_found")
+        rows=(db.query(AccountBanAction).filter(AccountBanAction.account_id==account_id)
+              .order_by(AccountBanAction.id.desc()).limit(100).all())
+        return [{"action":r.action,"reason":r.reason,"actor_account_id":r.actor_account_id,
+                 "created_at":r.created_at} for r in rows]
 
     @app.put("/demo/manage/accounts/{account_id}/role")
     def change_role(
@@ -1579,6 +1653,8 @@ def install_account_moderation(app, get_db):
         target=db.query(WebAccount).filter(WebAccount.id==account_id).first()
         if target is None:
             raise HTTPException(status_code=404,detail="account_not_found")
+        if active_ban(db,account_id):
+            raise HTTPException(status_code=409,detail="account_banned")
         if account_id in merged_account_archives(db):
             raise HTTPException(status_code=409,detail="merged_account_role_locked")
         if account_id in global_admin_ids():
