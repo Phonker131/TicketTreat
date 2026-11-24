@@ -21,31 +21,30 @@ class ProfileCopyTests(unittest.TestCase):
             self.assertEqual([cmd for cmd,_ in copy["commands"]],baseline)
             self.assertEqual(len(copy["buttons"]),2)
             self.assertTrue(copy["start_actions"])
-            self.assertIn("/passport",copy["start"])
-            self.assertIn("/tickets",copy["start"])
+            self.assertIn("Akce" if lang == "cs" else "Events",copy["start"])
+            self.assertIn("Moje vstupenky" if lang == "cs" else "My tickets",copy["start"])
             self.assertIn("TicketTreat",copy["description"])
 
     def test_source_copy_exact_start(self):
         en=module.welcome_text("en","Alex")
         cs=module.welcome_text("cs","Petr")
-        self.assertTrue(en.startswith("Hi, Alex! This is TicketTreat."))
-        self.assertTrue(cs.startswith("Ahoj, Petr! Tady TicketTreat."))
-        self.assertTrue(en.endswith('Pick an event, tap "Book a spot" and your ticket arrives here.'))
+        self.assertTrue(en.startswith("Hi, Alex! Tap Events"))
+        self.assertTrue(cs.startswith("Ahoj, Petr! Klepni na Akce"))
+        self.assertTrue(en.endswith("show the QR code at the door."))
         self.assertTrue(module.welcome_text("ru","Alex").startswith("Hi, Alex!"))
 
 
-    def test_start_shortcuts_are_localized_and_link_to_correct_pages(self):
+    def test_copy_send_uses_safe_app_buttons_and_localized_text(self):
         import ast
         import types
         source=PATH.parent.joinpath("main.py").read_text(encoding="utf-8")
         tree=ast.parse(source)
-        helper=next(node for node in tree.body if isinstance(node,ast.FunctionDef)
-                    and node.name=="send_start_shortcuts")
+        helpers=[node for node in tree.body if isinstance(node,ast.FunctionDef)
+                 and node.name in {"copy_webapp_button", "bot_copy_keyboard", "copy_send"}]
         class Keyboard:
-            def __init__(self,row_width=1):
-                self.row_width=row_width
+            def __init__(self):
                 self.rows=[]
-            def row(self,*buttons):
+            def add(self,*buttons):
                 self.rows.append(list(buttons))
         class Bot:
             def __init__(self):
@@ -56,34 +55,35 @@ class ProfileCopyTests(unittest.TestCase):
         scope={
             "WEB_APP_URL":"https://tickettreat.eu",
             "InlineKeyboardMarkup":Keyboard,
-            "copy_webapp_button":lambda label,route,*,private=True: (label,route,private),
+            "InlineKeyboardButton":lambda label,**kwargs:types.SimpleNamespace(label=label,**kwargs),
+            "WebAppInfo":lambda url:types.SimpleNamespace(url=url),
             "preserve_custom":lambda text:text,
             "bot":bot,
         }
-        exec(compile(ast.Module(body=[helper],type_ignores=[]),str(PATH.parent/"main.py"),"exec"),scope)
+        exec(compile(ast.Module(body=helpers,type_ignores=[]),str(PATH.parent/"main.py"),"exec"),scope)
         for language in ("en","cs"):
             for chat_type in ("private","supergroup"):
                 bot.sent.clear()
                 message=types.SimpleNamespace(chat=types.SimpleNamespace(id=17,type=chat_type))
                 copy=module.get_copy(language)
-                scope["send_start_shortcuts"](message,copy)
+                scope["copy_send"](message,copy["start_actions"],[(copy["buttons"][0],"/"),(copy["buttons"][1],"/tickets")])
                 self.assertEqual(len(bot.sent),1)
                 chat_id,text,markup=bot.sent[0]
                 self.assertEqual((chat_id,text),(17,copy["start_actions"]))
-                self.assertEqual(markup.row_width,2)
-                self.assertEqual(markup.rows,[[
-                    (copy["buttons"][0],"/",chat_type=="private"),
-                    (copy["buttons"][1],"/tickets",chat_type=="private"),
-                ]])
+                self.assertEqual(len(markup.rows),2)
+                for index,route in enumerate(("/","/tickets")):
+                    button=markup.rows[index][0]
+                    self.assertEqual(button.label,copy["buttons"][index])
+                    self.assertEqual((button.web_app.url if chat_type=="private" else button.url),"https://tickettreat.eu"+route)
         scope["WEB_APP_URL"]="http://localhost:3000"
         bot.sent.clear()
-        scope["send_start_shortcuts"](
+        scope["copy_send"](
             types.SimpleNamespace(chat=types.SimpleNamespace(id=17,type="private")),
-            module.get_copy("en"),
+            module.get_copy("en")["start_actions"],[("Show events","/")],
         )
-        self.assertEqual(bot.sent,[])
+        self.assertEqual(bot.sent[0][2],None)
 
-    def test_start_preserves_bottom_menu_and_adds_shortcuts(self):
+    def test_start_preserves_bottom_menu_with_branded_welcome(self):
         import ast
         import types
         source=PATH.parent.joinpath("main.py").read_text(encoding="utf-8")
@@ -92,7 +92,6 @@ class ProfileCopyTests(unittest.TestCase):
                 and node.name=="start")
         fn.decorator_list=[]
         sent=[]
-        shortcuts=[]
         menu=object()
         scope={
             "remember_telegram_language":lambda user:"cs",
@@ -100,7 +99,6 @@ class ProfileCopyTests(unittest.TestCase):
             "welcome_text":module.welcome_text,
             "preserve_custom":lambda text:text,
             "get_main_menu":lambda user_id, **_kwargs:menu,
-            "send_start_shortcuts":lambda message,copy:shortcuts.append((message,copy)),
             "bot":types.SimpleNamespace(send_message=lambda *a,**kw:sent.append((a,kw))),
         }
         exec(compile(ast.Module(body=[fn],type_ignores=[]),str(PATH.parent/"main.py"),"exec"),scope)
@@ -117,7 +115,7 @@ class ProfileCopyTests(unittest.TestCase):
         self.assertEqual(len(sent),1)
         self.assertIs(sent[0][0][3],menu)
         self.assertIn("Ahoj, Алексей!",sent[0][0][2])
-        self.assertEqual(shortcuts,[(message,module.get_copy("cs"))])
+        self.assertEqual(sent[0][1]["language"],"cs")
 
     def test_telegram_auto_locale_and_explicit_fallback(self):
         self.assertEqual(module.normalize_language("cs-CZ"),"cs")

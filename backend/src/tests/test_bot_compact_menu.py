@@ -1,7 +1,6 @@
-"""Regression tests for minimal Telegram reply keyboards (no bot token/network)."""
+"""Regression tests for the current minimal Telegram reply keyboard."""
 import ast
 import pathlib
-import time
 import unittest
 from types import SimpleNamespace
 
@@ -25,15 +24,9 @@ class MenuTests(unittest.TestCase):
     def setUp(self):
         tree=ast.parse(SOURCE.read_text(encoding="utf-8"))
         funcs=[x for x in tree.body if isinstance(x,ast.FunctionDef)
-               and x.name in {"menu_profile_complete", "get_main_menu"}]
+               and x.name == "get_main_menu"]
         self.calls=[]
-        status={100:True,101:False,102:True}
-        def api(method,path,timeout):
-            self.calls.append(path)
-            return {"complete":status[int(path.split("/")[-1])]}
-        self.scope={"time":time,"backend_request":api,
-                    "_menu_registration_cache":{},"MENU_REGISTRATION_TTL_SECONDS":90,
-                    "ReplyKeyboardMarkup":Keyboard,"KeyboardButton":Button,
+        self.scope={"ReplyKeyboardMarkup":Keyboard,"KeyboardButton":Button,
                     "WebAppInfo":lambda url:SimpleNamespace(url=url),
                     "WEB_APP_URL":"https://tickettreat.eu",
                     "is_admin":lambda i:i==102}
@@ -48,7 +41,6 @@ class MenuTests(unittest.TestCase):
         labels=self.labels(100)
         self.assertEqual(labels,[
             ["📅 Events","🎟 My tickets"],
-            ["👤 My profile","🏅 Passport"],
             ["🆘 Client service"]])
         self.assertNotIn("🏠 Start",sum(labels,[]))
         self.assertNotIn("🌐 TicketTreat Mini App",sum(labels,[]))
@@ -58,14 +50,14 @@ class MenuTests(unittest.TestCase):
         group=self.scope["get_main_menu"](100,private=False)
         self.assertNotIn("web_app",group.keyboard[0][1].kwargs)
 
-    def test_new_user_keeps_start_and_explicit_registration(self):
+    def test_new_user_gets_same_short_menu_without_duplicate_registration(self):
         labels=self.labels(101)
         self.assertEqual(labels,[
-            ["🏠 Start","📅 Events"],
-            ["📝 Registration","🆘 Client service"]])
+            ["📅 Events","🎟 My tickets"],
+            ["🆘 Client service"]])
 
-    def test_passport_is_exposed_only_to_registered_users(self):
-        self.assertIn("🏅 Passport",sum(self.labels(100),[]))
+    def test_passport_remains_command_instead_of_bottom_menu_clutter(self):
+        self.assertNotIn("🏅 Passport",sum(self.labels(100),[]))
         self.assertNotIn("🏅 Passport",sum(self.labels(101),[]))
 
     def test_passport_button_reuses_existing_command(self):
@@ -86,11 +78,11 @@ class MenuTests(unittest.TestCase):
         self.assertEqual(labels[-1],["⚙️ Admin"])
         self.assertNotIn("🏠 Start",sum(labels,[]))
 
-    def test_menu_uses_cached_registration_to_avoid_per_message_api_calls(self):
+    def test_menu_does_not_fetch_account_registration_on_each_open(self):
         self.labels(100)
         self.labels(100)
         self.labels(100)
-        self.assertEqual(self.calls,["/profile/100"])
+        self.assertEqual(self.calls,[])
 
 if __name__=="__main__":
     unittest.main()
