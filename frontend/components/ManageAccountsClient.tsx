@@ -176,7 +176,7 @@ export function ManageAccountsClient() {
         </div>}
         {historyTarget===a.account_id&&<div className="account-ban-history">
           {banHistory.length===0?<p>{banUI.noHistory}</p>:banHistory.map((event,i)=><p key={i}>
-            <strong>{event.action==="ban"?banUI.ban:banUI.unban}</strong> · {banUI.by} #{event.actor_account_id} · {banUI.at} {new Date(event.created_at).toLocaleString(language)}<span>{event.reason}</span>
+            <strong>{event.action==="ban"?banUI.ban:banUI.unban}</strong> · {event.actor_account_id===0?(language==="cs"?"Systém":"System"):`${banUI.by} #${event.actor_account_id}`} · {banUI.at} {new Date(event.created_at).toLocaleString(language)}<span>{event.reason}</span>
           </p>)}
         </div>}
       </div>)}
