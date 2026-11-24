@@ -268,6 +268,9 @@ def ensure_telegram_web_account(db: Session, DemoGuest, claims: dict, *,
         if guest is None:
             raise HTTPException(409, "telegram_identity_incomplete")
     account = db.query(WebAccount).filter(WebAccount.guest_id == guest.id).first()
+    if account is not None:
+        from demo_account_bans import require_account_active
+        require_account_active(db, account)
     if enforce_registry_mode() and registry_account is not None:
         # A registry binding is authoritative even when the legacy mapping is
         # stale. Never silently reassign its tickets to a different account.
