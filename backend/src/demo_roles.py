@@ -26,7 +26,8 @@ from pydantic import AfterValidator, BaseModel, Field
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint, Boolean, func
 from sqlalchemy.orm import Session
 from db.base import Base
-from demo_account_bans import AccountBanAction, active_ban, active_bans_for
+from demo_account_bans import (AccountBanAction, PermanentAccountBan, active_ban,
+                               active_bans_for, permanent_ban)
 from demo_event_categories import DEFAULTS, catalog, install_categories
 from demo_geography import DemoEventPlace, place_dict, save_place
 from demo_accounts import WebAccount, WebSession, token_hash, safe_csv
@@ -1597,6 +1598,7 @@ def install_account_moderation(app, get_db):
             "role":role_for(db,a),
             "merged_into_account_id":archives.get(a.id),
             "banned":a.id in bans,
+            "permanent_ban":isinstance(bans.get(a.id),PermanentAccountBan),
             "ban_reason":bans[a.id].reason if a.id in bans else None,
             "banned_at":bans[a.id].created_at if a.id in bans else None,
         } for a in rows if include_merged or a.id not in archives]
@@ -1638,6 +1640,8 @@ def install_account_moderation(app, get_db):
                 .with_for_update().first())
         if target is None:
             raise HTTPException(404,"account_not_found")
+        if permanent_ban(db,account_id) is not None:
+            raise HTTPException(403,"account_permanently_banned")
         if not active_ban(db,account_id):
             raise HTTPException(409,"account_not_banned")
         db.add(AccountBanAction(account_id=account_id,actor_account_id=admin.id,
@@ -1657,8 +1661,13 @@ def install_account_moderation(app, get_db):
             raise HTTPException(404,"account_not_found")
         rows=(db.query(AccountBanAction).filter(AccountBanAction.account_id==account_id)
               .order_by(AccountBanAction.id.desc()).limit(100).all())
-        return [{"action":r.action,"reason":r.reason,"actor_account_id":r.actor_account_id,
-                 "created_at":r.created_at} for r in rows]
+        history=[{"action":r.action,"reason":r.reason,"actor_account_id":r.actor_account_id,
+                  "created_at":r.created_at} for r in rows]
+        permanent=permanent_ban(db,account_id)
+        if permanent is not None:
+            history.insert(0,{"action":"permanent_ban","reason":permanent.reason,
+                              "actor_account_id":0,"created_at":permanent.created_at})
+        return history
 
     @app.put("/demo/manage/accounts/{account_id}/role")
     def change_role(

@@ -1,7 +1,9 @@
-"""Audited, reversible access bans for canonical TicketTreat accounts.
+"""Audited bans for canonical TicketTreat accounts.
 
-An immutable action stream preserves each ban and unban reason. Authorization
-always checks the latest action, so revoking sessions is not the only guard.
+Most bans follow an append-only ban/unban action stream. Severe incidents can
+also be recorded in a separate, non-expiring permanent-denial ledger. This
+ledger overrides a later unban action and therefore cannot be cleared through
+the ordinary moderation interface.
 """
 from __future__ import annotations
 
@@ -30,14 +32,30 @@ class AccountBanAction(Base):
                         default=lambda: datetime.now(timezone.utc))
 
 
-def active_ban(db: Session, account_id: int) -> AccountBanAction | None:
+class PermanentAccountBan(Base):
+    __tablename__ = "demo_permanent_account_bans"
+
+    account_id = Column(Integer, primary_key=True)
+    reason = Column(String(500), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False,
+                        default=lambda: datetime.now(timezone.utc))
+
+
+def permanent_ban(db: Session, account_id: int) -> PermanentAccountBan | None:
+    return db.get(PermanentAccountBan, account_id)
+
+
+def active_ban(db: Session, account_id: int) -> AccountBanAction | PermanentAccountBan | None:
+    permanent = permanent_ban(db, account_id)
+    if permanent is not None:
+        return permanent
     latest = (db.query(AccountBanAction)
               .filter(AccountBanAction.account_id == account_id)
               .order_by(AccountBanAction.id.desc()).first())
     return latest if latest is not None and latest.action == "ban" else None
 
 
-def active_bans_for(db: Session, account_ids: list[int]) -> dict[int, AccountBanAction]:
+def active_bans_for(db: Session, account_ids: list[int]) -> dict[int, AccountBanAction | PermanentAccountBan]:
     if not account_ids:
         return {}
     latest = {}
@@ -46,8 +64,12 @@ def active_bans_for(db: Session, account_ids: list[int]) -> dict[int, AccountBan
             .order_by(AccountBanAction.id.desc()).all())
     for row in rows:
         latest.setdefault(row.account_id, row)
-    return {account_id: row for account_id, row in latest.items()
+    bans = {account_id: row for account_id, row in latest.items()
             if row.action == "ban"}
+    permanent = db.query(PermanentAccountBan).filter(
+        PermanentAccountBan.account_id.in_(account_ids)).all()
+    bans.update({row.account_id: row for row in permanent})
+    return bans
 
 
 def banned_guest_ids(db: Session, guest_ids: list[int]) -> set[int]:

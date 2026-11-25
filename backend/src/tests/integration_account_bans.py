@@ -17,7 +17,7 @@ if not os.getenv("DATABASE_URL", "").endswith("/tickettreat_ci"):
 import main
 from db.session import SessionLocal
 from demo_accounts import WebAccount, WebSession, token_hash
-from demo_account_bans import AccountBanAction
+from demo_account_bans import AccountBanAction, PermanentAccountBan
 from demo_auth_security import hash_password
 from demo_mfa import MFAFactor, MFASession
 from demo_telegram import DemoTelegramIdentity
@@ -133,6 +133,23 @@ class AccountBanTests(unittest.TestCase):
                     audit=db.query(AccountBanAction).filter(AccountBanAction.account_id==target_id).all()
                     self.assertEqual(len(audit),2)
                     self.assertTrue(all(a.actor_account_id==admin_id for a in audit))
+                    # Permanent denial overrides even a prior administrative unban.
+                    db.add(PermanentAccountBan(account_id=target_id,
+                        reason="Owner-approved permanent security ban"))
+                    db.commit()
+                self.assertEqual(client.delete(url,headers=headers).status_code,403)
+                refused=client.post("/demo/auth/login",json={"email":target_email,"password":password})
+                self.assertEqual(refused.status_code,403,refused.text)
+                self.assertEqual(refused.json()["detail"],"account_banned")
+                self.assertEqual(client.get("/demo/auth/me",
+                    headers={"Authorization":f"Bearer {login.json()['token']}"}).status_code,403)
+                self.assertEqual(client.post("/demo/telegram/auth",json={"init_data":signed}).status_code,403)
+                listed=client.get("/demo/manage/accounts",headers=headers)
+                entry=next(a for a in listed.json() if a["account_id"]==target_id)
+                self.assertTrue(entry["banned"])
+                self.assertTrue(entry["permanent_ban"])
+                self.assertEqual(client.get(f"/demo/manage/accounts/{target_id}/ban-history",
+                    headers=headers).json()[0]["action"],"permanent_ban")
         finally:
             for key,value in previous.items():
                 if value is None:os.environ.pop(key,None)
