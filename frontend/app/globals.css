@@ -578,6 +578,22 @@ button {
 .checkout-summary strong { font-size: 22px; }
 
 .form-stack { display: grid; gap: 14px; }
+.tt-finance-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; flex-wrap:wrap; margin:24px 0; }
+.tt-finance-heading h1 { margin:0 0 8px; }
+.tt-finance-controls { display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; }
+.tt-finance-controls label { display:grid; gap:6px; flex:1 1 175px; font-weight:700; }
+.tt-finance-controls .button { flex:1 1 200px; }
+.tt-finance-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
+.tt-finance-grid .stat-card { padding:20px; display:grid; gap:9px; }
+.tt-finance-grid .stat-card strong { font-size:clamp(20px,2.1vw,29px); overflow-wrap:anywhere; }
+.tt-finance-profile { display:grid; grid-template-columns:repeat(auto-fit,minmax(225px,1fr)); }
+.tt-finance-profile button { align-self:flex-end; }
+.tt-finance-table-wrap { overflow-x:auto; }
+.tt-finance-table { width:100%; border-collapse:collapse; min-width:510px; text-align:left; }
+.tt-finance-table td,.tt-finance-table th { padding:11px; border-bottom:1px solid rgba(30,10,40,.12); }
+.tt-finance-contract { white-space:pre-wrap; overflow-wrap:anywhere; max-height:360px; overflow-y:auto; padding:20px; border:1px solid rgba(30,10,40,.12); border-radius:12px; }
+.tt-finance-consent { display:flex; gap:12px; align-items:flex-start; margin:16px 0; }
+.tt-finance-consent input { flex:0 0 24px; width:24px; height:24px; }
 .form-stack h2 { margin: 0 0 4px; }
 .form-stack label, .inline-form label {
   display: grid;
