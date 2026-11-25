@@ -75,6 +75,7 @@ class OrganizerTeamsIntegration(unittest.TestCase):
             # Accepted team membership immediately requires its own MFA, even
             # though the web account's canonical role remains 'participant'.
             self.assertEqual(client.get("/demo/manage/events", headers=worker_headers).status_code, 403)
+            self.assertTrue(client.get("/demo/auth/mfa/status", headers=worker_headers).json()["team_access"])
             enroll_mfa(client, worker_headers, worker_pw)
             listings = client.get("/demo/manage/events", headers=worker_headers)
             self.assertEqual(listings.status_code, 200, listings.text)
@@ -122,6 +123,7 @@ class OrganizerTeamsIntegration(unittest.TestCase):
                     self.assertIsNone(render_organizer_activity(db,row,db.get(main.Event,event_id),main))
                     self.assertEqual(db.get(OrganizerTeamMember,(owner_id,worker_id)).status,"revoked")
             self.assertEqual(client.get("/demo/manage/events", headers=worker_headers).status_code,403)
+            self.assertFalse(client.get("/demo/auth/mfa/status", headers=worker_headers).json()["team_access"])
 
 
 if __name__ == "__main__":
