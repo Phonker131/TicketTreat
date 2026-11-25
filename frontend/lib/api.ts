@@ -319,6 +319,21 @@ export function getPublicOrganizer(slug:string):Promise<import("@/lib/types").Or
 export function getOwnOrganizerProfile():Promise<import("@/lib/types").EditableOrganizerProfile> {
   return request("/demo/manage/organizer-profile");
 }
+export type OrganizerTelegramSettings = {
+  telegram_linked:boolean;
+  bot_configured:boolean;
+  registrations:boolean;
+  cancellations:boolean;
+  waitlist:boolean;
+  messages:boolean;
+};
+export function getOrganizerTelegramSettings():Promise<OrganizerTelegramSettings> {
+  return request("/demo/manage/telegram-notifications");
+}
+export function saveOrganizerTelegramSettings(settings:Pick<OrganizerTelegramSettings,
+  "registrations"|"cancellations"|"waitlist"|"messages">):Promise<OrganizerTelegramSettings> {
+  return request("/demo/manage/telegram-notifications",{method:"PUT",body:JSON.stringify(settings)});
+}
 export function saveOwnOrganizerProfile(profile:Pick<import("@/lib/types").EditableOrganizerProfile,
   "slug"|"display_name"|"bio"|"city"|"website_url"|"instagram"|"published">):
   Promise<import("@/lib/types").EditableOrganizerProfile> {

@@ -5,7 +5,7 @@ test("loyalty rewards are configured per organizer and tier, never per event",as
   const defaults=(name:string)=>[
     {tier:"newcomer",required_visits:0,key:"basic_access",label_en:"Tickets and reminders",label_cs:"Vstupenky a připomínky",operational:true,enabled:true,editable_enabled:false},
     {tier:"regular",required_visits:3,key:"priority_waitlist",label_en:"Priority on the waitlist",label_cs:"Přednost na čekací listině",operational:true,enabled:true,editable_enabled:true},
-    {tier:"insider",required_visits:6,key:"early_access",label_en:"Early registration",label_cs:"Dřívější registrace",operational:false,enabled:false,editable_enabled:false},
+    {tier:"insider",required_visits:6,key:"early_access",label_en:"Early registration (coming soon)",label_cs:"Dřívější registrace (připravujeme)",operational:false,enabled:false,editable_enabled:false},
     {tier:"vip",required_visits:12,key:"vip_companion",label_en:`${name} VIP companion`,label_cs:"VIP doprovod",operational:false,enabled:false,editable_enabled:false},
   ];
   const dashboard={organizers:[
@@ -42,7 +42,7 @@ test("loyalty rewards are configured per organizer and tier, never per event",as
   const vip=page.locator(".tt-reward-admin-grid > section").filter({has:page.getByRole("heading",{name:"VIP",exact:true})});
   await expect(vip.getByText("Provided by organizer")).toBeVisible();
   const insider=page.locator(".tt-reward-admin-grid > section").filter({has:page.getByRole("heading",{name:"Insider",exact:true})});
-  await expect(insider.getByText("Coming soon")).toBeVisible();
+  await expect(insider.getByText("Coming soon",{exact:true})).toBeVisible();
   await insider.getByRole("button",{name:"Edit reward"}).click();
   await insider.getByLabel("Details (English)").fill("A free drink at the entrance, provided by the organizer.");
   await insider.getByLabel("Details (Czech)").fill("Nápoj při vstupu poskytuje pořadatel.");

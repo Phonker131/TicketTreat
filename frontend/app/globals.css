@@ -1107,3 +1107,9 @@ input:focus, textarea:focus, select:focus {
   .tt-reward-admin-grid {grid-template-columns:1fr}
   .tt-reward-history-row {align-items:flex-start;flex-direction:column}
 }
+
+/* Organizer Telegram preferences: keep each checkbox label readable on phones. */
+.tt-organizer-notice-list {display:grid;gap:12px}
+.form-stack .tt-organizer-notice-option {display:flex;flex-direction:row;align-items:center;gap:14px;min-width:0;cursor:pointer}
+.tt-organizer-notice-option input[type="checkbox"] {flex:0 0 auto;width:22px;height:22px;margin:0}
+.tt-organizer-notice-option span {min-width:0;overflow-wrap:anywhere}
