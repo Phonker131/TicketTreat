@@ -203,7 +203,10 @@ def install_demo_accounts(
             token_hash=token_hash(token),
             expires_at=now + timedelta(days=SESSION_DAYS),
         ))
+        actor_id = account.id
         db.commit()
+        from demo_observability import verified_account
+        verified_account(actor_id, session_issued=True)
         return token
 
     def get_current_account(
@@ -227,6 +230,8 @@ def install_demo_accounts(
         account = db.query(WebAccount).filter(WebAccount.id == session.account_id).first()
         if account is None:
             raise HTTPException(status_code=401, detail="invalid_session")
+        from demo_observability import verified_account
+        verified_account(account.id)
         from demo_account_bans import require_account_active
         require_account_active(db, account)
         return account

@@ -57,6 +57,8 @@ def install_principal_api(app,get_db,main):
         if guest is None:
             raise HTTPException(404,"identity_profile_missing")
         from demo_account_bans import require_guest_active
+        from demo_observability import verified_guest
+        verified_guest(guest.id)
         require_guest_active(db, guest.id)
         return guest
 

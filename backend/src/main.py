@@ -298,7 +298,6 @@ class DemoEventPoster(Base):
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="TicketTreat API")
-install_request_logging(app)
 
 
 def configured_frontend_origins() -> list[str]:
@@ -3567,5 +3566,6 @@ install_waitlist_offer_worker(app, SessionLocal, __import__("sys").modules[__nam
 # This middleware is installed LAST so it executes BEFORE authorization,
 # allowing existing production guards to evaluate the translated /demo path.
 from api_versioning import TicketTreatApiVersioning
+install_request_logging(app)
 app.add_middleware(TicketTreatApiVersioning)
 
