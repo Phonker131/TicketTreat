@@ -48,6 +48,25 @@ Application services, backup/alert functions and the database were observed Onli
 
 Never use production `DATABASE_URL` in a restore drill. `scripts/staging_restore_drill.py` explicitly refuses it and spins up a private disposable PostgreSQL instance. Do **not** run `pg_restore` against production. For code and tests, see `ops/backup/restore.Dockerfile`, `scripts/offsite_backup.py`, `scripts/restore_offsite_backup.py` and `backend/src/tests/test_staging_restore_drill.py`.
 
+**Incident recovery gate (25 November 2026):** The one-shot restore image
+also checks the two owner-recorded permanent security bans and rejects a
+snapshot with any residual web sessions, MFA elevations, email challenges,
+Telegram email claims or pending Telegram browser logins for permanently banned
+accounts. It must report `incident_permanent_bans=2` and
+`incident_auth_artifacts=0` in addition to the ordinary table counts. The
+image must have bucket credentials and the backup encryption key, but **no**
+`DATABASE_URL` or `DATABASE_PUBLIC_URL`; it never listens on TCP.
+
+For an older encrypted backup, set `TT_RESTORE_OBJECT_KEY` to the reviewed
+object key within `S3_BACKUP_PREFIX` and explicitly set
+`TT_RESTORE_REPLAY_INCIDENT=true` in the **isolated restore worker only**. It
+reapplies the owner-authorized ban and revocation migrations to the restored
+database, then verifies the same invariant. A failed or incomplete check is
+a **stop condition**: do not direct application traffic to that database.
+Before an actual recovery cutover, additionally preserve newer legitimate
+registrations and changes by comparing snapshot time with the incident and
+business audit log; this rehearsal does not authorize replacing production.
+
 ## Release workflow
 
 1. Prepare reviewable change on a feature branch; run Python unit/integration, Chromium E2E, production frontend build and vulnerability audits. Record exact commit SHA.

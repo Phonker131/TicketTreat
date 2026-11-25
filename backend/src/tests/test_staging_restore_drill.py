@@ -25,6 +25,27 @@ class RestoreDrillTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,"Bucket and backup key"):
                 drill.main()
 
+    def test_refuses_public_production_database_url(self):
+        with patch.dict(os.environ,{"DATABASE_URL":"","DATABASE_PUBLIC_URL":"postgresql://private.invalid/live"}):
+            with self.assertRaisesRegex(RuntimeError,"no production DATABASE_URL"):
+                drill.main()
+
+    def test_requires_two_permanent_incident_bans(self):
+        with patch.object(drill,"INCIDENT_MIGRATIONS",Path(__file__).resolve().parents[2]/"migrations"):
+            with patch.object(drill,"run",return_value="1") as runner:
+                with self.assertRaisesRegex(RuntimeError,"ban count mismatch"):
+                    drill.verify_incident_recovery({"PGHOST":"/socket"},replay=False)
+                self.assertEqual(runner.call_count,2)
+
+    def test_replay_is_explicit_and_only_uses_restored_database(self):
+        with patch.object(drill,"INCIDENT_MIGRATIONS",Path(__file__).resolve().parents[2]/"migrations"):
+            with patch.object(drill,"run",return_value="2") as runner:
+                self.assertEqual(drill.verify_incident_recovery({"PGHOST":"/socket"},replay=True),
+                                 {"incident_permanent_bans":2,"incident_auth_artifacts":0})
+                self.assertEqual(runner.call_count,6)
+                for call in runner.call_args_list:
+                    self.assertIn("tickettreat_restore_drill",call.args)
+
     def test_latest_object_with_scoped_prefix_and_matching_extension(self):
         paginator=MagicMock()
         paginator.paginate.return_value=[
