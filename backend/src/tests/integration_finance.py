@@ -162,46 +162,6 @@ class OrganizerFinanceIntegration(unittest.TestCase):
                     "digest":contract_digest(contract_body),
                     "confirm_authority":True}).json()["status"],"already_accepted")
 
-            # User-entered expenses are separate from verified sales and require
-            # owner access, step-up MFA and an append-only reversal to correct.
-            local_today=datetime.now(PRAGUE).date()
-            expense_month=local_today.strftime("%Y-%m")
-            expense_payload={"expense_date":local_today.isoformat(),"category":"venue",
-                "amount_minor":120000,"currency":"CZK","supplier":"Venue s.r.o.",
-                "reference":"=HYPERLINK(1)","note":"Rental deposit"}
-            forged=client.post("/demo/manage/finance/expenses",headers=owner_auth,
-                json={**expense_payload,"owner_account_id":other.id,
-                      "mfa_code":"000000"})
-            self.assertEqual(forged.status_code,422,forged.text)
-            created=self.finance_step(client,owner_auth,6,
-                "/demo/manage/finance/expenses",expense_payload)
-            self.assertEqual(created.status_code,200,created.text)
-            self.assertEqual(created.json()["status"],"self_reported")
-            expense_id=created.json()["entry"]["id"]
-            details=client.get(f"/demo/manage/finance/expenses?month={expense_month}&currency=CZK",
-                headers=owner_auth)
-            self.assertEqual(details.status_code,200,details.text)
-            self.assertEqual(details.json()["summary"]["manual_expenses_minor"],120000)
-            self.assertEqual(client.get(f"/demo/manage/finance/expenses?month={expense_month}",
-                headers=other_auth,params={"organization_id":owner_id}).status_code,403)
-            self.assertEqual(client.get(f"/demo/manage/finance/expenses?month={expense_month}",
-                headers=member_auth).status_code,403)
-            # Self-entered expenses must not silently turn into sales or VAT.
-            self.assertEqual(client.get("/demo/manage/finance/summary?month=2026-11",
-                headers=owner_auth).json()["summary"]["gross_sales_minor"],0)
-            expense_export=self.finance_step(client,owner_auth,7,
-                "/demo/manage/finance/expenses/export",{"month":expense_month,"currency":"CZK"})
-            self.assertEqual(expense_export.status_code,200,expense_export.text)
-            self.assertFalse(expense_export.json()["verified"])
-            self.assertIn("'=HYPERLINK(1)",expense_export.json()["csv"])
-            reversed_row=self.finance_step(client,owner_auth,8,
-                f"/demo/manage/finance/expenses/{expense_id}/reverse",
-                {"reason":"Duplicate supplier bill"})
-            self.assertEqual(reversed_row.status_code,200,reversed_row.text)
-            self.assertEqual(reversed_row.json()["entry"]["amount_minor"],-120000)
-            self.assertEqual(reversed_row.json()["entry"]["reverses_entry_id"],expense_id)
-            self.assertEqual(client.get(f"/demo/manage/finance/expenses?month={expense_month}",
-                headers=owner_auth).json()["summary"]["manual_expenses_minor"],0)
             with SessionLocal() as db:
                 record=db.query(OrganizerContractAcceptance).filter(
                     OrganizerContractAcceptance.owner_account_id==owner_id,
@@ -213,7 +173,6 @@ class OrganizerFinanceIntegration(unittest.TestCase):
                 self.assertTrue(any(row.action=="contract_accepted" for row in audit))
                 self.assertTrue(any(row.action=="summary_viewed" for row in audit))
                 self.assertTrue(any(row.action=="csv_exported" for row in audit))
-                self.assertTrue(any(row.action=="expense_reversed" for row in audit))
                 # A permanent ban overrides an existing 15-minute unlock.
                 db.add(PermanentAccountBan(account_id=owner_id,reason="CI finance ban regression"))
                 db.commit()
@@ -237,6 +196,74 @@ class OrganizerFinanceIntegration(unittest.TestCase):
             self.assertEqual(client.get("/demo/manage/finance/status",
                 headers=other_auth).status_code,401)
 
+    def test_manual_expenses_are_owner_scoped_and_corrected_immutably(self):
+        """Independent finance account avoids bypassing the 8-OTP/15min limit."""
+        with SessionLocal() as db:
+            owner, _, owner_password, owner_auth = account_with_session(db, "organizer")
+            other, _, other_password, other_auth = account_with_session(db, "organizer")
+            member, _, _, member_auth = account_with_session(db)
+            db.add(OrganizerTeamMember(owner_account_id=owner.id,
+                member_account_id=member.id,status="active",
+                invited_at=datetime.now(timezone.utc),
+                accepted_at=datetime.now(timezone.utc)))
+            db.add(GlobalAdminDelegation(account_id=other.id,email=other.email,
+                                         granted_by=owner.id))
+            db.commit()
+            owner_id, other_id = owner.id, other.id
+
+        local_today=datetime.now(PRAGUE).date()
+        expense_month=local_today.strftime("%Y-%m")
+        expense_payload={"expense_date":local_today.isoformat(),"category":"venue",
+            "amount_minor":120000,"currency":"CZK","supplier":"Venue s.r.o.",
+            "reference":"=HYPERLINK(1)","note":"Rental deposit"}
+        with TestClient(main.app) as client:
+            enroll_mfa(client,owner_auth,owner_password)
+            enroll_mfa(client,other_auth,other_password)
+            self.assertEqual(self.finance_step(client,owner_auth,1,
+                "/demo/manage/finance/unlock",{}).status_code,200)
+            self.assertEqual(self.finance_step(client,other_auth,1,
+                "/demo/manage/finance/unlock",{}).status_code,200)
+            forged=client.post("/demo/manage/finance/expenses",headers=owner_auth,
+                json={**expense_payload,"owner_account_id":other_id,
+                      "mfa_code":"000000"})
+            self.assertEqual(forged.status_code,422,forged.text)
+            created=self.finance_step(client,owner_auth,2,
+                "/demo/manage/finance/expenses",expense_payload)
+            self.assertEqual(created.status_code,200,created.text)
+            self.assertEqual(created.json()["status"],"self_reported")
+            expense_id=created.json()["entry"]["id"]
+            details=client.get(f"/demo/manage/finance/expenses?month={expense_month}&currency=CZK",
+                headers=owner_auth)
+            self.assertEqual(details.status_code,200,details.text)
+            self.assertEqual(details.json()["summary"]["manual_expenses_minor"],120000)
+            self.assertEqual(details.json()["summary"]["by_category"]["venue"],120000)
+            self.assertEqual(client.get(f"/demo/manage/finance/expenses?month={expense_month}",
+                headers=other_auth,params={"organization_id":owner_id}).status_code,403)
+            self.assertEqual(client.get(f"/demo/manage/finance/expenses?month={expense_month}",
+                headers=member_auth).status_code,403)
+            self.assertEqual(client.get(f"/demo/manage/finance/summary?month={expense_month}",
+                headers=owner_auth).json()["summary"]["gross_sales_minor"],0)
+            expense_export=self.finance_step(client,owner_auth,3,
+                "/demo/manage/finance/expenses/export",{"month":expense_month,"currency":"CZK"})
+            self.assertEqual(expense_export.status_code,200,expense_export.text)
+            self.assertFalse(expense_export.json()["verified"])
+            self.assertIn("'=HYPERLINK(1)",expense_export.json()["csv"])
+            reversed_row=self.finance_step(client,owner_auth,4,
+                f"/demo/manage/finance/expenses/{expense_id}/reverse",
+                {"reason":"Duplicate supplier bill"})
+            self.assertEqual(reversed_row.status_code,200,reversed_row.text)
+            self.assertEqual(reversed_row.json()["entry"]["amount_minor"],-120000)
+            self.assertEqual(reversed_row.json()["entry"]["reverses_entry_id"],expense_id)
+            details_after=client.get(f"/demo/manage/finance/expenses?month={expense_month}",
+                headers=owner_auth).json()
+            self.assertEqual(details_after["summary"]["manual_expenses_minor"],0)
+            self.assertTrue(any(row["id"]==expense_id and row["reversed"]
+                                for row in details_after["entries"]))
+            with SessionLocal() as db:
+                audit=db.query(FinanceAccessAudit).filter(
+                    FinanceAccessAudit.owner_account_id==owner_id).all()
+                self.assertTrue(any(row.action=="expense_recorded" for row in audit))
+                self.assertTrue(any(row.action=="expense_reversed" for row in audit))
 
 
 
