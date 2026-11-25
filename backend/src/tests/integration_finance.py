@@ -80,13 +80,20 @@ class OrganizerFinanceIntegration(unittest.TestCase):
             for endpoint in (
                 f"/demo/manage/finance/summary?organization_id={owner_id}",
                 f"/demo/manage/finance/entries?organization_id={owner_id}",
-                f"/demo/manage/finance/export?organization_id={owner_id}",
                 f"/demo/manage/finance/documents?organization_id={owner_id}",
                 f"/demo/manage/finance/contract?organization_id={owner_id}",
             ):
                 self.assertEqual(client.get(endpoint,headers=other_auth).json()["detail"],
                                  "finance_owner_required",endpoint)
                 self.assertEqual(client.get(endpoint,headers=member_auth).status_code,403,endpoint)
+            # Exports are POST-only, so test the cross-owner boundary with the
+            # actual export method (before any MFA code can be consumed).
+            cross_export={"organization_id":owner_id,"month":"2026-11",
+                          "currency":"CZK","mfa_code":"000000"}
+            self.assertEqual(client.post("/demo/manage/finance/export",
+                headers=other_auth,json=cross_export).json()["detail"],"finance_owner_required")
+            self.assertEqual(client.post("/demo/manage/finance/export",
+                headers=member_auth,json=cross_export).status_code,403)
             # Even a real global-admin delegation cannot bypass seller isolation.
             self.assertEqual(client.get(
                 f"/demo/manage/finance/summary?organization_id={owner_id}",
