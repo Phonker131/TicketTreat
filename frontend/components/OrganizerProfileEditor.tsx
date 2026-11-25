@@ -111,7 +111,7 @@ export function OrganizerProfileEditor(){
         <label>{tr.city}<input value={profile.city} onChange={e=>change("city",e.target.value)} maxLength={100}/></label>
         <label>{tr.website}<input type="url" value={profile.website_url} onChange={e=>change("website_url",e.target.value)} placeholder="https://example.com" maxLength={400}/></label>
         <label>{tr.instagram}<input value={profile.instagram} onChange={e=>change("instagram",e.target.value)} placeholder="@organizer" maxLength={32}/></label>
-        <label className="organizer-publish-toggle"><input type="checkbox" checked={profile.published} onChange={e=>change("published",e.target.checked)}/>{tr.visible}</label>
+        <label className="organizer-publish-toggle"><input type="checkbox" checked={profile.published} onChange={e=>change("published",e.target.checked)}/><span>{tr.visible}</span></label>
         <p className="form-note">{tr.publishHint}</p>
         {error&&<p role="alert" className="state-card state-error">{error}</p>}
         <div className="admin-event-actions">
