@@ -128,6 +128,9 @@ const EXPENSE_CATEGORIES=["venue","staff","equipment","marketing","travel","serv
 const pragueMonth=()=>new Intl.DateTimeFormat("en-CA",{
   timeZone:"Europe/Prague",year:"numeric",month:"2-digit",
 }).format(new Date());
+const pragueDate=()=>new Intl.DateTimeFormat("en-CA",{
+  timeZone:"Europe/Prague",year:"numeric",month:"2-digit",day:"2-digit",
+}).format(new Date());
 function money(amount:number|null,currency:string,language:LanguageCode,unknown:string):string{
   if(amount===null)return unknown;
   return new Intl.NumberFormat(language==="uk"?"uk-UA":language==="ru"?"ru-RU":language==="cs"?"cs-CZ":"en-GB",{
@@ -174,7 +177,7 @@ export function OrganizerFinanceClient(){
   const [agreed,setAgreed]=useState(false);
   const [name,setName]=useState(""),[ico,setIco]=useState(""),[dic,setDic]=useState("");
   const [vat,setVat]=useState<"non_payer"|"payer"|"exempt">("non_payer");
-  const [expenseDate,setExpenseDate]=useState(()=>new Date().toISOString().slice(0,10));
+  const [expenseDate,setExpenseDate]=useState(pragueDate);
   const [expenseCategory,setExpenseCategory]=useState<FinanceExpenseInput["category"]>("venue");
   const [expenseEventId,setExpenseEventId]=useState("");
   const [expenseAmount,setExpenseAmount]=useState("");
@@ -396,7 +399,7 @@ export function OrganizerFinanceClient(){
         </div>}
         <h3>{x.add}</h3>
         <form className="form-stack tt-finance-expenses-form" onSubmit={e=>void recordExpense(e)}>
-          <label>{x.date}<input required type="date" value={expenseDate} onChange={e=>setExpenseDate(e.target.value)}/></label>
+          <label>{x.date}<input required type="date" min="2026-01-01" max={pragueDate()} value={expenseDate} onChange={e=>setExpenseDate(e.target.value)}/></label>
           <label>{x.category}<select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value as FinanceExpenseInput["category"])}>
             {EXPENSE_CATEGORIES.map(item=><option key={item} value={item}>{x[item]}</option>)}
           </select></label>
