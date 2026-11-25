@@ -43,7 +43,7 @@ class OrganizerFinanceIntegration(unittest.TestCase):
             other, _, other_password, other_auth = account_with_session(db, "organizer")
             member, _, member_password, member_auth = account_with_session(db)
             db.add(OrganizerTeamMember(owner_account_id=owner.id,
-                member_account_id=member.id,status="accepted",
+                member_account_id=member.id,status="active",
                 invited_at=datetime.now(timezone.utc),
                 accepted_at=datetime.now(timezone.utc)))
             db.commit()
