@@ -364,6 +364,8 @@ def account_lookup(db: Session, authorization: str | None) -> WebAccount:
     account = db.query(WebAccount).filter(WebAccount.id == row.account_id).first()
     if account is None:
         raise HTTPException(status_code=401, detail="invalid_session")
+    from demo_observability import verified_account
+    verified_account(account.id)
     from demo_account_bans import require_account_active
     require_account_active(db, account)
     from demo_mfa import require_privileged_mfa

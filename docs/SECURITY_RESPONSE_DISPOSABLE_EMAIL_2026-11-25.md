@@ -67,3 +67,14 @@ applications, and refresh the domain snapshot periodically.
 
 Never expose production DB credentials, personal traffic logs, session tokens,
 OTP codes, or encryption keys in CI output or PR comments.
+
+### Investigating future sign-ins
+
+In the API service's Railway runtime logs, select the incident window in UTC.
+Filter structured request records on the exact numeric account_id and
+session_issued=true to find committed web-session issuance. The route template
+distinguishes password, signup, email code and provider flows. Follow the same
+account_id across subsequent requests and use request_id to identify one call.
+guest_id identifies the resolved participant on personal ticket routes.
+A missing identity means attribution was unavailable. An HTTP 200 on its own
+does not identify the account, prove MFA elevation or prove disclosure.
