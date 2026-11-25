@@ -174,6 +174,10 @@ def send_code(email: str, purpose: str, code: str):
 
 
 def create_challenge(db: Session, account: WebAccount, purpose: str):
+    # No fresh email authentication factor may be issued to an account whose
+    # global ban has already revoked its sessions.
+    from demo_account_bans import require_account_active
+    require_account_active(db, account)
     code = f"{secrets.randbelow(100_000_000):08d}"
     send_code(account.email, purpose, code)
     row = db.get(EmailChallenge, (account.id, purpose))
@@ -213,6 +217,10 @@ def install_email_account_security(app, get_db):
         account = db.get(WebAccount, session.account_id)
         if not account:
             raise HTTPException(401, "invalid_session")
+        # This recovery router has its own session resolver; enforce the same
+        # ban policy as the main account resolver even for an orphan session.
+        from demo_account_bans import require_account_active
+        require_account_active(db, account)
         return account
 
     def telegram_without_email(account: WebAccount, db: Session) -> None:
@@ -366,7 +374,8 @@ def install_email_account_security(app, get_db):
         # Existing unverified accounts must first sign in with their password
         # and verify email, or use support-mediated recovery with both proofs.
         # Return the same response for known, unknown and unverified emails.
-        if account and email_is_verified(db, account.id):
+        from demo_account_bans import active_ban
+        if account and email_is_verified(db, account.id) and active_ban(db, account.id) is None:
             try:
                 create_challenge(db, account, "reset")
             except HTTPException as exc:
@@ -389,6 +398,11 @@ def install_email_account_security(app, get_db):
             # Also reject reset challenges issued before the hardening rollout:
             # they prove mailbox control, but not ownership of an account
             # created without verifying that mailbox.
+            raise HTTPException(400, "invalid_or_expired_code")
+        from demo_account_bans import active_ban
+        if active_ban(db, account.id) is not None:
+            # Do not expose a victim's moderation status to anyone who can
+            # submit an arbitrary email address to the reset endpoint.
             raise HTTPException(400, "invalid_or_expired_code")
         consume_challenge(db, account, "reset", payload.code)
         account.password_hash = hash_password(payload.new_password)

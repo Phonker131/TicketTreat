@@ -7,8 +7,10 @@ import secrets
 import time
 import unittest
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 from urllib.parse import urlencode
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 if not os.getenv("DATABASE_URL", "").endswith("/tickettreat_ci"):
@@ -20,6 +22,7 @@ from demo_accounts import WebAccount, WebSession, token_hash
 from demo_account_bans import AccountBanAction, PermanentAccountBan
 from demo_auth_security import hash_password
 from demo_mfa import MFAFactor, MFASession
+from demo_account_recovery import EmailChallenge, TelegramEmailClaim, VerifiedEmail, create_challenge
 from demo_telegram import DemoTelegramIdentity
 
 
@@ -62,6 +65,12 @@ class AccountBanTests(unittest.TestCase):
                 MFAFactor(account_id=admin.id, encrypted_secret=b"ci-unused-factor", enabled_at=now, created_at=now),
                 MFASession(session_hash=token_hash(admin_token), account_id=admin.id,
                            verified_until=now+timedelta(hours=1)),
+                MFASession(session_hash=token_hash(target_token), account_id=target.id,
+                           verified_until=now+timedelta(hours=1)),
+                EmailChallenge(account_id=target.id,purpose="reset",code_hash="0"*64,
+                               expires_at=now+timedelta(minutes=10),attempts=0),
+                TelegramEmailClaim(account_id=target.id,email="fixture@example.invalid",
+                                   code_hash="1"*64,expires_at=now+timedelta(minutes=10),attempts=0),
                 DemoTelegramIdentity(telegram_id=telegram_id, guest_id=target_guest.id),
             ])
             db.commit()
@@ -99,9 +108,29 @@ class AccountBanTests(unittest.TestCase):
                     json={"reason":"dangerous scripted activity"})
                 self.assertEqual(banned.status_code, 200, banned.text)
                 self.assertTrue(banned.json()["banned"])
+                with SessionLocal() as db:
+                    self.assertEqual(db.query(WebSession).filter_by(account_id=target_id).count(),0)
+                    self.assertEqual(db.query(MFASession).filter_by(account_id=target_id).count(),0)
+                    self.assertEqual(db.query(EmailChallenge).filter_by(account_id=target_id).count(),0)
+                    self.assertEqual(db.query(TelegramEmailClaim).filter_by(account_id=target_id).count(),0)
                 self.assertEqual(client.post(url, headers=headers,
                     json={"reason":"again"}).status_code, 422)
                 self.assertEqual(client.get("/demo/auth/me", headers=target_headers).status_code, 401)
+                # Model a stale session row left behind by a failed revocation:
+                # every independent authentication resolver must still refuse it.
+                with SessionLocal() as db:
+                    db.add(WebSession(account_id=target_id,token_hash=token_hash(target_token),
+                                      expires_at=now+timedelta(hours=1)))
+                    db.commit()
+                try:
+                    stale=client.post("/demo/auth/email/request-verification",headers=target_headers)
+                    self.assertEqual(stale.status_code,403,stale.text)
+                    self.assertEqual(stale.json()["detail"],"account_banned")
+                    self.assertEqual(client.get("/demo/auth/me",headers=target_headers).status_code,403)
+                finally:
+                    with SessionLocal() as db:
+                        db.query(WebSession).filter_by(account_id=target_id).delete()
+                        db.commit()
                 refused = client.post("/demo/auth/login", json={"email":target_email,"password":password})
                 self.assertEqual(refused.status_code, 403, refused.text)
                 self.assertEqual(refused.json()["detail"], "account_banned")
@@ -150,6 +179,32 @@ class AccountBanTests(unittest.TestCase):
                 self.assertTrue(entry["permanent_ban"])
                 self.assertEqual(client.get(f"/demo/manage/accounts/{target_id}/ban-history",
                     headers=headers).json()[0]["action"],"permanent_ban")
+                # A banned, previously verified mailbox cannot request fresh
+                # login/reset codes or redeem old ones to change credentials.
+                with SessionLocal() as db:
+                    db.add(VerifiedEmail(account_id=target_id,verified_at=now))
+                    db.add(EmailChallenge(account_id=target_id,purpose="reset",
+                        code_hash="0"*64,expires_at=now+timedelta(minutes=10),attempts=0))
+                    db.commit()
+                    before=db.get(WebAccount,target_id).password_hash
+                with patch("demo_account_recovery.configured",return_value=True), \
+                     patch("demo_email.configured",return_value=True), \
+                     patch("demo_account_recovery.create_challenge") as send:
+                    forgot=client.post("/demo/auth/password/forgot",json={"email":target_email})
+                    magic=client.post("/demo/auth/magic/request",json={"email":target_email})
+                    self.assertEqual(forgot.status_code,200,forgot.text)
+                    self.assertEqual(magic.status_code,200,magic.text)
+                    send.assert_not_called()
+                reset=client.post("/demo/auth/password/reset",json={
+                    "email":target_email,"code":"00000000",
+                    "new_password":"not-allowed-to-change-123"})
+                self.assertEqual(reset.status_code,400,reset.text)
+                with SessionLocal() as db:
+                    target=db.get(WebAccount,target_id)
+                    self.assertEqual(target.password_hash,before)
+                    with self.assertRaises(HTTPException) as error:
+                        create_challenge(db,target,"login")
+                    self.assertEqual(error.exception.detail,"account_banned")
         finally:
             for key,value in previous.items():
                 if value is None:os.environ.pop(key,None)

@@ -1624,6 +1624,14 @@ def install_account_moderation(app, get_db):
         action=AccountBanAction(account_id=account_id,actor_account_id=admin.id,
                                 action="ban",reason=reason)
         db.add(action)
+        # A revoked browser session also makes its MFA elevation inert, but
+        # deleting the residual proof and pending email claims is safer and
+        # prevents an overlooked auth route from reusing an old factor.
+        from demo_mfa import MFASession
+        from demo_account_recovery import EmailChallenge, TelegramEmailClaim
+        db.query(MFASession).filter(MFASession.account_id==account_id).delete(synchronize_session=False)
+        db.query(EmailChallenge).filter(EmailChallenge.account_id==account_id).delete(synchronize_session=False)
+        db.query(TelegramEmailClaim).filter(TelegramEmailClaim.account_id==account_id).delete(synchronize_session=False)
         db.query(WebSession).filter(WebSession.account_id==account_id).delete(synchronize_session=False)
         db.add(AccountAdminAudit(actor_account_id=admin.id,target_account_id=account_id,
                                  action="account_banned"))
