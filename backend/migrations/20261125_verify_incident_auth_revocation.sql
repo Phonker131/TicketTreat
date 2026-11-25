@@ -43,7 +43,8 @@ BEGIN
         RAISE EXCEPTION 'Permanent-ban authentication artifacts still exist';
     END IF;
 
-    RAISE NOTICE 'Incident revocation verified: % matching accounts, % permanent bans, zero auth artifacts',
-        incident_accounts, permanently_denied;
+    RAISE NOTICE USING MESSAGE = 'Incident revocation verified: '
+        || incident_accounts::text || ' matching accounts, '
+        || permanently_denied::text || ' permanent bans, zero auth artifacts';
 END
 $incident_revocation$;
