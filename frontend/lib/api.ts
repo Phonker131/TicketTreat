@@ -703,7 +703,7 @@ export function withdrawPrivacyRequest(): Promise<{status:string}> {
   return request("/demo/auth/privacy-request",{method:"DELETE"});
 }
 
-export type MFAStatus = {enabled:boolean;elevated:boolean;needs_setup:boolean};
+export type MFAStatus = {enabled:boolean;elevated:boolean;needs_setup:boolean;team_access?:boolean};
 export type MFAStart = {secret:string;otpauth_url:string};
 export function getMFAStatus():Promise<MFAStatus> {
   return request("/demo/auth/mfa/status");
