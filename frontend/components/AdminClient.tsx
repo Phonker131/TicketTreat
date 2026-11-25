@@ -228,6 +228,7 @@ export function AdminClient() {
       <li><Link href="/admin/analytics"><DashIcon name="analytics"/>{x.analytics}</Link></li>
       <li><Link href="/admin/rewards"><DashIcon name="rewards"/>{x.rewards}</Link></li>
       <li><Link href="/admin/messages"><DashIcon name="messages"/>{language==="cs"?"Zprávy účastníků":"Attendee messages"}</Link></li>
+      <li><Link href="/admin/notifications"><DashIcon name="messages"/>{language==="cs"?"Upozornění Telegram":"Telegram notifications"}</Link></li>
       <li><Link href="/admin/promotions"><DashIcon name="campaigns"/>{language==="cs"?"Kampaně":"Campaigns"}</Link></li>
       <li><Link href="/admin/organizer-profile"><DashIcon name="profile"/>{x.profile}</Link></li>
       {identity.role==="global_admin"&&<>
