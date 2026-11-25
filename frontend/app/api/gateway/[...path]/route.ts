@@ -5,6 +5,8 @@
  * See docs/CRITICAL_CODE_AREAS.md. Comments are not access controls.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac } from "node:crypto";
+import { isIP } from "node:net";
 
 /**
  * Same-origin backend gateway. Browser users never receive web bearer tokens.
@@ -90,6 +92,17 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   }
   const headers = new Headers();
   headers.set("Accept","application/json");
+  // Railway's public ingress replaces X-Real-IP with the real client address.
+  // Authenticate it for FastAPI rate limits: internal Railway traffic must
+  // never be able to spoof arbitrary forwarded-client headers.
+  // This is a fresh header set, so browser-supplied signatures are discarded.
+  const edgeIp = req.headers.get("x-real-ip");
+  const ipSecret = process.env.TICKETTREAT_GATEWAY_IP_SECRET || "";
+  if (ipSecret.length >= 32 && edgeIp && isIP(edgeIp)) {
+    headers.set("X-TicketTreat-Edge-IP", edgeIp);
+    headers.set("X-TicketTreat-Edge-Signature",
+      createHmac("sha256", ipSecret).update("tt-ip-v1:" + edgeIp).digest("hex"));
+  }
   const contentType = req.headers.get("content-type");
   if (contentType)headers.set("Content-Type",contentType);
   const auth = req.headers.get("authorization");
