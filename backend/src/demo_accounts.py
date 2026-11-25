@@ -440,6 +440,8 @@ def install_demo_accounts(
             account.password_hash = hash_password(payload.password)
             db.flush()
         clear_rate(db, "login_email", email)
+        from demo_observability import verified_account
+        verified_account(account.id)
         token = issue_session(db, account)
         return {"token": token, "profile": profile_dict(account, db)}
 

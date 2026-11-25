@@ -14,6 +14,7 @@ from sqlalchemy import CheckConstraint, Column, DateTime, Index, Integer, String
 from sqlalchemy.orm import Session
 
 from db.base import Base
+from demo_observability import observed_ban
 
 
 class AccountBanAction(Base):
@@ -91,6 +92,7 @@ def banned_guest_ids(db: Session, guest_ids: list[int]) -> set[int]:
 
 def require_account_active(db: Session, account) -> None:
     if active_ban(db, account.id) is not None:
+        observed_ban(account.id)
         raise HTTPException(status_code=403, detail="account_banned")
 
 
@@ -100,7 +102,15 @@ def require_guest_active(db: Session, guest_id: int) -> None:
     from demo_accounts import WebAccount
     account_id = db.query(WebAccount.id).filter(WebAccount.guest_id == guest_id).scalar()
     if account_id is not None and active_ban(db, account_id) is not None:
+        observed_ban(account_id, guest_id)
         raise HTTPException(status_code=403, detail="account_banned")
+
+
+def require_verified_guest_active(db: Session, guest_id: int) -> None:
+    """Use only after validating the caller's Telegram or website credentials."""
+    from demo_observability import verified_guest
+    verified_guest(guest_id)
+    require_guest_active(db, guest_id)
 
 
 def require_telegram_account_active(db: Session, telegram_id: int) -> None:
