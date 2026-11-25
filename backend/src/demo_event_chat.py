@@ -151,7 +151,9 @@ def allow_new_thread(db: Session, event_id: int, presented: str | None, main):
     from demo_event_access import require_invite
     from demo_publication import require_published
     event = db.get(main.Event, event_id)
-    if event is None or event.is_cancelled:
+    # Public discovery deliberately omits events that have already started.
+    # A direct event ID must not bypass that lifecycle and create new chats.
+    if event is None or event.is_cancelled or event.starts_at is None or main.event_is_past(event):
         raise HTTPException(404, "event_not_found")
     require_published(db, event_id)
     require_invite(db, event_id, presented)
@@ -159,6 +161,20 @@ def allow_new_thread(db: Session, event_id: int, presented: str | None, main):
     if owner is None:
         raise HTTPException(404, "organizer_chat_unavailable")
     return event
+
+
+def ensure_chat_writable(db: Session, thread: EventChatThread, main) -> None:
+    """Keep historic threads readable, but do not revive unavailable events."""
+    from demo_publication import state
+    from demo_account_bans import require_guest_active
+
+    # Applies to organizer replies as well as participant replies. A banned
+    # guest must not receive new notifications through a still-open thread.
+    require_guest_active(db, thread.guest_id)
+    event = db.get(main.Event, thread.event_id)
+    if (event is None or event.is_cancelled or event.starts_at is None
+            or main.event_is_past(event) or not state(db, thread.event_id)["visible"]):
+        raise HTTPException(409, "conversation_unavailable")
 
 
 def serialized_thread(db: Session, thread: EventChatThread, main, *, staff: bool):
@@ -231,6 +247,10 @@ def queue_chat_notification(db: Session, thread, msg, main):
     from demo_email import queue_email
     from demo_telegram import DemoTelegramIdentity
     from demo_telegram_notifications import TelegramNotificationOutbox, configured as tg_configured, _insert_rows
+    from demo_account_bans import banned_guest_ids
+
+    if thread.guest_id in banned_guest_ids(db, [thread.guest_id]):
+        return
 
     owner = db.get(EventOwnership, thread.event_id)
     if owner is None:
@@ -266,6 +286,7 @@ def send(db: Session, thread_id: int, payload: SendMessage, main, *,
         raise HTTPException(422, "chat_invalid_message")
     if thread.status != "open":
         raise HTTPException(409, "conversation_closed")
+    ensure_chat_writable(db, thread, main)
     author = "organizer" if staff else "participant"
     previous = db.query(EventChatMessage).filter(
         EventChatMessage.thread_id == thread.id,
@@ -409,6 +430,8 @@ def install_event_chat_api(app, get_db, main):
     def organizer_status(thread_id: int, payload: SetChatStatus,
                          staff=Depends(staff_user), db: Session = Depends(get_db)):
         row = require_staff_thread(db, thread_id, staff)
+        if not payload.closed:
+            ensure_chat_writable(db, row, main)
         locked = db.query(EventChatThread).filter(
             EventChatThread.id == row.id).with_for_update().first()
         locked.status = "closed" if payload.closed else "open"
@@ -423,6 +446,7 @@ def render_chat_email(row, db: Session) -> dict | None:
     from demo_accounts import WebAccount
     from demo_account_recovery import email_is_verified
     from demo_email import email_shell, card
+    from demo_account_bans import banned_guest_ids
     # A chat notification has no event notice. Its message id is encoded in
     # the idempotent event_key, not the FK-backed notice_id column.
     if row.kind != "organizer_chat" or row.notice_id is not None:
@@ -436,6 +460,8 @@ def render_chat_email(row, db: Session) -> dict | None:
     thread = db.get(EventChatThread, msg.thread_id)
     owner = db.get(EventOwnership, thread.event_id) if thread else None
     if thread is None or owner is None:
+        return None
+    if thread.guest_id in banned_guest_ids(db, [thread.guest_id]):
         return None
     if msg.sender_kind == "organizer":
         account = db.query(WebAccount).filter(WebAccount.guest_id == thread.guest_id).first()

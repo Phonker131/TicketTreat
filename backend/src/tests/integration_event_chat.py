@@ -19,6 +19,7 @@ from demo_roles import EventOwnership
 from demo_event_access import set_visibility, invite_for
 from demo_publication import set_publication
 from demo_event_chat import EventChatThread, EventChatMessage
+from demo_account_bans import AccountBanAction
 from demo_mfa import _code
 from integration_pilot_ops import account_with_session
 
@@ -39,6 +40,92 @@ def message(text):
 
 
 class EventChatIntegration(unittest.TestCase):
+    def test_archived_and_draft_events_keep_history_but_reject_chat_writes(self):
+        with SessionLocal() as db:
+            organizer, _, password, own_headers = account_with_session(db, "organizer")
+            _, _, _, member_headers = account_with_session(db)
+            future = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=5)
+            event = main.Event(title="Archived chat history " + secrets.token_hex(3),
+                organizer="Archive Organizer", location="Prague", starts_at=future,
+                max_participants=10, currency="CZK", price=Decimal("0"))
+            past_event = main.Event(title="Past chat direct ID " + secrets.token_hex(3),
+                organizer="Archive Organizer", location="Prague",
+                starts_at=future-timedelta(days=10), max_participants=10,
+                currency="CZK", price=Decimal("0"))
+            draft_event = main.Event(title="Draft chat direct ID " + secrets.token_hex(3),
+                organizer="Archive Organizer", location="Prague", starts_at=future,
+                max_participants=10, currency="CZK", price=Decimal("0"))
+            db.add_all([event, past_event, draft_event]); db.flush()
+            for item in (event, past_event, draft_event):
+                db.add(EventOwnership(event_id=item.id, owner_account_id=organizer.id))
+            set_publication(db, draft_event.id, "draft")
+            event_id, past_id, draft_id = event.id, past_event.id, draft_event.id
+            db.commit()
+
+        with TestClient(main.app) as client:
+            enroll_mfa(client, own_headers, password)
+            created = client.post(f"/demo/me/events/{event_id}/chat/messages",
+                headers=member_headers, json=message("Question before the event"))
+            self.assertEqual(created.status_code, 201, created.text)
+            thread_id = client.get("/demo/me/chats",headers=member_headers).json()["threads"][0]["id"]
+            for hidden_id in (past_id, draft_id):
+                result = client.post(f"/demo/me/events/{hidden_id}/chat/messages",
+                    headers=member_headers, json=message("Must not open hidden event chat"))
+                self.assertEqual(result.status_code, 404, result.text)
+
+            with SessionLocal() as db:
+                current = db.get(main.Event, event_id)
+                current.starts_at = future - timedelta(days=10)
+                db.commit()
+            # The old conversation remains available to its authorized owners
+            # for security review; no new message or reopening can occur.
+            self.assertEqual(client.get(f"/demo/me/chats/{thread_id}",
+                headers=member_headers).status_code, 200)
+            self.assertEqual(client.get(f"/demo/manage/chats/{thread_id}",
+                headers=own_headers).status_code, 200)
+            self.assertEqual(client.post(f"/demo/me/chats/{thread_id}/messages",
+                headers=member_headers, json=message("Post-event guest message")).status_code, 409)
+            self.assertEqual(client.post(f"/demo/manage/chats/{thread_id}/messages",
+                headers=own_headers, json=message("Post-event organizer message")).status_code, 409)
+            self.assertEqual(client.post(f"/demo/manage/chats/{thread_id}/status",
+                headers=own_headers, json={"closed": False}).status_code, 409)
+            self.assertEqual(client.post(f"/demo/manage/chats/{thread_id}/status",
+                headers=own_headers, json={"closed": True}).status_code, 200)
+
+    def test_banned_participant_cannot_receive_or_write_open_chat(self):
+        from demo_email import EmailOutbox
+        from demo_event_chat import render_chat_email
+        with SessionLocal() as db:
+            organizer, _, password, own_headers = account_with_session(db, "organizer")
+            account, _, _, member_headers = account_with_session(db)
+            event = main.Event(title="Banned chat notification " + secrets.token_hex(3),
+                organizer="Archive Organizer", location="Prague",
+                starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=5),
+                max_participants=10, currency="CZK", price=Decimal("0"))
+            db.add(event); db.flush()
+            db.add(EventOwnership(event_id=event.id,owner_account_id=organizer.id))
+            organizer_id, account_id, event_id = organizer.id, account.id, event.id
+            db.commit()
+
+        with TestClient(main.app) as client:
+            enroll_mfa(client, own_headers, password)
+            created = client.post(f"/demo/me/events/{event_id}/chat/messages",
+                headers=member_headers,json=message("Pre-ban legitimate message"))
+            self.assertEqual(created.status_code, 201, created.text)
+            thread_id = client.get("/demo/me/chats",headers=member_headers).json()["threads"][0]["id"]
+            with SessionLocal() as db:
+                db.add(AccountBanAction(account_id=account_id,actor_account_id=organizer_id,
+                    action="ban",reason="Security incident"))
+                db.commit()
+                for notification in db.query(EmailOutbox).filter(
+                    EmailOutbox.event_key==f"chat:mail:{created.json()['message']['id']}").all():
+                    self.assertIsNone(render_chat_email(notification, db))
+            self.assertEqual(client.get("/demo/me/chats",headers=member_headers).status_code,403)
+            self.assertEqual(client.post(f"/demo/manage/chats/{thread_id}/messages",
+                headers=own_headers,json=message("No outbound mail to banned guest")).status_code,403)
+            self.assertEqual(client.get(f"/demo/manage/chats/{thread_id}",
+                headers=own_headers).status_code,200)
+
     def test_email_outbox_chat_id_does_not_violate_event_notice_fk(self):
         """Regression: real migrated email outbox has notice_id FK to event notices."""
         from demo_email import EmailOutbox, render_email
