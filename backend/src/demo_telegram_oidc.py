@@ -6,6 +6,7 @@ Never infer provider ownership from names, Telegram usernames or unverified emai
 Requires BotFather Login Widget client ID, secret and registered redirect URI.
 """
 from __future__ import annotations
+from demo_client_ip import source_ip as authenticated_client_ip
 
 import base64
 import binascii
@@ -329,7 +330,7 @@ def install_telegram_oidc(app, get_db, DemoGuest, issue_session, profile_dict):
         from demo_accounts import token_hash
         from demo_mfa import session_for, require_privileged_mfa
         from demo_account_recovery import email_is_verified
-        ip = request.client.host if request.client else "unknown"
+        ip = authenticated_client_ip(request)
         guard_rate(db, "telegram_oidc_start", ip, 50, 600)
         record_rate(db, "telegram_oidc_start", ip, 600)
         account_id = session_hash = None

@@ -5,6 +5,7 @@
 # See docs/CRITICAL_CODE_AREAS.md (comments alone do not enforce access).
 """Google authorization-code login. No email-based automatic account linking."""
 from __future__ import annotations
+from demo_client_ip import source_ip as authenticated_client_ip
 
 import base64
 import hashlib
@@ -191,7 +192,7 @@ def install_google_auth(app, get_db, DemoGuest, issue_session, profile_dict):
     def start(payload: StartData, request: Request, authorization: str | None = Header(default=None),
               db: Session = Depends(get_db)):
         client, _, redirect = config()
-        ip = request.client.host if request.client else "unknown"
+        ip = authenticated_client_ip(request)
         guard_rate(db, "google_start", ip, 60, 600)
         record_rate(db, "google_start", ip, 600)
         account_id = session_hash = None
