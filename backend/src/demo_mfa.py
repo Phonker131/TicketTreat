@@ -139,9 +139,14 @@ def install_mfa(app, get_db):
         account, session=session_for(db,authorization)
         factor=db.get(MFAFactor,account.id)
         assertion=db.get(MFASession,session.token_hash)
+        from demo_organizer_teams import member_owners
         return {"enabled":bool(factor and factor.enabled_at),
                 "elevated":bool(assertion and assertion.account_id==account.id and utc(assertion.verified_until)>datetime.now(timezone.utc)),
-                "needs_setup":not bool(factor and factor.enabled_at)}
+                "needs_setup":not bool(factor and factor.enabled_at),
+                # This signed-in endpoint deliberately works before enrollment.
+                # Team delegates must be able to see the MFA setup UI without
+                # turning their actual account into a global organizer role.
+                "team_access": bool(member_owners(db, account.id))}
 
     @app.post("/demo/auth/mfa/start")
     def start(payload: PasswordProof, authorization: str | None=Header(default=None),
