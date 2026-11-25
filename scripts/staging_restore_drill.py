@@ -21,6 +21,47 @@ from restore_offsite_backup import download_and_decrypt
 
 TABLES = ("users", "registrations", "demo_tickets", "demo_web_accounts",
           "demo_privacy_requests", "tickettreat_schema_migrations")
+INCIDENT_MIGRATIONS = Path("/drill/incident-migrations")
+INCIDENT_REPLAY = (
+    "20261125_account_ban_actions.sql",
+    "20261125_ban_unapproved_qa_accounts.sql",
+    "20261125_permanent_qa_bans.sql",
+    "20261125_revoke_permanent_auth_artifacts.sql",
+)
+INCIDENT_VERIFY = "20261125_verify_incident_auth_revocation.sql"
+
+
+def verify_incident_recovery(env: dict[str, str], *, replay: bool) -> dict[str, int]:
+    """Fail closed unless both owner-recorded incident bans survive restoration.
+
+    Replay is opt-in for pre-fix snapshots and mutates ONLY the private restored
+    database. The production URL is not provided to this process.
+    """
+    for filename in (*INCIDENT_REPLAY, INCIDENT_VERIFY):
+        if not (INCIDENT_MIGRATIONS / filename).is_file():
+            raise RuntimeError("incident recovery migration missing from restore image")
+    if replay:
+        for filename in INCIDENT_REPLAY:
+            run("psql", "-X", "-v", "ON_ERROR_STOP=1", "-d",
+                "tickettreat_restore_drill", "-f", str(INCIDENT_MIGRATIONS / filename),
+                env=env)
+    # The SQL file validates the exact account-ID/email pairs, the permanent
+    # ledger, and the absence of web/MFA/email/Telegram login artifacts.
+    run("psql", "-X", "-v", "ON_ERROR_STOP=1", "-d",
+        "tickettreat_restore_drill", "-f", str(INCIDENT_MIGRATIONS / INCIDENT_VERIFY),
+        env=env)
+    count = int(run(
+        "psql", "-X", "-A", "-t", "-d", "tickettreat_restore_drill", "-c",
+        "SELECT count(DISTINCT a.account_id) "
+        "FROM demo_account_ban_actions a "
+        "JOIN demo_permanent_account_bans p ON p.account_id=a.account_id "
+        "WHERE a.actor_account_id=0 AND a.action='ban' "
+        "AND a.reason='Owner-authorized security suspension: unsolicited automated QA and disposable email' "
+        "AND p.reason='Permanent security ban authorized by owner: unsolicited automated QA activity'",
+        env=env, timeout=30, capture=True))
+    if count != 2:
+        raise RuntimeError("restored incident ban count mismatch")
+    return {"incident_permanent_bans": count, "incident_auth_artifacts": 0}
 
 
 def run(*cmd: str, env=None, timeout=240, capture=False) -> str:
@@ -49,7 +90,7 @@ def newest_object(bucket: str, prefix: str) -> str:
     return latest
 
 
-def validate_archive(archive: Path, scratch: Path) -> dict[str, int]:
+def validate_archive(archive: Path, scratch: Path, *, replay_incident: bool = False) -> dict[str, int]:
     data = scratch/"pgdata"
     sock = scratch/"socket"
     sock.mkdir(mode=0o700)
@@ -71,6 +112,7 @@ def validate_archive(archive: Path, scratch: Path) -> dict[str, int]:
             result = run("psql","-X","-A","-t","-d","tickettreat_restore_drill",
                          "-c", "SELECT count(*) FROM "+table,env=env,timeout=30,capture=True)
             counts[table] = int(result)
+        counts.update(verify_incident_recovery(env, replay=replay_incident))
         return counts
     finally:
         if started:
@@ -78,19 +120,22 @@ def validate_archive(archive: Path, scratch: Path) -> dict[str, int]:
 
 
 def main() -> None:
-    if os.environ.get("DATABASE_URL"):
+    if os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_PUBLIC_URL"):
         raise RuntimeError("Restore drill must have no production DATABASE_URL")
     bucket = os.environ.get("S3_BACKUP_BUCKET","")
     if not bucket or not os.environ.get("TT_BACKUP_KEY_HEX"):
         raise RuntimeError("Bucket and backup key must be configured")
     prefix = os.environ.get("S3_BACKUP_PREFIX","tickettreat/database").strip("/")
-    key = newest_object(bucket,prefix)
+    key = os.environ.get("TT_RESTORE_OBJECT_KEY", "").strip() or newest_object(bucket,prefix)
+    if not key.startswith(prefix.rstrip("/")+"/") or not key.endswith(".dump.ttbk"):
+        raise RuntimeError("Restore object is outside the encrypted backup prefix")
+    replay = os.environ.get("TT_RESTORE_REPLAY_INCIDENT", "false").lower() == "true"
     scratch_root=Path("/scratch")
     scratch_root.mkdir(parents=True,exist_ok=True,mode=0o700)
     with tempfile.TemporaryDirectory(prefix="drill-",dir=scratch_root) as directory:
         folder=Path(directory)
         archive=download_and_decrypt(key,folder/"verified.dump")
-        results=validate_archive(archive,folder)
+        results=validate_archive(archive,folder,replay_incident=replay)
         # Only aggregate table counts; never personal records or credentials.
         print("Isolated PostgreSQL 18 restore verified: "+
               ", ".join(name+"="+str(count) for name,count in results.items()),flush=True)
