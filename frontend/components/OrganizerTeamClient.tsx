@@ -29,12 +29,32 @@ const COPY={
     telegram:"Pro příjem oznámení si každý člen musí propojit svůj Telegram ve svém profilu a povolit upozornění na registrace a odhlášení.",
     expiry:"Pozvánka vyprší",confirm:"Odebrat této osobě přístup k akcím a oznámením vaší organizace?",confirmLeave:"Opustit tuto organizaci a ztratit přístup ke správě akcí?",
     updated:"Změny uloženy.",loading:"Načítání týmu…",error:"Požadavek se nezdařil. Zkontrolujte přihlášení a zkuste to znovu.",
-    manage:"Správa akcí",profile:"Propojit Telegram",prefs:"Nastavení upozornění"}
+    manage:"Správa akcí",profile:"Propojit Telegram",prefs:"Nastavení upozornění"},
+  ru:{title:"Команда организатора",back:"Кабинет организатора",intro:"Работайте над ивентами одной организации без передачи паролей. У каждого участника свой аккаунт TicketTreat и свой привязанный Telegram.",
+    inviteTitle:"Пригласить участника",inviteHelp:"Введите email существующего подтверждённого аккаунта TicketTreat. Человек должен принять приглашение в своём профиле. Максимум 12 участников.",
+    email:"Email участника",invite:"Отправить приглашение",sending:"Отправляем…",invited:"Приглашение создано. Попросите коллегу открыть Профиль → Команда организатора и принять его.",
+    myMembers:"Участники моей организации",noneMembers:"Пока нет участников.",myTeams:"Организации, пригласившие меня",noneTeams:"Нет приглашений или участия в командах.",
+    pending:"Ожидает подтверждения",active:"Активно",accept:"Принять приглашение",leave:"Покинуть организацию",revoke:"Отозвать доступ",cancel:"Отменить приглашение",
+    notifications:"Получать уведомления об ивентах в Telegram",mfa:"Для управления ивентами обязательна двухфакторная аутентификация. Каждый участник настраивает её в своём аккаунте.",
+    telegram:"Для получения уведомлений каждый участник должен привязать свой Telegram в профиле и включить оповещения о записях и отменах.",
+    expiry:"Приглашение действует до",confirm:"Отозвать доступ этого человека к ивентам и уведомлениям вашей организации?",confirmLeave:"Покинуть организацию и лишиться доступа к управлению её ивентами?",
+    updated:"Изменения сохранены.",loading:"Загружаем команду…",error:"Не удалось выполнить действие. Проверьте вход и попробуйте снова.",
+    manage:"Управление ивентами",profile:"Привязать Telegram",prefs:"Настройки уведомлений"},
+  uk:{title:"Команда організатора",back:"Кабінет організатора",intro:"Керуйте подіями однієї організації без передачі паролів. Кожен учасник має свій акаунт TicketTreat і власний підключений Telegram.",
+    inviteTitle:"Запросити учасника",inviteHelp:"Введіть email існуючого підтвердженого акаунта TicketTreat. Людина повинна прийняти запрошення у своєму профілі. Максимум 12 учасників.",
+    email:"Email учасника",invite:"Надіслати запрошення",sending:"Надсилаємо…",invited:"Запрошення створено. Попросіть колегу відкрити Профіль → Команда організатора й прийняти його.",
+    myMembers:"Учасники моєї організації",noneMembers:"Поки немає учасників.",myTeams:"Організації, які мене запросили",noneTeams:"Немає запрошень або участі в командах.",
+    pending:"Очікує підтвердження",active:"Активно",accept:"Прийняти запрошення",leave:"Залишити організацію",revoke:"Скасувати доступ",cancel:"Скасувати запрошення",
+    notifications:"Отримувати повідомлення про події в Telegram",mfa:"Для керування подіями потрібна двофакторна автентифікація. Кожен учасник налаштовує її у власному акаунті.",
+    telegram:"Для отримання повідомлень кожен учасник має прив'язати свій Telegram у профілі й увімкнути сповіщення про реєстрації та скасування.",
+    expiry:"Запрошення діє до",confirm:"Скасувати доступ цієї людини до подій і повідомлень вашої організації?",confirmLeave:"Залишити організацію і втратити доступ до керування її подіями?",
+    updated:"Зміни збережені.",loading:"Завантажуємо команду…",error:"Не вдалося виконати дію. Перевірте вхід і спробуйте ще раз.",
+    manage:"Керування подіями",profile:"Підключити Telegram",prefs:"Налаштування сповіщень"}
 } as const;
 
 export function OrganizerTeamClient(){
   const {language}=useLanguage();
-  const t=COPY[language==="cs"?"cs":"en"];
+  const t=COPY[language];
   const [data,setData]=useState<OrganizerTeamData|null>(null);
   const [loading,setLoading]=useState(true);
   const [email,setEmail]=useState("");
@@ -93,7 +113,7 @@ export function OrganizerTeamClient(){
         {data.teams.length===0?<p className="form-note">{t.noneTeams}</p>:<ul className="tt-organizer-notice-list">
           {data.teams.map(team=><li className="panel form-stack" key={team.owner_account_id}>
             <h3>{team.organization}</h3><p className="form-note">{team.status==="active"?t.active:t.pending}
-              {team.status==="invited"&&team.expires_at?` · ${t.expiry}: ${new Date(team.expires_at).toLocaleDateString(language==="cs"?"cs-CZ":"en-GB")}`:""}</p>
+              {team.status==="invited"&&team.expires_at?` · ${t.expiry}: ${new Date(team.expires_at).toLocaleDateString(language==="cs"?"cs-CZ":language==="ru"?"ru-RU":language==="uk"?"uk-UA":"en-GB")}`:""}</p>
             {team.status==="invited"?<button type="button" className="button button-primary" disabled={busy}
               onClick={()=>void accept(team.owner_account_id)}>{t.accept}</button>:<>
               <label className="tt-organizer-notice-option"><input type="checkbox" checked={team.notifications_enabled} disabled={busy}
