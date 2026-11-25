@@ -462,7 +462,8 @@ def install_demo_accounts(
         if not configured():
             raise HTTPException(503, "email_provider_unavailable")
         account = db.query(WebAccount).filter(WebAccount.email == email).first()
-        if account and email_is_verified(db, account.id):
+        from demo_account_bans import active_ban
+        if account and email_is_verified(db, account.id) and active_ban(db, account.id) is None:
             try:
                 create_challenge(db, account, "login")
             except HTTPException as exc:
