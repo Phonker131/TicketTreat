@@ -12,6 +12,14 @@ FRONTEND = ROOT / "frontend"
 
 
 class UserFacingCopyTests(unittest.TestCase):
+    @staticmethod
+    def parse_translation_object(source):
+        # TypeScript permits unquoted object keys (en, cs, ru, uk); JSON does
+        # not. Preserve the substantive text validation after that refactor.
+        json_compatible = re.sub(r'([,{]\s*)(en|cs|ru|uk)(\s*:)',
+                                 r'\1"\2"\3', source)
+        return json.loads(json_compatible)
+
     @classmethod
     def setUpClass(cls):
         src = (FRONTEND / "lib/user-facing-errors.ts").read_text(encoding="utf-8")
@@ -20,13 +28,13 @@ class UserFacingCopyTests(unittest.TestCase):
             src,
         )
         assert match, "No centralized messages dictionary"
-        cls.messages = json.loads(match.group(1))
+        cls.messages = cls.parse_translation_object(match.group(1))
         fallback = re.search(
             r"const FALLBACK: Record<string,Record<LanguageCode,string>> = (\{[\s\S]*?\});\n",
             src,
         )
         assert fallback, "No error fallback dictionary"
-        cls.fallback = json.loads(fallback.group(1))
+        cls.fallback = cls.parse_translation_object(fallback.group(1))
         cls.helper = src
 
     def test_every_error_has_four_nonempty_localizations(self):

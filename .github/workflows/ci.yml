@@ -98,6 +98,13 @@ jobs:
         env:
           PGPASSWORD: test_only_password
         run: |
+          # The hosted runner can ship a newer pg_dump than the PG16 service.
+          # Use matching client tools to make the restore rehearsal meaningful.
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-16
+          export PATH="/usr/lib/postgresql/16/bin:$PATH"
+          pg_dump --version
+          pg_restore --version
           mkdir -p "$RUNNER_TEMP/private-backups"
           python scripts/backup_postgres.py --output-dir "$RUNNER_TEMP/private-backups"
           createdb -h 127.0.0.1 -U tickettreat -O tickettreat -T template0 tickettreat_restore_ci
