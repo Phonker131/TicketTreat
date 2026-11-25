@@ -1206,6 +1206,8 @@ def install_demo_roles(app, get_db, main):
         # success for a replay; preserve the existing read-only ticket state.
         if ticket.ticket_status != "active":
             raise HTTPException(status_code=409,detail="ticket_not_active")
+        from demo_account_bans import require_guest_active
+        require_guest_active(db, ticket.guest_id)
         event=db.get(main.Event,ticket.event_id)
         if event is None or event.is_cancelled:
             raise HTTPException(status_code=409,detail="event_cancelled")

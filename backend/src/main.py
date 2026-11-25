@@ -3459,6 +3459,8 @@ def demo_admin_check_in(
 
     if ticket.ticket_status != "active":
         raise HTTPException(status_code=409, detail="ticket_not_active")
+    from demo_account_bans import require_guest_active
+    require_guest_active(db, ticket.guest_id)
     event=db.query(Event).filter(Event.id==ticket.event_id).first()
     if event is None or getattr(event,"is_cancelled",False):
         raise HTTPException(status_code=409, detail="event_cancelled")
