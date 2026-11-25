@@ -7,7 +7,8 @@ import {useLanguage} from "@/components/LanguageProvider";
 import {eventAdminText} from "@/lib/event-admin-i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
 import { ReminderEditor } from "@/components/ReminderEditor";
-import { uploadManageGalleryPhoto, addManageEvent, getManageEvents, getManageMe, getSupportSummary } from "@/lib/api";
+import { uploadManageGalleryPhoto, addManageEvent, getManageEvents, getManageMe, getSupportSummary, getOrganizerTeams } from "@/lib/api";
+import type {OrganizerTeamData} from "@/lib/api";
 import {PhotoViewer, PosterViewer} from "./PhotoViewer";
 import {prepareGalleryPhoto} from "@/lib/gallery-photo";
 import { getWebToken } from "@/lib/session";
@@ -99,6 +100,7 @@ export function AdminClient() {
     },
   }[language];
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
+  const [teams,setTeams]=useState<OrganizerTeamData|null>(null);
   const categories=useEventCategories();
   const [events,setEvents]=useState<ManageEvent[]>([]);
   const [loading,setLoading]=useState(true);
@@ -137,6 +139,7 @@ export function AdminClient() {
       .then(([me,data])=>{if(live){setIdentity(me);setEvents(data);}})
       .catch(e=>{if(live)setError(errorText(e,language));})
       .finally(()=>{if(live)setLoading(false);});
+    getOrganizerTeams().then(value=>{if(live)setTeams(value);}).catch(()=>{});
     return ()=>{live=false};
   },[]);
 
@@ -167,6 +170,7 @@ export function AdminClient() {
         throw new LocalValidationError(language==="cs"?"Vyberte pouze fotografie.":"Choose image files only.");
       if(photos.length>8)throw new LocalValidationError(language==="cs"?"Maximálně 8 fotografií.":"Choose at most 8 photos.");
       const event=await addManageEvent(token,{
+        ...(Number(data.get("organization_account_id"))>0?{organization_account_id:Number(data.get("organization_account_id"))}:{}),
         title:String(data.get("title")||"").trim(),
         visibility:data.get("visibility")==="link_only"?"link_only":"public",
         organizer:String(data.get("organizer")||"TicketTreat").trim(),
@@ -220,6 +224,8 @@ export function AdminClient() {
     const date=ev.starts_at?new Date(ev.starts_at.replace(/(?:Z|[+-]\d{2}:\d{2})$/i,"")):null;
     return date&&!Number.isNaN(date.getTime())?new Intl.DateTimeFormat(locale,{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}).format(date):x.noDate;
   };
+  const memberOrganizations=teams?.teams.filter(team=>team.status==="active")||[];
+  const canUseOwnOrganization=identity?.base_role!=="participant";
 
   return <div className="app-shell"><AppHeader/><main className="page tt-dash-page"><div className="tt-dash">
     {identity&&<aside className="tt-dash-side"><ul className="tp-admin-nav" aria-label={x.nav}>
@@ -229,8 +235,9 @@ export function AdminClient() {
       <li><Link href="/admin/rewards"><DashIcon name="rewards"/>{x.rewards}</Link></li>
       <li><Link href="/admin/messages"><DashIcon name="messages"/>{language==="cs"?"Zprávy účastníků":"Attendee messages"}</Link></li>
       <li><Link href="/admin/notifications"><DashIcon name="messages"/>{language==="cs"?"Upozornění Telegram":"Telegram notifications"}</Link></li>
+      <li><Link href="/admin/team"><DashIcon name="accounts"/>{language==="cs"?"Tým pořadatele":language==="ru"?"Команда организатора":language==="uk"?"Команда організатора":"Organizer team"}</Link></li>
       <li><Link href="/admin/promotions"><DashIcon name="campaigns"/>{language==="cs"?"Kampaně":"Campaigns"}</Link></li>
-      <li><Link href="/admin/organizer-profile"><DashIcon name="profile"/>{x.profile}</Link></li>
+      {identity.base_role!=="participant"&&<li><Link href="/admin/organizer-profile"><DashIcon name="profile"/>{x.profile}</Link></li>}
       {identity.role==="global_admin"&&<>
         <li><Link href="/admin/accounts"><DashIcon name="accounts"/>{x.accounts}</Link></li>
         <li><Link href="/admin/categories"><DashIcon name="events"/>{language==="cs"?"Kategorie akcí":"Event categories"}</Link></li>
@@ -274,6 +281,11 @@ export function AdminClient() {
         <div className="tp-form-sections">
           <section className="tp-form-section">
             <h3>{x.basics}</h3><p>{x.basicsHint}</p>
+            {memberOrganizations.length>0&&<label>{language==="cs"?"Vytvořit pro organizaci":language==="ru"?"Организация-владелец":language==="uk"?"Організація-власник":"Create for organization"}
+              <select name="organization_account_id" defaultValue={canUseOwnOrganization?"":String(memberOrganizations[0].owner_account_id)} required={!canUseOwnOrganization}>
+                {canUseOwnOrganization&&<option value="">{language==="cs"?"Můj vlastní účet":language==="ru"?"Моя организация":language==="uk"?"Моя організація":"My organization"}</option>}
+                {memberOrganizations.map(team=><option key={team.owner_account_id} value={team.owner_account_id}>{team.organization}</option>)}
+              </select></label>}
             <label>{x.title}<input required name="title" maxLength={255}/></label>
             <label>{x.organizer}<input name="organizer" defaultValue="TicketTreat" /></label>
             <label>{x.location}<input name="location" required />

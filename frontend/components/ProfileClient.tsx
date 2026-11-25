@@ -825,6 +825,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
               <div className="tt-ph-links">
                 <Link href="/tickets" className="button button-outline">{tr.tickets}</Link>
                 {profile.account.role !== "participant" && <Link href="/admin" className="button button-primary">{ui.organizerDashboard}</Link>}
+                <Link href="/admin/team" className="button button-outline">{language==="cs"?"Tým pořadatele":language==="ru"?"Команда организатора":language==="uk"?"Команда організатора":"Organizer team"}</Link>
                 {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
               </div>
             </div>
