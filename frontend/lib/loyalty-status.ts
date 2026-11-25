@@ -12,7 +12,7 @@ export function organizerManagedBenefit(benefit:OrganizerTierBenefit):boolean{
   if(benefit.operational)return false;
   const original=DEFAULT_UNAVAILABLE[benefit.tier];
   if(!original)return false;
-  return Boolean(benefit.description_en.trim()||benefit.description_cs.trim()||
+  return Boolean((benefit.description_en??"").trim()||(benefit.description_cs??"").trim()||
     benefit.label_en.trim()!==original.en||benefit.label_cs.trim()!==original.cs);
 }
 
