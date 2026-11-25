@@ -61,6 +61,7 @@ from demo_indexnow import install_indexnow
 from demo_telegram_notifications import TelegramNotificationOutbox, install_notification_worker
 from demo_organizer_telegram import (OrganizerTelegramSettings, OrganizerActivity,
                                      queue_organizer_activity, install_organizer_telegram_api)
+from demo_organizer_teams import OrganizerTeamMember, OrganizerTeamAudit, install_organizer_teams_api
 from demo_privacy import PrivacyRequest, install_privacy_routes
 from demo_mfa import MFAFactor, MFASession, install_mfa
 from demo_legacy import LegacyTicketClaim
@@ -3547,6 +3548,7 @@ def demo_email_status(
 
 # All owner/role authorization on server; no shared admin key for organizers.
 install_demo_roles(app, get_db, __import__("sys").modules[__name__])
+install_organizer_teams_api(app, get_db)
 install_organizer_public_profiles(app, get_db, __import__("sys").modules[__name__])
 
 install_account_moderation(app, get_db)

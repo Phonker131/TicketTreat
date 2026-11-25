@@ -113,7 +113,9 @@ def require_privileged_mfa(db: Session, account: WebAccount, session: WebSession
         return
     from demo_roles import role_for
     if role_for(db,account) not in {"organizer","global_admin"}:
-        return
+        from demo_organizer_teams import member_owners
+        if not member_owners(db, account.id):
+            return
     factor=db.get(MFAFactor,account.id)
     if factor is None or factor.enabled_at is None:
         raise HTTPException(403,"mfa_enrollment_required")
@@ -147,7 +149,9 @@ def install_mfa(app, get_db):
         account,_=session_for(db,authorization)
         from demo_roles import role_for
         if role_for(db,account) not in {"organizer","global_admin"}:
-            raise HTTPException(403,"privileged_account_required")
+            from demo_organizer_teams import member_owners
+            if not member_owners(db, account.id):
+                raise HTTPException(403,"privileged_account_required")
         guard_rate(db,"mfa_start",str(account.id),5,3600)
         record_rate(db,"mfa_start",str(account.id),3600)
         if not verify_password(payload.current_password,account.password_hash):

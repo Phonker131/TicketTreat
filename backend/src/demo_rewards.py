@@ -92,10 +92,11 @@ def awards_for_guest(db:Session,guest_id:int,main)->list[dict]:
 
 def dashboard(db:Session,account,main)->dict:
     role=ensure_manage(db,account)
+    from demo_organizer_teams import manageable_owner_ids
     owned=(db.query(EventOwnership.event_id)
            if role=="global_admin" else
            db.query(EventOwnership.event_id).filter(
-               EventOwnership.owner_account_id==account.id))
+               EventOwnership.owner_account_id.in_(manageable_owner_ids(db, account.id))))
     own_ids=[int(eid) for (eid,) in owned.limit(500).all()]
     if not own_ids:
         return {"events":[],"rewards":[],"attendees":[],"grants":[]}

@@ -133,7 +133,9 @@ def require_staff_thread(db: Session, thread_id: int, staff):
     owner = db.get(EventOwnership, thread.event_id)
     if owner is None:
         raise HTTPException(404, "conversation_not_found")
-    if role_for(db, staff) != "global_admin" and int(owner.owner_account_id) != staff.id:
+    from demo_organizer_teams import manageable_owner_ids
+    if (role_for(db, staff) != "global_admin"
+            and int(owner.owner_account_id) not in manageable_owner_ids(db, staff.id)):
         raise HTTPException(404, "conversation_not_found")
     return thread
 
@@ -400,7 +402,8 @@ def install_event_chat_api(app, get_db, main):
         q = db.query(EventChatThread).join(
             EventOwnership, EventOwnership.event_id == EventChatThread.event_id)
         if role_for(db, staff) != "global_admin":
-            q = q.filter(EventOwnership.owner_account_id == staff.id)
+            from demo_organizer_teams import manageable_owner_ids
+            q = q.filter(EventOwnership.owner_account_id.in_(manageable_owner_ids(db, staff.id)))
         rows = q.order_by(EventChatThread.updated_at.desc(), EventChatThread.id.desc()).limit(150).all()
         result = [serialized_thread(db, row, main, staff=True) for row in rows]
         return {"threads": result, "unread": sum(1 for row in result if row["unread"])}

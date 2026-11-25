@@ -132,6 +132,10 @@ def install_organizer_public_profiles(app, get_db, main):
     ) -> WebAccount:
         account = account_lookup(db, authorization)
         ensure_manage(db, account)
+        # Team membership grants event operations, NOT the ability to create
+        # or publish an unrelated organizer identity or change the owner brand.
+        if role_for(db, account) not in {"organizer", "global_admin"}:
+            raise HTTPException(403, "organization_profile_owner_only")
         return account
 
     @app.get("/demo/manage/organizer-profile")

@@ -236,6 +236,7 @@ def save_media(db, event_id, gallery_urls=None, video_url=None):
 
 class CreateManageEvent(BaseModel):
     visibility: str = Field(default="public",pattern="^(public|link_only)$")
+    organization_account_id: int | None = Field(default=None, gt=0)
     country_code: str = Field(default="CZ", min_length=2, max_length=2)
     city: str = Field(default="", max_length=100)
     title: str = Field(min_length=1, max_length=255)
@@ -377,7 +378,12 @@ def account_lookup(db: Session, authorization: str | None) -> WebAccount:
 def ensure_manage(db: Session, account: WebAccount) -> str:
     role = role_for(db, account)
     if role not in {"organizer", "global_admin"}:
-        raise HTTPException(status_code=403, detail="organizer_role_required")
+        from demo_organizer_teams import member_owners
+        if not member_owners(db, account.id):
+            raise HTTPException(status_code=403, detail="organizer_role_required")
+        # Scoped, accepted team membership enables management but never
+        # changes the account's actual role or grants global-admin access.
+        role = "organizer"
     # A self-selected organizer role is not sufficient proof of identity.
     # Enforce email ownership before exposing real participant data.
     if os.getenv("APP_ENV", "development").lower() == "production":
@@ -390,9 +396,10 @@ def ensure_owner(db: Session, event_id: int, account: WebAccount) -> str:
     role = ensure_manage(db, account)
     if role == "global_admin":
         return role
+    from demo_organizer_teams import manageable_owner_ids
     record = db.query(EventOwnership).filter(
         EventOwnership.event_id == event_id,
-        EventOwnership.owner_account_id == account.id,
+        EventOwnership.owner_account_id.in_(manageable_owner_ids(db, account.id)),
     ).first()
     if record is None:
         raise HTTPException(status_code=403, detail="event_not_owned")
@@ -467,16 +474,22 @@ def install_demo_roles(app, get_db, main):
 
     @app.get("/demo/manage/me")
     def whoami(account: WebAccount=Depends(current),db: Session=Depends(get_db)):
+        from demo_organizer_teams import member_owners
+        team_owners = sorted(member_owners(db, account.id))
+        actual_role = role_for(db, account)
         return {
             "account_id":account.id,"email":account.email,
-            "role":role_for(db,account),
+            "role":"organizer" if actual_role == "participant" and team_owners else actual_role,
+            "base_role": actual_role, "team_organization_ids": team_owners,
         }
 
     @app.get("/demo/manage/events")
     def my_events(account: WebAccount=Depends(managing),db: Session=Depends(get_db)):
+        from demo_organizer_teams import manageable_owner_ids
         q=db.query(main.Event)
         if role_for(db,account) != "global_admin":
-            q=q.join(EventOwnership,EventOwnership.event_id == main.Event.id).filter(EventOwnership.owner_account_id==account.id)
+            q=q.join(EventOwnership,EventOwnership.event_id == main.Event.id).filter(
+                EventOwnership.owner_account_id.in_(manageable_owner_ids(db, account.id)))
         events=q.order_by(main.Event.id.desc()).all()
         return [event_data(event,db,main) for event in events]
 
@@ -501,8 +514,10 @@ def install_demo_roles(app, get_db, main):
             raise HTTPException(422, "reminder_message_required")
         if payload.starts_at is None:
             raise HTTPException(status_code=422,detail="date_required")
+        from demo_organizer_teams import resolve_event_owner
+        owning_account_id = resolve_event_owner(db, account, payload.organization_account_id)
         # Existing bot event-creation logic remains the source of truth.
-        values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","venue_url","tags","reminder_minutes","visibility"})
+        values=payload.model_dump(exclude={"poster_data_url","country_code","city","gallery_urls","video_url","venue_url","tags","reminder_minutes","visibility","organization_account_id"})
         validate_media_urls(payload.gallery_urls,payload.video_url)
         normalized_tags = normalize_tags(payload.tags, {k for k, c in catalog(db).items() if c["active"]})
         from main import EventCreate
@@ -519,7 +534,7 @@ def install_demo_roles(app, get_db, main):
         eid=created["id"]
         event=db.query(main.Event).filter(main.Event.id==eid).first()
         db.add(EventPilotSettings(event_id=eid,reminder_minutes_json=json.dumps(reminder_intervals)))
-        db.add(EventOwnership(event_id=eid,owner_account_id=account.id))
+        db.add(EventOwnership(event_id=eid,owner_account_id=owning_account_id))
         set_publication(db,eid,"draft")
         from demo_event_access import set_visibility
         set_visibility(db,eid,payload.visibility)
@@ -549,6 +564,12 @@ def install_demo_roles(app, get_db, main):
         mutations commit atomically; preserve the non-FK audit trail.
         """
         ensure_owner(db,event_id,account)
+        # Destructive deletion is reserved for the actual event owner and the
+        # global admins, even when a team member can edit/check in guests.
+        owner = db.get(EventOwnership, event_id)
+        if (owner is None or (owner.owner_account_id != account.id
+                and role_for(db, account) != "global_admin")):
+            raise HTTPException(403, "event_deletion_owner_only")
         event=(db.query(main.Event).filter(main.Event.id==event_id)
                .with_for_update().first())
         if event is None:
