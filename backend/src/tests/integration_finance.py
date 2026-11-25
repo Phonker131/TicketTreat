@@ -16,7 +16,7 @@ from integration_organizer_rewards import enroll_mfa
 from demo_organizer_teams import OrganizerTeamMember
 from demo_finance import (OrganizerContractVersion, OrganizerContractAcceptance,
                           FinanceAccessAudit, FinanceSessionGrant, contract_digest)
-from demo_mfa import MFAFactor, cipher, _code, match_counter
+from demo_mfa import MFAFactor, cipher, _code
 from demo_accounts import WebSession, token_hash
 from demo_account_bans import PermanentAccountBan
 import main
@@ -32,9 +32,9 @@ class OrganizerFinanceIntegration(unittest.TestCase):
             secret=cipher().decrypt(factor.encrypted_secret)
         counter=int(time.time())//30+index
         code=_code(secret,counter)
-        with patch("demo_finance.match_counter",
-                   side_effect=lambda secret,candidate,after:match_counter(
-                       secret,candidate,now=counter*30,after=after)):
+        # The finance route captured the imported validator in its closure at
+        # app installation, so patch the validator's clock, not its import.
+        with patch("demo_mfa.time.time",return_value=counter*30):
             return client.post(path,headers=headers,json={**payload,"mfa_code":code})
 
     def test_owner_only_no_historical_revenue_and_versioned_consent(self):
@@ -102,17 +102,17 @@ class OrganizerFinanceIntegration(unittest.TestCase):
                 actor = db.query(WebSession).filter(
                     WebSession.token_hash==token_hash(owner_auth["Authorization"][7:])).first()
                 secret = cipher().decrypt(db.get(MFAFactor,actor.account_id).encrypted_secret)
-            reused_code = _code(secret, int(time.time())//30+1)
-            with patch("demo_finance.match_counter",side_effect=lambda s,c,after:match_counter(
-                    s,c,now=(int(time.time())//30+1)*30,after=after)):
+            replay_counter=int(time.time())//30+1
+            reused_code = _code(secret,replay_counter)
+            with patch("demo_mfa.time.time",return_value=replay_counter*30):
                 replay=client.put("/demo/manage/finance/profile",headers=owner_auth,
                     json={**updated_payload,"mfa_code":reused_code})
             self.assertEqual(replay.status_code,401,replay.text)
             # Test the intended update separately with the next real code.
-            with patch("demo_finance.match_counter",side_effect=lambda s,c,after:match_counter(
-                    s,c,now=(int(time.time())//30+2)*30,after=after)):
+            update_counter=int(time.time())//30+2
+            with patch("demo_mfa.time.time",return_value=update_counter*30):
                 updated=client.put("/demo/manage/finance/profile",headers=owner_auth,
-                    json={**updated_payload,"mfa_code":_code(secret,int(time.time())//30+2)})
+                    json={**updated_payload,"mfa_code":_code(secret,update_counter)})
             self.assertEqual(updated.status_code,200,updated.text)
             self.assertFalse(updated.json()["verified"])
             self.assertFalse(updated.json()["charges_enabled"])
