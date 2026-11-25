@@ -23,9 +23,12 @@ class NightPosterBrandTests(unittest.TestCase):
 
     def test_event_cta_still_uses_existing_routes(self):
         home=(FRONTEND/"components"/"HomeClient.tsx").read_text(encoding="utf-8")
+        navigation=(FRONTEND/"components"/"AppHeader.tsx").read_text(encoding="utf-8")
         events=(FRONTEND/"components"/"EventCard.tsx").read_text(encoding="utf-8")
         self.assertIn('id="events"',home)
-        self.assertIn('href="/tickets"',home)
+        # Tickets moved into the shared navigation, which HomeClient renders.
+        self.assertIn('<AppHeader/>',home)
+        self.assertIn('<Link href="/tickets"',navigation)
         discovery=(FRONTEND/"components"/"EventDiscovery.tsx").read_text(encoding="utf-8")
         self.assertIn('<EventDiscovery events={events} language={language}/>',home)
         self.assertIn('<EventCard key={event.id} event={event}/>',discovery)

@@ -98,10 +98,18 @@ jobs:
         env:
           PGPASSWORD: test_only_password
         run: |
-          mkdir -p "$RUNNER_TEMP/private-backups"
+          # The hosted runner can ship a newer pg_dump than the PG16 service.
+          # Run matching PG16 dump/restore clients in official PostgreSQL images.
+          mkdir -p "$RUNNER_TEMP/pg16bin" "$RUNNER_TEMP/private-backups"
+          ln -s "$GITHUB_WORKSPACE/scripts/ci_pg16_pg_dump.sh" "$RUNNER_TEMP/pg16bin/pg_dump"
+          export PATH="$RUNNER_TEMP/pg16bin:$PATH"
+          pg_dump --version
+          docker run --rm postgres:16 pg_restore --version
           python scripts/backup_postgres.py --output-dir "$RUNNER_TEMP/private-backups"
           createdb -h 127.0.0.1 -U tickettreat -O tickettreat -T template0 tickettreat_restore_ci
-          pg_restore -h 127.0.0.1 -U tickettreat --no-owner --no-acl -d tickettreat_restore_ci "$RUNNER_TEMP"/private-backups/*.dump
+          docker run --rm --network host -e PGPASSWORD \
+            -v "$RUNNER_TEMP/private-backups:/backups:ro" postgres:16 \
+            sh -c 'pg_restore -h 127.0.0.1 -U tickettreat --no-owner --no-acl -d tickettreat_restore_ci /backups/*.dump'
           for table in users registrations demo_tickets demo_legacy_ticket_claims demo_mfa_factors demo_privacy_requests; do
             original="$(psql -h 127.0.0.1 -U tickettreat -d tickettreat_ci -tAc "SELECT count(*) FROM $table")"
             restored="$(psql -h 127.0.0.1 -U tickettreat -d tickettreat_restore_ci -tAc "SELECT count(*) FROM $table")"
