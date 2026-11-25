@@ -12,12 +12,13 @@ import io
 import hmac
 import os
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, Header, HTTPException, Request, Response
-from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import (BigInteger, Boolean, CheckConstraint, Column, DateTime,
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy import (BigInteger, Boolean, CheckConstraint, Column, Date, DateTime,
                         ForeignKey, Integer, String, Text, UniqueConstraint)
 from sqlalchemy.orm import Session
 
@@ -119,6 +120,41 @@ class FinanceDocument(Base):
                                       name="uq_finance_document_number"),)
 
 
+EXPENSE_CATEGORIES = {"venue", "staff", "equipment", "marketing", "travel", "services", "other"}
+
+
+class OrganizerExpenseEntry(Base):
+    """Owner-entered cost evidence, separate from verified Stripe payments/taxes.
+
+    Corrections are new negative reversals. No application UPDATE/DELETE exists.
+    """
+    __tablename__ = "tt_finance_expense_entries"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    owner_account_id = Column(Integer, ForeignKey("demo_web_accounts.id"), nullable=False, index=True)
+    actor_account_id = Column(Integer, ForeignKey("demo_web_accounts.id"), nullable=False)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=True)
+    entry_type = Column(String(12), nullable=False)
+    reverses_entry_id = Column(BigInteger, ForeignKey("tt_finance_expense_entries.id"),
+                              nullable=True, unique=True)
+    category = Column(String(24), nullable=False)
+    amount_minor = Column(BigInteger, nullable=False)
+    currency = Column(String(3), nullable=False)
+    expense_date = Column(Date, nullable=False)
+    supplier = Column(String(160), nullable=True)
+    reference = Column(String(120), nullable=True)
+    note = Column(String(400), nullable=True)
+    recorded_at = Column(DateTime(timezone=True), nullable=False,
+                         default=lambda: datetime.now(timezone.utc))
+    __table_args__ = (
+        CheckConstraint("category IN ('venue','staff','equipment','marketing','travel','services','other')",
+                        name="ck_finance_expense_category"),
+        CheckConstraint("currency IN ('CZK','EUR')", name="ck_finance_expense_currency"),
+        CheckConstraint("(entry_type='expense' AND amount_minor>0 AND reverses_entry_id IS NULL) "
+                        "OR (entry_type='reversal' AND amount_minor<0 AND reverses_entry_id IS NOT NULL)",
+                        name="ck_finance_expense_signed_entry"),
+    )
+
+
 class OrganizerContractVersion(Base):
     __tablename__ = "tt_organizer_contract_versions"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -154,6 +190,16 @@ class OrganizerContractAcceptance(Base):
 
 def contract_digest(body: str) -> str:
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def valid_czech_ico(value: str) -> bool:
+    """Offline Czech IČO checksum; registry and signatory checks remain separate."""
+    if not re.fullmatch(r"[0-9]{8}", value):
+        return False
+    digits = [int(part) for part in value]
+    remainder = sum(digit * weight for digit, weight in zip(digits[:7], range(8, 1, -1))) % 11
+    expected = 1 if remainder == 0 else 0 if remainder == 1 else 11 - remainder
+    return digits[-1] == expected
 
 
 def month_bounds(value: str | None) -> tuple[str, datetime, datetime]:
@@ -192,6 +238,16 @@ def totals(entries: list[FinanceLedgerEntry]) -> dict:
     }
 
 
+def event_totals(entries: list[FinanceLedgerEntry]) -> list[dict]:
+    """Event-level provider evidence without reallocating account-wide payouts."""
+    grouped: dict[int, list[FinanceLedgerEntry]] = {}
+    for entry in entries:
+        if entry.event_id is not None:
+            grouped.setdefault(entry.event_id, []).append(entry)
+    return [{"event_id": event_id, "summary": totals(grouped[event_id])}
+            for event_id in sorted(grouped)]
+
+
 class AcceptContract(BaseModel):
     model_config = ConfigDict(extra="forbid")
     contract_id: int = Field(gt=0)
@@ -208,6 +264,13 @@ class UpdateFinanceProfile(BaseModel):
     vat_status: str = Field(pattern=r"^(non_payer|payer|exempt)$")
     mfa_code: str = Field(pattern=r"^[0-9]{6}$", repr=False)
 
+    @field_validator("ico")
+    @classmethod
+    def ico_checksum(cls, value: str) -> str:
+        if not valid_czech_ico(value):
+            raise ValueError("invalid_czech_ico_checksum")
+        return value
+
 
 class FinanceMFAProof(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -218,6 +281,34 @@ class FinanceExportRequest(FinanceMFAProof):
     organization_id: int | None = Field(default=None, gt=0)
     month: str | None = None
     currency: str = "CZK"
+
+
+class CreateExpense(FinanceMFAProof):
+    expense_date: date
+    category: Literal["venue", "staff", "equipment", "marketing", "travel", "services", "other"]
+    amount_minor: int = Field(gt=0, le=1_000_000_000_000)
+    currency: Literal["CZK", "EUR"]
+    event_id: int | None = Field(default=None, gt=0)
+    supplier: str | None = Field(default=None, max_length=160)
+    reference: str | None = Field(default=None, max_length=120)
+    note: str | None = Field(default=None, max_length=400)
+
+    @field_validator("expense_date")
+    @classmethod
+    def expense_date_in_supported_period(cls, value: date) -> date:
+        if value < date(2026, 1, 1) or value > datetime.now(PRAGUE).date():
+            raise ValueError("invalid_expense_date")
+        return value
+
+
+class ReverseExpense(FinanceMFAProof):
+    reason: str = Field(min_length=4, max_length=400)
+
+
+class ExportExpenses(FinanceMFAProof):
+    organization_id: int | None = Field(default=None, gt=0)
+    month: str | None = None
+    currency: Literal["CZK", "EUR"] = "CZK"
 
 
 def trusted_ip_fingerprint(request: Request) -> str | None:
@@ -365,6 +456,32 @@ def install_finance_api(app, get_db):
             FinanceLedgerEntry.occurred_at < end,
         ).order_by(FinanceLedgerEntry.occurred_at, FinanceLedgerEntry.id).limit(10001).all()
 
+    def expense_rows(db, owner: int, month: str, currency: str):
+        if currency not in {"CZK", "EUR"}:
+            raise HTTPException(422, "invalid_finance_currency")
+        _, start, end = month_bounds(month)
+        result = db.query(OrganizerExpenseEntry).filter(
+            OrganizerExpenseEntry.owner_account_id == owner,
+            OrganizerExpenseEntry.currency == currency,
+            OrganizerExpenseEntry.expense_date >= start.astimezone(PRAGUE).date(),
+            OrganizerExpenseEntry.expense_date < end.astimezone(PRAGUE).date(),
+        ).order_by(OrganizerExpenseEntry.expense_date, OrganizerExpenseEntry.id).limit(10001).all()
+        if len(result) > 10000:
+            raise HTTPException(409, "finance_month_requires_reconciliation")
+        return result
+
+    def expense_dict(item, reversed_ids: set[int] | None = None):
+        return {"id": item.id, "event_id": item.event_id,
+                "entry_type": item.entry_type, "reverses_entry_id": item.reverses_entry_id,
+                "reversed": bool(reversed_ids and item.id in reversed_ids),
+                "category": item.category, "amount_minor": item.amount_minor,
+                "currency": item.currency, "expense_date": item.expense_date.isoformat(),
+                "supplier": item.supplier, "reference": item.reference,
+                "note": item.note, "recorded_at": item.recorded_at.isoformat()}
+
+    def optional_text(value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
     def entry_dict(item):
         return {"id": item.id, "event_id": item.event_id, "category": item.category,
                 "amount_minor": item.amount_minor, "currency": item.currency,
@@ -405,6 +522,7 @@ def install_finance_api(app, get_db):
                 "seller_verification": "verified" if profile and profile.verified_at else "pending",
                 "vat_status": profile.vat_status if profile else "unverified",
                 "summary": totals(ledger),
+                 "by_event": event_totals(ledger),
                 "notice": "Only verified provider entries are counted; legacy tickets are not sales. Not a tax return."}
         access_audit(db, request, account.id, owner, "summary_viewed")
         return result
@@ -500,6 +618,115 @@ def install_finance_api(app, get_db):
                 "notice": "Document creation/download requires verified issuer settings and separate legal review."}
         access_audit(db, request, account.id, owner, "documents_viewed")
         return result
+
+    @app.get("/demo/manage/finance/events")
+    def finance_events(request: Request, account=Depends(signed_in), db: Session = Depends(get_db)):
+        """Only own events can be associated with manually recorded expenses."""
+        from demo_roles import EventOwnership
+        from db.models import Event
+        owner = authorized_owner(db, account, None)
+        entries = db.query(Event).join(EventOwnership, EventOwnership.event_id == Event.id).filter(
+            EventOwnership.owner_account_id == owner).order_by(Event.id.desc()).limit(500).all()
+        result = {"events": [{"id": event.id, "title": event.title,
+                              "starts_at": event.starts_at.isoformat() if event.starts_at else None}
+                             for event in entries]}
+        access_audit(db, request, account.id, owner, "expense_events_viewed")
+        return result
+
+    @app.get("/demo/manage/finance/expenses")
+    def finance_expenses(request: Request, organization_id: int | None = None,
+                         month: str | None = None, currency: str = "CZK",
+                         account=Depends(signed_in), db: Session = Depends(get_db)):
+        owner = authorized_owner(db, account, organization_id)
+        period, _, _ = month_bounds(month)
+        entries = expense_rows(db, owner, period, currency)
+        original_ids = [row.id for row in entries if row.entry_type == "expense"]
+        reversed_ids = {value for (value,) in db.query(OrganizerExpenseEntry.reverses_entry_id).filter(
+            OrganizerExpenseEntry.owner_account_id == owner,
+            OrganizerExpenseEntry.reverses_entry_id.in_(original_ids)).all()} if original_ids else set()
+        categories = {name: sum(row.amount_minor for row in entries if row.category == name)
+                      for name in sorted(EXPENSE_CATEGORIES)}
+        result = {"month": period, "currency": currency,
+                  "entries": [expense_dict(row, reversed_ids) for row in entries],
+                  "summary": {"manual_expenses_minor": sum(row.amount_minor for row in entries),
+                              "entry_count": len(entries), "by_category": categories},
+                  "notice": "Organizer-entered records only; not independently verified, "
+                            "not tax deductions or official invoices."}
+        access_audit(db, request, account.id, owner, "expenses_viewed")
+        return result
+
+    @app.post("/demo/manage/finance/expenses")
+    def add_finance_expense(payload: CreateExpense, request: Request,
+                            account=Depends(signed_in), db: Session = Depends(get_db)):
+        from demo_roles import EventOwnership
+        owner = authorized_owner(db, account, None)
+        if payload.event_id is not None and not db.query(EventOwnership).filter(
+                EventOwnership.event_id == payload.event_id,
+                EventOwnership.owner_account_id == owner).first():
+            raise HTTPException(403, "finance_event_not_owned")
+        guard_rate(db, "finance_expense_write", str(owner), 30, 3600)
+        record_rate(db, "finance_expense_write", str(owner), 3600)
+        sensitive_otp(db, owner, payload.mfa_code)
+        row = OrganizerExpenseEntry(
+            owner_account_id=owner, actor_account_id=account.id, event_id=payload.event_id,
+            entry_type="expense", reverses_entry_id=None,
+            category=payload.category, amount_minor=payload.amount_minor,
+            currency=payload.currency, expense_date=payload.expense_date,
+            supplier=optional_text(payload.supplier),
+            reference=optional_text(payload.reference), note=optional_text(payload.note))
+        db.add(row)
+        access_audit(db, request, account.id, owner, "expense_recorded")
+        return {"entry": expense_dict(row), "status": "self_reported"}
+
+    @app.post("/demo/manage/finance/expenses/{expense_id}/reverse")
+    def reverse_finance_expense(expense_id: int, payload: ReverseExpense, request: Request,
+                                account=Depends(signed_in), db: Session = Depends(get_db)):
+        owner = authorized_owner(db, account, None)
+        guard_rate(db, "finance_expense_write", str(owner), 30, 3600)
+        # Both rate recording and sensitive_otp commit internally, so complete
+        # them BEFORE taking the record lock to prevent concurrent reversals.
+        record_rate(db, "finance_expense_write", str(owner), 3600)
+        sensitive_otp(db, owner, payload.mfa_code)
+        original = db.query(OrganizerExpenseEntry).filter(
+            OrganizerExpenseEntry.id == expense_id,
+            OrganizerExpenseEntry.owner_account_id == owner).with_for_update().first()
+        if original is None:
+            raise HTTPException(404, "finance_expense_not_found")
+        if original.entry_type != "expense" or db.query(OrganizerExpenseEntry.id).filter(
+                OrganizerExpenseEntry.reverses_entry_id == original.id).first():
+            raise HTTPException(409, "finance_expense_already_reversed")
+        correction = OrganizerExpenseEntry(
+            owner_account_id=owner, actor_account_id=account.id,
+            event_id=original.event_id, entry_type="reversal",
+            reverses_entry_id=original.id, category=original.category,
+            amount_minor=-original.amount_minor, currency=original.currency,
+            expense_date=datetime.now(PRAGUE).date(), supplier=original.supplier,
+            reference=original.reference, note=payload.reason.strip())
+        db.add(correction)
+        access_audit(db, request, account.id, owner, "expense_reversed")
+        return {"entry": expense_dict(correction), "status": "reversed"}
+
+    @app.post("/demo/manage/finance/expenses/export")
+    def finance_expenses_export(payload: ExportExpenses, request: Request,
+                                account=Depends(signed_in), db: Session = Depends(get_db)):
+        owner = authorized_owner(db, account, payload.organization_id)
+        guard_rate(db, "finance_expense_export", str(owner), 12, 3600)
+        record_rate(db, "finance_expense_export", str(owner), 3600)
+        sensitive_otp(db, owner, payload.mfa_code)
+        period, _, _ = month_bounds(payload.month)
+        entries = expense_rows(db, owner, period, payload.currency)
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(("id", "date", "event_id", "entry_type", "reverses_entry_id",
+                         "category", "amount_minor", "currency", "supplier", "reference", "note"))
+        for row in entries:
+            writer.writerow((row.id, row.expense_date.isoformat(), row.event_id,
+                             row.entry_type, row.reverses_entry_id, row.category,
+                             row.amount_minor, row.currency, finance_csv_reference(row.supplier),
+                             finance_csv_reference(row.reference), finance_csv_reference(row.note)))
+        access_audit(db, request, account.id, owner, "expense_csv_exported")
+        return {"filename": f"tickettreat-self-reported-expenses-{owner}-{period}-{payload.currency}.csv",
+                "csv": output.getvalue(), "verified": False}
 
     @app.get("/demo/manage/finance/contract")
     def current_contract(request: Request, language: str = "cs", organization_id: int | None = None,

@@ -1,16 +1,17 @@
 """No database, Stripe or payment environment needed for these calculations."""
 import unittest
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from fastapi import HTTPException, Request
 from pydantic import ValidationError
 
-from demo_finance import (FinanceMFAProof, UpdateFinanceProfile, contract_digest,
-                          finance_csv_reference, month_bounds, totals,
-                          trusted_ip_fingerprint)
+from demo_finance import (CreateExpense, ReverseExpense, FinanceMFAProof,
+                          UpdateFinanceProfile, contract_digest,
+                          event_totals, finance_csv_reference, month_bounds, totals,
+                          trusted_ip_fingerprint, valid_czech_ico)
 
 
 class FinanceFoundationTests(unittest.TestCase):
@@ -57,6 +58,19 @@ class FinanceFoundationTests(unittest.TestCase):
         ]
         self.assertIsNone(totals(entries)["verified_tax_minor"])
 
+    def test_event_breakdown_excludes_account_wide_payouts(self):
+        rows=[SimpleNamespace(event_id=11,category="sale",amount_minor=15000,
+                              verified_tax_minor=None),
+              SimpleNamespace(event_id=12,category="sale",amount_minor=20000,
+                              verified_tax_minor=None),
+              SimpleNamespace(event_id=None,category="payout",amount_minor=-35000,
+                              verified_tax_minor=None)]
+        groups=event_totals(rows)
+        self.assertEqual([group["event_id"] for group in groups],[11,12])
+        self.assertEqual([group["summary"]["gross_sales_minor"] for group in groups],
+                         [15000,20000])
+        self.assertEqual([group["summary"]["payouts_minor"] for group in groups], [0,0])
+
     def test_contract_digest_is_sha256_of_exact_version(self):
         self.assertEqual(len(contract_digest("Návrh smlouvy v1")), 64)
         self.assertNotEqual(contract_digest("one"), contract_digest("one "))
@@ -73,9 +87,34 @@ class FinanceFoundationTests(unittest.TestCase):
 
     def test_organizer_cannot_mass_assign_stripe_or_payout_fields(self):
         with self.assertRaises(ValidationError):
-            UpdateFinanceProfile(legal_name="Example s.r.o.",ico="12345678",
+            UpdateFinanceProfile(legal_name="Example s.r.o.",ico="00177041",
                                  vat_status="payer",mfa_code="123456",
                                  stripe_account_id="acct_attacker",payouts_enabled=True)
+
+    def test_czech_ico_checksum_rejects_typo_but_not_leading_zero(self):
+        self.assertTrue(valid_czech_ico("00177041"))
+        for ico in ("00177040", "12345678", "11111111", "1234567", "0000000x"):
+            with self.subTest(ico=ico):
+                self.assertFalse(valid_czech_ico(ico))
+                with self.assertRaises(ValidationError):
+                    UpdateFinanceProfile(legal_name="Example s.r.o.",ico=ico,
+                                         vat_status="payer",mfa_code="123456")
+
+    def test_expenses_are_self_reported_only_and_cannot_assign_owner_or_taxes(self):
+        fields={"expense_date":"2026-11-25", "category":"venue", "amount_minor":150000,
+                "currency":"CZK", "mfa_code":"123456"}
+        self.assertEqual(CreateExpense(**fields).amount_minor, 150000)
+        for additions in ({"owner_account_id":42}, {"verified_tax_minor":100},
+                          {"stripe_account_id":"acct_forged"}, {"amount_minor":-1},
+                          {"amount_minor":1_000_000_000_001}, {"category":"tax_deductible"},
+                          {"expense_date":"2025-12-31"},
+                          {"expense_date":(date.today()+timedelta(days=5)).isoformat()}):
+            with self.subTest(additions=additions), self.assertRaises(ValidationError):
+                CreateExpense(**{**fields, **additions})
+        self.assertEqual(ReverseExpense(reason="Duplicate cost entry",mfa_code="123456").reason,
+                         "Duplicate cost entry")
+        with self.assertRaises(ValidationError):
+            ReverseExpense(reason="x",mfa_code="123456")
 
     def test_otp_codes_accept_ascii_digits_only(self):
         self.assertEqual(FinanceMFAProof(mfa_code="123456").mfa_code,"123456")

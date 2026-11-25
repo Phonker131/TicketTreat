@@ -16,7 +16,7 @@ from integration_organizer_rewards import enroll_mfa
 from demo_roles import GlobalAdminDelegation, role_for
 from demo_organizer_teams import OrganizerTeamMember
 from demo_finance import (OrganizerContractVersion, OrganizerContractAcceptance,
-                          FinanceAccessAudit, FinanceSessionGrant, contract_digest)
+                          FinanceAccessAudit, FinanceSessionGrant, PRAGUE, contract_digest)
 from demo_mfa import MFAFactor, cipher, _code
 from demo_accounts import WebSession, token_hash
 from demo_account_bans import PermanentAccountBan
@@ -103,12 +103,12 @@ class OrganizerFinanceIntegration(unittest.TestCase):
 
             # An attacker cannot inject a connected Stripe account or enable payouts.
             tamper=client.put("/demo/manage/finance/profile",headers=owner_auth,
-                json={"legal_name":"Test Event Organizer s.r.o.","ico":"12345678",
+                json={"legal_name":"Test Event Organizer s.r.o.","ico":"00177041",
                       "vat_status":"payer","stripe_account_id":"acct_attacker","mfa_code":"000000"})
             self.assertEqual(tamper.status_code,422,tamper.text)
             # Fresh OTP proof also applies to PUT; used unlock codes never replay.
-            updated_payload={"legal_name":"Test Event Organizer s.r.o.","ico":"12345678",
-                            "dic":"CZ12345678","vat_status":"payer"}
+            updated_payload={"legal_name":"Test Event Organizer s.r.o.","ico":"00177041",
+                            "dic":"CZ00177041","vat_status":"payer"}
             with SessionLocal() as db:
                 actor = db.query(WebSession).filter(
                     WebSession.token_hash==token_hash(owner_auth["Authorization"][7:])).first()
@@ -130,7 +130,7 @@ class OrganizerFinanceIntegration(unittest.TestCase):
             self.assertFalse(updated.json()["payouts_enabled"])
             self.assertEqual(client.put("/demo/manage/finance/profile",
                 headers=member_auth,json={"legal_name":"Impersonated Organizer",
-                  "ico":"12345678","vat_status":"payer","mfa_code":"000000"}).status_code,403)
+                  "ico":"00177041","vat_status":"payer","mfa_code":"000000"}).status_code,403)
             export=self.finance_step(client,owner_auth,3,"/demo/manage/finance/export",
                                      {"month":"2026-11","currency":"CZK"})
             self.assertEqual(export.status_code,200,export.text)
@@ -161,6 +161,47 @@ class OrganizerFinanceIntegration(unittest.TestCase):
                 "/demo/manage/finance/contract/accept",{"contract_id":contract_id,
                     "digest":contract_digest(contract_body),
                     "confirm_authority":True}).json()["status"],"already_accepted")
+
+            # User-entered expenses are separate from verified sales and require
+            # owner access, step-up MFA and an append-only reversal to correct.
+            local_today=datetime.now(PRAGUE).date()
+            expense_month=local_today.strftime("%Y-%m")
+            expense_payload={"expense_date":local_today.isoformat(),"category":"venue",
+                "amount_minor":120000,"currency":"CZK","supplier":"Venue s.r.o.",
+                "reference":"=HYPERLINK(1)","note":"Rental deposit"}
+            forged=client.post("/demo/manage/finance/expenses",headers=owner_auth,
+                json={**expense_payload,"owner_account_id":other.id,
+                      "mfa_code":"000000"})
+            self.assertEqual(forged.status_code,422,forged.text)
+            created=self.finance_step(client,owner_auth,6,
+                "/demo/manage/finance/expenses",expense_payload)
+            self.assertEqual(created.status_code,200,created.text)
+            self.assertEqual(created.json()["status"],"self_reported")
+            expense_id=created.json()["entry"]["id"]
+            details=client.get(f"/demo/manage/finance/expenses?month={expense_month}&currency=CZK",
+                headers=owner_auth)
+            self.assertEqual(details.status_code,200,details.text)
+            self.assertEqual(details.json()["summary"]["manual_expenses_minor"],120000)
+            self.assertEqual(client.get(f"/demo/manage/finance/expenses?month={expense_month}",
+                headers=other_auth,params={"organization_id":owner_id}).status_code,403)
+            self.assertEqual(client.get(f"/demo/manage/finance/expenses?month={expense_month}",
+                headers=member_auth).status_code,403)
+            # Self-entered expenses must not silently turn into sales or VAT.
+            self.assertEqual(client.get("/demo/manage/finance/summary?month=2026-11",
+                headers=owner_auth).json()["summary"]["gross_sales_minor"],0)
+            expense_export=self.finance_step(client,owner_auth,7,
+                "/demo/manage/finance/expenses/export",{"month":expense_month,"currency":"CZK"})
+            self.assertEqual(expense_export.status_code,200,expense_export.text)
+            self.assertFalse(expense_export.json()["verified"])
+            self.assertIn("'=HYPERLINK(1)",expense_export.json()["csv"])
+            reversed_row=self.finance_step(client,owner_auth,8,
+                f"/demo/manage/finance/expenses/{expense_id}/reverse",
+                {"reason":"Duplicate supplier bill"})
+            self.assertEqual(reversed_row.status_code,200,reversed_row.text)
+            self.assertEqual(reversed_row.json()["entry"]["amount_minor"],-120000)
+            self.assertEqual(reversed_row.json()["entry"]["reverses_entry_id"],expense_id)
+            self.assertEqual(client.get(f"/demo/manage/finance/expenses?month={expense_month}",
+                headers=owner_auth).json()["summary"]["manual_expenses_minor"],0)
             with SessionLocal() as db:
                 record=db.query(OrganizerContractAcceptance).filter(
                     OrganizerContractAcceptance.owner_account_id==owner_id,
@@ -172,6 +213,7 @@ class OrganizerFinanceIntegration(unittest.TestCase):
                 self.assertTrue(any(row.action=="contract_accepted" for row in audit))
                 self.assertTrue(any(row.action=="summary_viewed" for row in audit))
                 self.assertTrue(any(row.action=="csv_exported" for row in audit))
+                self.assertTrue(any(row.action=="expense_reversed" for row in audit))
                 # A permanent ban overrides an existing 15-minute unlock.
                 db.add(PermanentAccountBan(account_id=owner_id,reason="CI finance ban regression"))
                 db.commit()

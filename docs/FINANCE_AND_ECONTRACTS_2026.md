@@ -12,11 +12,13 @@
 
 1. Isolated seller records, append-only ledger, document metadata, immutable contract versions and per-organization agreement records.
 2. Finance read access only for a verified organization owner or global admin, not an invited team member or guests. Authentication enforces existing bans and privileged MFA.
-3. Owner may declare legal name, Czech IČO, DIČ and VAT status. Editing these **invalidates verified status and disables charges/payouts**. No self-verification API exists.
+3. Owner may declare legal name, Czech IČO, DIČ and VAT status. Czech IČO is checked for its offline control digit, but its existence and signatory authority remain **unverified** until registry/KYC checks. Editing seller identity **invalidates verified status and disables charges/payouts**. No self-verification API exists.
 4. Provider events have unique source keys to prevent double-recording. PostgreSQL triggers block changes/deletion to the financial ledger or accepted contracts. Corrections must be new records.
-5. Prague-local monthly CZK/EUR financial reporting distinguishes gross sales, refunds, payment-processing fees, funds paid out, and VAT **only when verifiably known**. Monthly *net after processing* is not profit or income-tax liability. A zero tax field is never silently substituted for unknown tax.
+5. Prague-local monthly CZK/EUR financial reporting distinguishes gross sales, refunds, processing fees, payouts and VAT **only when verifiably known**, with per-event breakdown. Monthly *net after processing* is not profit or income-tax liability. A zero tax field is never silently substituted for unknown tax.
 6. CSV export is spreadsheet-formula hardened. Private document storage keys/content never appear in the listing. The initial UI has no fake invoices, tax documents or fiscalized receipts.
 7. No agreement is pre-published. Only an approved published version with an unchanged SHA-256 digest may be accepted by a verified owner with MFA. Such online acknowledgement is not represented as a qualified eIDAS electronic signature.
+8. A separate manual organizer **expense journal** records date, category, supplier, reference, event and CZK/EUR amount. It is clearly **self-reported**, never counted as provider revenue or certified tax deduction. Each entry and its correction are append-only; reversing a cost creates an exact negative linked entry, with a reason and fresh MFA. CSV export requires an additional unused code and neutralizes spreadsheet formula payloads. No receipt image or document is issued by this feature.
+9. PostgreSQL validates event-to-owner association for future inserted provider ledger entries and manual expenses; finance UI now clears cached information on expiry of the 15-minute unlock.
 
 ### Financial security hardening
 
@@ -24,6 +26,7 @@
 - Every successful finance read/export/write is recorded as immutable evidence (actor, target organizer, operation, request ID, optionally a **keyed** fingerprint of a trusted client IP). Tokens, OTPs, raw IPs and customer emails are not stored in that log. Unauthorized finance access and invalid finance OTP generate private admin security alerts.
 - All finance responses request `Cache-Control: private, no-store`, and raw client-provided spreadsheet labels are treated as text. No public API can alter Stripe bank payout recipients or mint paid tickets.
 - Threat model, test and additional pre-Stripe hardening requirements: [FINANCE_SECURITY_THREAT_MODEL_2026.md](FINANCE_SECURITY_THREAT_MODEL_2026.md).
+- Scope, audit outcomes and remaining controls: [FINANCE_SECURITY_AND_ACCOUNTING_AUDIT_2026.md](FINANCE_SECURITY_AND_ACCOUNTING_AUDIT_2026.md).
 
 ## Payment rollout requirements — not implemented yet
 
@@ -32,6 +35,7 @@
 3. Handle full/partial refund, chargeback, disputes, payouts, failed transfers, FX and Stripe fees separately. Keep exact provider references and audit of correcting entries.
 4. Seller-issued payment receipts, legally valid VAT invoices (where required), corrective tax documents and payout statements require verified issuer identity, compliant numbering, private encrypted storage, download permissions, backup/restore, legal retention schedule, and proper accountant validation. Do not treat a Stripe receipt as automatically a VAT invoice.
 5. Exportable records can assist an accountant but cannot fully calculate corporate/personal income tax or organization profit without all outside expenses and legal circumstances (OSVČ versus s.r.o., VAT status, etc.).
+6. A distinct **TicketTreat platform legal entity accounting book** still needs its own verified legal identity and scoped authorization; organizer expense entries must never be treated as the platform's own costs. No platform commission or platform VAT is inferred from organizer ticket sales.
 
 ## EET 2.0, electronic documents, retention
 

@@ -597,6 +597,16 @@ button {
 .tt-finance-unlock { max-width:520px; }
 .tt-finance-unlock label,.tt-finance-otp-label { display:grid; gap:7px; font-weight:700; }
 .tt-finance-otp-label { max-width:260px; margin:12px 0; }
+.tt-finance-expense-total { display:grid; gap:6px; margin:12px 0 20px; max-width:340px; }
+.tt-finance-expense-total strong { font-size:clamp(20px,2vw,28px); }
+.tt-finance-expenses-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:16px; margin-bottom:22px; }
+.tt-finance-expenses-form label,.tt-finance-reversal label,.tt-finance-expense-export label { display:grid; gap:6px; font-weight:700; min-width:0; }
+.tt-finance-expenses-form input,.tt-finance-expenses-form select,.tt-finance-expenses-form textarea { width:100%; min-width:0; }
+.tt-finance-expenses-form button { align-self:end; }
+.tt-finance-reversal { padding:16px; margin-top:18px; border:1px solid var(--border-color,rgba(30,10,40,.15)); border-radius:12px; }
+.tt-finance-expense-export { display:flex; gap:12px; flex-wrap:wrap; align-items:end; margin-top:20px; }
+.tt-finance-expense-export label { flex:1 1 220px; }
+.tt-finance-expense-export button { flex:1 1 200px; }
 .form-stack h2 { margin: 0 0 4px; }
 .form-stack label, .inline-form label {
   display: grid;
