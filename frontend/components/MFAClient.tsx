@@ -59,7 +59,10 @@ export function MFAClient(){
     finally{setLoading(false);}
   }
   const role=profile?.account.role;
-  const isPrivileged=role==="organizer"||role==="global_admin";
+  // Delegated teammates keep a canonical participant role. The signed-in MFA
+  // status endpoint reports server-validated team access before setup, so a
+  // newly invited member can enroll instead of being locked out.
+  const isPrivileged=role==="organizer"||role==="global_admin"||Boolean(status?.team_access);
   const accessMessage={
     ru:"Для этого аккаунта пока не назначены права организатора или главного администратора. Главный администратор должен открыть в админ-панели раздел «Управление аккаунтами», проверить подтверждение email и назначить права. Только после этого можно подключить MFA.",
     uk:"Цьому акаунту ще не призначено права організатора або головного адміністратора. Головний адміністратор має відкрити в адмін-панелі розділ «Керування акаунтами» та надати доступ після підтвердження email.",
