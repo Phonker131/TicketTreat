@@ -52,7 +52,9 @@ CREATE TRIGGER tt_finance_ledger_owner_validation
 -- Append-only expense correction records must be exact inversions of the
 -- entry being corrected. Ownership, currency, event and category cannot change.
 CREATE OR REPLACE FUNCTION tt_finance_expense_insert_guard() RETURNS trigger AS $$
-DECLARE original tt_finance_expense_entries%ROWTYPE;
+-- DBAPI raw SQL paths treat percent signs as bind markers; RECORD avoids
+-- psycopg2 interpolation of PostgreSQL's percent-ROWTYPE syntax.
+DECLARE original RECORD;
 BEGIN
   IF NEW.entry_type='expense' AND NEW.event_id IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM demo_event_ownership
