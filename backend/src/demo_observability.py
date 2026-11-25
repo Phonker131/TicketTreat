@@ -67,16 +67,20 @@ def safe_route(request: Request) -> str:
 
 def install_request_logging(app, session_factory=None):
     if session_factory is not None:
-        from demo_security_alerts import ROLE_DENIALS, record_in_separate_transaction
+        from demo_security_alerts import FINANCE_DENIALS, ROLE_DENIALS, record_in_separate_transaction
 
         @app.exception_handler(HTTPException)
         async def observe_denial(request, exc):
             actor = _actor.get()
-            if exc.status_code == 403 and actor and isinstance(exc.detail, str):
+            if exc.status_code in {401, 403} and actor and isinstance(exc.detail, str):
                 kind, account_id = None, None
                 if exc.detail == "account_banned" and actor.blocked_actor_id is not None:
                     kind, account_id = "banned_actor", actor.blocked_actor_id
-                elif exc.detail in ROLE_DENIALS and actor.account_id is not None:
+                elif (exc.detail in FINANCE_DENIALS and actor.account_id is not None
+                      and safe_route(request).startswith(("/demo/manage/finance/",
+                                                           "/api/v1/manage/finance/"))):
+                    kind, account_id = "finance_denials", actor.account_id
+                elif exc.status_code == 403 and exc.detail in ROLE_DENIALS and actor.account_id is not None:
                     kind, account_id = "admin_denials", actor.account_id
                 if kind:
                     await run_in_threadpool(record_in_separate_transaction, session_factory,

@@ -62,7 +62,8 @@ from demo_telegram_notifications import TelegramNotificationOutbox, install_noti
 from demo_organizer_telegram import (OrganizerTelegramSettings, OrganizerActivity,
                                      queue_organizer_activity, install_organizer_telegram_api)
 from demo_organizer_teams import OrganizerTeamMember, OrganizerTeamAudit, install_organizer_teams_api
-from demo_finance import (OrganizerFinanceProfile, OrganizerFinanceAudit, FinanceLedgerEntry, FinanceDocument,
+from demo_finance import (OrganizerFinanceProfile, OrganizerFinanceAudit, FinanceSessionGrant, FinanceAccessAudit,
+                          FinanceLedgerEntry, FinanceDocument,
                           OrganizerContractVersion, OrganizerContractAcceptance,
                           install_finance_api)
 from demo_privacy import PrivacyRequest, install_privacy_routes

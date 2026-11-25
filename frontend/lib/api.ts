@@ -882,6 +882,12 @@ export type FinanceContract={
   status:"pending_legal_review"|"published";accepted:boolean;
   contract:null|{id:number;version:string;language:string;body:string;sha256:string};
 };
+export function getFinanceUnlockStatus():Promise<{unlocked:boolean;expires_at:string|null;unlock_minutes:number}>{
+  return request("/demo/manage/finance/status");
+}
+export function unlockFinances(mfaCode:string):Promise<{unlocked:boolean;expires_at:string}>{
+  return request("/demo/manage/finance/unlock",{method:"POST",body:JSON.stringify({mfa_code:mfaCode})});
+}
 function financeQuery(month:string,currency:"CZK"|"EUR",organizationId?:number):string{
   const params=new URLSearchParams({month,currency});
   if(organizationId!==undefined)params.set("organization_id",String(organizationId));
@@ -895,9 +901,11 @@ export function getFinanceEntries(month:string,currency:"CZK"|"EUR",organization
   Promise<{entries:FinanceEntry[]}>{
   return request(`/demo/manage/finance/entries?${financeQuery(month,currency,organizationId)}`);
 }
-export function getFinanceExport(month:string,currency:"CZK"|"EUR",organizationId?:number):
+export function getFinanceExport(month:string,currency:"CZK"|"EUR",mfaCode:string,organizationId?:number):
   Promise<{filename:string;csv:string}>{
-  return request(`/demo/manage/finance/export?${financeQuery(month,currency,organizationId)}`);
+  return request("/demo/manage/finance/export",{method:"POST",body:JSON.stringify({
+    month,currency,organization_id:organizationId,mfa_code:mfaCode,
+  })});
 }
 export function getFinanceDocuments(organizationId?:number):
   Promise<{documents:{id:number;kind:string;document_number:string;issued_at:string}[];notice:string}>{
@@ -909,16 +917,16 @@ export function getFinanceContract(language:"cs"|"en",organizationId?:number):
   if(organizationId!==undefined)params.set("organization_id",String(organizationId));
   return request(`/demo/manage/finance/contract?${params}`);
 }
-export function acceptFinanceContract(contractId:number,digest:string):
+export function acceptFinanceContract(contractId:number,digest:string,mfaCode:string):
   Promise<{status:string;contract_id:number;signature_method?:string}>{
   return request("/demo/manage/finance/contract/accept",{method:"POST",body:JSON.stringify({
-    contract_id:contractId,digest,confirm_authority:true})});
+    contract_id:contractId,digest,confirm_authority:true,mfa_code:mfaCode})});
 }
 export function getFinanceProfile():Promise<FinanceProfile>{
   return request("/demo/manage/finance/profile");
 }
 export function updateFinanceProfile(payload:{
-  legal_name:string;ico:string;dic:string|null;vat_status:"non_payer"|"payer"|"exempt";
+  legal_name:string;ico:string;dic:string|null;vat_status:"non_payer"|"payer"|"exempt";mfa_code:string;
 }):Promise<FinanceProfile>{
   return request("/demo/manage/finance/profile",{method:"PUT",body:JSON.stringify(payload)});
 }

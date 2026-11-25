@@ -1,11 +1,16 @@
 """No database, Stripe or payment environment needed for these calculations."""
 import unittest
+import os
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from unittest.mock import patch
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
+from pydantic import ValidationError
 
-from demo_finance import contract_digest, month_bounds, totals
+from demo_finance import (FinanceMFAProof, UpdateFinanceProfile, contract_digest,
+                          finance_csv_reference, month_bounds, totals,
+                          trusted_ip_fingerprint)
 
 
 class FinanceFoundationTests(unittest.TestCase):
@@ -55,6 +60,42 @@ class FinanceFoundationTests(unittest.TestCase):
     def test_contract_digest_is_sha256_of_exact_version(self):
         self.assertEqual(len(contract_digest("Návrh smlouvy v1")), 64)
         self.assertNotEqual(contract_digest("one"), contract_digest("one "))
+
+    def test_export_reference_is_text_even_for_unicode_and_formula_payloads(self):
+        for raw in ["=HYPERLINK(1)", "\t+SUM(1,2)", "\u200b@cmd",
+                    "\r=cmd\n-evil", "order-123"]:
+            with self.subTest(raw=raw):
+                safe=finance_csv_reference(raw)
+                self.assertTrue(safe.startswith("'"))
+                self.assertNotIn("\r",safe)
+                self.assertNotIn("\n",safe)
+        self.assertEqual(finance_csv_reference(None),"")
+
+    def test_organizer_cannot_mass_assign_stripe_or_payout_fields(self):
+        with self.assertRaises(ValidationError):
+            UpdateFinanceProfile(legal_name="Example s.r.o.",ico="12345678",
+                                 vat_status="payer",mfa_code="123456",
+                                 stripe_account_id="acct_attacker",payouts_enabled=True)
+
+    def test_otp_codes_accept_ascii_digits_only(self):
+        self.assertEqual(FinanceMFAProof(mfa_code="123456").mfa_code,"123456")
+        with self.assertRaises(ValidationError):
+            FinanceMFAProof(mfa_code="１２３４５６")
+        with self.assertRaises(ValidationError):
+            FinanceMFAProof(mfa_code="١٢٣٤٥٦")
+
+    def test_audit_fingerprint_never_contains_raw_ip(self):
+        request=Request({"type":"http","client":("203.0.113.7",54321),"headers":[]})
+        with patch.dict(os.environ,{"FINANCE_AUDIT_HMAC_KEY":"a"*40,
+                                     "TICKETTREAT_GATEWAY_IP_SECRET":""}):
+            first=trusted_ip_fingerprint(request)
+            self.assertIsNotNone(first)
+            self.assertEqual(len(first),64)
+            self.assertNotIn("203.0.113.7",first)
+            self.assertEqual(first,trusted_ip_fingerprint(request))
+        with patch.dict(os.environ,{"FINANCE_AUDIT_HMAC_KEY":"",
+                                     "TICKETTREAT_GATEWAY_IP_SECRET":""}):
+            self.assertIsNone(trusted_ip_fingerprint(request))
 
 
 if __name__ == "__main__":

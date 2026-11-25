@@ -19,6 +19,33 @@ CREATE TABLE IF NOT EXISTS tt_finance_profile_audit (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- An account/session-bound 15-minute unlock; the session's existence and ban
+-- status are still checked on each finance request.
+CREATE TABLE IF NOT EXISTS tt_finance_session_grants (
+  session_hash VARCHAR(64) PRIMARY KEY,
+  account_id INTEGER NOT NULL REFERENCES demo_web_accounts(id) ON DELETE CASCADE,
+  granted_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  CONSTRAINT ck_finance_session_grant_expiry CHECK (expires_at > granted_at)
+);
+CREATE INDEX IF NOT EXISTS ix_tt_finance_session_grants_account
+  ON tt_finance_session_grants(account_id,expires_at);
+
+CREATE TABLE IF NOT EXISTS tt_finance_access_audit (
+  id BIGSERIAL PRIMARY KEY,
+  owner_account_id INTEGER NOT NULL,
+  actor_account_id INTEGER NOT NULL,
+  action VARCHAR(32) NOT NULL,
+  request_id VARCHAR(32),
+  ip_fingerprint VARCHAR(64),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_finance_access_audit_action CHECK (length(action) > 0)
+);
+CREATE INDEX IF NOT EXISTS ix_tt_finance_access_audit_owner_time
+  ON tt_finance_access_audit(owner_account_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_tt_finance_access_audit_actor_time
+  ON tt_finance_access_audit(actor_account_id,created_at DESC);
+
 CREATE TABLE IF NOT EXISTS tt_finance_ledger (
   id BIGSERIAL PRIMARY KEY,
   owner_account_id INTEGER NOT NULL REFERENCES demo_web_accounts(id),
@@ -92,6 +119,8 @@ CREATE TRIGGER tt_finance_contract_acceptance_immutable BEFORE UPDATE OR DELETE 
 CREATE TRIGGER tt_finance_profile_audit_immutable BEFORE UPDATE OR DELETE ON tt_finance_profile_audit
   FOR EACH ROW EXECUTE FUNCTION tt_finance_forbid_mutation();
 CREATE TRIGGER tt_finance_documents_immutable BEFORE UPDATE OR DELETE ON tt_finance_documents
+  FOR EACH ROW EXECUTE FUNCTION tt_finance_forbid_mutation();
+CREATE TRIGGER tt_finance_access_audit_immutable BEFORE UPDATE OR DELETE ON tt_finance_access_audit
   FOR EACH ROW EXECUTE FUNCTION tt_finance_forbid_mutation();
 
 -- Prevent retroactively altering the text someone agreed to. Drafts remain

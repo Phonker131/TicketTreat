@@ -6,7 +6,8 @@ import {AppHeader} from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {
   acceptFinanceContract,getFinanceContract,getFinanceDocuments,getFinanceEntries,
-  getFinanceExport,getFinanceProfile,getFinanceSummary,updateFinanceProfile,
+  getFinanceExport,getFinanceProfile,getFinanceSummary,getFinanceUnlockStatus,
+  unlockFinances,updateFinanceProfile,
   type FinanceContract,type FinanceEntry,type FinanceProfile,type FinanceSummary,
 } from "@/lib/api";
 import type {LanguageCode} from "@/lib/types";
@@ -31,6 +32,9 @@ const WORDS:Record<LanguageCode,Record<string,string>>={
     ready:"Údaje ověřeny",stripe:"Stripe Connect",disconnected:"Nepřipojeno – platby vypnuté",
     connected:"Připojeno (je nutné další ověření)",error:"Nepodařilo se načíst nebo uložit údaje. Zkontrolujte oprávnění a dvoufázové ověření.",
     saved:"Údaje uloženy. Pro nové ověření kontaktujte správce.",
+    unlockTitle:"Odemknout finanční kabinet",unlockText:"Finanční údaje vyžadují zvláštní ověření na 15 minut. Zadejte nový kód ze své ověřovací aplikace.",
+    otp:"Nový šestimístný kód MFA",unlock:"Odemknout na 15 minut",
+    otpNote:"Pro export, změnu údajů nebo přijetí smlouvy zadejte nový kód. Již použitý kód nelze opakovat; počkejte na další.",
   },
   en:{
     title:"Finances and electronic agreements",intro:"Verified financial evidence for your organization. Reservations are not sales or tax documents.",
@@ -51,6 +55,9 @@ const WORDS:Record<LanguageCode,Record<string,string>>={
     ready:"Identity verified",stripe:"Stripe Connect",disconnected:"Not connected – payments disabled",
     connected:"Connected (further verification required)",error:"Could not load or save the data. Check your role and two-factor verification.",
     saved:"Details saved. An administrator must verify them.",
+    unlockTitle:"Unlock financial information",unlockText:"Sensitive finances require a separate 15-minute verification. Enter a fresh authenticator code.",
+    otp:"Fresh six-digit MFA code",unlock:"Unlock for 15 minutes",
+    otpNote:"Exports, billing changes and agreements need a fresh code. Used codes cannot be replayed; wait for the next code.",
   },
   ru:{
     title:"Финансы и электронные договоры",intro:"Учёт только подтверждённых операций организации. Брони и регистрации — не продажи и не налоговые документы.",
@@ -71,6 +78,9 @@ const WORDS:Record<LanguageCode,Record<string,string>>={
     ready:"Реквизиты проверены",stripe:"Stripe Connect",disconnected:"Не подключён — оплаты отключены",
     connected:"Подключён (требуется проверка)",error:"Не удалось загрузить или сохранить данные. Проверь права и двухфакторную аутентификацию.",
     saved:"Данные сохранены. Администратор должен их проверить.",
+    unlockTitle:"Разблокировать финансы",unlockText:"Для доступа к бухгалтерии нужно отдельное подтверждение на 15 минут. Введи новый код из приложения-аутентификатора.",
+    otp:"Новый шестизначный код 2FA",unlock:"Открыть на 15 минут",
+    otpNote:"Для экспорта, изменения реквизитов и договора нужен отдельный свежий код. Повторно использовать код нельзя — дождись следующего.",
   },
   uk:{
     title:"Фінанси та електронні договори",intro:"Облік лише підтверджених операцій організації. Реєстрації не є продажами чи податковими документами.",
@@ -91,6 +101,9 @@ const WORDS:Record<LanguageCode,Record<string,string>>={
     ready:"Реквізити перевірені",stripe:"Stripe Connect",disconnected:"Не підключено — платежі вимкнені",
     connected:"Підключено (потрібна перевірка)",error:"Не вдалося завантажити дані. Перевір права та 2FA.",
     saved:"Дані збережено. Адміністратор має їх перевірити.",
+    unlockTitle:"Розблокувати фінанси",unlockText:"Для бухгалтерії потрібно окреме підтвердження на 15 хвилин. Введи новий код із застосунку.",
+    otp:"Новий шестизначний код 2FA",unlock:"Відкрити на 15 хвилин",
+    otpNote:"Для експорту, зміни реквізитів і договору потрібен новий код. Повторно використати код не можна.",
   },
 };
 
@@ -121,6 +134,11 @@ export function OrganizerFinanceClient(){
   const [contract,setContract]=useState<FinanceContract|null>(null);
   const [profile,setProfile]=useState<FinanceProfile|null>(null);
   const [loading,setLoading]=useState(true),[saving,setSaving]=useState(false);
+  const [unlocked,setUnlocked]=useState(false);
+  const [unlockCode,setUnlockCode]=useState("");
+  const [profileCode,setProfileCode]=useState("");
+  const [contractCode,setContractCode]=useState("");
+  const [exportCode,setExportCode]=useState("");
   const [error,setError]=useState(""),[notice,setNotice]=useState("");
   const [agreed,setAgreed]=useState(false);
   const [name,setName]=useState(""),[ico,setIco]=useState(""),[dic,setDic]=useState("");
@@ -137,29 +155,54 @@ export function OrganizerFinanceClient(){
       setName(details.legal_name||"");setIco(details.ico||"");
       setDic(details.dic||"");
       setVat(details.vat_status==="payer"||details.vat_status==="exempt"?details.vat_status:"non_payer");
-    }catch{setError(t.error);}
+    }catch(e){
+      if(e instanceof Error&&e.message==="finance_unlock_required"){
+        setUnlocked(false);setSummary(null);setEntries([]);setDocuments([]);setContract(null);setProfile(null);
+      }else{setError(t.error);}
+    }
     finally{setLoading(false);}
   },[month,currency,language,t.error]);
-  useEffect(()=>{void load();},[load]);
+  useEffect(()=>{
+    let live=true;
+    getFinanceUnlockStatus().then(result=>{
+      if(live){setUnlocked(result.unlocked);if(!result.unlocked)setLoading(false);}
+    }).catch(()=>{if(live){setError(t.error);setLoading(false);}});
+    return()=>{live=false;};
+  },[]);
+  useEffect(()=>{if(unlocked)void load();},[unlocked,load]);
+
+  async function unlock(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();setSaving(true);setError("");
+    try{
+      await unlockFinances(unlockCode);
+      setUnlockCode("");setUnlocked(true);
+    }catch{setError(t.error);}
+    finally{setSaving(false);}
+  }
 
   async function saveProfile(event:FormEvent<HTMLFormElement>){
     event.preventDefault();setSaving(true);setError("");setNotice("");
     try{
-      const updated=await updateFinanceProfile({legal_name:name.trim(),ico:ico.trim(),dic:dic.trim()||null,vat_status:vat});
+      const updated=await updateFinanceProfile({legal_name:name.trim(),ico:ico.trim(),
+        dic:dic.trim()||null,vat_status:vat,mfa_code:profileCode});
+      setProfileCode("");
       setProfile(updated);setNotice(t.saved);
     }catch{setError(t.error);}
     finally{setSaving(false);}
   }
   async function accept(){
-    if(!agreed||!contract?.contract)return;
+    if(!agreed||!contract?.contract||contractCode.length!==6)return;
     setSaving(true);setError("");setNotice("");
-    try{await acceptFinanceContract(contract.contract.id,contract.contract.sha256);setAgreed(false);await load();}
+    try{await acceptFinanceContract(contract.contract.id,contract.contract.sha256,contractCode);
+      setContractCode("");setAgreed(false);await load();}
     catch{setError(t.error);}
     finally{setSaving(false);}
   }
   async function download(){
     setError("");
-    try{const result=await getFinanceExport(month,currency);csvDownload(result.filename,result.csv);}
+    if(exportCode.length!==6)return;
+    try{const result=await getFinanceExport(month,currency,exportCode);
+      setExportCode("");csvDownload(result.filename,result.csv);}
     catch{setError(t.error);}
   }
   const s=summary?.summary;
@@ -178,19 +221,29 @@ export function OrganizerFinanceClient(){
     <Link href="/admin" className="back-link">← {t.back}</Link>
     <div className="tt-finance-heading">
       <div><h1>{t.title}</h1><p className="form-note">{t.intro}</p></div>
-      <button className="button button-outline" type="button" onClick={()=>void load()} disabled={loading}>{t.reload}</button>
+      {unlocked&&<button className="button button-outline" type="button" onClick={()=>void load()} disabled={loading}>{t.reload}</button>}
     </div>
     {error&&<div className="state-card state-error" role="alert">{error} <Link href="/security/mfa">MFA →</Link></div>}
     {notice&&<div className="state-card" role="status">{notice}</div>}
     {loading&&!summary&&<div className="state-card">{t.loading}</div>}
-    {summary&&<div className="tt-finance-sections">
+    {!loading&&!unlocked&&<form className="panel form-stack tt-finance-unlock" onSubmit={e=>void unlock(e)}>
+      <h2>{t.unlockTitle}</h2><p className="form-note">{t.unlockText}</p>
+      <label>{t.otp}<input required type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+        autoComplete="one-time-code" value={unlockCode} onChange={e=>setUnlockCode(e.target.value.replace(/\D/g,""))}/></label>
+      <button type="submit" className="button button-primary" disabled={saving||unlockCode.length!==6}>{t.unlock}</button>
+      <Link href="/security/mfa">MFA →</Link>
+    </form>}
+    {unlocked&&summary&&<div className="tt-finance-sections">
       <div className="tt-finance-controls panel">
         <label>{t.month}<input type="month" min="2026-01" max="2100-12" value={month} onChange={e=>setMonth(e.target.value)}/></label>
         <label>{t.currency}<select value={currency} onChange={e=>setCurrency(e.target.value as "CZK"|"EUR")}>
           <option value="CZK">CZK</option><option value="EUR">EUR</option>
         </select></label>
-        <button type="button" className="button button-primary" disabled={loading} onClick={()=>void download()}>{t.export}</button>
+        <label>{t.otp}<input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+          autoComplete="one-time-code" value={exportCode} onChange={e=>setExportCode(e.target.value.replace(/\D/g,""))}/></label>
+        <button type="button" className="button button-primary" disabled={loading||exportCode.length!==6} onClick={()=>void download()}>{t.export}</button>
       </div>
+      <p className="form-note">{t.otpNote}</p>
       <div className="tt-finance-grid">{metrics.map(([label,value])=>
         <div className="stat-card" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>
       {s?.entry_count===0&&<div className="state-card">{t.noSales}</div>}
@@ -207,7 +260,9 @@ export function OrganizerFinanceClient(){
             <option value="payer">{t.payer}</option>
             <option value="exempt">{t.exempt}</option>
           </select></label>
-          <button type="submit" className="button button-primary" disabled={saving}>{t.save}</button>
+          <label>{t.otp}<input required type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+            autoComplete="one-time-code" value={profileCode} onChange={e=>setProfileCode(e.target.value.replace(/\D/g,""))}/></label>
+          <button type="submit" className="button button-primary" disabled={saving||profileCode.length!==6}>{t.save}</button>
         </form>
       </section>
       <section className="panel">
@@ -231,7 +286,9 @@ export function OrganizerFinanceClient(){
           {contract.accepted?<p className="state-card" role="status">{t.accepted}</p>:<>
             <label className="tt-finance-consent"><input type="checkbox" checked={agreed} onChange={e=>setAgreed(e.target.checked)}/><span>{t.sign}</span></label>
             <p className="form-note">{t.acceptNote}</p>
-            <button className="button button-primary" disabled={!agreed||saving} type="button" onClick={()=>void accept()}>{t.accept}</button>
+            <label className="tt-finance-otp-label">{t.otp}<input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+              autoComplete="one-time-code" value={contractCode} onChange={e=>setContractCode(e.target.value.replace(/\D/g,""))}/></label>
+            <button className="button button-primary" disabled={!agreed||saving||contractCode.length!==6} type="button" onClick={()=>void accept()}>{t.accept}</button>
           </>}
         </>}
       </section>

@@ -18,6 +18,13 @@
 6. CSV export is spreadsheet-formula hardened. Private document storage keys/content never appear in the listing. The initial UI has no fake invoices, tax documents or fiscalized receipts.
 7. No agreement is pre-published. Only an approved published version with an unchanged SHA-256 digest may be accepted by a verified owner with MFA. Such online acknowledgement is not represented as a qualified eIDAS electronic signature.
 
+### Financial security hardening
+
+- Access to financial records now needs a separate 15-minute, web-session-bound MFA unlock, even if the general `APP_ENV` is misconfigured. Export, legal identity update and contract acceptance each require a **new single-use OTP**; 2FA code replay is rejected and feature-specific rate limits apply.
+- Every successful finance read/export/write is recorded as immutable evidence (actor, target organizer, operation, request ID, optionally a **keyed** fingerprint of a trusted client IP). Tokens, OTPs, raw IPs and customer emails are not stored in that log. Unauthorized finance access and invalid finance OTP generate private admin security alerts.
+- All finance responses request `Cache-Control: private, no-store`, and raw client-provided spreadsheet labels are treated as text. No public API can alter Stripe bank payout recipients or mint paid tickets.
+- Threat model, test and additional pre-Stripe hardening requirements: [FINANCE_SECURITY_THREAT_MODEL_2026.md](FINANCE_SECURITY_THREAT_MODEL_2026.md).
+
 ## Payment rollout requirements — not implemented yet
 
 1. Verify seller IČO in ARES, VAT status with appropriate registers and authority of legal signer. Validate Stripe Connect KYC and account capabilities and maintain a privileged verification log.
