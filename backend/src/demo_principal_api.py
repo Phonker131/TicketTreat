@@ -210,6 +210,12 @@ def install_principal_api(app,get_db,main):
         entry=db.get(main.DemoWaitlist,offer.waitlist_id)
         if entry is not None:entry.status="declined"
         db.flush()
+        if entry is not None:
+            from datetime import datetime, timezone
+            from demo_organizer_telegram import queue_organizer_activity
+            queue_organizer_activity(db, event_id=event.id, action="waitlist_left",
+                                     source_key=f"waitlist:{entry.id}:{int(datetime.now(timezone.utc).timestamp()*1000000)}",
+                                     guest_id=guest.id)
         maybe_offer_next(db,event,main.get_registered_count(db,event_id))
         db.commit()
         return {"status":"declined"}

@@ -433,6 +433,15 @@ def _deliver_one(db: Session, main) -> bool:
                 }]]}
                 _send_message(int(row.telegram_id), body, keyboard)
                 row.state = "sent"
+        elif row.kind == "organizer_activity":
+            from demo_organizer_telegram import render_organizer_activity
+            result = render_organizer_activity(db, row, event, main)
+            if result is None:
+                row.state = "skipped"
+            else:
+                message, keyboard = result
+                _send_message(int(row.telegram_id), message, keyboard)
+                row.state = "sent"
         elif row.kind == "ticket_removed":
             text, keyboard = render_message(row, event, None)
             _send_message(int(row.telegram_id), text, keyboard)

@@ -273,6 +273,10 @@ def queue_chat_notification(db: Session, thread, msg, main):
                 "event_id": thread.event_id, "notice_id": msg.id, "language": "en",
                 "state": "pending", "attempts": 0, "next_attempt_at": timestamp(),
             }])
+    elif msg.sender_kind == "participant":
+        from demo_organizer_telegram import queue_organizer_activity
+        queue_organizer_activity(db, event_id=thread.event_id, action="message",
+                                 source_key=f"chat:{msg.id}", guest_id=thread.guest_id)
 
 
 def send(db: Session, thread_id: int, payload: SendMessage, main, *,
