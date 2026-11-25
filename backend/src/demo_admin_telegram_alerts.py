@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 LOG = logging.getLogger("tickettreat.admin_telegram_alerts")
-KINDS = {"admin_organizer", "admin_support_new", "admin_support_reply"}
+KINDS = {"admin_organizer", "admin_support_new", "admin_support_reply", "admin_security"}
 
 
 def linked_global_admins(db: Session, telegram_id: int | None = None) -> list[tuple[int, int]]:
@@ -84,10 +84,17 @@ def render_admin_alert(db: Session, row) -> tuple[str, dict] | None:
     from demo_support import SupportTicket, SupportMessage
     from demo_accounts import WebAccount
 
-    if (row.kind not in KINDS or row.event_id != 0
-            or row.notice_id is None
-            or not linked_global_admins(db, int(row.telegram_id))):
+    if row.kind not in KINDS or row.event_id != 0 or row.notice_id is None:
         return None
+    admins = linked_global_admins(db, int(row.telegram_id))
+    if not admins:
+        return None
+    if row.kind == "admin_security":
+        from demo_security_alerts import render_security_alert
+        from demo_account_bans import active_ban
+        if active_ban(db, admins[0][0]) is not None:
+            return None
+        return render_security_alert(db, row.notice_id)
     lang = "cs" if row.language == "cs" else "en"
     website = (os.getenv("WEB_APP_URL", "").strip().rstrip("/") or "https://tickettreat.eu")
     if not website.startswith("https://"):

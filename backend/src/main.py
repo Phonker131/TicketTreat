@@ -63,6 +63,7 @@ from demo_privacy import PrivacyRequest, install_privacy_routes
 from demo_mfa import MFAFactor, MFASession, install_mfa
 from demo_legacy import LegacyTicketClaim
 from demo_observability import install_request_logging
+from demo_security_alerts import SecurityAlertWindow
 from demo_principal_api import install_principal_api
 from demo_support import SupportTicket, SupportMessage, SupportAdminRead, install_support_api
 from demo_paid_reservations import PaidReservation, pending_count, install_paid_admin_api, install_paid_expiry_worker
@@ -2930,6 +2931,7 @@ def authorize_guest_request(
         require_guest_active(db, guest.id)
         return
 
+    from demo_account_bans import require_verified_guest_active
     if telegram_init_data:
         user = verified_telegram_user(
             telegram_init_data,
@@ -2941,7 +2943,7 @@ def authorize_guest_request(
         ).first()
         if link is None:
             raise HTTPException(status_code=403, detail="guest_identity_mismatch")
-        require_guest_active(db, guest.id)
+        require_verified_guest_active(db, guest.id)
         return
 
     if authorization and authorization.startswith("Bearer "):
@@ -2960,7 +2962,7 @@ def authorize_guest_request(
                 ).first()
                 if account and expiry and expiry > utc_now():
                     if email_is_verified(db, account.id):
-                        require_guest_active(db, guest.id)
+                        require_verified_guest_active(db, guest.id)
                         return
                     # Telegram-only web sessions are first-party sessions for
                     # the already HMAC/OIDC-verified Telegram identity. Never
@@ -2971,7 +2973,7 @@ def authorize_guest_request(
                             and db.query(DemoTelegramIdentity.telegram_id).filter(
                                 DemoTelegramIdentity.guest_id == guest.id,
                                 DemoTelegramIdentity.telegram_id == guest.telegram_id).first()):
-                        require_guest_active(db, guest.id)
+                        require_verified_guest_active(db, guest.id)
                         return
         raise HTTPException(status_code=403, detail="guest_identity_mismatch")
 
@@ -3568,6 +3570,6 @@ install_waitlist_offer_worker(app, SessionLocal, __import__("sys").modules[__nam
 # This middleware is installed LAST so it executes BEFORE authorization,
 # allowing existing production guards to evaluate the translated /demo path.
 from api_versioning import TicketTreatApiVersioning
-install_request_logging(app)
+install_request_logging(app, SessionLocal)
 app.add_middleware(TicketTreatApiVersioning)
 

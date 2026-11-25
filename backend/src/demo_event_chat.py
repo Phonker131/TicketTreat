@@ -120,8 +120,8 @@ def verified_guest(db: Session, main, authorization: str | None, init_data: str 
     # Verified Telegram initData proves identity, not continued eligibility.
     # Web sessions already check account bans; apply the same policy to the
     # Telegram path so a banned guest cannot keep messaging organizers.
-    from demo_account_bans import require_guest_active
-    require_guest_active(db, guest.id)
+    from demo_account_bans import require_verified_guest_active
+    require_verified_guest_active(db, guest.id)
     return guest
 
 

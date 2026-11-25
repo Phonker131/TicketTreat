@@ -438,8 +438,8 @@ def install_telegram_auth(app, get_db, main) -> None:
         existing_link=db.query(DemoTelegramIdentity).filter(
             DemoTelegramIdentity.telegram_id==telegram_id).first()
         if existing_link is not None:
-            from demo_account_bans import require_guest_active
-            require_guest_active(db,existing_link.guest_id)
+            from demo_account_bans import require_verified_guest_active
+            require_verified_guest_active(db,existing_link.guest_id)
         from demo_identity_registry import serialize_telegram_principal
         serialize_telegram_principal(db, telegram_id)
         link = db.query(DemoTelegramIdentity).filter(DemoTelegramIdentity.telegram_id == telegram_id).first()
@@ -472,8 +472,8 @@ def install_telegram_auth(app, get_db, main) -> None:
             guest = db.query(main.DemoGuest).filter(main.DemoGuest.id == link.guest_id).first()
             if guest is None:
                 raise HTTPException(status_code=503, detail="telegram_identity_incomplete")
-            from demo_account_bans import require_guest_active
-            require_guest_active(db, guest.id)
+            from demo_account_bans import require_verified_guest_active
+            require_verified_guest_active(db, guest.id)
             # Keep Telegram display name current, never touch user's web account/email.
             guest.username = str(user.get("username") or "")[:255] or None
             # A linked website account owns its canonical profile name.

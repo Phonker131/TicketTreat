@@ -11,7 +11,9 @@ import json
 import logging
 import time
 import uuid
-from fastapi import Request
+from fastapi import HTTPException, Request
+from fastapi.exception_handlers import http_exception_handler
+from starlette.concurrency import run_in_threadpool
 
 LOGGER=logging.getLogger("tickettreat.requests")
 if not LOGGER.handlers:
@@ -27,6 +29,7 @@ class RequestActor:
     account_id: int | None = None
     guest_id: int | None = None
     session_issued: bool = False
+    blocked_actor_id: int | None = None
 
 
 # A separate mutable object per request also works with FastAPI's sync workers,
@@ -47,6 +50,12 @@ def verified_guest(guest_id: int) -> None:
         actor.guest_id = guest_id
 
 
+def observed_ban(account_id: int, guest_id: int | None = None) -> None:
+    actor = _actor.get()
+    if actor and (actor.account_id == account_id or (guest_id is not None and actor.guest_id == guest_id)):
+        actor.blocked_actor_id = account_id
+
+
 def safe_route(request: Request) -> str:
     resolved=request.scope.get("route")
     path=getattr(resolved,"path",None)
@@ -56,11 +65,30 @@ def safe_route(request: Request) -> str:
     return "<unresolved>"
 
 
-def install_request_logging(app):
+def install_request_logging(app, session_factory=None):
+    if session_factory is not None:
+        from demo_security_alerts import ROLE_DENIALS, record_in_separate_transaction
+
+        @app.exception_handler(HTTPException)
+        async def observe_denial(request, exc):
+            actor = _actor.get()
+            if exc.status_code == 403 and actor and isinstance(exc.detail, str):
+                kind, account_id = None, None
+                if exc.detail == "account_banned" and actor.blocked_actor_id is not None:
+                    kind, account_id = "banned_actor", actor.blocked_actor_id
+                elif exc.detail in ROLE_DENIALS and actor.account_id is not None:
+                    kind, account_id = "admin_denials", actor.account_id
+                if kind:
+                    await run_in_threadpool(record_in_separate_transaction, session_factory,
+                                            kind, account_id, f"{request.method} {safe_route(request)}",
+                                            request.state.incident_request_id)
+            return await http_exception_handler(request, exc)
+
     @app.middleware("http")
     async def privacy_safe_request_log(request:Request,call_next):
         started=time.monotonic()
         request_id=uuid.uuid4().hex
+        request.state.incident_request_id = request_id
         actor = RequestActor()
         context = _actor.set(actor)
         status=500
