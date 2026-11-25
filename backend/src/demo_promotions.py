@@ -245,7 +245,9 @@ def install_promotions_api(app, get_db, main):
         row = db.get(Promotion, campaign_id)
         if row is None:
             raise HTTPException(404, "promotion_not_found")
-        if role_for(db, account) != "global_admin" and row.owner_account_id != account.id:
+        from demo_organizer_teams import manageable_owner_ids
+        if (role_for(db, account) != "global_admin"
+                and row.owner_account_id not in manageable_owner_ids(db, account.id)):
             raise HTTPException(403, "promotion_not_owned")
         return row
 
@@ -255,11 +257,14 @@ def install_promotions_api(app, get_db, main):
         event_query = db.query(main.Event, EventOwnership).join(
             EventOwnership, EventOwnership.event_id == main.Event.id)
         if role != "global_admin":
-            event_query = event_query.filter(EventOwnership.owner_account_id == account.id)
+            from demo_organizer_teams import manageable_owner_ids
+            event_query = event_query.filter(
+                EventOwnership.owner_account_id.in_(manageable_owner_ids(db, account.id)))
         event_rows = event_query.order_by(main.Event.id.desc()).limit(250).all()
         q = db.query(Promotion)
         if role != "global_admin":
-            q = q.filter(Promotion.owner_account_id == account.id)
+            from demo_organizer_teams import manageable_owner_ids
+            q = q.filter(Promotion.owner_account_id.in_(manageable_owner_ids(db, account.id)))
         campaigns = q.order_by(Promotion.created_at.desc(), Promotion.id.desc()).limit(200).all()
         results = []
         for row in campaigns:

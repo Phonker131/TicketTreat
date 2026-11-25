@@ -155,18 +155,21 @@ def install_loyalty_benefits_api(app, get_db, main):
 
     def scoped_owners(db: Session, account):
         aliases = loyalty_alias_lookup(db)
+        from demo_organizer_teams import manageable_owner_ids
+        permitted = manageable_owner_ids(db, account.id)
         owners_query = db.query(EventOwnership.owner_account_id, main.Event.organizer).join(
             main.Event, main.Event.id == EventOwnership.event_id)
         if role_for(db, account) != "global_admin":
             merged_sources = {old_id for (old_id, _), canonical in aliases.items()
-                              if canonical == account.id}
+                              if canonical in permitted}
             owners_query = owners_query.filter(EventOwnership.owner_account_id.in_(
-                [account.id, *merged_sources]))
+                [*permitted, *merged_sources]))
         rows = owners_query.order_by(EventOwnership.event_id.desc()).limit(1000).all()
         owner_names = {}
         for event_owner_id, event_name in rows:
             owner_id = canonical_loyalty_owner(event_owner_id, event_name, aliases)
-            if role_for(db, account) != "global_admin" and owner_id != account.id and event_owner_id != account.id:
+            if (role_for(db, account) != "global_admin" and owner_id not in permitted
+                    and event_owner_id not in permitted):
                 continue
             if owner_id in owner_names:
                 continue

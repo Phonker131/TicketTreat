@@ -29,8 +29,9 @@ def aggregate_organizer(db: Session, main, account) -> dict:
     # cross-tenant operational role; cap its overview for bounded queries.
     query=db.query(main.Event)
     if role!="global_admin":
+        from demo_organizer_teams import manageable_owner_ids
         query=query.join(EventOwnership, EventOwnership.event_id==main.Event.id).filter(
-            EventOwnership.owner_account_id==account.id)
+            EventOwnership.owner_account_id.in_(manageable_owner_ids(db, account.id)))
     rows=query.order_by(main.Event.id.desc()).limit(201).all()
     truncated=len(rows)>200
     events=rows[:200]

@@ -60,30 +60,38 @@ class SettingsUpdate(BaseModel):
     messages: bool
 
 
-def _owner_recipient(db: Session, event_id: int):
-    """Return (owner_account_id, signed Telegram ID) only for the present owner.
+def _activity_recipients(db: Session, event_id: int, action: str) -> list[tuple[int, int]]:
+    """Return only opted-in, verified Telegram destinations of the current team.
 
     A global admin does not receive a different organizer's guest activity.
-    Role changes, bans and Telegram unlinking are checked again at delivery.
+    Every team member individually accepts an invitation and links Telegram
+    using the signed account-link protocol. Revocation is rechecked on send.
     """
     from demo_account_bans import active_ban
     from demo_account_recovery import email_is_verified
     from demo_accounts import WebAccount
-    from demo_roles import EventOwnership, role_for
+    from demo_roles import EventOwnership
     from demo_telegram import DemoTelegramIdentity
+    from demo_organizer_teams import team_recipients
 
     ownership = db.get(EventOwnership, event_id)
     if ownership is None:
-        return None
-    account = db.get(WebAccount, ownership.owner_account_id)
-    if (account is None or role_for(db, account) not in {"organizer", "global_admin"}
-            or not email_is_verified(db, account.id) or active_ban(db, account.id) is not None):
-        return None
-    identity = db.query(DemoTelegramIdentity).filter(
-        DemoTelegramIdentity.guest_id == account.guest_id).first()
-    if identity is None:
-        return None
-    return int(account.id), int(identity.telegram_id)
+        return []
+    result = []
+    used_telegram_ids = set()
+    for account_id in team_recipients(db, ownership.owner_account_id):
+        account = db.get(WebAccount, account_id)
+        if (account is None or not email_is_verified(db, account.id)
+                or active_ban(db, account.id) is not None
+                or not _enabled(db, account.id, action)):
+            continue
+        identity = db.query(DemoTelegramIdentity).filter(
+            DemoTelegramIdentity.guest_id == account.guest_id).first()
+        if identity is None or int(identity.telegram_id) in used_telegram_ids:
+            continue
+        used_telegram_ids.add(int(identity.telegram_id))
+        result.append((int(account.id), int(identity.telegram_id)))
+    return result
 
 
 def _enabled(db: Session, account_id: int, action: str) -> bool:
@@ -106,11 +114,8 @@ def queue_organizer_activity(db: Session, *, event_id: int, action: str,
     from demo_telegram_notifications import configured, _insert_rows
     if not configured():
         return False
-    recipient = _owner_recipient(db, event_id)
-    if recipient is None:
-        return False
-    account_id, telegram_id = recipient
-    if not _enabled(db, account_id, action):
+    recipients = _activity_recipients(db, event_id, action)
+    if not recipients:
         return False
     key = f"org:{event_id}:{action}:{source_key}"
     activity_id = db.execute(pg_insert(OrganizerActivity.__table__).values(
@@ -126,7 +131,7 @@ def queue_organizer_activity(db: Session, *, event_id: int, action: str,
         "event_id": event_id, "notice_id": activity_id,
         "language": "en", "state": "pending", "attempts": 0,
         "next_attempt_at": now,
-    }])
+    } for _, telegram_id in recipients])
     return True
 
 
@@ -151,9 +156,8 @@ def render_organizer_activity(db: Session, row, event, main):
     if (activity is None or activity.event_id != row.event_id or event.id != row.event_id
             or activity.action not in ACTIVITY_KINDS):
         return None
-    recipient = _owner_recipient(db, event.id)
-    if (recipient is None or recipient[1] != row.telegram_id
-            or not _enabled(db, recipient[0], activity.action)):
+    recipients = _activity_recipients(db, event.id, activity.action)
+    if not any(telegram_id == row.telegram_id for _, telegram_id in recipients):
         return None
     language = _recipient_languages(db, [int(row.telegram_id)], main).get(int(row.telegram_id))
     lang = "cs" if language == "cs" else "en"

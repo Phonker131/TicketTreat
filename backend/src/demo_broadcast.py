@@ -371,7 +371,9 @@ def install_broadcast_api(app, get_db, main):
         query = db.query(BroadcastCampaign)
         if role_for(db, account) != "global_admin":
             from demo_roles import EventOwnership
-            events = db.query(EventOwnership.event_id).filter(EventOwnership.owner_account_id == account.id)
+            from demo_organizer_teams import manageable_owner_ids
+            events = db.query(EventOwnership.event_id).filter(
+                EventOwnership.owner_account_id.in_(manageable_owner_ids(db, account.id)))
             query = query.filter(BroadcastCampaign.scope == "event", BroadcastCampaign.event_id.in_(events))
         rows = query.order_by(BroadcastCampaign.id.desc()).limit(30).all()
         return [_summary(row, db) for row in rows]
