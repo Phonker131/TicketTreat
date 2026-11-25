@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from demo_accounts import WebAccount
-from demo_account_bans import (AccountBanAction, active_ban,
+from demo_account_bans import (AccountBanAction, PermanentAccountBan, active_ban,
                                active_bans_for, banned_guest_ids, require_account_active,
                                require_guest_active, require_telegram_account_active)
 from demo_telegram import DemoTelegramIdentity
@@ -19,6 +19,7 @@ class AccountBanPolicyTests(unittest.TestCase):
                                poolclass=StaticPool)
         WebAccount.__table__.create(engine)
         AccountBanAction.__table__.create(engine)
+        PermanentAccountBan.__table__.create(engine)
         DemoTelegramIdentity.__table__.create(engine)
         try:
             with Session(engine) as db:
@@ -49,6 +50,18 @@ class AccountBanPolicyTests(unittest.TestCase):
                 require_account_active(db,target)
                 require_guest_active(db,777)
                 require_telegram_account_active(db,424242)
+                # Permanent ban wins even after the most recent action was "unban".
+                db.add(PermanentAccountBan(account_id=target.id,
+                    reason="Owner-approved permanent security ban"));db.commit()
+                self.assertEqual(active_ban(db,target.id).reason,
+                                 "Owner-approved permanent security ban")
+                self.assertIn(target.id,active_bans_for(db,[target.id]))
+                self.assertEqual(banned_guest_ids(db,[777]),{777})
+                for fn,arg in ((require_account_active,target),(require_guest_active,777),
+                               (require_telegram_account_active,424242)):
+                    with self.assertRaises(HTTPException) as error:
+                        fn(db,arg)
+                    self.assertEqual(error.exception.detail,"account_banned")
         finally:
             engine.dispose()
 
