@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from db.session import SessionLocal
 from integration_pilot_ops import account_with_session
 from integration_organizer_rewards import enroll_mfa
+from demo_roles import GlobalAdminDelegation, role_for
 from demo_organizer_teams import OrganizerTeamMember
 from demo_finance import (OrganizerContractVersion, OrganizerContractAcceptance,
                           FinanceAccessAudit, FinanceSessionGrant, contract_digest)
@@ -46,7 +47,11 @@ class OrganizerFinanceIntegration(unittest.TestCase):
                 member_account_id=member.id,status="active",
                 invited_at=datetime.now(timezone.utc),
                 accepted_at=datetime.now(timezone.utc)))
+            # Exercise actual delegated-admin resolution, not a mocked role.
+            db.add(GlobalAdminDelegation(account_id=other.id,email=other.email,
+                                         granted_by=owner.id))
             db.commit()
+            self.assertEqual(role_for(db,other),"global_admin")
             owner_id = owner.id
             contract_body = "CI-only agreement: "+secrets.token_hex(12)
 
@@ -82,11 +87,10 @@ class OrganizerFinanceIntegration(unittest.TestCase):
                 self.assertEqual(client.get(endpoint,headers=other_auth).json()["detail"],
                                  "finance_owner_required",endpoint)
                 self.assertEqual(client.get(endpoint,headers=member_auth).status_code,403,endpoint)
-            # The global-admin role cannot silently bypass seller isolation.
-            with patch("demo_roles.role_for",return_value="global_admin"):
-                self.assertEqual(client.get(
-                    f"/demo/manage/finance/summary?organization_id={owner_id}",
-                    headers=other_auth).status_code,403)
+            # Even a real global-admin delegation cannot bypass seller isolation.
+            self.assertEqual(client.get(
+                f"/demo/manage/finance/summary?organization_id={owner_id}",
+                headers=other_auth).status_code,403)
             self.assertEqual(client.get("/demo/manage/finance/profile",
                 headers=member_auth).status_code,403)
 
