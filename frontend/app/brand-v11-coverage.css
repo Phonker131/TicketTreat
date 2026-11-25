@@ -434,7 +434,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
  .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .panel{
    padding:clamp(14px,4vw,22px);overflow-wrap:anywhere;
  }
- .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .panel :is(.form-stack>label,select,textarea,input){
+ .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .panel :is(.form-stack>label,select,textarea,input:not([type="checkbox"]):not([type="radio"])){
    width:100%;max-width:100%;min-width:0;
  }
  .app-shell:has(.admin-heading,.admin-event-actions,.admin-dashboard,.organizer-editor,.tt-analytics-dashboard) .panel .button-primary{

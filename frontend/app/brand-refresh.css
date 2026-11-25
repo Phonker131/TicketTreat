@@ -952,6 +952,7 @@ button.tt-support-unread{border-left:7px solid var(--tt-tomato);}
 .organizer-editor label{min-width:0;}
 .organizer-editor .organizer-publish-toggle{display:flex;gap:12px;align-items:center;cursor:pointer;font-weight:700;}
 .organizer-editor .organizer-publish-toggle input{width:20px;height:20px;flex:none;}
+.organizer-editor .organizer-publish-toggle span{flex:1 1 auto;min-width:0;white-space:normal;overflow-wrap:normal;}
 .organizer-editor-media+ .organizer-editor-media{border-top:1px solid #b7b1b0;margin-top:20px;padding-top:20px;}
 .organizer-editor-media h2{margin:6px 0 12px;}
 .organizer-edit-logo{display:block;width:110px;height:110px;object-fit:cover;border-radius:16px;border:2px solid var(--tt-keyline);}
