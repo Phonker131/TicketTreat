@@ -59,6 +59,8 @@ from demo_event_alerts import track_event
 from demo_broadcast import BroadcastCampaign, BroadcastTelegramOutbox, install_broadcast_api, install_broadcast_worker
 from demo_indexnow import install_indexnow
 from demo_telegram_notifications import TelegramNotificationOutbox, install_notification_worker
+from demo_organizer_telegram import (OrganizerTelegramSettings, OrganizerActivity,
+                                     queue_organizer_activity, install_organizer_telegram_api)
 from demo_privacy import PrivacyRequest, install_privacy_routes
 from demo_mfa import MFAFactor, MFASession, install_mfa
 from demo_legacy import LegacyTicketClaim
@@ -2108,6 +2110,10 @@ def register_to_event(
         db.flush()
         _claim_bot_registration_as_ticket(db, event, registration, canonical_account)
 
+    db.flush()
+    queue_organizer_activity(db, event_id=event.id, action="registered",
+                             source_key=f"legacy:{registration.id}",
+                             guest_id=canonical_account.guest_id if canonical_account else None)
     db.commit()
 
     return registration_response(
@@ -2372,6 +2378,9 @@ def unsubscribe_from_event(
             )
             ticket.cancelled_at = utc_now()
             db.flush()
+            queue_organizer_activity(db, event_id=event_id, action="cancelled",
+                                     source_key=f"ticket:{ticket.id}:{int(ticket.cancelled_at.timestamp()*1000000)}",
+                                     guest_id=ticket.guest_id)
             promoted = promote_demo_waitlist(db, event_id)
             if promoted is not None:
                 db.flush()
@@ -2397,6 +2406,8 @@ def unsubscribe_from_event(
         db.delete(payment)
 
     db.delete(registration)
+    queue_organizer_activity(db, event_id=event_id, action="cancelled",
+                             source_key=f"legacy:{registration.id}")
     db.commit()
 
     return {
@@ -2728,6 +2739,9 @@ def promote_demo_waitlist(
     waitlist_entry.status = "promoted"
     waitlist_entry.promoted_at = utc_now()
     db.flush()
+    queue_organizer_activity(db, event_id=event.id, action="promoted",
+                             source_key=f"ticket:{ticket.id}:{hashlib.sha256(ticket.qr_token.encode()).hexdigest()[:20]}",
+                             guest_id=ticket.guest_id)
     return ticket
 
 
@@ -3120,6 +3134,10 @@ def demo_checkout(
         accept_offer(db,event,guest)
 
     db.flush()
+    queue_organizer_activity(db, event_id=event.id,
+                             action="promoted" if waitlist_entry is not None or offer is not None else "registered",
+                             source_key=f"ticket:{ticket.id}:{hashlib.sha256(ticket.qr_token.encode()).hexdigest()[:20]}",
+                             guest_id=guest.id)
     queue_email(
         db, kind="ticket",
         event_key=f"ticket:{ticket.id}:issue:{hashlib.sha256(ticket.qr_token.encode()).hexdigest()[:20]}",
@@ -3215,6 +3233,7 @@ def join_demo_waitlist(
         .first()
     )
 
+    was_waiting = existing is not None and existing.status == "waiting"
     if existing is None:
         existing = DemoWaitlist(
             event_id=event_id,
@@ -3230,6 +3249,11 @@ def join_demo_waitlist(
         existing.status = "waiting"
         existing.promoted_at = None
 
+    db.flush()
+    if not was_waiting:
+        queue_organizer_activity(db, event_id=event.id, action="waitlist_joined",
+                                 source_key=f"waitlist:{existing.id}:{int(utc_now().timestamp()*1000000)}",
+                                 guest_id=guest.id)
     db.commit()
     db.refresh(existing)
 
@@ -3359,6 +3383,9 @@ def cancel_demo_ticket(
     ticket.cancelled_at = utc_now()
 
     db.flush()
+    queue_organizer_activity(db, event_id=ticket.event_id, action="cancelled",
+                             source_key=f"ticket:{ticket.id}:{int(ticket.cancelled_at.timestamp()*1000000)}",
+                             guest_id=ticket.guest_id)
     promoted = promote_demo_waitlist(db, ticket.event_id)
     if promoted is not None:
         db.flush()
@@ -3556,6 +3583,7 @@ install_rewards_api(app, get_db, __import__("sys").modules[__name__])
 install_loyalty_benefits_api(app, get_db, __import__("sys").modules[__name__])
 install_promotions_api(app, get_db, __import__("sys").modules[__name__])
 install_event_chat_api(app, get_db, __import__("sys").modules[__name__])
+install_organizer_telegram_api(app, get_db)
 install_broadcast_api(app, get_db, __import__("sys").modules[__name__])
 install_broadcast_worker(app, SessionLocal)
 # Operational cancellations, changes and reminders use a separate durable queue.

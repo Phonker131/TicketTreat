@@ -241,6 +241,13 @@ def install_privacy_routes(app, get_db, main):
                 EventChatThread.id.in_(chat_ids)).delete(synchronize_session=False)
         # Delete Instagram usernames submitted to promotional campaigns on erasure.
         from demo_promotions import PromotionClaim
+        from demo_organizer_telegram import OrganizerActivity, OrganizerTelegramSettings
+        # Keep anonymous operational counts, but sever all guest references.
+        db.query(OrganizerActivity).filter(
+            OrganizerActivity.guest_id == guest.id).update(
+                {OrganizerActivity.guest_id: None}, synchronize_session=False)
+        db.query(OrganizerTelegramSettings).filter(
+            OrganizerTelegramSettings.account_id == account.id).delete(synchronize_session=False)
         db.query(PromotionClaim).filter(PromotionClaim.account_id==account.id).delete(synchronize_session=False)
         db.query(EmailOutbox).filter(EmailOutbox.guest_id==guest.id).delete(synchronize_session=False)
         db.query(main.DemoTicket).filter(main.DemoTicket.guest_id==guest.id).delete(synchronize_session=False)
