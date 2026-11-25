@@ -42,7 +42,7 @@ test("loyalty rewards are configured per organizer and tier, never per event",as
   const vip=page.locator(".tt-reward-admin-grid > section").filter({has:page.getByRole("heading",{name:"VIP",exact:true})});
   await expect(vip.getByText("Provided by organizer")).toBeVisible();
   const insider=page.locator(".tt-reward-admin-grid > section").filter({has:page.getByRole("heading",{name:"Insider",exact:true})});
-  await expect(insider.getByText("Coming soon")).toBeVisible();
+  await expect(insider.getByText("Coming soon",{exact:true})).toBeVisible();
   await insider.getByRole("button",{name:"Edit reward"}).click();
   await insider.getByLabel("Details (English)").fill("A free drink at the entrance, provided by the organizer.");
   await insider.getByLabel("Details (Czech)").fill("Nápoj při vstupu poskytuje pořadatel.");
