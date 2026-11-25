@@ -165,6 +165,12 @@ def priority_waitlist_entry(db: Session, event, main):
                        main.DemoWaitlist.status == "waiting")
                .order_by(main.DemoWaitlist.created_at.asc(), main.DemoWaitlist.id.asc())
                .all())
+    # This selector is also called by unattended seat promotion and timed
+    # offers.  Banning an account revokes its login, but must also prevent a
+    # pre-existing waitlist row from receiving a fresh ticket or invitation.
+    from demo_account_bans import banned_guest_ids
+    excluded = banned_guest_ids(db, [int(entry.guest_id) for entry in waiting])
+    waiting = [entry for entry in waiting if int(entry.guest_id) not in excluded]
     if len(waiting) <= 1:
         return waiting[0] if waiting else None
     owner = db.get(EventOwnership, event.id)

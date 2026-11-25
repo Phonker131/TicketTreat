@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from demo_accounts import WebAccount
 from demo_account_bans import (AccountBanAction, active_ban,
-                               active_bans_for, require_account_active,
+                               active_bans_for, banned_guest_ids, require_account_active,
                                require_guest_active, require_telegram_account_active)
 from demo_telegram import DemoTelegramIdentity
 
@@ -29,10 +29,12 @@ class AccountBanPolicyTests(unittest.TestCase):
                 require_account_active(db,target)
                 require_guest_active(db,777)
                 require_telegram_account_active(db,424242)
+                self.assertEqual(banned_guest_ids(db,[777,778]),set())
                 db.add(AccountBanAction(account_id=target.id,actor_account_id=99,
                     action="ban",reason="Repeated abusive behavior"));db.commit()
                 self.assertEqual(active_ban(db,target.id).reason,"Repeated abusive behavior")
                 self.assertIn(target.id,active_bans_for(db,[target.id]))
+                self.assertEqual(banned_guest_ids(db,[777,778]),{777})
                 for fn,arg in ((require_account_active,target),(require_guest_active,777),
                                (require_telegram_account_active,424242)):
                     with self.assertRaises(HTTPException) as error:
@@ -43,6 +45,7 @@ class AccountBanPolicyTests(unittest.TestCase):
                     action="unban",reason="Appeal accepted"));db.commit()
                 self.assertIsNone(active_ban(db,target.id))
                 self.assertNotIn(target.id,active_bans_for(db,[target.id]))
+                self.assertEqual(banned_guest_ids(db,[777,778]),set())
                 require_account_active(db,target)
                 require_guest_active(db,777)
                 require_telegram_account_active(db,424242)

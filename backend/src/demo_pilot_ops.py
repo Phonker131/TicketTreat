@@ -322,6 +322,8 @@ def install_pilot_ops(app, get_db, main):
             raise HTTPException(404,"ticket_not_found")
         if ticket.ticket_status!="active":
             raise HTTPException(409,"ticket_not_active")
+        from demo_account_bans import require_guest_active
+        require_guest_active(db, ticket.guest_id)
         event=db.get(main.Event,event_id)
         if event is None or event.is_cancelled:
             raise HTTPException(409,"event_cancelled")
@@ -364,6 +366,8 @@ def install_pilot_ops(app, get_db, main):
             raise HTTPException(403, "event_checkin_access_denied")
         if ticket.ticket_status != "active":
             raise HTTPException(409, "ticket_not_active")
+        from demo_account_bans import require_guest_active
+        require_guest_active(db, ticket.guest_id)
         event = db.get(main.Event, ticket.event_id)
         if event is None or event.is_cancelled:
             raise HTTPException(409, "event_cancelled")

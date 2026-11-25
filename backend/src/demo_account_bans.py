@@ -50,6 +50,23 @@ def active_bans_for(db: Session, account_ids: list[int]) -> dict[int, AccountBan
             if row.action == "ban"}
 
 
+def banned_guest_ids(db: Session, guest_ids: list[int]) -> set[int]:
+    """Resolve active bans for canonical guests in one batch.
+
+    A waitlist can contain entries created before a moderator banned their
+    account.  Background seat allocation has no authenticated caller, so it
+    must exclude those guests explicitly rather than relying on login guards.
+    """
+    if not guest_ids:
+        return set()
+    from demo_accounts import WebAccount
+    accounts = (db.query(WebAccount.id, WebAccount.guest_id)
+                .filter(WebAccount.guest_id.in_(guest_ids)).all())
+    bans = active_bans_for(db, [int(account_id) for account_id, _ in accounts])
+    return {int(guest_id) for account_id, guest_id in accounts
+            if int(account_id) in bans}
+
+
 def require_account_active(db: Session, account) -> None:
     if active_ban(db, account.id) is not None:
         raise HTTPException(status_code=403, detail="account_banned")
