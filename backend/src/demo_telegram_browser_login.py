@@ -5,6 +5,7 @@ The Mini App approves only with Telegram-signed initData. Completion creates
 the ordinary scoped website session exactly once. No login by name/email.
 """
 from __future__ import annotations
+from demo_client_ip import source_ip as authenticated_client_ip
 
 import hashlib
 import hmac
@@ -76,7 +77,7 @@ def install_browser_telegram_login(app, get_db, DemoGuest, issue_session, profil
         if not bot_ready():
             raise HTTPException(503,"telegram_login_not_configured")
         from demo_auth_security import guard_rate,record_rate
-        ip=request.client.host if request.client else "unknown"
+        ip=authenticated_client_ip(request)
         guard_rate(db,"telegram_browser_login_ip",ip,15,600)
         record_rate(db,"telegram_browser_login_ip",ip,600)
         challenge=secrets.token_urlsafe(32)

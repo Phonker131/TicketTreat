@@ -9,6 +9,7 @@ Codes are hashed at rest; sending is rate limited; password reset revokes all
 sessions. Enable Resend only after configuring and verifying the sender domain.
 """
 from __future__ import annotations
+from demo_client_ip import source_ip as authenticated_client_ip
 
 import hashlib
 import hmac
@@ -237,7 +238,7 @@ def install_email_account_security(app, get_db):
                                db: Session = Depends(get_db)):
         telegram_without_email(account, db)
         email = normalize_email(payload.email)
-        ip = request.client.host if request.client else "unknown"
+        ip = authenticated_client_ip(request)
         guard_rate(db, "telegram_email_ip", ip, 15, 3600)
         guard_rate(db, "telegram_email_account", str(account.id), 4, 3600)
         # Rate limiting applies even to existing-address attempts; otherwise
@@ -307,7 +308,7 @@ def install_email_account_security(app, get_db):
             return {"status": "already_verified"}
         if not account.email:
             raise HTTPException(409, "email_required_attach_first")
-        ip = request.client.host if request.client else "unknown"
+        ip = authenticated_client_ip(request)
         # Delivery failures must not exhaust the small *successful-send*
         # allowance. Keep an independent generous attempt budget so an
         # unreachable provider cannot be hammered indefinitely.
@@ -359,7 +360,7 @@ def install_email_account_security(app, get_db):
 
     @app.post("/demo/auth/password/forgot")
     def forgot_password(payload: EmailRequest, request: Request, db: Session = Depends(get_db)):
-        ip = request.client.host if request.client else "unknown"
+        ip = authenticated_client_ip(request)
         email = normalize_email(payload.email)
         guard_rate(db, "password_reset_ip", ip, 12, 3600)
         guard_rate(db, "password_reset_email", email, 4, 3600)
@@ -388,7 +389,7 @@ def install_email_account_security(app, get_db):
 
     @app.post("/demo/auth/password/reset")
     def reset_password(payload: PasswordReset, request: Request, db: Session = Depends(get_db)):
-        ip = request.client.host if request.client else "unknown"
+        ip = authenticated_client_ip(request)
         email = normalize_email(payload.email)
         guard_rate(db, "password_reset_submit_ip", ip, 30, 3600)
         record_rate(db, "password_reset_submit_ip", ip, 3600)

@@ -11,6 +11,7 @@ revocable bearer tokens stored as SHA-256 hashes.
 This is a DEMO auth flow: email ownership is NOT yet verified.
 """
 from __future__ import annotations
+from demo_client_ip import source_ip as authenticated_client_ip
 
 import csv
 import hashlib
@@ -306,7 +307,7 @@ def install_demo_accounts(
         from demo_telegram import reject_parallel_signup_inside_telegram
         reject_parallel_signup_inside_telegram(request)
         reject_authenticated_signup(authorization, db)
-        source_ip = request.client.host if request.client else "unknown"
+        source_ip = authenticated_client_ip(request)
         guard_rate(db, "signup_ip", source_ip, 20, 600)
         record_rate(db, "signup_ip", source_ip, 600)
         validate_new_password(payload.password)
@@ -418,7 +419,7 @@ def install_demo_accounts(
     @app.post("/demo/auth/login")
     def login(payload: LoginData, request: Request, db: Session = Depends(get_db)):
         email = normalize_email(payload.email)
-        source_ip = request.client.host if request.client else "unknown"
+        source_ip = authenticated_client_ip(request)
         guard_rate(db, "login_ip", source_ip, 200, 900)
         guard_rate(db, "login_email", email, 12, 900)
         account = db.query(WebAccount).filter(WebAccount.email == email).first()
@@ -453,7 +454,7 @@ def install_demo_accounts(
         from demo_account_recovery import create_challenge, email_is_verified
         # Accept email only; never log passwords/other supplied fields.
         email = normalize_email(payload.email)
-        ip = request.client.host if request.client else "unknown"
+        ip = authenticated_client_ip(request)
         guard_rate(db, "magic_request_ip", ip, 12, 3600)
         guard_rate(db, "magic_request_email", email, 4, 3600)
         record_rate(db, "magic_request_ip", ip, 3600)
@@ -475,7 +476,7 @@ def install_demo_accounts(
     def confirm_magic_login(payload: MagicLogin, request: Request,
                             db: Session = Depends(get_db)):
         from demo_account_recovery import consume_challenge, email_is_verified
-        ip = request.client.host if request.client else "unknown"
+        ip = authenticated_client_ip(request)
         guard_rate(db, "magic_confirm_ip", ip, 25, 3600)
         record_rate(db, "magic_confirm_ip", ip, 3600)
         email = normalize_email(payload.email)

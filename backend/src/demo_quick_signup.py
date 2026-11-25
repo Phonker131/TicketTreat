@@ -4,6 +4,7 @@ Never binds an unverified email to an existing account; no organizer roles.
 One-time HMAC tokens, consent acknowledgement, expiry and rate limits.
 """
 from __future__ import annotations
+from demo_client_ip import source_ip as authenticated_client_ip
 import hashlib,hmac,os,secrets
 from datetime import datetime,timedelta,timezone
 from fastapi import Depends,Header,HTTPException,Request
@@ -63,7 +64,7 @@ def install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict,reject_
             raise HTTPException(422,"privacy_acceptance_required")
         email=normalize_email(payload.email)
         require_signup_email_allowed(email)
-        ip=request.client.host if request.client else "unknown"
+        ip=authenticated_client_ip(request)
         guard_rate(db,"quick_ip",ip,12,3600)
         guard_rate(db,"quick_email",email,4,3600)
         record_rate(db,"quick_ip",ip,3600)
@@ -96,7 +97,7 @@ def install_quick_signup(app,get_db,DemoGuest,issue_session,profile_dict,reject_
         from demo_telegram import reject_parallel_signup_inside_telegram
         reject_parallel_signup_inside_telegram(request)
         reject_authenticated_signup(authorization,db)
-        ip=request.client.host if request.client else "unknown"
+        ip=authenticated_client_ip(request)
         guard_rate(db,"quick_confirm_ip",ip,20,3600)
         record_rate(db,"quick_confirm_ip",ip,3600)
         email=normalize_email(payload.email)

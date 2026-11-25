@@ -9,6 +9,7 @@ Global admins MUST be explicitly granted by immutable website account IDs
 via GLOBAL_ADMIN_ACCOUNT_IDS. Email alone is NOT proof of identity.
 """
 from __future__ import annotations
+from demo_client_ip import source_ip as authenticated_client_ip
 import csv
 import json
 import base64
@@ -1322,7 +1323,7 @@ def install_account_moderation(app, get_db):
         """
         account = account_lookup(db, authorization)
         email = (account.email or "").strip().casefold()
-        claim_ip = request.client.host if request.client else "unknown"
+        claim_ip = authenticated_client_ip(request)
         guard_rate(db, "admin_claim_ip", claim_ip, 15, 3600)
         guard_rate(db, "admin_claim_account", str(account.id), 6, 3600)
         record_rate(db, "admin_claim_ip", claim_ip, 3600)
