@@ -113,6 +113,7 @@ class FinancePostMigrationIntegrity(unittest.TestCase):
             event = Event(title="CI financial ownership boundary", starts_at=now)
             db.add(event);db.flush()
             db.add(EventOwnership(event_id=event.id, owner_account_id=owner.id))
+            db.flush()  # The expense INSERT trigger must see the ownership row.
             expense = OrganizerExpenseEntry(
                 owner_account_id=owner.id, actor_account_id=owner.id,
                 event_id=event.id, entry_type="expense", category="venue",
