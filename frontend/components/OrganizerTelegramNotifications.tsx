@@ -10,16 +10,16 @@ import type {OrganizerTelegramSettings} from "@/lib/api";
 type SettingKey="registrations"|"cancellations"|"waitlist"|"messages";
 const KEYS:SettingKey[]=["registrations","cancellations","waitlist","messages"];
 const TEXT={
-  en:{title:"Telegram notifications",intro:"Receive important changes to your own events in your linked Telegram account.",back:"Organizer dashboard",loading:"Loading notification settings…",
+  en:{title:"Telegram notifications",intro:"Receive important changes to events belonging to your organization or the teams you joined in your own linked Telegram account.",back:"Organizer dashboard",loading:"Loading notification settings…",
     link:"Connect Telegram in your profile to receive notifications. A verified account link is required; your Telegram username alone is not enough.",
     disabled:"The Telegram bot is not configured. Your settings will be saved, but messages cannot be sent yet.",
     registrations:"New registrations",cancellations:"Registration cancellations",waitlist:"Waitlist joins, departures and promotions",messages:"New messages from attendees",save:"Save preferences",saving:"Saving…",saved:"Notification preferences saved.",error:"Could not load or save your preferences. Check organizer access and two-factor verification.",
-    privacy:"Alerts are sent only for events you own. Names are shortened; email addresses, phone numbers, tickets and chat messages stay on the site."},
-  cs:{title:"Upozornění na Telegramu",intro:"Dostávejte důležité změny u vlastních akcí do propojeného Telegramu.",back:"Panel pořadatele",loading:"Načítáme nastavení…",
+    privacy:"Alerts are sent only to the verified owner and team members with active access. Names are shortened; email addresses, phone numbers, tickets and chat messages stay on the site."},
+  cs:{title:"Upozornění na Telegramu",intro:"Dostávejte změny u vlastních akcí i akcí týmů, jejichž jste členem, do propojeného Telegramu.",back:"Panel pořadatele",loading:"Načítáme nastavení…",
     link:"Pro příjem upozornění propojte Telegram ve svém profilu. Samotné uživatelské jméno nestačí.",
     disabled:"Telegram bot není nakonfigurován. Nastavení se uloží, zprávy ale zatím nelze odesílat.",
     registrations:"Nové registrace",cancellations:"Zrušené registrace",waitlist:"Čekací listina: přidání, odchod a přesun",messages:"Nové zprávy od účastníků",save:"Uložit nastavení",saving:"Ukládání…",saved:"Nastavení upozornění bylo uloženo.",error:"Nastavení se nepodařilo načíst nebo uložit. Ověřte přístup a dvoufaktorové přihlášení.",
-    privacy:"Upozornění chodí jen k akcím, které vlastníte. Jména jsou zkrácená; e-mail, telefon, vstupenky a obsah chatu zůstávají na webu."},
+    privacy:"Upozornění dostane jen ověřený vlastník a členové týmu s aktivním přístupem. Jména jsou zkrácená; e-mail, telefon, vstupenky a obsah chatu zůstávají na webu."},
 } as const;
 
 export function OrganizerTelegramNotifications(){
@@ -52,6 +52,7 @@ export function OrganizerTelegramNotifications(){
   return <div className="app-shell"><AppHeader/><main className="page">
     <Link href="/admin" className="back-link">← {tr.back}</Link>
     <h1>{tr.title}</h1><p className="form-note">{tr.intro}</p>
+    <p className="form-note"><Link href="/admin/team">{language==="cs"?"Spravovat tým a připojené účty →":"Manage your organization team →"}</Link></p>
     {loading?<div className="state-card">{tr.loading}</div>:data&&<section className="panel form-stack">
       {!data.telegram_linked&&<div className="state-card" role="status">{tr.link} <Link href="/profile">{language==="cs"?"Profil":"Profile"} →</Link></div>}
       {!data.bot_configured&&<p className="form-note">{tr.disabled}</p>}

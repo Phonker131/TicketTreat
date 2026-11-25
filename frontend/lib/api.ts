@@ -334,6 +334,30 @@ export function saveOrganizerTelegramSettings(settings:Pick<OrganizerTelegramSet
   "registrations"|"cancellations"|"waitlist"|"messages">):Promise<OrganizerTelegramSettings> {
   return request("/demo/manage/telegram-notifications",{method:"PUT",body:JSON.stringify(settings)});
 }
+export type OrganizerTeamData = {
+  account_id:number;
+  can_invite:boolean;
+  members:Array<{account_id:number;email:string;name:string;status:"invited"|"active";notifications_enabled:boolean}>;
+  teams:Array<{owner_account_id:number;organization:string;status:"invited"|"active";notifications_enabled:boolean;expires_at:string|null}>;
+};
+export function getOrganizerTeams():Promise<OrganizerTeamData> {
+  return request("/demo/manage/teams");
+}
+export function inviteOrganizerMember(email:string):Promise<{status:string;account_id:number}> {
+  return request("/demo/manage/teams/invitations",{method:"POST",body:JSON.stringify({email})});
+}
+export function acceptOrganizerInvitation(ownerId:number):Promise<{status:string}> {
+  return request(`/demo/manage/teams/invitations/${ownerId}/accept`,{method:"POST"});
+}
+export function leaveOrganizerTeam(ownerId:number):Promise<{status:string}> {
+  return request(`/demo/manage/teams/${ownerId}/leave`,{method:"POST"});
+}
+export function revokeOrganizerMember(memberId:number):Promise<{status:string}> {
+  return request(`/demo/manage/teams/members/${memberId}`,{method:"DELETE"});
+}
+export function setOrganizerTeamNotifications(ownerId:number,enabled:boolean):Promise<{notifications_enabled:boolean}> {
+  return request(`/demo/manage/teams/${ownerId}/notifications`,{method:"PUT",body:JSON.stringify({enabled})});
+}
 export function saveOwnOrganizerProfile(profile:Pick<import("@/lib/types").EditableOrganizerProfile,
   "slug"|"display_name"|"bio"|"city"|"website_url"|"instagram"|"published">):
   Promise<import("@/lib/types").EditableOrganizerProfile> {
