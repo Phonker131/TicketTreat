@@ -124,8 +124,13 @@ def queue_staff_instructions(db: Session, grant: EventCheckinStaff, person, *, r
     return channels
 
 
-def _checkin_lookup(db: Session, main, raw_value: str):
-    """Resolve QR bearer values or printed ticket codes without returning QR secrets."""
+def _checkin_lookup(db: Session, main, raw_value: str, allowed_event_ids: set[int] | None = None):
+    """Resolve QR/printed codes only in authorized events, before taking a row lock.
+
+    ``None`` means a global administrator; other callers must supply the
+    event IDs granted to this account. This prevents enumerating other events'
+    ticket IDs through different 403/404 responses or lock timing.
+    """
     value = raw_value.strip()
     for prefix in ("TICKETTREAT:TICKET:", "CROWDLY:TICKET:"):
         if value.startswith(prefix):
@@ -136,14 +141,18 @@ def _checkin_lookup(db: Session, main, raw_value: str):
         ticket_id = int(printed.group(1))
         if not 1 <= ticket_id <= 2147483647:
             raise HTTPException(400, "invalid_qr_token")
-        return db.query(main.DemoTicket).filter(
-            main.DemoTicket.id == ticket_id).with_for_update().first()
+        query = db.query(main.DemoTicket).filter(main.DemoTicket.id == ticket_id)
+        if allowed_event_ids is not None:
+            query = query.filter(main.DemoTicket.event_id.in_(allowed_event_ids))
+        return query.with_for_update().first()
     # Tokens are generated with secrets.token_urlsafe(32). Reject incomplete
     # hand-entered strings rather than triggering a Pydantic form error.
     if not 24 <= len(value) <= 80:
         raise HTTPException(400, "invalid_qr_token")
-    return db.query(main.DemoTicket).filter(
-        main.DemoTicket.qr_token == value).with_for_update().first()
+    query = db.query(main.DemoTicket).filter(main.DemoTicket.qr_token == value)
+    if allowed_event_ids is not None:
+        query = query.filter(main.DemoTicket.event_id.in_(allowed_event_ids))
+    return query.with_for_update().first()
 
 
 def effective_settings(db: Session, event_id: int) -> dict:
@@ -470,22 +479,23 @@ def install_pilot_ops(app, get_db, main):
         from demo_auth_security import guard_rate, record_rate
         guard_rate(db, "checkin_scan", str(account.id), 600, 900)
         record_rate(db, "checkin_scan", str(account.id), 900)
-        # Lock the ticket, so simultaneous device scans cannot both issue a
-        # successful first check-in.
-        ticket = _checkin_lookup(db, main, payload.qr_token)
-        if ticket is None:
-            raise HTTPException(404, "ticket_not_found")
         from demo_roles import role_for, EventOwnership
         role = role_for(db, account)
-        is_owner = role == "global_admin" or (
-            role == "organizer" and db.query(EventOwnership.event_id).filter(
-                EventOwnership.event_id == ticket.event_id,
-                EventOwnership.owner_account_id == account.id).first() is not None)
-        delegated = db.query(EventCheckinStaff.id).filter(
-            EventCheckinStaff.event_id == ticket.event_id,
-            EventCheckinStaff.account_id == account.id).first() is not None
-        if not (is_owner or delegated):
-            raise HTTPException(403, "event_checkin_access_denied")
+        allowed_event_ids = None
+        if role != "global_admin":
+            owned = (db.query(EventOwnership.event_id).filter(
+                EventOwnership.owner_account_id == account.id).all()
+                if role == "organizer" else [])
+            assigned = db.query(EventCheckinStaff.event_id).filter(
+                EventCheckinStaff.account_id == account.id).all()
+            allowed_event_ids = {event_id for (event_id,) in owned + assigned}
+            if not allowed_event_ids:
+                raise HTTPException(403, "event_checkin_access_denied")
+        # Only authorized ticket rows are looked up and locked. Simultaneous
+        # scans of the same ticket cannot both issue a successful admission.
+        ticket = _checkin_lookup(db, main, payload.qr_token, allowed_event_ids)
+        if ticket is None:
+            raise HTTPException(404, "ticket_not_found")
         if payload.event_id is not None and ticket.event_id != payload.event_id:
             raise HTTPException(409, "ticket_wrong_event")
         if ticket.ticket_status != "active":

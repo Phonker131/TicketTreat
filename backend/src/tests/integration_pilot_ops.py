@@ -154,6 +154,29 @@ class PilotScopedOperationsTests(unittest.TestCase):
             forbidden=client.get(f"/demo/manage/events/{event_id}/participants",
                                  headers=worker_headers)
             self.assertEqual(forbidden.status_code,403,forbidden.text)
+            # Even a valid, guessable printed ticket ID in a different event
+            # must look identical to a nonexistent ticket to this staff member.
+            # This also ensures foreign QR tokens cannot trigger admission.
+            with SessionLocal() as db:
+                foreign_event=main.Event(title="Other organizer's event",price=Decimal("0"),
+                    starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=3),
+                    max_participants=10,currency="CZK",description="Authorization test",location="Prague")
+                db.add(foreign_event);db.flush()
+                foreign_ticket=main.DemoTicket(event_id=foreign_event.id,guest_id=guest.id,
+                    qr_token=secrets.token_urlsafe(32),ticket_status="active",
+                    payment_status="not_required",payment_provider="free",
+                    payment_amount="0",currency="CZK")
+                db.add(foreign_ticket);db.flush()
+                foreign_id,foreign_qr=foreign_ticket.id,foreign_ticket.qr_token
+                db.commit()
+            for candidate in (f"CRD{foreign_id:06d}",foreign_qr,
+                              f"CRD{foreign_id+100000:06d}"):
+                hidden=client.post("/demo/pilot/check-in",headers=worker_headers,
+                    json={"qr_token":candidate,"event_id":event_id})
+                self.assertEqual(hidden.status_code,404,hidden.text)
+                self.assertEqual(hidden.json()["detail"],"ticket_not_found")
+            with SessionLocal() as db:
+                self.assertIsNone(db.get(main.DemoTicket,foreign_id).checked_in_at)
             wrong=client.post("/demo/pilot/check-in",headers=worker_headers,
                 json={"qr_token":qr,"event_id":event_id+10000})
             self.assertEqual(wrong.status_code,409,wrong.text)

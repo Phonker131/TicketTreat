@@ -12,13 +12,13 @@ The existing POST /demo/manage/events/{event_id}/checkin-staff only inserted dem
 2. The same transaction queues a transactional Resend email and, when a verified Telegram identity is linked to the recipient account, a Telegram service message. Both contain an event title, date, entrance instructions, and the public **non-credential** scanner URL /admin/check-in?event=N. Neither carries QR ticket values, session credentials or participant details.
 3. The recipient sees an event-scoped **Check-in access** card in their profile and can reach the scanner without organizer/admin privileges. The scanner lists only assigned or owned events and rejects QR values for any other selected event.
 4. Organizers may use **Send instructions** for an already-granted account (including grants made before deployment). The service queues a new delivery for eligible channels at most three times per recipient/event/day. A notification is **queued**, not guaranteed delivered; absent providers are shown honestly. This is an explicit resend—no historic mass mailing.
-5. The scanner restarts after a scan, suppresses the same QR for eight seconds, and preserves the existing server-side atomic check-in lock. Camera failure retains manual entry.
+5. The live frontend in companion PR #217 keeps the camera running between scans, suppresses the same QR for 15 seconds, and preserves the existing server-side atomic check-in lock. Camera failure retains manual entry and camera restart is available.
 6. Removing access immediately revokes server-side check-in permission. Queued mail/Telegram instructions are skipped if the grant is gone, event is cancelled, account banned/unverified, recipient email changed or Telegram identity unlinked before worker delivery.
 
 ## Security model and limitations
 
 - Staff receive **only** event check-in. No event management, attendee list, CSV export, account role, finance or global admin rights.
-- Every scan rechecks the canonical web session, verified email and event ownership or explicit staff assignment. Optional selected event ID is validated **after** authorization, avoiding cross-event ticket existence leaks.
+- Every scan rechecks the canonical web session, verified email and event ownership or explicit staff assignment. Ticket lookup (QR or enumerable printed `CRD` code) is restricted to the caller's authorized event IDs **in the SQL query before locking**. Unknown and foreign tickets produce the same `ticket_not_found` response; accounts without any event grant receive `event_checkin_access_denied` before ticket lookup. An optional selected event ID is checked only after an authorized ticket is found.
 - Grant, resend, and scan routes use per-actor or per-event rate limits. API responses never claim provider delivery.
 - Existing transactional email/Telegram outboxes provide durable retries, unique keys and worker locking; no new tables or migrations.
 - Sending still requires actual configured Resend / Telegram credentials and successful provider delivery. A Telegram recipient must already have linked the correct verified TicketTreat account. Actual delivery, phone camera hardware, and operator UX must be rehearsed in staging on an iPhone/Android before production approval.
@@ -28,7 +28,7 @@ The existing POST /demo/manage/events/{event_id}/checkin-staff only inserted dem
 ## Verification / release gate
 
 - Unit tests: escaping, format and safe links, invalid notification keys.
-- PostgreSQL integration: owner MFA, invite queueing and stable event scope, email/TG render, explicit resend, no staff export rights, wrong-event rejection before mutation, idempotent replay, revoke blocks scans and delayed invites.
+- PostgreSQL integration: owner MFA, invite queueing and stable event scope, email/TG render, explicit resend, no staff export rights, foreign QR/printed-code existence indistinguishable from missing codes, wrong-event rejection before mutation, idempotent replay, revoke blocks scans and delayed invites.
 - Frontend: TypeScript, Next.js build; Chromium registration/CSRF suite.
 - Review with owner before merging to release. Do not mix this fix into the finance draft PR, and do not deploy it unreviewed.
 
