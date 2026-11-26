@@ -295,6 +295,18 @@ body { background-image: none; }
 .tt-checkin-camera .scanner-box button{max-width:100%;white-space:normal}
 .tt-checkin-camera-status{display:flex;align-items:center;gap:10px;min-width:0;padding:12px 14px;border:2px solid #02070A;background:#f0ebe1;border-radius:14px;font-size:14px;font-weight:750;line-height:1.4}
 .tt-checkin-camera-indicator{width:11px;height:11px;border-radius:50%;background:#FC734D;flex:none}
+.tt-checkin-feedback{display:flex;align-items:center;gap:18px;min-width:0;padding:18px 20px;border:3px solid transparent;border-radius:18px;color:#fff;box-shadow:0 8px 24px #0002}
+.tt-checkin-feedback--success{background:#07573E;border-color:#47DF9D}
+.tt-checkin-feedback--duplicate,.tt-checkin-feedback--error{background:#731E26;border-color:#FF9D9D}
+.tt-checkin-feedback-icon{display:grid;place-items:center;flex:none;width:58px;height:58px;border:3px solid currentColor;border-radius:50%;font-family:Arial,sans-serif;font-weight:900;font-size:39px;line-height:1}
+.tt-checkin-feedback-body{display:grid;gap:5px;min-width:0;overflow-wrap:anywhere}
+.tt-checkin-feedback-body>strong{font-size:clamp(21px,4vw,28px);line-height:1.14;letter-spacing:.02em;color:inherit}
+.tt-checkin-feedback-body>p{margin:0;font-size:15px;font-weight:750;line-height:1.4;color:inherit}
+.tt-checkin-feedback-body>small{display:block;font-size:13px;font-weight:700;line-height:1.4;color:inherit;opacity:.92}
+.tt-checkin-toast{position:fixed;z-index:100;bottom:max(18px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:14px;width:min(620px,calc(100vw - 30px));padding:20px;border:3px solid transparent;border-radius:20px;box-shadow:0 18px 50px #0008;color:#fff;font-size:clamp(18px,4vw,25px);font-weight:900;text-align:center;line-height:1.2;pointer-events:none}
+.tt-checkin-toast--success{background:#07573E;border-color:#47DF9D}
+.tt-checkin-toast--duplicate,.tt-checkin-toast--error{background:#731E26;border-color:#FF9D9D}
+.tt-checkin-toast-icon{display:grid;place-items:center;flex:none;width:45px;height:45px;border:3px solid #fff;border-radius:50%;font-family:Arial,sans-serif;font-size:30px;font-weight:900}
 .tt-checkin-controls{display:grid;gap:14px;min-width:0}
 .tt-checkin-manual{display:grid;gap:8px;min-width:0}
 .tt-checkin-manual label{font-weight:800;font-size:14px}
@@ -303,6 +315,10 @@ body { background-image: none; }
 .tt-checkin-buttons .button{flex:1 1 170px;min-width:0;width:auto;margin:0;justify-content:center;white-space:normal;text-align:center}
 @media(max-width:520px){
  .tt-checkin-panel{gap:13px;padding:14px}
+ .tt-checkin-feedback{gap:12px;padding:15px 12px}
+ .tt-checkin-feedback-icon{width:49px;height:49px;font-size:33px}
+ .tt-checkin-toast{gap:10px;padding:16px 12px}
+ .tt-checkin-toast-icon{width:40px;height:40px;font-size:27px}
  .tt-checkin-buttons{display:grid;grid-template-columns:1fr;gap:10px}
  .tt-checkin-buttons .button{width:100%;min-height:48px;flex:auto}
  .tt-broadcast-page .panel{padding:15px}
