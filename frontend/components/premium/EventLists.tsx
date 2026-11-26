@@ -1,4 +1,5 @@
 "use client";
+import {EventTitle} from "@/lib/use-event-translation";
 import {useEffect,useRef,useState} from "react";
 import Link from "next/link";
 import {PosterArt} from "@/components/premium/PosterArt";
@@ -51,7 +52,7 @@ export function PosterRail({events,language}:{events:TicketTreatEvent[];language
     <Link href={`/events/${event.id}`} className="tt-rail-card">
      <span className="tt-rail-poster"><Poster event={event} eager={i<2}/></span>
      {d&&<span className="tt-rail-date">{d.weekday} {d.day} {d.month}, {d.time}</span>}
-     <strong className="tt-rail-title">{event.title}</strong>
+     <strong className="tt-rail-title"><EventTitle event={event}/></strong>
      <span className="tt-rail-meta">{[event.location,formatPrice(event,language)].filter(Boolean).join(", ")}</span>
     </Link>
    </li>;
@@ -73,7 +74,7 @@ export function EventBoard({events,language}:{events:TicketTreatEvent[];language
      <span className="tt-board-date" aria-hidden={!d}>{d?<><b>{d.day}</b><small>{d.month}</small></>:<b>-</b>}</span>
      <span className="tt-board-thumb"><Poster event={event}/></span>
      <span className="tt-board-main">
-      <strong>{event.title}</strong>
+      <strong><EventTitle event={event}/></strong>
       <span>{[d&&`${d.weekday} ${d.time}`,event.location].filter(Boolean).join(", ")}</span>
      </span>
      <span className="tt-board-side">

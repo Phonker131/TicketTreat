@@ -1,4 +1,5 @@
 "use client";
+import {EventTitle} from "@/lib/use-event-translation";
 
 import Link from "next/link";
 import {useEffect,useRef,useState} from "react";
@@ -74,7 +75,7 @@ export function EventCard({event}:{event:TicketTreatEvent}){
 
       <div className="event-card-body tp-ecard-body">
         <p className="tp-ecard-when">{when}</p>
-        <h2 className="tp-ecard-title"><Link href={href}>{event.title}</Link></h2>
+        <h2 className="tp-ecard-title"><Link href={href}><EventTitle event={event}/></Link></h2>
         <p className="tp-ecard-place">
           {event.organizer_profile&&<Link href={`/organizers/${event.organizer_profile.slug}`} className="tt-event-organizer-link">{event.organizer_profile.display_name}</Link>}
           {event.organizer_profile&&event.location&&<span aria-hidden="true">, </span>}

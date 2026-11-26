@@ -15,8 +15,8 @@ import {downloadCalendar,mapQuery} from "@/lib/event-actions";
 import { CONSENT_EVENT,hasExternalMediaConsent,openCookieSettings } from "@/lib/cookie-consent";
 import { formatDate, formatPrice } from "@/lib/format";
 import { LANGUAGE_NAMES, t } from "@/lib/i18n";
-import {eventDescription} from "@/lib/czech-event-descriptions";
 import {eventTags} from "@/lib/event-tags";
+import {useEventTranslation} from "@/lib/use-event-translation";
 import {useEventCategories,categoryFor,categoryLabel} from "@/lib/event-categories";
 import type { TicketTreatEvent } from "@/lib/types";
 import {PageFaq} from "@/components/premium/PageFaq";
@@ -48,6 +48,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   }[language];
   const [loadedEvent, setEvent] = useState<TicketTreatEvent | null>(null);
   const event = preview ? loadedEvent : initialEvent ?? loadedEvent;
+  const {title,description}=useEventTranslation(event,true,!preview);
   const [error, setError] = useState<string | null>(null);
   const [demoPayments,setDemoPayments]=useState(false);
   const [mapOpen,setMapOpen]=useState(false);
@@ -113,11 +114,10 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   }
 
   const mapUrl=mapQuery(event);
-  const description = eventDescription(event.description, language);
   const eventUrl=typeof window!=="undefined" ? window.location.origin+`/events/${event.id}${inviteQuery?`?${inviteQuery}`:""}` : `/events/${event.id}`;
 
   const shareUrl=`https://tickettreat.eu/events/${event.id}${inviteQuery?`?${inviteQuery}`:""}`;
-  const shareTitle=event.title;
+  const shareTitle=title;
   const shareWords={
     ru:{button:"Поделиться",telegram:"Telegram",whatsapp:"WhatsApp",copied:"Ссылка на мероприятие скопирована.",unavailable:"Не удалось скопировать ссылку. Используй Telegram или WhatsApp."},
     uk:{button:"Поділитися",telegram:"Telegram",whatsapp:"WhatsApp",copied:"Посилання на подію скопійовано.",unavailable:"Не вдалося скопіювати посилання. Скористайся Telegram або WhatsApp."},
@@ -187,7 +187,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
             // eslint-disable-next-line @next/next/no-img-element
             <PosterViewer src={posterUrl}><img className="event-image" src={posterUrl} alt="" onError={()=>setPosterUnavailable(true)} /></PosterViewer>
           ) : (
-            <PosterArt seed={event.id} className="event-image tp-event-art" label={event.title}/>
+            <PosterArt seed={event.id} className="event-image tp-event-art" label={title}/>
           )}
           </div>
 
@@ -198,7 +198,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
               {event.spots_left === 0 && <span className="status status-danger">{t(language, "soldOut")}</span>}
               {demoPayments&&<span className="status status-demo">{t(language, "demo")}</span>}
             </div>
-            <h1>{event.title}</h1>
+            <h1>{title}</h1>
             <p className="ev2-where">{[event.location,organizerName].filter(Boolean).join(", ")}</p>
             {eventTags(event).length>0&&<ul className="tp-ecard-tags is-hero">{eventTags(event).map(tag=><li key={tag}>{categoryFor(tag,categories)?categoryLabel(categoryFor(tag,categories)!,language):tag}</li>)}</ul>}
           </div>
@@ -258,11 +258,11 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         <section className="panel" style={{marginTop:20,marginBottom:20}}>
           <h2>{language==="ru"?"Как добраться и сохранить дату":language==="cs"?"Místo a kalendář":language==="uk"?"Як дістатися та календар":"Venue and calendar"}</h2>
           <div className="tt-event-share-actions">
-            {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar({...event,description},eventUrl)}>{language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
+            {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar({...event,title,description},eventUrl)}>{language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
             {!preview&&<>
               <button type="button" className="button button-outline" onClick={shareEvent}>{shareWords.button}</button>
-              <a className="button button-outline" href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.telegram}`}>{shareWords.telegram}</a>
-              <a className="button button-outline" href={`https://wa.me/?text=${encodeURIComponent(event.title+" "+shareUrl)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.whatsapp}`}>{shareWords.whatsapp}</a>
+              <a className="button button-outline" href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(title)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.telegram}`}>{shareWords.telegram}</a>
+              <a className="button button-outline" href={`https://wa.me/?text=${encodeURIComponent(title+" "+shareUrl)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.whatsapp}`}>{shareWords.whatsapp}</a>
             </>}
             {event.venue_url&&<a className="button button-outline" href={event.venue_url} target="_blank" rel="noopener noreferrer">{language==="ru"?"Сайт площадки":language==="cs"?"Web místa konání":language==="uk"?"Сайт майданчика":"Venue website"}</a>}
             {mapUrl&&<><a className="button button-outline" href={mapUrl} target="_blank" rel="noopener noreferrer">{language==="ru"?"Открыть карту":language==="cs"?"Otevřít mapu":language==="uk"?"Відкрити карту":"Open map"}</a>

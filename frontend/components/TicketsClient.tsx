@@ -1,4 +1,5 @@
 "use client";
+import {EventTitle} from "@/lib/use-event-translation";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -91,7 +92,7 @@ export function TicketsClient() {
               : (ticket?.payment_status ?? event?.payment_status)==="pending" ? words[5] : ticket ? t(language,"ticket") : words[6];
             return <Link className="ticket-row" key={ticket ? "ticket-"+ticket.id : "event-"+event?.id}
               href={ticket ? `/tickets/${ticket.id}` : `/events/${event?.id}`}>
-              <div><small>{label}</small><h3>{event?.title || t(language,"ticket")}</h3><p>{formatDate(event?.starts_at ?? null,language)}</p></div>
+              <div><small>{label}</small><h3>{event ? <EventTitle event={event}/> : t(language,"ticket")}</h3><p>{formatDate(event?.starts_at ?? null,language)}</p></div>
               <span className="button button-outline">{t(language, ticket ? "viewTicket" : "details")}</span>
             </Link>;
           })}</div>

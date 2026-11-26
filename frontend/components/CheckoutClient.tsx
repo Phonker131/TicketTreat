@@ -1,4 +1,5 @@
 "use client";
+import {EventTitle} from "@/lib/use-event-translation";
 
 import {rememberBooking} from "@/lib/booking-return";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -151,7 +152,7 @@ export function CheckoutClient() {
             <section className="checkout-summary">
               <div>
                 <small>{event.organizer || "TicketTreat"}</small>
-                <h2>{event.title}</h2>
+                <h2><EventTitle event={event}/></h2>
                 {event.starts_at&&<p className="tt-checkout-when">{formatDate(event.starts_at, language)}</p>}
               </div>
               <strong>{isFree ? freeLabel : price}</strong>
