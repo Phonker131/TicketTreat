@@ -7,14 +7,16 @@ from db.base import Base
 
 LOG = logging.getLogger("tickettreat.security_alerts")
 WINDOW = timedelta(minutes=10)
-KINDS = {"admin_denials", "banned_actor", "delivery_check"}
+KINDS = {"admin_denials", "banned_actor", "delivery_check", "finance_denials"}
 LABELS = {
     "admin_denials": "Access denied on different administrative operations",
     "banned_actor": "A verified blocked account attempted a protected action",
     "delivery_check": "TEST · Security alert delivery check",
+    "finance_denials": "Sensitive finance access denied or invalid finance MFA code",
 }
 ROLE_DENIALS = {"organizer_role_required", "global_admin_only", "event_not_owned",
                 "cannot_ban_global_admin", "cannot_change_global_admin", "protected_global_admin"}
+FINANCE_DENIALS = {"finance_owner_required", "organization_signatory_required", "invalid_mfa_code"}
 
 
 class SecurityAlertWindow(Base):

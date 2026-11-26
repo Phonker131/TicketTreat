@@ -867,3 +867,113 @@ export function replyAdminSupportTicket(id:number,body:string):
 export function closeAdminSupportTicket(id:number):Promise<{status:string}>{
   return request(`/demo/manage/support/tickets/${id}/close`,{method:"POST"});
 }
+
+/** Finance data is server-scoped to an organization owner, never team management. */
+export type FinanceTotals={
+  gross_sales_minor:number; refunds_minor:number; stripe_fees_minor:number;
+  payouts_minor:number; net_after_processing_minor:number;
+  verified_tax_minor:number|null; net_after_verified_tax_minor:number|null;
+  platform_fee_minor:number; entry_count:number; tax_is_complete:boolean;
+};
+export type FinanceSummary={
+  organization_id:number; month:string; currency:"CZK"|"EUR";
+  stripe_connected:boolean; seller_verification:"verified"|"pending";
+  vat_status:string; summary:FinanceTotals;
+  by_event:{event_id:number;summary:FinanceTotals}[];notice:string;
+};
+export type FinanceEntry={
+  id:number; event_id:number|null; category:string; amount_minor:number;
+  currency:string; order_reference:string|null; occurred_at:string;
+};
+export type FinanceExpense={
+  id:number;event_id:number|null;entry_type:"expense"|"reversal";
+  reverses_entry_id:number|null;reversed:boolean;category:string;amount_minor:number;
+  currency:"CZK"|"EUR";expense_date:string;supplier:string|null;
+  reference:string|null;note:string|null;recorded_at:string;
+};
+export type FinanceExpenses={
+  month:string;currency:"CZK"|"EUR";entries:FinanceExpense[];
+  summary:{manual_expenses_minor:number;entry_count:number;by_category:Record<string,number>};
+  notice:string;
+};
+export type FinanceExpenseInput={
+  expense_date:string;category:"venue"|"staff"|"equipment"|"marketing"|"travel"|"services"|"other";
+  amount_minor:number;currency:"CZK"|"EUR";event_id:number|null;
+  supplier:string|null;reference:string|null;note:string|null;mfa_code:string;
+};
+export type FinanceProfile={
+  legal_name:string|null; ico:string|null; dic:string|null;
+  vat_status:"unverified"|"non_payer"|"payer"|"exempt";
+  verified:boolean; stripe_connected:boolean; charges_enabled:boolean; payouts_enabled:boolean;
+};
+export type FinanceContract={
+  status:"pending_legal_review"|"published";accepted:boolean;
+  contract:null|{id:number;version:string;language:string;body:string;sha256:string};
+};
+export function getFinanceUnlockStatus():Promise<{unlocked:boolean;expires_at:string|null;unlock_minutes:number}>{
+  return request("/demo/manage/finance/status");
+}
+export function unlockFinances(mfaCode:string):Promise<{unlocked:boolean;expires_at:string}>{
+  return request("/demo/manage/finance/unlock",{method:"POST",body:JSON.stringify({mfa_code:mfaCode})});
+}
+function financeQuery(month:string,currency:"CZK"|"EUR",organizationId?:number):string{
+  const params=new URLSearchParams({month,currency});
+  if(organizationId!==undefined)params.set("organization_id",String(organizationId));
+  return params.toString();
+}
+export function getFinanceSummary(month:string,currency:"CZK"|"EUR",organizationId?:number):
+  Promise<FinanceSummary>{
+  return request(`/demo/manage/finance/summary?${financeQuery(month,currency,organizationId)}`);
+}
+export function getFinanceEntries(month:string,currency:"CZK"|"EUR",organizationId?:number):
+  Promise<{entries:FinanceEntry[]}>{
+  return request(`/demo/manage/finance/entries?${financeQuery(month,currency,organizationId)}`);
+}
+export function getFinanceExport(month:string,currency:"CZK"|"EUR",mfaCode:string,organizationId?:number):
+  Promise<{filename:string;csv:string}>{
+  return request("/demo/manage/finance/export",{method:"POST",body:JSON.stringify({
+    month,currency,organization_id:organizationId,mfa_code:mfaCode,
+  })});
+}
+export function getFinanceDocuments(organizationId?:number):
+  Promise<{documents:{id:number;kind:string;document_number:string;issued_at:string}[];notice:string}>{
+  return request(`/demo/manage/finance/documents${organizationId!==undefined?`?organization_id=${organizationId}`:""}`);
+}
+export function getFinanceContract(language:"cs"|"en",organizationId?:number):
+  Promise<FinanceContract>{
+  const params=new URLSearchParams({language});
+  if(organizationId!==undefined)params.set("organization_id",String(organizationId));
+  return request(`/demo/manage/finance/contract?${params}`);
+}
+export function acceptFinanceContract(contractId:number,digest:string,mfaCode:string):
+  Promise<{status:string;contract_id:number;signature_method?:string}>{
+  return request("/demo/manage/finance/contract/accept",{method:"POST",body:JSON.stringify({
+    contract_id:contractId,digest,confirm_authority:true,mfa_code:mfaCode})});
+}
+export function getFinanceProfile():Promise<FinanceProfile>{
+  return request("/demo/manage/finance/profile");
+}
+export function updateFinanceProfile(payload:{
+  legal_name:string;ico:string;dic:string|null;vat_status:"non_payer"|"payer"|"exempt";mfa_code:string;
+}):Promise<FinanceProfile>{
+  return request("/demo/manage/finance/profile",{method:"PUT",body:JSON.stringify(payload)});
+}
+export function getFinanceExpenseEvents():Promise<{events:{id:number;title:string;starts_at:string|null}[]}>{
+  return request("/demo/manage/finance/events");
+}
+export function getFinanceExpenses(month:string,currency:"CZK"|"EUR"):Promise<FinanceExpenses>{
+  return request(`/demo/manage/finance/expenses?${financeQuery(month,currency)}`);
+}
+export function createFinanceExpense(payload:FinanceExpenseInput):Promise<{entry:FinanceExpense;status:string}>{
+  return request("/demo/manage/finance/expenses",{method:"POST",body:JSON.stringify(payload)});
+}
+export function reverseFinanceExpense(id:number,reason:string,mfaCode:string):
+  Promise<{entry:FinanceExpense;status:string}>{
+  return request(`/demo/manage/finance/expenses/${id}/reverse`,{
+    method:"POST",body:JSON.stringify({reason,mfa_code:mfaCode})});
+}
+export function exportFinanceExpenses(month:string,currency:"CZK"|"EUR",mfaCode:string):
+  Promise<{filename:string;csv:string;verified:false}>{
+  return request("/demo/manage/finance/expenses/export",{
+    method:"POST",body:JSON.stringify({month,currency,mfa_code:mfaCode})});
+}

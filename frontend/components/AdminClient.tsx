@@ -144,6 +144,7 @@ export function AdminClient() {
       </div>
       {identity&&<div className="admin-event-actions">
         <Link className="button button-primary" href="/admin/analytics">{language==="ru"?"📊 Аналитика":language==="cs"?"📊 Analytika":language==="uk"?"📊 Аналітика":"📊 Analytics"}</Link>
+        <Link className="button button-outline" href="/admin/finance">{language==="ru"?"💼 Финансы и договоры":language==="cs"?"💼 Finance a smlouvy":language==="uk"?"💼 Фінанси й договори":"💼 Finances & contracts"}</Link>
         <Link className="button button-outline" href="/admin/organizer-profile">{language==="ru"?"Профиль организатора":language==="cs"?"Profil pořadatele":language==="uk"?"Профіль організатора":"Organizer profile"}</Link>
         <Link className="button button-outline" href="/admin/notifications">🔔 {language==="cs"?"Upozornění Telegram":"Telegram notifications"}</Link>
         {identity.role==="global_admin"&&<><Link className="button button-outline" href="/admin/accounts">{tr("Управление аккаунтами")}</Link><Link className="button button-outline" href="/admin/content">{tr("Контент сайта")}</Link><Link className="button button-outline" href="/admin/broadcasts">📢 {ui.broadcast}</Link><Link className="button button-outline" href="/admin/support">{ui.support}{supportUnread!==null&&supportUnread>0?` · ${supportUnread} ${ui.newCount}`:""}</Link><Link className="button button-outline" href="/admin/privacy">{tr("Запросы на удаление")}</Link><Link className="button button-outline" href="/admin/organizers">{tr("Заявки организаторов")}</Link></>}
