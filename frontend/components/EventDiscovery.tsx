@@ -14,11 +14,12 @@ import type {LanguageCode,TicketTreatEvent} from "@/lib/types";
 
 type Mode="swipe"|"list"|"saved";
 type Mood="all"|EventTag;
+const PAGE_SIZE=8;
 const copy={
- ru:{mood:"Настроение",mode:"Режим поиска",all:"Любое",swipe:"Свайп",list:"Лента",savedMode:"Избранное",want:"Хочу",pass:"Мимо",view:"Смотреть",saved:"Сохранено в избранное",done:"Афиши закончились",hint:"Свайп влево / вправо / вверх или стрелки клавиатуры. «Хочу» сохраняет ивент в избранное, но не бронирует билет.",noMatch:"Нет событий с выбранным настроением.",noSaved:"В избранном пока пусто",noSavedText:"Нажми сердечко на карточке события, чтобы сохранить его здесь.",toSwipe:"К афише",savedCount:"в избранном"},
- cs:{mood:"Nálada",mode:"Režim hledání",all:"Cokoliv",swipe:"Karty",list:"Seznam",savedMode:"Uložené",want:"Chci",pass:"Přeskočit",view:"Zobrazit",saved:"Uloženo",done:"Žádné další plakáty",hint:"Přejeď doleva / doprava / nahoru, nebo použij šipky na klávesnici. «Chci» akci uloží, neprovádí rezervaci.",noMatch:"Pro tuto náladu nemáme akce.",noSaved:"Zatím nic uloženého",noSavedText:"Klepni na srdíčko u akce a najdeš ji tady.",toSwipe:"Zpět na akce",savedCount:"uložených"},
- uk:{mood:"Настрій",mode:"Режим пошуку",all:"Будь-який",swipe:"Свайп",list:"Стрічка",savedMode:"Обране",want:"Хочу",pass:"Пропустити",view:"Переглянути",saved:"Збережено в обране",done:"Афіші закінчилися",hint:"Свайп ліворуч / праворуч / угору або клавіші зі стрілками. «Хочу» зберігає подію, але не бронює квиток.",noMatch:"Немає подій з таким настроєм.",noSaved:"В обраному поки порожньо",noSavedText:"Натисни сердечко на картці події, щоб зберегти її тут.",toSwipe:"До афіші",savedCount:"в обраному"},
- en:{mood:"Mood",mode:"Browse mode",all:"Anything",swipe:"Swipe",list:"Feed",savedMode:"Saved",want:"Want",pass:"Pass",view:"View",saved:"Saved to your list",done:"No more posters",hint:"Swipe left / right / up or use arrow keys. Want saves an event to your list, it does not book a ticket.",noMatch:"No events match this mood.",noSaved:"Nothing saved yet",noSavedText:"Tap the heart on an event to save it here.",toSwipe:"Browse events",savedCount:"saved"}
+ ru:{mood:"Настроение",mode:"Режим поиска",all:"Любое",swipe:"Свайп",list:"Лента",savedMode:"Избранное",want:"Хочу",pass:"Мимо",view:"Смотреть",saved:"Сохранено в избранное",done:"Афиши закончились",hint:"Свайп влево / вправо / вверх или стрелки клавиатуры. «Хочу» сохраняет ивент в избранное, но не бронирует билет.",noMatch:"Нет событий с выбранным настроением.",noSaved:"В избранном пока пусто",noSavedText:"Нажми сердечко на карточке события, чтобы сохранить его здесь.",toSwipe:"К афише",savedCount:"в избранном",showing:"Показано",of:"из",showMore:"Показать ещё"},
+ cs:{mood:"Nálada",mode:"Režim hledání",all:"Cokoliv",swipe:"Karty",list:"Seznam",savedMode:"Uložené",want:"Chci",pass:"Přeskočit",view:"Zobrazit",saved:"Uloženo",done:"Žádné další plakáty",hint:"Přejeď doleva / doprava / nahoru, nebo použij šipky na klávesnici. «Chci» akci uloží, neprovádí rezervaci.",noMatch:"Pro tuto náladu nemáme akce.",noSaved:"Zatím nic uloženého",noSavedText:"Klepni na srdíčko u akce a najdeš ji tady.",toSwipe:"Zpět na akce",savedCount:"uložených",showing:"Zobrazeno",of:"z",showMore:"Zobrazit další"},
+ uk:{mood:"Настрій",mode:"Режим пошуку",all:"Будь-який",swipe:"Свайп",list:"Стрічка",savedMode:"Обране",want:"Хочу",pass:"Пропустити",view:"Переглянути",saved:"Збережено в обране",done:"Афіші закінчилися",hint:"Свайп ліворуч / праворуч / угору або клавіші зі стрілками. «Хочу» зберігає подію, але не бронює квиток.",noMatch:"Немає подій з таким настроєм.",noSaved:"В обраному поки порожньо",noSavedText:"Натисни сердечко на картці події, щоб зберегти її тут.",toSwipe:"До афіші",savedCount:"в обраному",showing:"Показано",of:"із",showMore:"Показати ще"},
+ en:{mood:"Mood",mode:"Browse mode",all:"Anything",swipe:"Swipe",list:"Feed",savedMode:"Saved",want:"Want",pass:"Pass",view:"View",saved:"Saved to your list",done:"No more posters",hint:"Swipe left / right / up or use arrow keys. Want saves an event to your list, it does not book a ticket.",noMatch:"No events match this mood.",noSaved:"Nothing saved yet",noSavedText:"Tap the heart on an event to save it here.",toSwipe:"Browse events",savedCount:"saved",showing:"Showing",of:"of",showMore:"Show more"}
 } as const;
 
 function dateLabel(value:string|null,lang:LanguageCode){
@@ -44,10 +45,15 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
  const [mode,setMode]=useState<Mode>("list");
  const [mood,setMood]=useState<Mood>("all");
  const [index,setIndex]=useState(0);
+ const [visibleCount,setVisibleCount]=useState(PAGE_SIZE);
  const [feedback,setFeedback]=useState("");
  const [wanted,setWanted]=useWanted();
  const filtered=events.filter(e=>mood==="all"||eventTags(e).includes(mood));
  const saved=events.filter(e=>wanted.includes(e.id));
+ const listEvents=mode==="saved"?saved:filtered;
+ const visibleEvents=listEvents.slice(0,visibleCount);
+ const selectMode=(next:Mode)=>{setVisibleCount(PAGE_SIZE);setMode(next);};
+ const selectMood=(next:Mood)=>{setVisibleCount(PAGE_SIZE);setMood(next);};
  const current=filtered[index];
  const advance=(action:"want"|"pass"|"view")=>{
    if(!current)return;
@@ -55,13 +61,13 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
    if(action==="want"){setWanted(current.id,true);setFeedback(tr.saved);}else setFeedback("");
    setIndex(i=>i+1);
  };
- useEffect(()=>{setIndex(0);setFeedback("");},[mood,mode]);
+ useEffect(()=>{setIndex(0);setFeedback("");setVisibleCount(PAGE_SIZE);},[mood,mode]);
  const moodButtons:Mood[]=["all",...categories.filter(category=>category.active).map(category=>category.key)];
  const modeButtons:Mode[]=["list","swipe","saved"];
  return <div className="tt-discovery">
    <div className="tt-discovery-controls tp-filterbar">
      <div className="tp-seg" role="group" aria-label={tr.mode}>
-       {modeButtons.map(m=><button type="button" key={m} aria-pressed={mode===m} onClick={()=>setMode(m)}>
+       {modeButtons.map(m=><button type="button" key={m} aria-pressed={mode===m} onClick={()=>selectMode(m)}>
          {mode===m&&<M.span layoutId="tp-seg-pill" className="tp-seg-pill" transition={{type:"spring",stiffness:420,damping:34}}/>}
          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{MODE_ICON[m]}</svg>
          <span>{m==="saved"?tr.savedMode:tr[m]}</span>
@@ -69,22 +75,28 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
        </button>)}
      </div>
      {mode!=="saved"&&<div className="tp-moods" role="group" aria-label={tr.mood}>
-       {moodButtons.map(m=><button type="button" key={m} className="tp-mood" aria-pressed={mood===m} onClick={()=>setMood(m)}>
+       {moodButtons.map(m=><button type="button" key={m} className="tp-mood" aria-pressed={mood===m} onClick={()=>selectMood(m)}>
          <TagIcon tag={m}/>
          <span>{m==="all"?tr.all:categoryLabel(categories.find(category=>category.key===m)!,language)}</span></button>)}
      </div>}
    </div>
-   {mode==="saved"?(saved.length===0
-     ?<MoodEmpty language={language} title={tr.noSaved} text={tr.noSavedText} action={tr.toSwipe} onReset={()=>setMode("list")}/>
-     :<div className="event-grid tp-feed tt-feed-row">{saved.map(event=><EventCard key={event.id} event={event}/>)}</div>):
-   filtered.length===0?<MoodEmpty language={language} title={tr.noMatch} onReset={()=>setMood("all")}/>:
-   mode==="list"?<div className="event-grid tp-feed tt-feed-row">{filtered.map(event=><EventCard key={event.id} event={event}/>)}</div>:
+   {mode==="saved"&&saved.length===0
+     ?<MoodEmpty language={language} title={tr.noSaved} text={tr.noSavedText} action={tr.toSwipe} onReset={()=>selectMode("list")}/>:
+   mode!=="saved"&&filtered.length===0
+     ?<MoodEmpty language={language} title={tr.noMatch} onReset={()=>selectMood("all")}/>:
+   mode==="list"||mode==="saved"?<div className="tt-discovery-results">
+     <div className="event-grid tp-feed tt-feed-row">{visibleEvents.map(event=><EventCard key={event.id} event={event}/>)}</div>
+     {listEvents.length>PAGE_SIZE&&<div className="tt-discovery-pagination">
+       <p role="status" aria-live="polite">{tr.showing} {visibleEvents.length} {tr.of} {listEvents.length}</p>
+       {visibleCount<listEvents.length&&<button type="button" className="button button-secondary" onClick={()=>setVisibleCount(count=>count+PAGE_SIZE)}>{tr.showMore}</button>}
+     </div>}
+   </div>:
    <div className="tt-swipe-area">
      <SwipeDeck events={filtered} index={index}
        labels={{want:tr.want,pass:tr.pass,view:tr.view,hint:tr.hint,done:tr.done,doneText:premium[language].empty.doneText,reset:premium[language].empty.reset,spots:({en:"spots left",cs:"volných míst",ru:"мест",uk:"місць"} as Record<string,string>)[language]||"spots left"}}
        dateOf={e=>dateLabel(e.starts_at,language)} priceOf={e=>priceText(e,language)}
        onAction={a=>advance(a)} onReset={()=>setIndex(0)}/>
-     {feedback&&<p role="status" className="tp-deck-feedback">{feedback}{" "}<button type="button" className="tp-linkbtn" onClick={()=>setMode("saved")}>{tr.savedMode}{saved.length?` (${saved.length})`:""}</button></p>}
+     {feedback&&<p role="status" className="tp-deck-feedback">{feedback}{" "}<button type="button" className="tp-linkbtn" onClick={()=>selectMode("saved")}>{tr.savedMode}{saved.length?` (${saved.length})`:""}</button></p>}
    </div>}
  </div>;
 }
