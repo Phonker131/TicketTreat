@@ -1,6 +1,6 @@
 import {expect,test} from "@playwright/test";
 
-const events=Array.from({length:8},(_,index)=>({
+const events=Array.from({length:19},(_,index)=>({
   id:995100+index,title:`Desktop Event ${index+1}`,organizer:"Amber Events",
   organizer_profile:null,location:"Praha 1",country_code:"CZ",city:"Praha",
   description:"Desktop catalogue regression",max_participants:30,registered_count:2,
@@ -34,6 +34,41 @@ test("desktop catalogue exposes later events through normal page scrolling",asyn
     return rect.top<innerHeight&&rect.bottom>0&&window.scrollY>0;
   });
   expect(lastVisible).toBe(true);
+});
+
+test("catalogue loads events eight at a time and resets on mode change",async({page})=>{
+  await page.setViewportSize({width:1280,height:900});
+  await page.route("**/api/gateway/events",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(events)}));
+  await page.goto("/?lang=cs&nostory",{waitUntil:"domcontentloaded"});
+  const cards=page.locator(".tt-night-events .tt-feed-row .event-card");
+  const more=page.locator(".tt-discovery-pagination button");
+  const progress=page.locator(".tt-discovery-pagination p");
+  await expect(cards).toHaveCount(8);
+  await expect(progress).toHaveText("Zobrazeno 8 z 19");
+  await more.click();
+  await expect(cards).toHaveCount(16);
+  await expect(progress).toHaveText("Zobrazeno 16 z 19");
+  await more.click();
+  await expect(cards).toHaveCount(19);
+  await expect(more).toHaveCount(0);
+  await page.locator(".tt-night-events .tp-seg button").nth(2).click();
+  await expect(page.locator(".tt-night-events .tp-events-empty.is-compact")).toBeVisible();
+  await page.locator(".tt-night-events .tp-seg button").first().click();
+  await expect(cards).toHaveCount(8);
+  await expect(more).toBeVisible();
+});
+
+test("saved events are also shown in batches",async({page})=>{
+  await page.setViewportSize({width:1280,height:900});
+  await page.addInitScript(ids=>localStorage.setItem("tickettreat_wanted_events",JSON.stringify(ids)),events.map(e=>e.id));
+  await page.route("**/api/gateway/events",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(events)}));
+  await page.goto("/?lang=en&nostory",{waitUntil:"domcontentloaded"});
+  await page.locator(".tt-night-events .tp-seg button").nth(2).click();
+  const cards=page.locator(".tt-night-events .tt-feed-row .event-card");
+  await expect(cards).toHaveCount(8);
+  await expect(page.locator(".tt-discovery-pagination p")).toHaveText("Showing 8 of 19");
+  await page.locator(".tt-discovery-pagination button").click();
+  await expect(cards).toHaveCount(16);
 });
 
 for(const width of [390,1280]){

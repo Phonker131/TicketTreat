@@ -481,6 +481,14 @@ html body .tt-night-events .event-grid.tt-feed-row{grid-auto-columns:min(clamp(2
  }
  html body .tt-night-events .event-grid.tt-feed-row>*{scroll-snap-align:none}
 }
+.tt-night-events .tt-discovery-pagination{
+ display:flex;align-items:center;justify-content:center;flex-wrap:wrap;
+ gap:12px 20px;margin:24px 0 12px
+}
+.tt-night-events .tt-discovery-pagination p{
+ margin:0;color:var(--tp-mute);font:600 14px/1.4 var(--u)
+}
+.tt-night-events .tt-discovery-pagination .button{min-height:44px}
 
 /* =====================================================================================
    Rewards in one block: title and buttons, the four levels on one line, the three rules.
