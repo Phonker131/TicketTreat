@@ -15,7 +15,7 @@ import {
   editManageEvent,cancelManageEvent,deleteManageEvent,exportManageParticipantsCsv,uploadManageGalleryPhoto,deleteManageGalleryPhoto,orderManageGallery,
   setManagePublication,setManageVisibility,duplicateManageEvent,
   checkInManagedTicket,listManageOrganizers,assignManageOwner,getManageAudit,
-  getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
+  getPilotInsights,getPilotSettings,updatePilotSettings,getPilotStaff,grantPilotStaff,notifyPilotStaff,revokePilotStaff,sendEventAnnouncement,checkInByList,
   getManagePaidReservations,decidePaidReservation,
 } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
@@ -27,6 +27,12 @@ function asLocal(value: string|null): string {
   return value.slice(0,16);
 }
 class LocalValidationError extends Error {}
+const STAFF_COPY:Record<LanguageCode,{queued:string;unavailable:string;already:string;resend:string;instructions:string}>={
+  en:{queued:"Scanner instructions queued through: ",unavailable:"Access is active, but email/Telegram delivery is not available. Share the scanner link directly.",already:"This account already has access. Use Send instructions to notify them again.",resend:"Send instructions",instructions:"Staff sign in with their own TicketTreat account, then open Profile → Check-in access → Scanner. No organizer privileges are needed."},
+  cs:{queued:"Pokyny ke skeneru jsou ve frontě přes: ",unavailable:"Přístup je aktivní, ale e-mail ani Telegram nejsou dostupné. Předejte odkaz na skener přímo.",already:"Tento účet již má přístup. Použijte Znovu poslat pokyny.",resend:"Znovu poslat pokyny",instructions:"Personál se přihlásí vlastním účtem TicketTreat a otevře Profil → Přístup ke skeneru → Skener. Nepotřebuje práva pořadatele."},
+  ru:{queued:"Инструкция к сканеру поставлена в очередь: ",unavailable:"Доступ активен, но email и Telegram сейчас недоступны. Передай ссылку на сканер напрямую.",already:"У аккаунта уже есть доступ. Нажми «Отправить инструкцию», чтобы уведомить повторно.",resend:"Отправить инструкцию",instructions:"Сотрудник входит в свой TicketTreat-аккаунт и открывает Профиль → Доступ к сканеру → Сканер. Права организатора не требуются."},
+  uk:{queued:"Інструкцію до сканера поставлено в чергу через: ",unavailable:"Доступ активний, але email і Telegram зараз недоступні. Передайте посилання на сканер напряму.",already:"Акаунт уже має доступ. Натисніть «Надіслати інструкцію», щоб повторити.",resend:"Надіслати інструкцію",instructions:"Працівник входить у свій TicketTreat-акаунт і відкриває Профіль → Доступ до сканера → Сканер. Права організатора не потрібні."},
+};
 function formattedError(e:unknown,language:LanguageCode):string {
   return e instanceof LocalValidationError ? e.message : userFacingError(e,language);
 }
@@ -36,6 +42,7 @@ function posterData(file:File):Promise<string> {return new Promise((resolve,reje
 export function AdminEventClient(){
   const {language}=useLanguage();
   const tr=(phrase:string)=>eventAdminText(language,phrase);
+  const staffCopy=STAFF_COPY[language];
   const router=useRouter();
   const params=useParams<{id:string}>(),eventId=Number(params?.id);
   const [identity,setIdentity]=useState<ManageIdentity|null>(null);
@@ -305,9 +312,19 @@ export function AdminEventClient(){
   async function addCheckinStaff(){
     const token=getWebToken();if(!token||!staffEmail.trim())return;
     setBusy(true);setError("");
-    try{await grantPilotStaff(token,eventId,staffEmail.trim());setStaffEmail("");await reload();
-      setNotice(tr("Доступ к сканированию билетов предоставлен."));}
+    try{const result=await grantPilotStaff(token,eventId,staffEmail.trim());setStaffEmail("");await reload();
+      setNotice(result.status==="already_granted"?staffCopy.already:
+        result.queued_channels?.length?staffCopy.queued+result.queued_channels.join(", "):staffCopy.unavailable);}
     catch(e){setError(formattedError(e,language));}
+    finally{setBusy(false);}
+  }
+  async function sendCheckinInstructions(id:number){
+    const token=getWebToken();if(!token)return;
+    setBusy(true);setError("");setNotice("");
+    try{
+      const result=await notifyPilotStaff(token,eventId,id);
+      setNotice(result.queued_channels.length?staffCopy.queued+result.queued_channels.join(", "):staffCopy.unavailable);
+    }catch(e){setError(formattedError(e,language));}
     finally{setBusy(false);}
   }
   async function removeCheckinStaff(id:number){
@@ -595,10 +612,13 @@ export function AdminEventClient(){
       <section className="panel form-stack">
         <h2>{tr("Персонал для проверки билетов")}</h2>
         <p className="form-note">{tr("Можно назначить подтверждённый TicketTreat-аккаунт только на QR check-in этого мероприятия. Управление ивентом и экспорт участников остаются закрыты.")}</p>
+        <p className="form-note">{staffCopy.instructions} <Link href="/admin/check-in">/admin/check-in</Link></p>
         <label>{tr("Email сотрудника")}<input type="email" value={staffEmail} onChange={e=>setStaffEmail(e.target.value)} placeholder="staff@example.com"/></label>
         <button type="button" className="button button-outline" disabled={busy||!staffEmail.includes("@")} onClick={addCheckinStaff}>{tr("Выдать доступ")}</button>
         {pilotStaff.map(staff=><div className="participant-row" key={staff.account_id}>
           <div><strong>{staff.email}</strong><small>{tr("Аккаунт #")}{staff.account_id}</small></div>
+          <button className="button button-outline" type="button" disabled={busy}
+            onClick={()=>sendCheckinInstructions(staff.account_id)}>{staffCopy.resend}</button>
           <button className="button button-outline" type="button" disabled={busy}
             onClick={()=>removeCheckinStaff(staff.account_id)}>{tr("Отозвать")}</button>
         </div>)}

@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, Integer, String, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 from db.base import Base
 
@@ -59,10 +60,77 @@ class StaffScanRequest(BaseModel):
     # Manual check-in accepts the printed CRD-000123 code as well as the QR
     # bearer token. Both paths require verified, event-scoped staff access.
     qr_token: str = Field(min_length=1, max_length=100)
+    event_id: int | None = Field(default=None, gt=0)
 
 
-def _checkin_lookup(db: Session, main, raw_value: str):
-    """Resolve QR bearer values or printed ticket codes without returning QR secrets."""
+def staff_notification_context(db: Session, event_key: str):
+    """Resolve only a live grant; stale/revoked notifications must never be sent.
+
+    The outbox notice_id belongs to event notices, so the staff grant ID lives
+    in the opaque, server-generated event key instead of that foreign key.
+    """
+    match = re.fullmatch(r"staff:grant:([1-9][0-9]*):(?:email|tg)(?::retry:[a-zA-Z0-9_-]{8,40})?", event_key)
+    if not match:
+        return None
+    from demo_accounts import WebAccount
+    from demo_account_bans import active_ban
+    from demo_account_recovery import email_is_verified
+    from importlib import import_module
+    main = import_module("main")
+    grant = db.get(EventCheckinStaff, int(match.group(1)))
+    if grant is None:
+        return None
+    event = db.get(main.Event, grant.event_id)
+    person = db.get(WebAccount, grant.account_id)
+    if (event is None or event.is_cancelled or person is None
+            or active_ban(db, person.id) is not None
+            or not email_is_verified(db, person.id)):
+        return None
+    return grant, event, person
+
+
+def queue_staff_instructions(db: Session, grant: EventCheckinStaff, person, *, retry: str | None = None) -> list[str]:
+    """Queue transactional email/TG instructions in the grant transaction.
+
+    Neither transport carries a login token or grants a role. A provider outage
+    is retried by the established outbox worker, and revocation cancels delivery.
+    """
+    from demo_email import configured as email_configured, queue_email
+    from demo_telegram_notifications import (TelegramNotificationOutbox,
+                                            configured as telegram_configured, _insert_rows)
+    channels = []
+    suffix = f":retry:{retry}" if retry else ""
+    if email_configured() and person.email:
+        queue_email(db, kind="checkin_staff", event_key=f"staff:grant:{grant.id}:email{suffix}",
+                    recipient=person.email, language="en")
+        channels.append("email")
+    if telegram_configured():
+        from demo_telegram import DemoTelegramIdentity
+        identity = db.query(DemoTelegramIdentity).filter(
+            DemoTelegramIdentity.guest_id == person.guest_id).first()
+        if identity is not None:
+            from importlib import import_module
+            from demo_telegram_notifications import _recipient_languages
+            languages = _recipient_languages(db, [int(identity.telegram_id)], import_module("main"))
+            _insert_rows(db, [{
+                "event_key": f"staff:grant:{grant.id}:tg{suffix}",
+                "kind": "checkin_staff", "telegram_id": int(identity.telegram_id),
+                "event_id": grant.event_id, "notice_id": None,
+                "language": languages.get(int(identity.telegram_id), "en"),
+                "state": "pending", "attempts": 0,
+                "next_attempt_at": datetime.now(timezone.utc),
+            }])
+            channels.append("telegram")
+    return channels
+
+
+def _checkin_lookup(db: Session, main, raw_value: str, allowed_event_ids: set[int] | None = None):
+    """Resolve QR/printed codes only in authorized events, before taking a row lock.
+
+    ``None`` means a global administrator; other callers must supply the
+    event IDs granted to this account. This prevents enumerating other events'
+    ticket IDs through different 403/404 responses or lock timing.
+    """
     value = raw_value.strip()
     for prefix in ("TICKETTREAT:TICKET:", "CROWDLY:TICKET:"):
         if value.startswith(prefix):
@@ -73,14 +141,18 @@ def _checkin_lookup(db: Session, main, raw_value: str):
         ticket_id = int(printed.group(1))
         if not 1 <= ticket_id <= 2147483647:
             raise HTTPException(400, "invalid_qr_token")
-        return db.query(main.DemoTicket).filter(
-            main.DemoTicket.id == ticket_id).with_for_update().first()
+        query = db.query(main.DemoTicket).filter(main.DemoTicket.id == ticket_id)
+        if allowed_event_ids is not None:
+            query = query.filter(main.DemoTicket.event_id.in_(allowed_event_ids))
+        return query.with_for_update().first()
     # Tokens are generated with secrets.token_urlsafe(32). Reject incomplete
     # hand-entered strings rather than triggering a Pydantic form error.
     if not 24 <= len(value) <= 80:
         raise HTTPException(400, "invalid_qr_token")
-    return db.query(main.DemoTicket).filter(
-        main.DemoTicket.qr_token == value).with_for_update().first()
+    query = db.query(main.DemoTicket).filter(main.DemoTicket.qr_token == value)
+    if allowed_event_ids is not None:
+        query = query.filter(main.DemoTicket.event_id.in_(allowed_event_ids))
+    return query.with_for_update().first()
 
 
 def effective_settings(db: Session, event_id: int) -> dict:
@@ -277,24 +349,80 @@ def install_pilot_ops(app, get_db, main):
                                "granted_at": item.granted_at})
         return result
 
+    @app.get("/demo/pilot/check-in-access")
+    def checkin_access(account=Depends(current), db: Session=Depends(get_db)):
+        """Self-only minimal roster, including existing grants made before this feature."""
+        from demo_roles import role_for, EventOwnership
+        from demo_account_bans import active_ban
+        if not email_is_verified(db, account.id) or active_ban(db, account.id):
+            raise HTTPException(403, "email_verification_required")
+        role = role_for(db, account)
+        grant_ids = [id for (id,) in db.query(EventCheckinStaff.event_id).filter(
+            EventCheckinStaff.account_id == account.id).all()]
+        owned_ids = ([id for (id,) in db.query(EventOwnership.event_id).filter(
+            EventOwnership.owner_account_id == account.id).all()]
+            if role in {"organizer", "global_admin"} else [])
+        ids = sorted(set(grant_ids + owned_ids))
+        events = db.query(main.Event).filter(main.Event.id.in_(ids)).order_by(
+            main.Event.starts_at, main.Event.id).limit(300).all() if ids else []
+        return {"events": [{"id": event.id, "title": event.title,
+                             "starts_at": event.starts_at.isoformat() if event.starts_at else None,
+                             "location": event.location} for event in events if not event.is_cancelled],
+                "can_scan_all": role == "global_admin"}
+
     @app.post("/demo/manage/events/{event_id}/checkin-staff", status_code=201)
     def grant_staff(event_id: int, payload: CheckinGrantRequest, account=Depends(current),
                     db: Session=Depends(get_db)):
-        owner_event(db, event_id, account)
+        event = owner_event(db, event_id, account)
+        if event.is_cancelled:
+            raise HTTPException(409, "event_is_cancelled")
+        from demo_account_bans import active_ban
+        from demo_auth_security import guard_rate, record_rate
         person = db.query(WebAccount).filter(
             WebAccount.email == normalize_email(payload.email)).first()
-        if person is None or not email_is_verified(db, person.id):
+        if person is None or not email_is_verified(db, person.id) or active_ban(db, person.id):
             raise HTTPException(404, "verified_account_not_found")
+        guard_rate(db, "checkin_staff_grant", f"{event_id}:{account.id}", 30, 86400)
+        record_rate(db, "checkin_staff_grant", f"{event_id}:{account.id}", 86400)
         existing = db.query(EventCheckinStaff).filter(
             EventCheckinStaff.event_id == event_id,
             EventCheckinStaff.account_id == person.id).first()
         if existing:
             return {"account_id": person.id, "email": person.email, "status": "already_granted"}
-        db.add(EventCheckinStaff(event_id=event_id, account_id=person.id,
-                                 granted_by=account.id))
+        inserted = db.execute(pg_insert(EventCheckinStaff.__table__).values(
+            event_id=event_id, account_id=person.id, granted_by=account.id)
+            .on_conflict_do_nothing(index_elements=["event_id", "account_id"])
+            .returning(EventCheckinStaff.id)).scalar_one_or_none()
+        if inserted is None:
+            return {"account_id": person.id, "email": person.email, "status": "already_granted"}
+        grant = db.get(EventCheckinStaff, inserted)
+        channels = queue_staff_instructions(db, grant, person)
         audit(db, event_id, account.id, "checkin_staff_grant", str(person.id))
         db.commit()
-        return {"account_id": person.id, "email": person.email, "status": "granted"}
+        return {"account_id": person.id, "email": person.email, "status": "granted",
+                "queued_channels": channels}
+
+    @app.post("/demo/manage/events/{event_id}/checkin-staff/{account_id}/notify")
+    def remind_staff(event_id: int, account_id: int, account=Depends(current),
+                     db: Session=Depends(get_db)):
+        event = owner_event(db, event_id, account)
+        if event.is_cancelled:
+            raise HTTPException(409, "event_is_cancelled")
+        grant = db.query(EventCheckinStaff).filter(
+            EventCheckinStaff.event_id == event_id,
+            EventCheckinStaff.account_id == account_id).first()
+        person = db.get(WebAccount, account_id)
+        from demo_account_bans import active_ban
+        if grant is None or person is None or not email_is_verified(db, person.id) or active_ban(db, person.id):
+            raise HTTPException(404, "staff_grant_not_found")
+        from demo_auth_security import guard_rate, record_rate
+        from secrets import token_urlsafe
+        guard_rate(db, "checkin_staff_notify", f"{event_id}:{account_id}", 3, 86400)
+        record_rate(db, "checkin_staff_notify", f"{event_id}:{account_id}", 86400)
+        channels = queue_staff_instructions(db, grant, person, retry=token_urlsafe(9))
+        audit(db, event_id, account.id, "checkin_staff_notify", f"account:{account_id};channels:{','.join(channels)}")
+        db.commit()
+        return {"status": "queued" if channels else "no_channel_configured", "queued_channels": channels}
 
     @app.delete("/demo/manage/events/{event_id}/checkin-staff/{account_id}")
     def revoke_staff(event_id: int, account_id: int, account=Depends(current),
@@ -348,22 +476,28 @@ def install_pilot_ops(app, get_db, main):
                       db: Session=Depends(get_db)):
         if not email_is_verified(db, account.id):
             raise HTTPException(403, "email_verification_required")
-        # Lock the ticket, so simultaneous device scans cannot both issue a
-        # successful first check-in.
-        ticket = _checkin_lookup(db, main, payload.qr_token)
-        if ticket is None:
-            raise HTTPException(404, "ticket_not_found")
+        from demo_auth_security import guard_rate, record_rate
+        guard_rate(db, "checkin_scan", str(account.id), 600, 900)
+        record_rate(db, "checkin_scan", str(account.id), 900)
         from demo_roles import role_for, EventOwnership
         role = role_for(db, account)
-        is_owner = role == "global_admin" or (
-            role == "organizer" and db.query(EventOwnership.event_id).filter(
-                EventOwnership.event_id == ticket.event_id,
-                EventOwnership.owner_account_id == account.id).first() is not None)
-        delegated = db.query(EventCheckinStaff.id).filter(
-            EventCheckinStaff.event_id == ticket.event_id,
-            EventCheckinStaff.account_id == account.id).first() is not None
-        if not (is_owner or delegated):
-            raise HTTPException(403, "event_checkin_access_denied")
+        allowed_event_ids = None
+        if role != "global_admin":
+            owned = (db.query(EventOwnership.event_id).filter(
+                EventOwnership.owner_account_id == account.id).all()
+                if role == "organizer" else [])
+            assigned = db.query(EventCheckinStaff.event_id).filter(
+                EventCheckinStaff.account_id == account.id).all()
+            allowed_event_ids = {event_id for (event_id,) in owned + assigned}
+            if not allowed_event_ids:
+                raise HTTPException(403, "event_checkin_access_denied")
+        # Only authorized ticket rows are looked up and locked. Simultaneous
+        # scans of the same ticket cannot both issue a successful admission.
+        ticket = _checkin_lookup(db, main, payload.qr_token, allowed_event_ids)
+        if ticket is None:
+            raise HTTPException(404, "ticket_not_found")
+        if payload.event_id is not None and ticket.event_id != payload.event_id:
+            raise HTTPException(409, "ticket_wrong_event")
         if ticket.ticket_status != "active":
             raise HTTPException(409, "ticket_not_active")
         from demo_account_bans import require_guest_active

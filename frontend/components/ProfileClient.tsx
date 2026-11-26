@@ -4,6 +4,7 @@ import Link from "next/link";
 import {GoogleSignIn} from "@/components/GoogleSignIn";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import {CheckInAccessCard} from "@/components/CheckInAccessCard";
 import { getVerifiedTelegramSession } from "@/lib/session";
 import { useLanguage } from "@/components/LanguageProvider";
 import {userFacingError} from "@/lib/user-facing-errors";
@@ -651,6 +652,7 @@ export function ProfileClient() {
                 <div className="profile-fact"><span>{language==="ru"?"Мои награды":language==="cs"?"Moje odměny":language==="uk"?"Мої нагороди":"My rewards"}</span><Link href="/loyalty" className="button button-outline">→ {language==="ru"?"Паспорт":language==="cs"?"Pas":language==="uk"?"Паспорт":"Passport"}</Link></div>
                 <div className="profile-fact"><span>{tr.tickets}</span><Link href="/tickets" className="button button-outline">→ {tr.tickets}</Link></div>
               </div>
+              <CheckInAccessCard />
               {profile.email_verified && <section className="panel form-stack">
                 <h3>{ui.telegramTitle}</h3>
                 {profile.guest.telegram_id ? <p className="form-note">✓ {ui.telegramLinked}</p> : <>

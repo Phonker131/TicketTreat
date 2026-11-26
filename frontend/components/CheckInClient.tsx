@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import {useLanguage} from "@/components/LanguageProvider";
 import {eventAdminText} from "@/lib/event-admin-i18n";
 import {userFacingError} from "@/lib/user-facing-errors";
-import { scanPilotTicket } from "@/lib/api";
+import { getCheckinAccess,scanPilotTicket,type CheckinAccess } from "@/lib/api";
 import { getWebToken } from "@/lib/session";
 import type { DemoTicket } from "@/lib/types";
 
@@ -30,6 +31,33 @@ export function CheckInClient() {
   const [scanCycle,setScanCycle]=useState(0);
   const [scanning,setScanning]=useState(false);
   const [cameraError,setCameraError]=useState(false);
+  const [access,setAccess]=useState<CheckinAccess|null>(null);
+  const [accessLoading,setAccessLoading]=useState(true);
+  const [selectedEventId,setSelectedEventId]=useState<number|null>(null);
+  const scanPaused=useRef(false);
+  const recentScan=useRef<{value:string;at:number}|null>(null);
+  const canScan=Boolean(access&&(access.can_scan_all||access.events.length>0));
+  const copy={
+    en:{event:"Scanning event",all:"All events (global administrator)",noAccess:"No active check-in assignments. Ask the event organizer to grant access to your verified TicketTreat account.",instructions:"Sign in to the same account that received the invitation. Select the event, allow camera access, and scan guests' ticket QR codes. A previously used ticket must not be admitted again.",profile:"Go to profile",loading:"Loading…"},
+    cs:{event:"Akce pro kontrolu",all:"Všechny akce (hlavní správce)",noAccess:"Nemáte přidělený přístup ke skeneru. Požádejte pořadatele, aby oprávnění udělil vašemu ověřenému účtu TicketTreat.",instructions:"Přihlaste se účtem, kterému byl přístup udělen. Vyberte akci, povolte fotoaparát a skenujte QR kódy. Již použitou vstupenku znovu nepouštějte.",profile:"Přejít na profil",loading:"Načítání…"},
+    ru:{event:"Мероприятие для проверки",all:"Все мероприятия (главный администратор)",noAccess:"Нет доступа к сканеру. Попроси организатора назначить твой подтверждённый TicketTreat-аккаунт.",instructions:"Войди в аккаунт, на который назначен доступ. Выбери мероприятие, разреши камеру и сканируй QR. Билет, уже отмеченный на входе, повторно пропускать нельзя.",profile:"Открыть профиль",loading:"Загрузка…"},
+    uk:{event:"Подія для перевірки",all:"Усі події (головний адміністратор)",noAccess:"Немає доступу до сканера. Попросіть організатора призначити ваш підтверджений TicketTreat-акаунт.",instructions:"Увійдіть у акаунт, якому надали доступ. Оберіть подію, дозвольте камеру та скануйте QR. Уже використаний квиток повторно не пропускайте.",profile:"Відкрити профіль",loading:"Завантаження…"},
+  }[language];
+
+  useEffect(()=>{
+    let active=true;
+    const token=getWebToken();
+    if(!token){setAccessLoading(false);setMessage(userFacingError(new Error("login_required"),language));return;}
+    getCheckinAccess(token).then(result=>{
+      if(!active)return;
+      setAccess(result);
+      const requested=Number(new URLSearchParams(window.location.search).get("event")||0);
+      setSelectedEventId(result.events.some(row=>row.id===requested)?requested:
+        result.can_scan_all?null:result.events[0]?.id??null);
+    }).catch(e=>{if(active){setAccess(null);setMessage(userFacingError(e,language));}})
+      .finally(()=>{if(active)setAccessLoading(false);});
+    return()=>{active=false;};
+  },[language]);
 
   async function submit(value: string) {
     const token = extractToken(value);
@@ -38,7 +66,7 @@ export function CheckInClient() {
     try {
       const session = getWebToken();
       if (!session) throw new Error("login_required");
-      const response = await scanPilotTicket(session, token);
+      const response = await scanPilotTicket(session, token, selectedEventId);
       setResult(response.ticket);
       setSuccessful(response.status!=="already_checked_in");
       setMessage(response.status==="already_checked_in"?
@@ -52,7 +80,11 @@ export function CheckInClient() {
   }
 
   useEffect(() => {
+    if(!canScan||accessLoading)return;
     let mounted = true;
+    let restartTimer:number|undefined;
+    scanPaused.current=false;
+    setScanning(false);
     import("html5-qrcode").then(async ({Html5Qrcode}) => {
       if (!mounted) return;
       const scanner = new Html5Qrcode("tickettreat-qr-reader");
@@ -65,10 +97,18 @@ export function CheckInClient() {
             return {width:side,height:side};
           }},
           async (decodedText) => {
-            if(scanBusy.current)return;
+            if(scanBusy.current||scanPaused.current)return;
+            const token=extractToken(decodedText);
+            if(recentScan.current?.value===token&&Date.now()-recentScan.current.at<8000)return;
+            scanPaused.current=true;
+            recentScan.current={value:token,at:Date.now()};
             await scanner.stop().catch(() => {});
+            if(!mounted)return;
             setScanning(false);
-            await submit(decodedText);
+            await submit(token);
+            // Restart after every attempt; suppress the same QR for eight
+            // seconds to avoid repeated check-ins when it stays in view.
+            if(mounted)restartTimer=window.setTimeout(()=>setScanCycle(v=>v+1),900);
           },
           () => {},
         );
@@ -81,16 +121,30 @@ export function CheckInClient() {
 
     return () => {
       mounted = false;
+      if(restartTimer!==undefined)window.clearTimeout(restartTimer);
       scannerRef.current?.stop().catch(() => {});
       scannerRef.current=null;
     };
-  }, [scanCycle,language]);
+  }, [scanCycle,language,canScan,accessLoading,selectedEventId]);
 
   return (
     <div className="app-shell">
       <AppHeader />
       <main className="page narrow-page">
         <div className="admin-heading"><div><span className="status status-demo">CHECK-IN</span><h1>{tr("Scan TicketTreat ticket")}</h1><p>{tr("Camera scanner + manual fallback.")}</p></div></div>
+        {accessLoading?<div className="state-card">{copy.loading}</div>:!canScan?
+          <section className="panel form-stack"><p role="status">{message||copy.noAccess}</p>
+            <Link href="/profile" className="button button-primary">{copy.profile}</Link>
+          </section>:<>
+        <section className="panel form-stack">
+          <label>{copy.event}
+            <select value={selectedEventId??""} onChange={e=>setSelectedEventId(e.target.value?Number(e.target.value):null)}>
+              {access?.can_scan_all&&<option value="">{copy.all}</option>}
+              {access?.events.map(event=><option key={event.id} value={event.id}>{event.title}</option>)}
+            </select>
+          </label>
+          <p className="form-note">{copy.instructions}</p>
+        </section>
         <section className="panel tt-checkin-panel" aria-label={tr("Сканер билетов")}>
           <div className="tt-checkin-camera">
             <div id="tickettreat-qr-reader" className="scanner-box" />
@@ -125,6 +179,7 @@ export function CheckInClient() {
             <strong>{result.code}</strong>
           </section>
         )}
+        </>}
       </main>
     </div>
   );

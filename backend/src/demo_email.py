@@ -88,7 +88,7 @@ def queue_email(
     """
     if not configured() or not recipient:
         return
-    if kind not in {"welcome", "ticket", "ticket_removed", "checkin", "reminder", "event_notice", "waitlist_offer", "broadcast_notice", "support_reply", "organizer_chat"}:
+    if kind not in {"welcome", "ticket", "ticket_removed", "checkin", "reminder", "event_notice", "waitlist_offer", "broadcast_notice", "support_reply", "organizer_chat", "checkin_staff"}:
         raise ValueError("unknown_email_kind")
     if kind in {"ticket", "ticket_removed", "checkin", "reminder", "event_notice", "waitlist_offer"}:
         # Only mail registered website accounts during the public demo.
@@ -414,6 +414,42 @@ def render_email(row: EmailOutbox, db: Session) -> dict | None:
             return None
         subject, title, lead = d["welcome_subject"], d["welcome_title"], d["welcome_body"]
         link, button = f"{web_url}/profile", d["button_profile"]
+    elif row.kind == "checkin_staff":
+        from demo_pilot_ops import staff_notification_context
+        context = staff_notification_context(db, row.event_key)
+        if context is None:
+            return None
+        _grant, event, person = context
+        if not person.email or person.email.lower() != row.recipient.lower():
+            return None
+        locale = "cs" if row.language == "cs" else "en"
+        labels = {
+            "cs": ("Přístup ke kontrole vstupenek — {event}", "Můžete kontrolovat vstupenky",
+                   "Byl vám udělen přístup ke skeneru pouze pro tuto akci.\n"
+                   "1. Přihlaste se do svého účtu TicketTreat.\n"
+                   "2. V profilu otevřete Přístup ke skeneru nebo použijte tlačítko níže.\n"
+                   "3. Povolte fotoaparát a skenujte QR kódy u vstupu. Lze zadat také kód vstupenky.\n"
+                   "Již použitý nebo neplatný lístek nepouštějte znovu.",
+                   "Otevřít skener", "Přístup lze kdykoli odvolat. Nemáte právo spravovat akci ani stahovat seznam hostů."),
+            "en": ("Ticket check-in access — {event}", "You can now scan tickets",
+                   "You have been assigned to check in tickets for this event only.\n"
+                   "1. Sign in to your own TicketTreat account.\n"
+                   "2. Open Check-in access in your profile, or use the button below.\n"
+                   "3. Allow camera access and scan guests' QR codes. Printed ticket codes also work.\n"
+                   "Do not admit a ticket marked already used or invalid.",
+                   "Open ticket scanner", "Your organizer can revoke this access at any time. Event management and guest exports remain restricted."),
+        }[locale]
+        d = COPY[locale]
+        name = str(event.title or "Event")[:180]
+        subject, title, lead, button, caption = labels
+        subject = subject.format(event=name)
+        extra = card(d["event"], name) + card(d["date"], event_date(event.starts_at))
+        if event.location:
+            extra += card(d["location"], str(event.location)[:300])
+        details_plain = f"Event: {name}\nDate: {event_date(event.starts_at)}\n"
+        link = f"{web_url if web_url.startswith('https://') else 'https://tickettreat.eu'}/admin/check-in?event={event.id}"
+        # English fallback matches the account's existing transactional mail
+        # language, never the organizer's arbitrary free-form event text.
     elif row.kind == "support_reply":
         from demo_support import render_support_reply_email
         return render_support_reply_email(row, db)
