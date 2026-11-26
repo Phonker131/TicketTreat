@@ -1611,19 +1611,58 @@ def install_account_moderation(app, get_db):
         _admin: WebAccount=Depends(admin_account),
         db: Session=Depends(get_db),
     ):
+        from demo_organizer_teams import OrganizerTeamMember, INVITE_LIFETIME, utc, valid_owner
+        from demo_organizer_profiles import OrganizerPublicProfile
+
         archives=merged_account_archives(db)
         rows=db.query(WebAccount).order_by(WebAccount.id.desc()).limit(300).all()
         bans=active_bans_for(db,[a.id for a in rows])
+        visible=[a for a in rows if include_merged or a.id not in archives]
+        visible_ids=[a.id for a in visible]
+        roles={a.id: role_for(db,a) for a in visible}
+        # Membership is independent of the account's primary role. Query it in
+        # bulk for this privileged listing, never through a public endpoint.
+        team_memberships={a.id: [] for a in visible}
+        organizer_names={}
+        if visible_ids:
+            memberships=db.query(OrganizerTeamMember).filter(
+                OrganizerTeamMember.member_account_id.in_(visible_ids),
+                OrganizerTeamMember.status.in_(("active", "invited")),
+            ).all()
+            membership_owner_ids={row.owner_account_id for row in memberships}
+            owner_ids=membership_owner_ids | {a.id for a in visible if roles[a.id]=="organizer"}
+            if owner_ids:
+                organizer_names={account_id: name for account_id,name in db.query(
+                    OrganizerPublicProfile.account_id, OrganizerPublicProfile.display_name,
+                ).filter(OrganizerPublicProfile.account_id.in_(owner_ids)).all()}
+            eligible_owners={owner_id for owner_id in membership_owner_ids if valid_owner(db,owner_id)}
+            now=datetime.now(timezone.utc)
+            for member in memberships:
+                if (member.owner_account_id not in eligible_owners
+                        or member.member_account_id in archives
+                        or (member.status=="invited" and
+                            utc(member.invited_at)+INVITE_LIFETIME<=now)):
+                    continue
+                team_memberships[member.member_account_id].append({
+                    "owner_account_id":member.owner_account_id,
+                    "organization":organizer_names.get(member.owner_account_id)
+                        or f"Organizer #{member.owner_account_id}",
+                    "status":member.status,
+                })
+            for memberships_for_account in team_memberships.values():
+                memberships_for_account.sort(key=lambda team:(team["status"]!="active",team["organization"].lower()))
         return [{
             "account_id":a.id,"email":a.email,
             "name":f"{a.first_name} {a.last_name}",
-            "role":role_for(db,a),
+            "role":roles[a.id],
+            "organizer_name":organizer_names.get(a.id) if roles[a.id]=="organizer" else None,
+            "team_memberships":team_memberships[a.id],
             "merged_into_account_id":archives.get(a.id),
             "banned":a.id in bans,
             "permanent_ban":isinstance(bans.get(a.id),PermanentAccountBan),
             "ban_reason":bans[a.id].reason if a.id in bans else None,
             "banned_at":bans[a.id].created_at if a.id in bans else None,
-        } for a in rows if include_merged or a.id not in archives]
+        } for a in visible]
 
     @app.post("/demo/manage/accounts/{account_id}/ban")
     def ban_account(
