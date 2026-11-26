@@ -74,3 +74,37 @@ test("admin accounts show active accounts by default and optional archived merge
   const shadow=page.locator(".account-management-row").filter({hasText:"Merged shadow"});
   await expect(shadow.getByRole("button")).toHaveCount(0);
 });
+
+test("admin accounts distinguish participant, organizer and accepted or pending organization memberships",async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem("tickettreat_web_auth","browser-session"));
+  await page.route("**/api/gateway/api/v1/manage/**",route=>{
+    const path=new URL(route.request().url()).pathname;
+    if(path.endsWith("/manage/accounts"))return route.fulfill({
+      status:200,contentType:"application/json",body:JSON.stringify([
+        {account_id:41,name:"Plain Participant",email:"plain@example.invalid",role:"participant",team_memberships:[]},
+        {account_id:42,name:"Event Owner",email:"owner@example.invalid",role:"organizer",organizer_name:"Amber Events",team_memberships:[]},
+        {account_id:43,name:"Confirmed Worker",email:"worker@example.invalid",role:"participant",team_memberships:[
+          {owner_account_id:42,organization:"Amber Events",status:"active"}
+        ]},
+        {account_id:44,name:"Invited Worker",email:"invited@example.invalid",role:"participant",team_memberships:[
+          {owner_account_id:42,organization:"Amber Events",status:"invited"}
+        ]},
+      ])
+    });
+    if(path.endsWith("/manage/global-admins"))return route.fulfill({
+      status:200,contentType:"application/json",body:"[]"
+    });
+    return route.fulfill({status:404,contentType:"application/json",body:"{}"});
+  });
+  await page.goto("/admin/accounts?lang=cs");
+  const plain=page.locator(".account-management-row").filter({hasText:"Plain Participant"});
+  const owner=page.locator(".account-management-row").filter({hasText:"Event Owner"});
+  const member=page.locator(".account-management-row").filter({hasText:"Confirmed Worker"});
+  const invite=page.locator(".account-management-row").filter({hasText:"Invited Worker"});
+  await expect(plain.locator('[data-role="team_member"]')).toHaveCount(0);
+  await expect(owner).toContainText("Vlastní organizace: Amber Events");
+  await expect(member.locator('[data-role="team_member"]')).toHaveText("Člen týmu pořadatele");
+  await expect(member).toContainText("Člen organizace: Amber Events (#42)");
+  await expect(invite.locator('[data-role="team_member"]')).toHaveCount(0);
+  await expect(invite).toContainText("Pozván do organizace: Amber Events (#42) · čeká na přijetí");
+});

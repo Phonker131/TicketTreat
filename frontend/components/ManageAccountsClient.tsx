@@ -17,6 +17,13 @@ const MERGED_VIEW = {
   uk:{show:"Показати об'єднані акаунти (аудит)",archived:"Об'єднано з акаунтом",exclude:"Об'єднані акаунти приховані з активного списку, історію збережено."}
 } as const;
 
+const AFFILIATION_UI = {
+  en:{teamMember:"Organization team member",own:"Own organization",memberOf:"Member of",invitedTo:"Invited to",pending:"awaiting acceptance"},
+  cs:{teamMember:"Člen týmu pořadatele",own:"Vlastní organizace",memberOf:"Člen organizace",invitedTo:"Pozván do organizace",pending:"čeká na přijetí"},
+  ru:{teamMember:"Участник организации",own:"Своя организация",memberOf:"Участник организации",invitedTo:"Приглашён в организацию",pending:"ожидает принятия"},
+  uk:{teamMember:"Учасник організації",own:"Власна організація",memberOf:"Учасник організації",invitedTo:"Запрошений до організації",pending:"очікує прийняття"}
+} as const;
+
 const BAN_UI = {
   en:{ban:"Ban account",unban:"Unban",banned:"Banned",reason:"Reason for ban",placeholder:"Describe the violation (at least 8 characters)",banConfirm:"Ban this account and revoke all active sessions?",unbanConfirm:"Restore this account's access? The user will need to sign in again.",banDone:"Account banned; all web sessions revoked.",unbanDone:"Account unbanned. A new sign-in is required.",history:"Ban history",hideHistory:"Hide history",by:"Admin",at:"On",noHistory:"No bans recorded.",reasonRequired:"Please provide a reason of at least 8 characters.",protected:"Global administrators cannot be banned.",account_banned:"This account is banned.",account_already_banned:"Account is already banned.",account_not_banned:"Account is not banned.",cannot_ban_global_admin:"Global administrator accounts are protected.",merged_account_locked:"Merged accounts cannot be banned."},
   cs:{ban:"Zablokovat účet",unban:"Odblokovat",banned:"Zablokován",reason:"Důvod blokace",placeholder:"Popište porušení pravidel (alespoň 8 znaků)",banConfirm:"Zablokovat účet a zrušit všechna aktivní přihlášení?",unbanConfirm:"Obnovit přístup k účtu? Uživatel se bude muset znovu přihlásit.",banDone:"Účet zablokován a přihlášení zrušena.",unbanDone:"Účet odblokován. Je nutné nové přihlášení.",history:"Historie blokací",hideHistory:"Skrýt historii",by:"Správce",at:"Dne",noHistory:"Žádné blokace.",reasonRequired:"Uveďte důvod alespoň o 8 znacích.",protected:"Hlavní správce nelze zablokovat.",account_banned:"Tento účet je zablokován.",account_already_banned:"Účet je již zablokován.",account_not_banned:"Účet není zablokován.",cannot_ban_global_admin:"Účty hlavních správců jsou chráněny.",merged_account_locked:"Sloučený účet nelze zablokovat."},
@@ -29,6 +36,7 @@ export function ManageAccountsClient() {
   const tr=(phrase:string)=>adminTranslate(language,phrase);
   const ui=ACCOUNT_UI[language];
   const mergedUI=MERGED_VIEW[language];
+  const affiliationUI=AFFILIATION_UI[language];
   const banUI=BAN_UI[language];
   const [showMerged,setShowMerged]=useState(false);
   const display=(msg:string)=>msg.startsWith("msg:")?ui[msg.slice(4) as keyof typeof ui]||msg:msg;
@@ -150,8 +158,16 @@ export function ManageAccountsClient() {
               {a.merged_into_account_id ? `${mergedUI.archived} #${a.merged_into_account_id}`
                 :a.role==="global_admin" ? ui.global : a.role==="organizer" ? ui.organizer : ui.participant}
             </span>
+            {!a.merged_into_account_id&&a.team_memberships?.some(team=>team.status==="active")&&
+              <span className="account-management-role" data-role="team_member">{affiliationUI.teamMember}</span>}
           </div>
           <p className="account-management-meta">{ui.account} #{a.account_id}, {a.email}</p>
+          {!a.merged_into_account_id&&a.role==="organizer"&&a.organizer_name&&
+            <p className="account-management-meta">{affiliationUI.own}: <strong>{a.organizer_name}</strong></p>}
+          {!a.merged_into_account_id&&a.team_memberships?.map(team=><p className="account-management-meta" key={team.owner_account_id}>
+            {team.status==="active"?affiliationUI.memberOf:affiliationUI.invitedTo}: <strong>{team.organization}</strong>
+            {` (#${team.owner_account_id})`}{team.status==="invited"?` · ${affiliationUI.pending}`:""}
+          </p>)}
           {a.banned&&<p className="account-ban-warning" role="status"><strong>{banUI.banned}</strong>{a.banned_at?` · ${new Date(a.banned_at).toLocaleString(language)}`:""}<span>{a.ban_reason}</span></p>}
         </div>
         {!a.merged_into_account_id&&a.role!=="global_admin"&&<div className="account-management-actions">
