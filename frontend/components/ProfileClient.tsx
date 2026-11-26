@@ -11,6 +11,7 @@ import {TelegramSignIn} from "@/components/TelegramSignIn";
 import {getTelegramWebApp} from "@/lib/telegram";
 import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import {CheckInAccessCard} from "@/components/CheckInAccessCard";
 import { getVerifiedTelegramSession } from "@/lib/session";
 import { useLanguage } from "@/components/LanguageProvider";
 import {userFacingError} from "@/lib/user-facing-errors";
@@ -828,6 +829,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
                 <Link href="/admin/team" className="button button-outline">{language==="cs"?"Tým pořadatele":language==="ru"?"Команда организатора":language==="uk"?"Команда організатора":"Organizer team"}</Link>
                 {profile.account.role==="participant"&&<Link href="/organizer/apply" className="button button-outline">{ui.becomeOrganizer}</Link>}
               </div>
+              <CheckInAccessCard />
             </div>
             <div id="profile-panel-achievements" role="tabpanel" aria-labelledby="profile-tab-achievements" hidden={activeTab !== "achievements"}>
               {activeTab === "achievements" && <ProfileAwards/>}

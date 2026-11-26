@@ -9,6 +9,9 @@ test("manual staff check-in accepts four consecutive printed ticket codes",async
   await page.addInitScript(()=>{
     localStorage.setItem("tickettreat_web_auth","browser-session");
   });
+  await page.route("**/api/gateway/**/pilot/check-in-access",route=>route.fulfill({
+    status:200,contentType:"application/json",body:JSON.stringify({can_scan_all:true,events:[]})
+  }));
   await page.route("**/api/gateway/api/v1/pilot/check-in",async route=>{
     const data=route.request().postDataJSON() as {qr_token:string};
     submitted.push(data.qr_token);
