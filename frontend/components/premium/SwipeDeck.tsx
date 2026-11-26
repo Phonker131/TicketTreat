@@ -1,4 +1,5 @@
 "use client";
+import {EventTitle} from "@/lib/use-event-translation";
 import {useEffect,useRef,useState,type KeyboardEvent} from "react";
 import {animate,useMotionValue,useReducedMotion,useTransform} from "motion/react";
 import * as M from "motion/react-m";
@@ -22,7 +23,7 @@ function Poster({event}:{event:TicketTreatEvent}){
 function Face({event,date,price,spots}:{event:TicketTreatEvent;date:string;price:string;spots:string}){
  return <>
   <div className="tp-deck-img"><Poster event={event}/><span className="tp-datebadge">{date}</span></div>
-  <h3>{event.title}</h3>
+  <h3><EventTitle event={event}/></h3>
   <p>{event.location||"Praha"}</p>
   <div className="tp-meta"><b>{price}</b>{event.spots_left!=null&&event.spots_left>0&&<span>{event.spots_left} {spots}</span>}</div>
  </>;

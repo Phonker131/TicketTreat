@@ -1,4 +1,5 @@
 "use client";
+import {EventTitle} from "@/lib/use-event-translation";
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
@@ -150,7 +151,7 @@ export function TicketClient() {
          {ticket.event?.image_url&&<div className="tt-pass-photo" style={{backgroundImage:`url("${ticket.event.image_url.replace(/"/g,"%22")}")`}}/>}
          <div className="ticket-main tt-pass-body">
            <p className="eyebrow">TICKETTREAT / #{ticket.code}</p>
-           <h1>{ticket.event?.title||"TicketTreat"}</h1>
+           <h1>{ticket.event ? <EventTitle event={ticket.event}/> : "TicketTreat"}</h1>
            <p className="tt-pass-organizer">{tr.organizer}: {ticket.event?.organizer||"TicketTreat"}</p>
            <div className="ticket-facts tt-pass-facts">
              <div><span>{t(language,"startsAt")}</span><strong>{formatDate(ticket.event?.starts_at||null,language)}</strong></div>
@@ -188,7 +189,7 @@ export function TicketClient() {
          </div></div>
          <div className="tt-ticket-back" aria-hidden={!flipped} inert={!flipped}>
            <div className="tt-ticket-back-header"><strong>TICKETTREAT</strong><span>{ticket.code}</span></div>
-           <h2>{ticket.event?.title||"TicketTreat"}</h2>
+           <h2>{ticket.event ? <EventTitle event={ticket.event}/> : "TicketTreat"}</h2>
            {admissionReady(ticket)&&qr?
              <div className="tt-pass-qr"><img src={qr} alt="QR code for TicketTreat check-in"/><strong>{ticket.code}</strong><p>{tr.qr}</p></div>:
              <div className="tt-pass-revoked" role="status">{unavailableText}</div>}
