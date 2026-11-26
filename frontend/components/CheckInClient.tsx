@@ -24,7 +24,9 @@ export function CheckInClient() {
   const tr=(phrase:string)=>eventAdminText(language,phrase);
   const [manual, setManual] = useState("");
   const [result, setResult] = useState<DemoTicket | null>(null);
-  const [successful, setSuccessful] = useState(false);
+  const [scanOutcome,setScanOutcome]=useState<"success"|"duplicate"|"error"|null>(null);
+  const [toastVisible,setToastVisible]=useState(false);
+  const [feedbackTick,setFeedbackTick]=useState(0);
   const [message, setMessage] = useState("");
   const scanBusy = useRef(false);
   const lastDecoded = useRef<{value:string;at:number}|null>(null);
@@ -46,6 +48,21 @@ export function CheckInClient() {
     ru:{event:"Мероприятие для проверки",all:"Все мероприятия (главный администратор)",noAccess:"Нет доступа к сканеру. Попроси организатора назначить твой подтверждённый TicketTreat-аккаунт.",instructions:"Войди в аккаунт, на который назначен доступ. Выбери мероприятие, разреши камеру и сканируй QR. Билет, уже отмеченный на входе, повторно пропускать нельзя.",profile:"Открыть профиль",loading:"Загрузка…"},
     uk:{event:"Подія для перевірки",all:"Усі події (головний адміністратор)",noAccess:"Немає доступу до сканера. Попросіть організатора призначити ваш підтверджений TicketTreat-акаунт.",instructions:"Увійдіть у акаунт, якому надали доступ. Оберіть подію, дозвольте камеру та скануйте QR. Уже використаний квиток повторно не пропускайте.",profile:"Відкрити профіль",loading:"Завантаження…"},
   }[language];
+  const feedbackCopy={
+    en:{success:"ENTRY CONFIRMED",successHelp:"Ticket accepted. Admit this guest.",duplicate:"TICKET ALREADY USED",duplicateHelp:"Do not admit again. Ask the organizer if assistance is needed.",error:"CHECK-IN NOT CONFIRMED",errorHelp:"Do not admit until the ticket has been verified successfully."},
+    cs:{success:"VSTUP POTVRZEN",successHelp:"Vstupenka přijata. Host může vstoupit.",duplicate:"VSTUPENKA JIŽ POUŽITA",duplicateHelp:"Znovu nevpouštějte. V případě potřeby kontaktujte pořadatele.",error:"VSTUP NEPOTVRZEN",errorHelp:"Host nesmí vstoupit, dokud kontrola úspěšně neproběhne."},
+    ru:{success:"ВХОД ПОДТВЕРЖДЁН",successHelp:"Билет принят. Гостя можно пропускать.",duplicate:"БИЛЕТ УЖЕ ИСПОЛЬЗОВАН",duplicateHelp:"Повторный вход запрещён. При необходимости обратитесь к организатору.",error:"ВХОД НЕ ПОДТВЕРЖДЁН",errorHelp:"Не пропускайте гостя до успешной проверки билета."},
+    uk:{success:"ВХІД ПІДТВЕРДЖЕНО",successHelp:"Квиток прийнято. Гостя можна пропускати.",duplicate:"КВИТОК УЖЕ ВИКОРИСТАНО",duplicateHelp:"Повторний вхід заборонено. За потреби зверніться до організатора.",error:"ВХІД НЕ ПІДТВЕРДЖЕНО",errorHelp:"Не пропускайте гостя до успішної перевірки квитка."},
+  }[language];
+  const feedbackTitle=scanOutcome?feedbackCopy[scanOutcome]:"";
+  const feedbackHelp=scanOutcome?feedbackCopy[`${scanOutcome}Help`]:"";
+  const feedbackIcon=scanOutcome==="success"?"✓":scanOutcome==="duplicate"?"×":"!";
+
+  useEffect(()=>{
+    if(!toastVisible)return;
+    const timeout=window.setTimeout(()=>setToastVisible(false),4000);
+    return()=>window.clearTimeout(timeout);
+  },[toastVisible,feedbackTick]);
 
   useEffect(()=>{
     let active=true;
@@ -67,20 +84,26 @@ export function CheckInClient() {
     if (!token || scanBusy.current) return;
     scanBusy.current=true;
     setSubmitting(true);
+    // A previous green result must never remain visible while checking another ticket.
+    setScanOutcome(null);
+    setToastVisible(false);
+    setResult(null);
+    setMessage("");
     try {
       const session = getWebToken();
       if (!session) throw new Error("login_required");
       const response = await scanPilotTicket(session, token, selectedEventId);
       setResult(response.ticket);
-      setSuccessful(response.status!=="already_checked_in");
+      setScanOutcome(response.status==="checked_in"?"success":"duplicate");
       setMessage(response.status==="already_checked_in"?
         tr("Билет уже использован! Повторный проход запрещён."):tr("Check-in successful"));
       setManual("");
     } catch (e) {
       setMessage(userFacingError(e,language));
-      setResult(null);
-      setSuccessful(false);
+      setScanOutcome("error");
     } finally {
+      setFeedbackTick(value=>value+1);
+      setToastVisible(true);
       scanBusy.current=false;
       setSubmitting(false);
     }
@@ -150,7 +173,7 @@ export function CheckInClient() {
           </section>:<>
         <section className="panel form-stack">
           <label>{copy.event}
-            <select value={selectedEventId??""} onChange={e=>{lastDecoded.current=null;setSelectedEventId(e.target.value?Number(e.target.value):null);}}>
+            <select value={selectedEventId??""} onChange={e=>{lastDecoded.current=null;setSelectedEventId(e.target.value?Number(e.target.value):null);setScanOutcome(null);setToastVisible(false);setResult(null);setMessage("");}}>
               {access?.can_scan_all&&<option value="">{copy.all}</option>}
               {access?.events.map(event=><option key={event.id} value={event.id}>{event.title}</option>)}
             </select>
@@ -165,6 +188,16 @@ export function CheckInClient() {
             <span className="tt-checkin-camera-indicator" aria-hidden="true"/>
             <span>{scanning?tr("Камера сканирует QR-код"):cameraError?tr("Камера недоступна, используй ручной ввод"):tr("Подключение камеры…")}</span>
           </div>
+          {scanOutcome&&<div className={`tt-checkin-feedback tt-checkin-feedback--${scanOutcome}`}
+            role={scanOutcome==="success"?"status":"alert"} aria-atomic="true" data-testid="checkin-feedback">
+            <span className="tt-checkin-feedback-icon" aria-hidden="true">{feedbackIcon}</span>
+            <div className="tt-checkin-feedback-body">
+              <strong>{feedbackTitle}</strong>
+              <p>{feedbackHelp}</p>
+              {result&&<small>{[result.guest?.first_name,result.guest?.last_name].filter(Boolean).join(" ")} · {result.code}</small>}
+              {scanOutcome==="error"&&message&&<small>{message}</small>}
+            </div>
+          </div>}
           <div className="tt-checkin-controls">
             <div className="tt-checkin-manual">
               <label htmlFor="tickettreat-manual-token">{language==="cs"?"Kód vstupenky nebo QR token":language==="en"?"Ticket code or QR token":tr("QR-код билета: ручной ввод")}</label>
@@ -183,7 +216,6 @@ export function CheckInClient() {
             </div>
           </div>
         </section>
-        {message && <div className={successful ? "success-banner" : "state-card state-error"}>{message}</div>}
         {result && (
           <section className="panel checkin-result">
             <h2>{result.guest?.first_name} {result.guest?.last_name}</h2>
@@ -191,6 +223,11 @@ export function CheckInClient() {
             <strong>{result.code}</strong>
           </section>
         )}
+        {scanOutcome&&toastVisible&&<div className={`tt-checkin-toast tt-checkin-toast--${scanOutcome}`}
+          aria-hidden="true" data-testid="checkin-toast">
+          <span className="tt-checkin-toast-icon">{feedbackIcon}</span>
+          <span>{feedbackTitle}</span>
+        </div>}
         </>}
       </main>
     </div>
