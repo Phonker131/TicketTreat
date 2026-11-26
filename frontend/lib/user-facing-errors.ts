@@ -88,6 +88,18 @@ const MESSAGES: Record<string,Record<LanguageCode,string>> = {
     "ru": "Этот билет уже отмечен на входе. Проверь запись участника, повторный проход запрещён.",
     "uk": "Цей квиток уже відмічено на вході. Перевір запис учасника, повторний вхід заборонено."
   },
+  "ticket_wrong_event": {
+    "en":"This ticket belongs to another event. Select the matching event before scanning.",
+    "cs":"Tato vstupenka patří k jiné akci. Před skenováním vyberte správnou akci.",
+    "ru":"Этот билет относится к другому мероприятию. Выбери правильное событие.",
+    "uk":"Цей квиток належить іншій події. Оберіть правильну подію."
+  },
+  "event_checkin_access_denied": {
+    "en":"You are not assigned to check in tickets for this event. Ask its organizer to grant access.",
+    "cs":"K této akci nemáte oprávnění kontrolovat vstupenky. Požádejte pořadatele o přístup.",
+    "ru":"У тебя нет прав проверять билеты этого мероприятия. Попроси организатора выдать доступ.",
+    "uk":"Ви не маєте доступу до перевірки квитків цієї події. Зверніться до організатора."
+  },
   "invalid_qr_token": {
     "en": "This QR code isn't valid. Scan the original ticket again or ask the attendee to open My tickets.",
     "cs": "Tento QR kód není platný. Naskenujte vstupenku znovu nebo požádejte účastníka o otevření Moje vstupenky.",
