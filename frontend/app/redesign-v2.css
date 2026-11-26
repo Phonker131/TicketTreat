@@ -470,6 +470,17 @@ html body .tt-night-events .event-grid.tt-feed-row{grid-auto-columns:min(clamp(2
 @media (min-width:1000px){
  html body .tt-night-events .event-grid.tt-feed-row{grid-auto-columns:min(calc((100% - 3*20px)/4),max(230px,calc((100svh - 350px)*.8)))}
 }
+/* Desktop browsing must follow the document's vertical scroll. The old single
+   horizontal row hid every event after the first four from mouse-wheel users. */
+@media (min-width:900px){
+ html body .tt-night-events .event-grid.tt-feed-row{
+  grid-auto-flow:row!important;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important;
+  grid-auto-columns:auto;gap:20px!important;margin:18px 0 0!important;padding:4px 0 14px!important;
+  overflow:visible!important;overscroll-behavior-x:auto;scroll-snap-type:none;
+  -webkit-mask-image:none!important;mask-image:none!important
+ }
+ html body .tt-night-events .event-grid.tt-feed-row>*{scroll-snap-align:none}
+}
 
 /* =====================================================================================
    Rewards in one block: title and buttons, the four levels on one line, the three rules.

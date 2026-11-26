@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import {PosterArt} from "@/components/premium/PosterArt";
 import {BrandPhoto} from "@/components/premium/BrandPhoto";
 import {premium} from "@/components/premium/copy";
 import type {LanguageCode} from "@/lib/types";
@@ -33,7 +32,12 @@ export function EventsEmpty({language}:{language:LanguageCode}){
 export function MoodEmpty({language,title,text,action,onReset}:{language:LanguageCode;title?:string;text?:string;action?:string;onReset:()=>void}){
  const c=premium[language].empty;
  return <div className="tp-events-empty is-compact" role="status">
-  <div className="tp-ee-fan" aria-hidden="true"><PosterArt seed={3} className="tp-ee-p tp-ee-p2"/></div>
+  <div className="tp-ee-fan" aria-hidden="true">
+   <div className="tp-ee-p tp-ee-p2 tt-empty-graphic">
+    <span className="tt-empty-graphic-glyph"/>
+    <span className="tp-poster-art-tag">TICKETTREAT</span>
+   </div>
+  </div>
   <div className="tp-ee-copy"><h3>{title||c.noMatchTitle}</h3>{text&&<p>{text}</p>}
    <button type="button" className="button button-secondary" onClick={onReset}>{action||c.resetMood}</button></div>
  </div>;

@@ -2132,6 +2132,13 @@ html body .tp-seg button{min-width:0;padding:0 14px;gap:7px}
 /* Discovery UI regression: the three tabs share one capsule; the brand tile must fit its label. */
 .tt-night-events .tp-events-empty.is-compact .tp-ee-fan{width:clamp(150px,14vw,176px);aspect-ratio:1}
 .tt-night-events .tp-events-empty.is-compact .tp-ee-p2{left:0;top:0;width:100%;aspect-ratio:1}
+.tt-night-events .tp-events-empty.is-compact .tt-empty-graphic{
+ display:grid;place-items:center;background:#02070A;isolation:isolate
+}
+.tt-night-events .tp-events-empty.is-compact .tt-empty-graphic-glyph{
+ display:block;width:55%;aspect-ratio:1;
+ background:url('/brand/glyph-burst.svg') center/contain no-repeat
+}
 .tt-night-events .tp-events-empty.is-compact .tp-poster-art-tag{
  left:50%;bottom:12px;transform:translateX(-50%);
  box-sizing:border-box;max-width:calc(100% - 20px);
