@@ -272,6 +272,28 @@ COPY = {
 def render_message(row: TelegramNotificationOutbox, event, notice) -> tuple[str, dict]:
     """HTML escape event/organizer input before passing to Telegram."""
     lang = row.language if row.language in COPY else "en"
+    if row.kind == "checkin_staff":
+        heading = "Přístup ke skeneru vstupenek" if lang == "cs" else "Ticket check-in access"
+        instructions = ("1. Přihlaste se do svého účtu TicketTreat.\n"
+                        "2. Otevřete skener a povolte fotoaparát.\n"
+                        "3. Na vstupu skenujte QR kódy; použité vstupenky znovu nepouštějte."
+                        if lang == "cs" else
+                        "1. Sign in to your own TicketTreat account.\n"
+                        "2. Open the scanner and allow camera access.\n"
+                        "3. Scan guests' QR codes; do not admit already used tickets again.")
+        title = html.escape(str(event.title or "Event")[:180])
+        text = f"<b>{heading}</b>\n🎟 <b>{title}</b>"
+        if event.starts_at:
+            text += f"\n🕒 {venue_start(event).astimezone(PRAGUE).strftime('%d.%m.%Y %H:%M')} (Prague)"
+        if event.location:
+            text += f"\n📍 {html.escape(str(event.location)[:300])}"
+        text += "\n\n" + instructions
+        url = (os.getenv("WEB_APP_URL", "").strip().rstrip("/") or "https://tickettreat.eu")
+        if not url.startswith("https://"):
+            url = "https://tickettreat.eu"
+        keyboard = {"inline_keyboard": [[{"text": "Otevřít skener" if lang == "cs" else "Open scanner",
+                                          "url": f"{url}/admin/check-in?event={int(event.id)}"}]]}
+        return text, keyboard
     cancel, change, announcement, reminder, reason, message, date, location, button = COPY[lang]
     title = html.escape(str(event.title or "Event")[:180])
     if row.kind == "new_event":
@@ -385,6 +407,23 @@ def _deliver_one(db: Session, main) -> bool:
                 row.state = "sent"
         elif event is None:
             row.state = "skipped"
+        elif row.kind == "checkin_staff":
+            from demo_pilot_ops import staff_notification_context
+            from demo_telegram import DemoTelegramIdentity
+            context = staff_notification_context(db, row.event_key)
+            if context is None or context[1].id != row.event_id:
+                row.state = "skipped"
+            else:
+                grant, _event, person = context
+                identity = db.query(DemoTelegramIdentity.telegram_id).filter(
+                    DemoTelegramIdentity.guest_id == person.guest_id,
+                    DemoTelegramIdentity.telegram_id == row.telegram_id).first()
+                if identity is None or grant.account_id != person.id:
+                    row.state = "skipped"
+                else:
+                    text, keyboard = render_message(row, event, None)
+                    _send_message(int(row.telegram_id), text, keyboard)
+                    row.state = "sent"
         elif row.kind == "new_event":
             from demo_event_alerts import can_deliver
             if can_deliver(db, event, main, row.telegram_id):

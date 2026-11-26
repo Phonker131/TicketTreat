@@ -712,6 +712,13 @@ export type PilotInsights = {
 };
 export type PilotSettings = {signup_cutoff_minutes:number;reminder_minutes:number[];reminder_text?:string;waitlist_offer_minutes:number;event_duration_minutes:number};
 export type CheckinStaff = {account_id:number;email:string;granted_at:string};
+export type CheckinAccess = {
+  events:{id:number;title:string;starts_at:string|null;location:string|null}[];
+  can_scan_all:boolean;
+};
+export function getCheckinAccess(token:string):Promise<CheckinAccess>{
+  return request("/demo/pilot/check-in-access",{headers:accountHeaders(token)});
+}
 export function getPilotInsights(token:string,id:number):Promise<PilotInsights>{
   return request(`/demo/manage/events/${id}/insights`,{headers:accountHeaders(token)});
 }
@@ -725,9 +732,13 @@ export function updatePilotSettings(token:string,id:number,settings:PilotSetting
 export function getPilotStaff(token:string,id:number):Promise<CheckinStaff[]>{
   return request(`/demo/manage/events/${id}/checkin-staff`,{headers:accountHeaders(token)});
 }
-export function grantPilotStaff(token:string,id:number,email:string):Promise<{account_id:number;status:string}>{
+export function grantPilotStaff(token:string,id:number,email:string):Promise<{account_id:number;status:string;queued_channels?:string[]}>{
   return request(`/demo/manage/events/${id}/checkin-staff`,
     {method:"POST",headers:accountHeaders(token),body:JSON.stringify({email})});
+}
+export function notifyPilotStaff(token:string,id:number,accountId:number):Promise<{status:string;queued_channels:string[]}>{
+  return request(`/demo/manage/events/${id}/checkin-staff/${accountId}/notify`,
+    {method:"POST",headers:accountHeaders(token),body:JSON.stringify({})});
 }
 export function revokePilotStaff(token:string,id:number,accountId:number):Promise<{status:string}>{
   return request(`/demo/manage/events/${id}/checkin-staff/${accountId}`,
@@ -737,9 +748,9 @@ export function checkInByList(token:string,eventId:number,ticketId:number):Promi
   return request(`/demo/manage/events/${eventId}/check-in-by-list/${ticketId}`,
     {method:"POST",headers:accountHeaders(token),body:JSON.stringify({})});
 }
-export function scanPilotTicket(token:string,qrToken:string):Promise<{status:"checked_in"|"already_checked_in";ticket:DemoTicket}>{
+export function scanPilotTicket(token:string,qrToken:string,eventId?:number|null):Promise<{status:"checked_in"|"already_checked_in";ticket:DemoTicket}>{
   return request("/demo/pilot/check-in",{method:"POST",headers:accountHeaders(token),
-    body:JSON.stringify({qr_token:qrToken})});
+    body:JSON.stringify({qr_token:qrToken,event_id:eventId??null})});
 }
 export type LoyaltyTier = "newcomer"|"regular"|"insider"|"vip";
 export type LoyaltyStudio = {

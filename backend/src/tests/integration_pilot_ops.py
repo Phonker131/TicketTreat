@@ -7,6 +7,7 @@ import os
 import secrets
 import time
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from fastapi.testclient import TestClient
@@ -21,6 +22,10 @@ from demo_roles import WebAccountRole, EventOwnership
 from demo_account_recovery import VerifiedEmail, now
 from demo_auth_security import hash_password
 from demo_mfa import _code
+from demo_email import EmailOutbox,render_email
+from demo_pilot_ops import staff_notification_context
+from demo_telegram_notifications import TelegramNotificationOutbox,render_message
+from demo_telegram import DemoTelegramIdentity
 
 
 def account_with_session(db, role="participant"):
@@ -49,9 +54,10 @@ class PilotScopedOperationsTests(unittest.TestCase):
                 max_participants=5,currency="CZK",description="CI pilot event",location="Prague")
             db.add(event);db.flush()
             organizer,_,password,owner_headers=account_with_session(db,"organizer")
-            worker,_,_,worker_headers=account_with_session(db)
+            worker,worker_guest,_,worker_headers=account_with_session(db)
             attendee,guest,_,attendee_headers=account_with_session(db)
             db.add(EventOwnership(event_id=event.id,owner_account_id=organizer.id))
+            db.add(DemoTelegramIdentity(telegram_id=771000000000+worker.id,guest_id=worker_guest.id))
             ticket=main.DemoTicket(event_id=event.id,guest_id=guest.id,
                     qr_token=secrets.token_urlsafe(32),ticket_status="active",
                     payment_status="not_required",payment_provider="free",
@@ -105,14 +111,57 @@ class PilotScopedOperationsTests(unittest.TestCase):
             denied_printed=client.post("/demo/pilot/check-in",headers=worker_headers,
                 json={"qr_token":f"CRD{ticket_id:06d}"})
             self.assertEqual(denied_printed.status_code,403,denied_printed.text)
-            granted=client.post(f"/demo/manage/events/{event_id}/checkin-staff",
-                headers=owner_headers,json={"email":worker.email})
+            self.assertEqual(client.get("/demo/pilot/check-in-access",
+                headers=worker_headers).json()["events"],[])
+            with patch("demo_email.configured",return_value=True), \
+                 patch("demo_telegram_notifications.configured",return_value=True):
+                granted=client.post(f"/demo/manage/events/{event_id}/checkin-staff",
+                    headers=owner_headers,json={"email":worker.email})
             self.assertEqual(granted.status_code,201,granted.text)
+            self.assertEqual(set(granted.json()["queued_channels"]),{"email","telegram"})
+            roster=client.get("/demo/pilot/check-in-access",headers=worker_headers)
+            self.assertEqual(roster.status_code,200,roster.text)
+            self.assertEqual([row["id"] for row in roster.json()["events"]],[event_id])
+            self.assertFalse(roster.json()["can_scan_all"])
+            self.assertNotIn("guest",str(roster.json()))
+            with SessionLocal() as db:
+                mail=db.query(EmailOutbox).filter(EmailOutbox.kind=="checkin_staff",
+                    EmailOutbox.recipient==worker.email).order_by(EmailOutbox.id.desc()).first()
+                telegram=db.query(TelegramNotificationOutbox).filter(
+                    TelegramNotificationOutbox.kind=="checkin_staff",
+                    TelegramNotificationOutbox.event_id==event_id).first()
+                self.assertIsNotNone(mail)
+                self.assertIsNotNone(telegram)
+                self.assertIsNotNone(staff_notification_context(db,mail.event_key))
+                with patch.dict(os.environ,{"EMAIL_FROM":"TicketTreat <support@tickettreat.eu>"}):
+                    payload=render_email(mail,db)
+                self.assertIn(f"/admin/check-in?event={event_id}",payload["text"])
+                self.assertNotIn("qr_token",payload["text"])
+                text, keyboard=render_message(telegram,db.get(main.Event,event_id),None)
+                self.assertIn("check-in access",text)
+                self.assertEqual(keyboard["inline_keyboard"][0][0]["url"],
+                                 f"https://tickettreat.eu/admin/check-in?event={event_id}")
+            with patch("demo_email.configured",return_value=True), \
+                 patch("demo_telegram_notifications.configured",return_value=True):
+                reminder=client.post(
+                    f"/demo/manage/events/{event_id}/checkin-staff/{worker_id}/notify",
+                    headers=owner_headers)
+            self.assertEqual(reminder.status_code,200,reminder.text)
+            self.assertEqual(set(reminder.json()["queued_channels"]),{"email","telegram"})
+            self.assertEqual(client.post(
+                f"/demo/manage/events/{event_id}/checkin-staff/{worker_id}/notify",
+                headers=worker_headers).status_code,403)
             forbidden=client.get(f"/demo/manage/events/{event_id}/participants",
                                  headers=worker_headers)
             self.assertEqual(forbidden.status_code,403,forbidden.text)
+            wrong=client.post("/demo/pilot/check-in",headers=worker_headers,
+                json={"qr_token":qr,"event_id":event_id+10000})
+            self.assertEqual(wrong.status_code,409,wrong.text)
+            self.assertEqual(wrong.json()["detail"],"ticket_wrong_event")
+            with SessionLocal() as db:
+                self.assertIsNone(db.get(main.DemoTicket,ticket_id).checked_in_at)
             admitted=client.post("/demo/pilot/check-in",headers=worker_headers,
-                                 json={"qr_token":qr})
+                                 json={"qr_token":qr,"event_id":event_id})
             self.assertEqual(admitted.status_code,200,admitted.text)
             self.assertEqual(admitted.json()["status"],"checked_in")
             self.assertNotIn("qr_token",admitted.json()["ticket"])
@@ -176,6 +225,13 @@ class PilotScopedOperationsTests(unittest.TestCase):
             rejected=client.post("/demo/pilot/check-in",headers=worker_headers,
                                  json={"qr_token":qr})
             self.assertEqual(rejected.status_code,403,rejected.text)
+            self.assertEqual(client.get("/demo/pilot/check-in-access",
+                headers=worker_headers).json()["events"],[])
+            with SessionLocal() as db:
+                self.assertIsNone(staff_notification_context(db,mail.event_key))
+                self.assertIsNone(staff_notification_context(db,telegram.event_key))
+                with patch.dict(os.environ,{"EMAIL_FROM":"TicketTreat <support@tickettreat.eu>"}):
+                    self.assertIsNone(render_email(mail,db))
 
 
 if __name__ == "__main__":
