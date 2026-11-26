@@ -162,7 +162,8 @@ class PilotScopedOperationsTests(unittest.TestCase):
                     starts_at=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(days=3),
                     max_participants=10,currency="CZK",description="Authorization test",location="Prague")
                 db.add(foreign_event);db.flush()
-                foreign_ticket=main.DemoTicket(event_id=foreign_event.id,guest_id=guest.id,
+                foreign_ticket=main.DemoTicket(event_id=foreign_event.id,
+                    guest_id=db.get(main.DemoTicket,ticket_id).guest_id,
                     qr_token=secrets.token_urlsafe(32),ticket_status="active",
                     payment_status="not_required",payment_provider="free",
                     payment_amount="0",currency="CZK")
