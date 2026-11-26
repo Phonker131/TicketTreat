@@ -41,6 +41,7 @@ test("mobile event bar waits for identity before showing the existing ticket",as
   await expect(page.getByRole("link",{name:/Reserve|Book|Join/i})).toHaveCount(0);
   finishTickets();
   await expect(bar.getByRole("link",{name:"Open my ticket"})).toHaveAttribute("href","/tickets/91?show=qr");
+  await expect(bar.getByRole("link",{name:"Open my ticket"})).not.toHaveClass(/tt-island/);
   await expect(page.locator("main.ev2").getByRole("link",{name:"Open my ticket"})).toHaveCount(2);
   await expect(page.getByRole("link",{name:/Reserve|Book|Join/i})).toHaveCount(0);
 });
