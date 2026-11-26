@@ -981,6 +981,7 @@ input:focus, textarea:focus, select:focus {
   color: var(--tickettreat-night); line-height: 1.2; font-size: 12px; font-weight: 800; }
 .account-management-role[data-role="global_admin"] { background: #fff3c0; color: #6c4c00; }
 .account-management-role[data-role="organizer"] { background: #f7e1f0; color: #99106f; }
+.account-management-role[data-role="team_member"] { background: #ddf4f2; color: #075c55; }
 .account-management-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
 .account-management-actions .button { min-width: 120px; }
 .account-ban-warning { margin: 2px 0 0; color: var(--tom, #f66); font-size: 13px; line-height: 1.45; }

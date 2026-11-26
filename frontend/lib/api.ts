@@ -509,6 +509,10 @@ export function getManageAudit(token:string,eventId:number):Promise<{action:stri
 export type ManagedAccount = {
   account_id: number; email: string|null; name: string;
   role: "participant" | "organizer" | "global_admin";
+  organizer_name?:string|null;
+  team_memberships?:Array<{
+    owner_account_id:number; organization:string; status:"active"|"invited";
+  }>;
   merged_into_account_id?:number|null;
   banned:boolean; ban_reason?:string|null; banned_at?:string|null;
 };
