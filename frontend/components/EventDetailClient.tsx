@@ -15,6 +15,7 @@ import {downloadCalendar,mapQuery} from "@/lib/event-actions";
 import { CONSENT_EVENT,hasExternalMediaConsent,openCookieSettings } from "@/lib/cookie-consent";
 import { formatDate, formatPrice } from "@/lib/format";
 import { LANGUAGE_NAMES, t } from "@/lib/i18n";
+import {eventDescription} from "@/lib/czech-event-descriptions";
 import {eventTags} from "@/lib/event-tags";
 import {useEventCategories,categoryFor,categoryLabel} from "@/lib/event-categories";
 import type { TicketTreatEvent } from "@/lib/types";
@@ -112,6 +113,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   }
 
   const mapUrl=mapQuery(event);
+  const description = eventDescription(event.description, language);
   const eventUrl=typeof window!=="undefined" ? window.location.origin+`/events/${event.id}${inviteQuery?`?${inviteQuery}`:""}` : `/events/${event.id}`;
 
   const shareUrl=`https://tickettreat.eu/events/${event.id}${inviteQuery?`?${inviteQuery}`:""}`;
@@ -240,7 +242,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
           <div className="detail-item"><span>{t(language, "languages")}</span><strong>{langs}</strong></div>
         </section>
         {!event.is_cancelled&&!preview&&event.organizer&&event.organizer!=="Crowdly"&&<RewardsPlate organizer={event.organizer} slug={event.organizer_profile?.slug} title={event.organizer_profile?.display_name} language={language}/>}
-        {event.description && <section className="ev2-about"><h2>{({en:"About the event",cs:"O akci",ru:"Об ивенте",uk:"Про подію"})[language]}</h2><p className="event-description">{event.description}</p></section>}
+        {event.description && <section className="ev2-about"><h2>{({en:"About the event",cs:"O akci",ru:"Об ивенте",uk:"Про подію"})[language]}</h2><p className="event-description">{description}</p></section>}
         {(galleryUrls.length>0 || event.video_url) && <details open className="panel"><summary>{({en:"Photos and video",cs:"Fotografie a video",ru:"Фото и видео",uk:"Фото та відео"})[language]}</summary>
           {galleryUrls.length>0&&<PhotoViewer sources={galleryUrls}>{thumbnail=>
             <div className="event-media-gallery">{galleryUrls.map((url,index)=>
@@ -256,7 +258,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         <section className="panel" style={{marginTop:20,marginBottom:20}}>
           <h2>{language==="ru"?"Как добраться и сохранить дату":language==="cs"?"Místo a kalendář":language==="uk"?"Як дістатися та календар":"Venue and calendar"}</h2>
           <div className="tt-event-share-actions">
-            {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar(event,eventUrl)}>{language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
+            {event.starts_at&&<button type="button" className="button button-outline" onClick={()=>downloadCalendar({...event,description},eventUrl)}>{language==="ru"?"Добавить в календарь":language==="cs"?"Přidat do kalendáře":language==="uk"?"Додати в календар":"Add to calendar"}</button>}
             {!preview&&<>
               <button type="button" className="button button-outline" onClick={shareEvent}>{shareWords.button}</button>
               <a className="button button-outline" href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer" aria-label={`${shareWords.button}: ${shareWords.telegram}`}>{shareWords.telegram}</a>
