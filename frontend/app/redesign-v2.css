@@ -182,6 +182,11 @@ html body main.ev2 .ev2-bar{display:none}
  html body main.ev2 .ev2-bar small{display:block;margin-top:3px;font:500 12px/1.2 var(--u);color:var(--tp-mute)}
  html body main.ev2 .ev2-bar .button{flex:none;min-width:150px;justify-content:center}
 }
+@media (max-width:480px){
+ html body main.ev2 .ev2-bar>span{min-width:0}
+ html body main.ev2 .ev2-bar strong{overflow-wrap:anywhere}
+ html body main.ev2 .ev2-bar .button{min-width:0;flex:0 1 auto;text-align:center;white-space:normal;line-height:1.2}
+}
 
 /* desktop: the poster stays on the left while the details scroll on the right */
 @media (min-width:1000px){

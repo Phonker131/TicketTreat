@@ -23,6 +23,12 @@ import {dateParts} from "@/components/premium/EventLists";
 import {EventOrganizerChat} from "@/components/EventChatClient";
 import {RewardsPlate} from "@/components/premium/RewardsPlates";
 
+type EventTicketLookup={
+  eventId:number;
+  status:"loading"|"ready"|"error";
+  owned:{ticketId:number|null;pending:boolean}|null;
+};
+
 export function EventDetailClient({preview=false,initialEvent=null}:{preview?:boolean;initialEvent?:TicketTreatEvent|null}) {
   const params = useParams<{id: string}>();
   const query=useSearchParams();
@@ -70,19 +76,32 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
 
   useEffect(()=>{getBookingConfig().then(cfg=>setDemoPayments(cfg.demo_payment_mode)).catch(()=>{});},[]);
 
-  const [owned,setOwned]=useState<{eventId:number;ticketId:number|null;pending:boolean}|null>(null);
+  const [ticketLookup,setTicketLookup]=useState<EventTicketLookup|null>(null);
+  const [ticketLookupRetry,setTicketLookupRetry]=useState(0);
   useEffect(()=>{
+    const eventId=Number(params?.id);
+    if(preview||!Number.isSafeInteger(eventId)||eventId<=0)return;
     let live=true;
-    if(!preview) void restoreGuest().then(async guest=>{
-      if(!guest || !live)return;
-      const [tickets, telegram]=await Promise.all([getDemoTickets(guest.access_token),getVerifiedTelegramSession().catch(()=>null)]);
-      const ticket=tickets.find(item=>item.event_id===Number(params?.id) && item.ticket_status==="active");
-      const registration=telegram?.bot_registrations.find(item=>item.id===Number(params?.id));
-      if(live && ticket)setOwned({eventId:ticket.event_id,ticketId:ticket.id,pending:ticket.payment_status==="pending"});
-      else if(live && registration)setOwned({eventId:registration.id,ticketId:null,pending:registration.payment_status==="pending"});
-    }).catch(()=>{});
+    setTicketLookup({eventId,status:"loading",owned:null});
+    void (async()=>{
+      try{
+        const guest=await restoreGuest();
+        if(!live)return;
+        if(!guest){setTicketLookup({eventId,status:"ready",owned:null});return;}
+        const [tickets,telegram]=await Promise.all([getDemoTickets(guest.access_token),getVerifiedTelegramSession()]);
+        const ticket=tickets.find(item=>item.event_id===eventId && item.ticket_status==="active");
+        const registration=telegram?.bot_registrations.find(item=>item.id===eventId);
+        const owned=ticket?{ticketId:ticket.id,pending:ticket.payment_status==="pending"}
+          :registration?{ticketId:null,pending:registration.payment_status==="pending"}:null;
+        if(live)setTicketLookup({eventId,status:"ready",owned});
+      }catch{
+        // An unavailable ticket API cannot be treated as proof that the user
+        // has no reservation. Never briefly expose checkout in this state.
+        if(live)setTicketLookup({eventId,status:"error",owned:null});
+      }
+    })();
     return ()=>{live=false};
-  },[params?.id,preview]);
+  },[params?.id,preview,ticketLookupRetry]);
 
   if (error) {
     return <><AppHeader /><main className="page"><div className="state-card state-error">{userFacingError(error,language)}</div></main></>;
@@ -134,8 +153,23 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
   const when=dateParts(event.starts_at,language);
   const organizerName=event.organizer_profile?.display_name||(event.organizer==="Crowdly"?"TicketTreat":event.organizer)||"";
   const spotsText=event.spots_left==null?"":event.spots_left===0?t(language,"soldOut"):`${event.spots_left} ${({en:"spots left",cs:"volných míst",ru:"мест",uk:"місць"})[language]}`;
-  const bookable=!preview&&!event.is_cancelled&&owned?.eventId!==event.id&&event.spots_left!==0;
+  const eventLookup=ticketLookup?.eventId===event.id?ticketLookup:null;
+  const ticketLookupReady=eventLookup?.status==="ready";
+  const ticketLookupError=eventLookup?.status==="error";
+  const owned=ticketLookupReady?eventLookup.owned:null;
+  const bookable=!preview&&!event.is_cancelled&&ticketLookupReady&&!owned&&event.spots_left!==0;
   const bookHref=`/checkout/${event.id}${inviteQuery||attributed?`?${[inviteQuery,attributed.replace(/^&/,"")].filter(Boolean).join("&")}`:""}`;
+  const ticketWords={
+    en:{checking:"Checking your registration…",failed:"Could not check your registration.",retry:"Try again",registered:"You're registered",pending:"Awaiting organizer confirmation",open:"Open my ticket"},
+    cs:{checking:"Ověřujeme registraci…",failed:"Registraci se nepodařilo ověřit.",retry:"Zkusit znovu",registered:"Jste přihlášeni",pending:"Čeká na potvrzení pořadatele",open:"Otevřít vstupenku"},
+    ru:{checking:"Проверяем регистрацию…",failed:"Не удалось проверить регистрацию.",retry:"Повторить",registered:"Вы записаны",pending:"Ожидаем подтверждения организатора",open:"Открыть мой билет"},
+    uk:{checking:"Перевіряємо реєстрацію…",failed:"Не вдалося перевірити реєстрацію.",retry:"Повторити",registered:"Ви зареєстровані",pending:"Очікуємо підтвердження організатора",open:"Відкрити мій квиток"}
+  }[language];
+  const ticketHref=owned?.ticketId&&!owned.pending?`/tickets/${owned.ticketId}?show=qr`:"/tickets";
+  const ticketLabel=owned?.ticketId&&!owned.pending?ticketWords.open:t(language,"tickets");
+  const showBookingBar=!preview&&!event.is_cancelled&&(!ticketLookupReady||!!owned||bookable);
+  const bookingBarLabel=!ticketLookupReady?(ticketLookupError?ticketWords.failed:ticketWords.checking)
+    :owned?ticketLabel:t(language,"join");
 
   return (
     <div className="app-shell">
@@ -174,11 +208,16 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
             <p><strong>{language==="en"?"Cancellation reason":language==="cs"?"Důvod zrušení":language==="uk"?"Причина скасування":"Причина отмены"}:</strong> {event.cancellation_reason || "-"}</p>
             <p>{language==="en"?"Registration is closed.":language==="cs"?"Registrace je uzavřena.":language==="uk"?"Реєстрацію закрито.":"Регистрация закрыта."}</p>
           </section>
-        ) : owned?.eventId === event.id ? (
+        ) : !ticketLookupReady ? (
+          <section className="join-card ev2-book" role="status">
+            <p>{ticketLookupError?ticketWords.failed:ticketWords.checking}</p>
+            {ticketLookupError&&<button className="button button-outline" type="button" onClick={()=>setTicketLookupRetry(retry=>retry+1)}>{ticketWords.retry}</button>}
+          </section>
+        ) : owned ? (
           <div className="panel">
-            {owned.pending && <p role="status">{({en:"Awaiting organizer confirmation",cs:"Čeká na potvrzení pořadatele",ru:"Ожидаем подтверждения организатора",uk:"Очікуємо підтвердження організатора"})[language]}</p>}
-            <Link className="button button-primary" href={owned.ticketId && !owned.pending ? `/tickets/${owned.ticketId}?show=qr` : "/tickets"}>
-              {owned.ticketId && !owned.pending ? ({en:"Open my ticket",cs:"Otevřít vstupenku",ru:"Открыть мой билет",uk:"Відкрити мій квиток"})[language] : t(language,"tickets")}
+            {owned.pending && <p role="status">{ticketWords.pending}</p>}
+            <Link className="button button-primary" href={ticketHref}>
+              {ticketLabel}
             </Link>
           </div>
         ) : (
@@ -237,9 +276,18 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
         </section>
 
 <PageFaq topic="event"/>
-        {bookable&&<EventBookingBar label={t(language, "join")}>
-          <span><strong>{formatPrice(event, language)}</strong>{spotsText&&<small>{spotsText}</small>}</span>
-          <Link className="button button-primary tt-island" href={bookHref}>{t(language, "join")}<span className="tt-island-dot" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V7Z"/><path d="M14 6v1.5M14 11.2v1.6M14 16.5V18"/></svg></span></Link>
+        {showBookingBar&&<EventBookingBar label={bookingBarLabel}>
+          {!ticketLookupReady? <>
+            <span role="status"><strong>{ticketLookupError?ticketWords.failed:ticketWords.checking}</strong></span>
+            {ticketLookupError?<button className="button button-outline" type="button" onClick={()=>setTicketLookupRetry(retry=>retry+1)}>{ticketWords.retry}</button>
+              :<span className="button button-outline" aria-disabled="true">{t(language,"loading")}</span>}
+          </>:owned? <>
+            <span><strong>{ticketWords.registered}</strong>{owned.pending&&<small>{ticketWords.pending}</small>}</span>
+            <Link className="button button-primary tt-island" href={ticketHref}>{ticketLabel}</Link>
+          </>: <>
+            <span><strong>{formatPrice(event, language)}</strong>{spotsText&&<small>{spotsText}</small>}</span>
+            <Link className="button button-primary tt-island" href={bookHref}>{t(language, "join")}<span className="tt-island-dot" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V7Z"/><path d="M14 6v1.5M14 11.2v1.6M14 16.5V18"/></svg></span></Link>
+          </>}
         </EventBookingBar>}
       </main>
     </div>
