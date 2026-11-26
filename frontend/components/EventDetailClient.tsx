@@ -283,7 +283,7 @@ export function EventDetailClient({preview=false,initialEvent=null}:{preview?:bo
               :<span className="button button-outline" aria-disabled="true">{t(language,"loading")}</span>}
           </>:owned? <>
             <span><strong>{ticketWords.registered}</strong>{owned.pending&&<small>{ticketWords.pending}</small>}</span>
-            <Link className="button button-primary tt-island" href={ticketHref}>{ticketLabel}</Link>
+            <Link className="button button-primary" href={ticketHref}>{ticketLabel}</Link>
           </>: <>
             <span><strong>{formatPrice(event, language)}</strong>{spotsText&&<small>{spotsText}</small>}</span>
             <Link className="button button-primary tt-island" href={bookHref}>{t(language, "join")}<span className="tt-island-dot" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V7Z"/><path d="M14 6v1.5M14 11.2v1.6M14 16.5V18"/></svg></span></Link>
