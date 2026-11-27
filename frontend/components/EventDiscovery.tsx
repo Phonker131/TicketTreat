@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useState} from "react";
+import {useEffect,useRef,useState} from "react";
 import * as M from "motion/react-m";
 import {EventCard} from "@/components/EventCard";
 import {SwipeDeck} from "@/components/premium/SwipeDeck";
@@ -38,6 +38,30 @@ const MODE_ICON:Record<Mode,React.ReactNode>={
  list:<><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></>,
  saved:<path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.4-7 10-7 10z"/>
 };
+
+function EventFeed({events}:{events:TicketTreatEvent[]}){
+ const ref=useRef<HTMLDivElement>(null);
+ useEffect(()=>{
+   const row=ref.current;
+   if(!row)return;
+   const desktop=window.matchMedia("(min-width: 900px) and (any-hover: hover)");
+   function scrollFeed(e:WheelEvent){
+     if(!row || !desktop.matches || !e.cancelable || e.ctrlKey || e.metaKey || e.shiftKey ||
+        !e.deltaY || Math.abs(e.deltaX)>=Math.abs(e.deltaY))return;
+     const end=row.scrollWidth-row.clientWidth;
+     if(e.deltaY>0 ? row.scrollLeft>=end-1 : row.scrollLeft<=1)return;
+     const unit=e.deltaMode===WheelEvent.DOM_DELTA_LINE ? 16 :
+       e.deltaMode===WheelEvent.DOM_DELTA_PAGE ? row.clientWidth : 1;
+     e.preventDefault();
+     row.scrollLeft+=e.deltaY*unit;
+   }
+   row.addEventListener("wheel",scrollFeed,{passive:false});
+   return ()=>row.removeEventListener("wheel",scrollFeed);
+ },[]);
+ return <div ref={ref} className="event-grid tp-feed tt-feed-row">
+   {events.map(event=><EventCard key={event.id} event={event}/>)}
+ </div>;
+}
 
 export function EventDiscovery({events,language}:{events:TicketTreatEvent[];language:LanguageCode}){
  const tr=copy[language];
@@ -85,7 +109,7 @@ export function EventDiscovery({events,language}:{events:TicketTreatEvent[];lang
    mode!=="saved"&&filtered.length===0
      ?<MoodEmpty language={language} title={tr.noMatch} onReset={()=>selectMood("all")}/>:
    mode==="list"||mode==="saved"?<div className="tt-discovery-results">
-     <div className="event-grid tp-feed tt-feed-row">{visibleEvents.map(event=><EventCard key={event.id} event={event}/>)}</div>
+     <EventFeed key={mode+":"+mood} events={visibleEvents}/>
      {listEvents.length>PAGE_SIZE&&<div className="tt-discovery-pagination">
        <p role="status" aria-live="polite">{tr.showing} {visibleEvents.length} {tr.of} {listEvents.length}</p>
        {visibleCount<listEvents.length&&<button type="button" className="button button-secondary" onClick={()=>setVisibleCount(count=>count+PAGE_SIZE)}>{tr.showMore}</button>}
