@@ -44,7 +44,13 @@ function EventFeed({events}:{events:TicketTreatEvent[]}){
  useEffect(()=>{
    const row=ref.current;
    if(!row)return;
+   const feed=row;
    const desktop=window.matchMedia("(min-width: 900px) and (any-hover: hover)");
+   function updateScrollEdge(){
+     const remaining=Math.max(0,feed.scrollWidth-feed.clientWidth);
+     feed.dataset.scrollEdge=remaining<=1?"none":feed.scrollLeft<=1?"start":
+       feed.scrollLeft>=remaining-1?"end":"middle";
+   }
    function scrollFeed(e:WheelEvent){
      if(!row || !desktop.matches || !e.cancelable || e.ctrlKey || e.metaKey || e.shiftKey ||
         !e.deltaY || Math.abs(e.deltaX)>=Math.abs(e.deltaY))return;
@@ -56,8 +62,15 @@ function EventFeed({events}:{events:TicketTreatEvent[]}){
      row.scrollLeft+=e.deltaY*unit;
    }
    row.addEventListener("wheel",scrollFeed,{passive:false});
-   return ()=>row.removeEventListener("wheel",scrollFeed);
- },[]);
+   row.addEventListener("scroll",updateScrollEdge,{passive:true});
+   window.addEventListener("resize",updateScrollEdge);
+   updateScrollEdge();
+   return ()=>{
+     row.removeEventListener("wheel",scrollFeed);
+     row.removeEventListener("scroll",updateScrollEdge);
+     window.removeEventListener("resize",updateScrollEdge);
+   };
+ },[events.length]);
  return <div ref={ref} className="event-grid tp-feed tt-feed-row">
    {events.map(event=><EventCard key={event.id} event={event}/>)}
  </div>;

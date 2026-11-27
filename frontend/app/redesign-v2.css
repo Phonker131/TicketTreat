@@ -472,10 +472,26 @@ html body .tt-night-events .event-grid.tt-feed-row{grid-auto-columns:min(clamp(2
     The old 230px minimum made the cards taller than a 600px laptop viewport. */
  html body .tt-night-events .event-grid.tt-feed-row{grid-auto-columns:min(calc((100% - 3*20px)/4),clamp(170px,calc((100svh - 410px)*.8),280px))}
 }
-/* Allow small mouse-wheel and trackpad deltas without snapping back between ticks. */
+/* Allow mouse-wheel/trackpad deltas without snapping back. Keep the old soft
+   edge treatment, and fade only the sides that have more cards to reveal. */
 @media (min-width:900px) and (any-hover:hover){
  html body .tt-night-events .event-grid.tt-feed-row{
-  scroll-snap-type:none;scroll-behavior:auto;mask-image:none;-webkit-mask-image:none
+  scroll-snap-type:none;scroll-behavior:auto
+ }
+ html body .tt-night-events .event-grid.tt-feed-row[data-scroll-edge="start"]{
+  -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent);
+  mask-image:linear-gradient(to right,#000 calc(100% - 40px),transparent)
+ }
+ html body .tt-night-events .event-grid.tt-feed-row[data-scroll-edge="middle"]{
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 40px,#000 calc(100% - 40px),transparent);
+  mask-image:linear-gradient(to right,transparent,#000 40px,#000 calc(100% - 40px),transparent)
+ }
+ html body .tt-night-events .event-grid.tt-feed-row[data-scroll-edge="end"]{
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 40px);
+  mask-image:linear-gradient(to right,transparent,#000 40px)
+ }
+ html body .tt-night-events .event-grid.tt-feed-row[data-scroll-edge="none"]{
+  -webkit-mask-image:none;mask-image:none
  }
 }
 .tt-night-events .tt-discovery-pagination{
