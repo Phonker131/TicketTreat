@@ -8,32 +8,27 @@ const events=Array.from({length:19},(_,index)=>({
   starts_at:`2026-12-${String(index+1).padStart(2,"0")}T19:00:00`,is_cancelled:false,
 }));
 
-test("desktop catalogue exposes later events through normal page scrolling",async({page})=>{
+test("wheel over the desktop feed scrolls events and releases the page at both edges",async({page})=>{
   await page.setViewportSize({width:1280,height:900});
   await page.route("**/api/gateway/events",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(events)}));
   await page.goto("/?lang=cs&nostory",{waitUntil:"domcontentloaded"});
   const grid=page.locator(".tt-night-events .event-grid.tt-feed-row");
   await expect(grid.locator(".event-card")).toHaveCount(8);
-  const layout=await grid.evaluate(element=>{
-    const css=getComputedStyle(element);
-    const first=element.children[0].getBoundingClientRect();
-    const fifth=element.children[4].getBoundingClientRect();
-    return {
-      direction:css.gridAutoFlow,
-      overflow:css.overflowX,
-      mask:css.maskImage,
-      secondRow:fifth.top>=first.bottom-1,
-      pageFits:document.documentElement.scrollWidth<=innerWidth+1,
-    };
-  });
-  expect(layout).toEqual({direction:"row",overflow:"visible",mask:"none",secondRow:true,pageFits:true});
-  await page.evaluate(()=>window.scrollTo(0,0));
-  await grid.locator(".event-card").last().scrollIntoViewIfNeeded();
-  const lastVisible=await grid.locator(".event-card").last().evaluate(card=>{
-    const rect=card.getBoundingClientRect();
-    return rect.top<innerHeight&&rect.bottom>0&&window.scrollY>0;
-  });
-  expect(lastVisible).toBe(true);
+  await grid.hover();
+  const start=await page.evaluate(()=>scrollY);
+  await page.mouse.wheel(0,160);
+  await expect.poll(()=>grid.evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
+  expect(await page.evaluate(()=>scrollY)).toBe(start);
+  await page.mouse.wheel(0,-200);
+  await expect.poll(()=>grid.evaluate(el=>el.scrollLeft)).toBe(0);
+  await page.mouse.wheel(0,-120);
+  await expect.poll(()=>page.evaluate(()=>scrollY)).toBeLessThan(start);
+  await grid.hover();
+  await page.mouse.wheel(0,8000);
+  await expect.poll(()=>grid.evaluate(el=>el.scrollWidth-el.clientWidth-el.scrollLeft)).toBeLessThanOrEqual(1);
+  const atEnd=await page.evaluate(()=>scrollY);
+  await page.mouse.wheel(0,140);
+  await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(atEnd);
 });
 
 test("catalogue loads events eight at a time and resets on mode change",async({page})=>{
