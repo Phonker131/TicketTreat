@@ -468,7 +468,9 @@ html body .tt-night-home .tt-feed-row .tt-event-organizer-link{display:inline!im
 /* the whole card fits the screen: the column width follows the screen height on short screens */
 html body .tt-night-events .event-grid.tt-feed-row{grid-auto-columns:min(clamp(236px,72vw,290px),calc((100svh - 330px)*.8))}
 @media (min-width:1000px){
- html body .tt-night-events .event-grid.tt-feed-row{grid-auto-columns:min(calc((100% - 3*20px)/4),max(230px,calc((100svh - 350px)*.8)))}
+ /* Reserve space for the heading, filters, card details and the "show more" control.
+    The old 230px minimum made the cards taller than a 600px laptop viewport. */
+ html body .tt-night-events .event-grid.tt-feed-row{grid-auto-columns:min(calc((100% - 3*20px)/4),clamp(170px,calc((100svh - 410px)*.8),280px))}
 }
 /* Allow small mouse-wheel and trackpad deltas without snapping back between ticks. */
 @media (min-width:900px) and (any-hover:hover){

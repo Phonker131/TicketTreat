@@ -53,6 +53,34 @@ test("catalogue loads events eight at a time and resets on mode change",async({p
   await expect(more).toBeVisible();
 });
 
+for(const {width,height} of [{width:1280,height:600},{width:1366,height:768},{width:1920,height:1080}]){
+  test(`desktop event cards and show-more control fit a ${width}x${height} screen`,async({page})=>{
+    await page.setViewportSize({width,height});
+    await page.route("**/api/gateway/events",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(events)}));
+    await page.goto("/?lang=cs&nostory",{waitUntil:"domcontentloaded"});
+    const feed=page.locator(".tt-night-events .event-grid.tt-feed-row");
+    await expect(feed.locator(".event-card")).toHaveCount(8);
+    const measurements=await page.evaluate(()=>{
+      const section=document.querySelector(".tt-night-events")!;
+      const feed=document.querySelector(".tt-night-events .event-grid.tt-feed-row")!;
+      const card=feed.querySelector<HTMLElement>(".event-card")!;
+      const poster=card.querySelector<HTMLElement>(".tp-ecard-media")!;
+      const pager=document.querySelector(".tt-night-events .tt-discovery-pagination")!;
+      const lastBottom=Math.max(feed.getBoundingClientRect().bottom,pager.getBoundingClientRect().bottom);
+      return {
+        blockHeight:lastBottom-section.getBoundingClientRect().top,
+        cardWidth:card.getBoundingClientRect().width,
+        posterRatio:poster.getBoundingClientRect().height/poster.getBoundingClientRect().width,
+        horizontalOverflow:feed.scrollWidth>feed.clientWidth,
+      };
+    });
+    expect(measurements.blockHeight).toBeLessThanOrEqual(height+2);
+    expect(measurements.posterRatio).toBeCloseTo(1.25,1);
+    expect(measurements.horizontalOverflow).toBe(true);
+    if(height===600)expect(measurements.cardWidth).toBeLessThan(200);
+  });
+}
+
 test("saved events are also shown in batches",async({page})=>{
   await page.setViewportSize({width:1280,height:900});
   await page.addInitScript(ids=>localStorage.setItem("tickettreat_wanted_events",JSON.stringify(ids)),events.map(e=>e.id));
