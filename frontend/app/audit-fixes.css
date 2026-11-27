@@ -319,3 +319,46 @@ html body main.tt-notfound p{margin:0;color:var(--tp-mute);font:400 17px/1.5 var
 }
 
 /* Chat inbox and conversation are separate screens; mobile list stays vertical. */
+
+/* Scanner: keep the manual ticket-code field readable below the camera in both themes.
+   Admin form defaults may otherwise force a white field inside the dark scanner panel. */
+html:not([data-theme="light"]) body .app-shell .tt-checkin-panel .tt-checkin-manual {
+  --tt-scanner-input-bg:#121C25;
+  --tt-scanner-input-fg:#F0EBE1;
+  --tt-scanner-input-placeholder:#B8C3CB;
+  --tt-scanner-input-border:#9FACB6;
+  --tt-scanner-color-scheme:dark;
+}
+html[data-theme="light"] body .app-shell .tt-checkin-panel .tt-checkin-manual {
+  --tt-scanner-input-bg:#FBF9F4;
+  --tt-scanner-input-fg:#02070A;
+  --tt-scanner-input-placeholder:#555F66;
+  --tt-scanner-input-border:#59636B;
+  --tt-scanner-color-scheme:light;
+}
+html body .app-shell .tt-checkin-panel .tt-checkin-manual label {
+  color:var(--tt-scanner-input-fg)!important;
+}
+html body .app-shell .tt-checkin-panel .tt-checkin-manual input#tickettreat-manual-token {
+  background:var(--tt-scanner-input-bg)!important;
+  color:var(--tt-scanner-input-fg)!important;
+  -webkit-text-fill-color:var(--tt-scanner-input-fg)!important;
+  caret-color:var(--tt-scanner-input-fg);
+  border:2px solid var(--tt-scanner-input-border)!important;
+  color-scheme:var(--tt-scanner-color-scheme);
+}
+html body .app-shell .tt-checkin-panel .tt-checkin-manual input#tickettreat-manual-token::placeholder {
+  color:var(--tt-scanner-input-placeholder)!important;
+  -webkit-text-fill-color:var(--tt-scanner-input-placeholder)!important;
+  opacity:1!important;
+}
+html body .app-shell .tt-checkin-panel .tt-checkin-manual input#tickettreat-manual-token:focus {
+  border-color:#0297DE!important;
+  outline:3px solid #0297DE!important;
+  outline-offset:2px;
+  box-shadow:0 0 0 3px rgba(2,151,222,.22)!important;
+}
+html body .app-shell .tt-checkin-panel .tt-checkin-manual input#tickettreat-manual-token:-webkit-autofill {
+  -webkit-box-shadow:0 0 0 1000px var(--tt-scanner-input-bg) inset!important;
+  -webkit-text-fill-color:var(--tt-scanner-input-fg)!important;
+}
