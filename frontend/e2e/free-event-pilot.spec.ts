@@ -40,7 +40,8 @@ test("priced event checkout has normal registration and no payment approval",asy
   }));
   await page.goto("/checkout/995001?lang=en",{waitUntil:"domcontentloaded"});
   await expect(page.getByText("Registration immediately issues a QR ticket.",{exact:false}).first()).toBeVisible();
-  await expect(page.getByText("Create your TicketTreat profile")).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Sign in to book"})).toBeVisible();
+  await expect(page.locator("details").getByText("Continue by email")).toBeVisible();
   await expect(page.getByRole("button",{name:/Reserve a place for 24 hours/i})).toHaveCount(0);
   await expect(page.getByRole("button",{name:/Confirm payment/i})).toHaveCount(0);
 });

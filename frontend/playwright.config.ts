@@ -10,6 +10,11 @@ export default defineConfig({
   use:{
     baseURL:"http://127.0.0.1:3000",
     trace:"retain-on-failure",
+    // Local Linux dev images often provide system Chromium instead of a
+    // Playwright-managed download. CI continues using the pinned browser.
+    ...(process.env.TICKETTREAT_E2E_CHROMIUM_PATH
+      ? {launchOptions:{executablePath:process.env.TICKETTREAT_E2E_CHROMIUM_PATH}}
+      : {}),
   },
   webServer:{command:"PORT=3000 npm run start",url:"http://127.0.0.1:3000",reuseExistingServer:process.env.TICKETTREAT_E2E_PRESTARTED_SERVER==="1"||!process.env.CI,timeout:120_000},
   projects:[{name:"chromium",use:{...devices["Desktop Chrome"]}}],
