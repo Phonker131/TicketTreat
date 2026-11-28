@@ -56,7 +56,9 @@ for(const width of [320,375,390,430,768,850,1024,1199]){
     await expect(nav).toBeHidden();
     await toggle.click();
     await expect(nav).toBeVisible();
-    await expect(nav.getByRole("link")).toHaveCount(6);
+    // Messages now has its own public navigation item; administrator links
+    // remain conditional on the signed-in account.
+    await expect(nav.getByRole("link")).toHaveCount(7);
     const rects=await nav.getByRole("link").evaluateAll(links=>links.map(link=>{
       const rect=link.getBoundingClientRect();
       return {left:rect.left,right:rect.right,width:rect.width,scrollWidth:link.scrollWidth};
@@ -210,7 +212,7 @@ test("priced events never show TicketTreat fake payment or automatic paid ticket
       demo_payment_mode:true,verified_accounts_required:true})}));
   await page.goto("/events/9372");
   await expect(page.getByText(/TicketTreat does not collect or verify payment|TicketTreat platby nevybírá ani neověřuje/i).first()).toBeVisible();
-  await expect(page.locator('a[href*="/checkout/9372"]')).toBeVisible();
+  await expect(page.locator('main.ev2 a[href*="/checkout/9372"]').first()).toBeVisible();
   await page.goto("/checkout/9372");
   await expect(page.getByRole("status").filter({hasText:/TicketTreat does not collect or verify payment|TicketTreat platby nevybírá ani neověřuje/i})).toBeVisible();
   await expect(page.locator(".payment-methods")).toHaveCount(0);
@@ -482,18 +484,15 @@ test("light theme persists across reload and switches without changing legal tex
  expect(body).not.toBe("rgba(0, 0, 0, 0)");
 });
 
-test("first-visit onboarding is shown once and can be reopened with story parameter",async({page})=>{
+test("welcome tour opens on request and does not interrupt a first visit",async({page})=>{
  await page.goto("/",{waitUntil:"domcontentloaded"});
  const dialog=page.getByRole("dialog",{name:/TicketTreat/});
- await expect(dialog).toBeVisible();
- await expect(dialog.locator(".tp-tour-bars i")).toHaveCount(3);
- await page.keyboard.press("Escape");
  await expect(dialog).toBeHidden();
- expect(await page.evaluate(()=>localStorage.getItem("tt4-story"))).toBe("1");
  await page.reload({waitUntil:"domcontentloaded"});
  await expect(dialog).toBeHidden();
  await page.goto("/?story",{waitUntil:"domcontentloaded"});
  await expect(dialog).toBeVisible();
+ await expect(dialog.locator(".tp-tour-bars i")).toHaveCount(3);
  await page.getByRole("button",{name:/Пропустить|Skip|Přeskočit|Пропустити/}).click();
  await expect(dialog).toBeHidden();
 });

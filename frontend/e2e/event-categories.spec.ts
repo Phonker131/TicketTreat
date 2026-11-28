@@ -22,7 +22,7 @@ for(const locale of ["en","cs"] as const){
   await expect(filters.getByRole("button",{name:locale==="cs"?"Deskové hry":"Board games"})).toBeVisible();
   await expect(filters.getByRole("button",{name:/With friends|S přáteli/})).toHaveCount(0);
   await filters.getByRole("button",{name:locale==="cs"?"Deskové hry":"Board games"}).click();
-  await expect(page.getByText("Friday board games",{exact:true})).toBeVisible();
+  await expect(page.locator(`.tt-night-events a[href^="/events/${event.id}"]`).first()).toBeVisible();
  });
 }
 
@@ -52,7 +52,9 @@ test("global admin creates, renames and archives event categories",async({page})
  const edit=page.locator("form").filter({has:page.getByRole("button",{name:"Save names"})});
  await edit.getByRole("textbox",{name:"English name"}).fill("Board games");
  await edit.getByRole("button",{name:"Save names"}).click();
- const updated=page.getByText("Board games",{exact:true});
+ // The existing fixture already has a "Board games" category. Select the
+ // newly renamed row rather than relying on an ambiguous page-wide match.
+ const updated=page.getByText("Board games",{exact:true}).last();
  await expect(updated).toBeVisible();
  await updated.locator("xpath=../..").getByRole("button",{name:"Archive"}).click();
  await expect(page.locator("section.panel").last()).toContainText("Board games");

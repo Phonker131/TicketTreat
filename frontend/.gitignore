@@ -5,4 +5,6 @@ out
 .env.local
 .env.production
 npm-debug.log*
+test-results/
+playwright-report/
 .DS_Store

@@ -1,5 +1,5 @@
-import {createServer, type Server} from "node:http";
 import {test, expect} from "@playwright/test";
+import {isolatedEventServer} from "./isolated-event-server";
 
 const event={
   id:9383,title:"Already booked",organizer:"Amber Events",location:"Prague",
@@ -7,17 +7,12 @@ const event={
   spots_left:20,price:"120",currency:"CZK",languages:["en","cs"],
   image_url:null,starts_at:"2027-11-26T19:20:00+01:00",is_cancelled:false,
 };
-let api:Server;
+let fixture:Awaited<ReturnType<typeof isolatedEventServer>>;
 test.beforeAll(async()=>{
-  api=createServer((req,res)=>{
-    res.setHeader("Content-Type","application/json");
-    res.end(JSON.stringify(req.url==="/events/9383"?event:[]));
-  });
-  await new Promise<void>(resolve=>api.listen(8000,"127.0.0.1",resolve));
+  fixture=await isolatedEventServer(event);
 });
 test.afterAll(async()=>{
-  api.closeAllConnections();
-  await new Promise<void>(resolve=>api.close(()=>resolve()));
+  await fixture?.close();
 });
 
 test("mobile event bar waits for identity before showing the existing ticket",async({page})=>{
@@ -35,7 +30,7 @@ test("mobile event bar waits for identity before showing the existing ticket",as
       id:91,event_id:9383,ticket_status:"active",payment_status:"not_required",
     }])});
   });
-  await page.goto("/events/9383?lang=en",{waitUntil:"domcontentloaded"});
+  await page.goto(`${fixture.origin}/events/9383?lang=en`,{waitUntil:"domcontentloaded"});
   const bar=page.locator(".ev2-bar");
   await expect(bar).toContainText("Checking your registration");
   await expect(page.getByRole("link",{name:/Reserve|Book|Join/i})).toHaveCount(0);
@@ -56,7 +51,7 @@ test("ticket lookup failure never offers a second booking",async({page})=>{
   await page.route("**/api/gateway/api/v1/me/tickets",route=>route.fulfill({
     status:503,contentType:"application/json",body:JSON.stringify({detail:"unavailable"}),
   }));
-  await page.goto("/events/9383?lang=cs",{waitUntil:"domcontentloaded"});
+  await page.goto(`${fixture.origin}/events/9383?lang=cs`,{waitUntil:"domcontentloaded"});
   await expect(page.locator(".ev2-bar").getByRole("button",{name:"Zkusit znovu"})).toBeVisible();
   await expect(page.locator("main.ev2").getByRole("link",{name:"Rezervovat místo"})).toHaveCount(0);
 });

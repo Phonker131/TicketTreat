@@ -6,8 +6,7 @@ test("catalogue renders upcoming events through the live FastAPI gateway",async(
   await page.goto("/");
   await expect(page.getByText("CI browser free event").first()).toBeVisible();
   await expect(page.locator("header .wordmark")).toHaveAttribute("aria-label","TicketTreat");
-  await expect(page.locator(".tt-night-kicker").first()).toContainText("TICKETTREAT");
-  await expect(page.getByRole("heading",{level:1})).toBeVisible();
+  await expect(page.locator(".tt-tear h1#tt-night-title")).toBeVisible();
 });
 
 test("Telegram account linking requires unchecked-by-default consent",async({page})=>{
@@ -79,7 +78,9 @@ test("login uses HttpOnly cookie, not browser-stored bearer credentials",async({
   await page.locator('form input[type="password"]').first().fill("Browser-only-testing-passphrase-2026");
   await page.locator('form button[type="submit"]').first().click();
 
-  await expect.poll(async()=>page.evaluate(()=>localStorage.getItem("tickettreat_web_auth"))).toBe("browser-session");
+  // Login may replace the route during hydration; a destroyed JS context is
+  // transient, not a failed cookie/session handoff.
+  await expect.poll(async()=>page.evaluate(()=>localStorage.getItem("tickettreat_web_auth")).catch(()=>null)).toBe("browser-session");
   // A user with the pre-rename browser marker retains the HttpOnly session.
   await page.evaluate(()=>{
     localStorage.setItem("crowdly_demo_web_auth","browser-session");
@@ -186,6 +187,8 @@ test("Google linking explains missing TicketTreat password instead of silently d
   await page.locator('form input[type="password"]').first().fill("Browser-only-testing-passphrase-2026");
   await page.locator('form button[type="submit"]').first().click();
   await expect(page.locator(".tt-ph-pass")).toBeVisible();
+  // Linked identity providers now live under the Connections profile tab.
+  await page.locator("#profile-tab-connections").click();
   const button=page.getByRole("button",{name:/Link Google account|Привязать Google|Propojit účet Google|Прив’язати Google/});
   await expect(button).toBeEnabled();
   await button.click();

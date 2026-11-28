@@ -9,9 +9,9 @@ const sampleEvent={
   is_cancelled:false
 };
 
-// Regression: mood tags used to be a single masked, negative-margin horizontal
-// scroller. That left "With friends" clipped at the right side on iOS Safari.
-// All filter buttons must now fit on screen with meaningful gaps and tap targets.
+// The five mood chips intentionally form a horizontally scrollable row on small
+// screens. Each chip must remain keyboard/touch reachable, have a 44px target,
+// and never create a second horizontal scrollbar on the document itself.
 for(const locale of ["en","cs"] as const){
   for(const width of [320,375,390,768,999]){
     test(`discovery tags fit in ${locale} at ${width}px`,async({page})=>{
@@ -69,8 +69,7 @@ for(const locale of ["en","cs"] as const){
           withinViewport:within(bar)&&within(segmented)&&within(moodBox),
           headingGap:bar.top-head.bottom,
           controlGap:moodBox.top-segmented.bottom,
-          noHorizontalScroller:tags.scrollWidth<=tags.clientWidth+1,
-          noMask:getComputedStyle(tags).maskImage==="none"&&getComputedStyle(tags).webkitMaskImage==="none",
+          isScrollable:getComputedStyle(tags).overflowX==="auto"||getComputedStyle(tags).overflowX==="scroll",
           documentFits:document.documentElement.scrollWidth<=viewportWidth+1,
           chips
         };
@@ -78,16 +77,27 @@ for(const locale of ["en","cs"] as const){
       expect(data.withinViewport,JSON.stringify(data)).toBe(true);
       expect(data.headingGap).toBeGreaterThanOrEqual(7);
       expect(data.controlGap).toBeGreaterThanOrEqual(8);
-      expect(data.noHorizontalScroller,JSON.stringify(data)).toBe(true);
-      expect(data.noMask).toBe(true);
+      expect(data.isScrollable,JSON.stringify(data)).toBe(true);
       expect(data.documentFits).toBe(true);
       for(const chip of data.chips){
-        expect(chip.withinViewport,chip.text).toBe(true);
-        expect(chip.withinRow,chip.text).toBe(true);
         expect(chip.minTapHeight,chip.text).toBe(true);
         expect(chip.textWithin,chip.text).toBe(true);
         expect(chip.noContentOverflow,chip.text).toBe(true);
       }
+      // Scroll all the way to every mood, including buttons initially outside
+      // the visible row. An overflowed chip must still be actionable.
+      const chipButtons=moods.locator(".tp-mood");
+      for(let index=0;index<5;index++){
+        const chip=chipButtons.nth(index);
+        await chip.scrollIntoViewIfNeeded();
+        const visible=await chip.evaluate(el=>{
+          const row=el.closest(".tp-moods")!.getBoundingClientRect();
+          const button=el.getBoundingClientRect();
+          return button.left>=row.left-1&&button.right<=row.right+1;
+        });
+        expect(visible,`mood ${index} must be reachable at ${width}px`).toBe(true);
+      }
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
       await controls.locator(".tp-mood").nth(2).click();
       await expect(controls.locator(".tp-mood").nth(2)).toHaveAttribute("aria-pressed","true");
       await controls.locator(".tp-seg button").nth(1).click();
