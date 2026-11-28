@@ -6,10 +6,10 @@ import {useLanguage} from "@/components/LanguageProvider";
 import {openCookieSettings} from "@/lib/cookie-consent";
 
 const labels = {
-  en: {tagline:"Tickets and events across Czechia",rights:"All rights reserved.",support:"Support",faq:"FAQ",privacy:"Privacy Policy",cookies:"Cookie Policy",terms:"Terms of Service",legal:"Legal Notice / Operator"},
-  ru: {tagline:"Билеты и мероприятия в Чехии",rights:"Все права защищены.",support:"Поддержка",faq:"FAQ",privacy:"Политика конфиденциальности",cookies:"Политика cookies",terms:"Условия использования",legal:"Сведения об операторе"},
-  cs: {tagline:"Vstupenky a akce v Česku",rights:"Všechna práva vyhrazena.",support:"Podpora",faq:"FAQ",privacy:"Ochrana osobních údajů",cookies:"Zásady cookies",terms:"Obchodní podmínky",legal:"Informace o provozovateli"},
-  uk: {tagline:"Квитки та події в Чехії",rights:"Усі права захищено.",support:"Підтримка",faq:"FAQ",privacy:"Політика конфіденційності",cookies:"Політика cookies",terms:"Умови користування",legal:"Відомості про оператора"},
+  en: {tagline:"Tickets and events across Czechia",rights:"All rights reserved.",support:"Support",faq:"FAQ",privacy:"Privacy Policy",deletion:"Data deletion",cookies:"Cookie Policy",terms:"Terms of Service",legal:"Legal Notice / Operator"},
+  ru: {tagline:"Билеты и мероприятия в Чехии",rights:"Все права защищены.",support:"Поддержка",faq:"FAQ",privacy:"Политика конфиденциальности",deletion:"Удаление данных",cookies:"Политика cookies",terms:"Условия использования",legal:"Сведения об операторе"},
+  cs: {tagline:"Vstupenky a akce v Česku",rights:"Všechna práva vyhrazena.",support:"Podpora",faq:"FAQ",privacy:"Ochrana osobních údajů",deletion:"Výmaz údajů",cookies:"Zásady cookies",terms:"Obchodní podmínky",legal:"Informace o provozovateli"},
+  uk: {tagline:"Квитки та події в Чехії",rights:"Усі права захищено.",support:"Підтримка",faq:"FAQ",privacy:"Політика конфіденційності",deletion:"Видалення даних",cookies:"Політика cookies",terms:"Умови користування",legal:"Відомості про оператора"},
 };
 
 export function LegalFooter(){
@@ -28,6 +28,7 @@ export function LegalFooter(){
       </div>
       <nav className="tt-legal-footer-links" aria-label="Legal and support links">
         <Link href="/privacy-policy">{tr.privacy}</Link>
+        <Link href="/data-deletion">{tr.deletion}</Link>
         <Link href="/cookie-policy">{tr.cookies}</Link>
         <button type="button" className="tt-cookie-settings-link" onClick={openCookieSettings}>{language==="ru"?"Настройки cookies":language==="cs"?"Nastavení cookies":language==="uk"?"Налаштування cookies":"Cookie settings"}</button>
         <Link href="/terms">{tr.terms}</Link>
