@@ -17,7 +17,7 @@ const base = (process.env.BACKEND_API_URL || (process.env.NODE_ENV === "producti
 if (!base || !/^https?:\/\//.test(base)) {
   throw new Error("BACKEND_API_URL must be explicitly configured");
 }
-const sessionPaths = new Set(["/demo/auth/login", "/demo/auth/signup", "/demo/auth/change-password", "/demo/auth/magic/confirm", "/demo/auth/quick/confirm"]);
+const sessionPaths = new Set(["/demo/auth/login", "/demo/auth/signup", "/demo/auth/change-password", "/demo/auth/magic/confirm", "/demo/auth/quick/confirm", "/demo/auth/facebook/confirm"]);
 const logoutPaths = new Set(["/demo/auth/logout", "/demo/auth/logout-all"]);
 const supported = new Set(["GET","POST","PATCH","PUT","DELETE"]);
 const MAX_REQUEST_BYTES = 6_000_000;
@@ -66,6 +66,7 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   // handler path, regardless of the public API prefix used by the browser.
   const checked = relative.startsWith("/api/v1/") ? "/demo/" + relative.slice("/api/v1/".length) : relative;
   if (checked === "/demo/auth/google/finish") return NextResponse.json({detail:"path_not_allowed"},{status:404});
+  if (checked === "/demo/auth/facebook/finish") return NextResponse.json({detail:"path_not_allowed"},{status:404});
   if (!checked.startsWith("/demo/") && checked !== "/events" && !/^\/events\/\d+$/.test(checked) && checked !== "/") {
     return NextResponse.json({detail:"path_not_allowed"},{status:404});
   }
@@ -123,6 +124,13 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
   if (signedLaunch && signedLaunch.length <= 8192) {
     headers.set("X-Telegram-Init-Data", signedLaunch);
   }
+  if (checked === "/demo/auth/facebook/confirm") {
+    // Browser JS and supplied headers cannot read or replace this proof.
+    const pendingProof=req.cookies.get("tt_facebook_pending")?.value;
+    if (!pendingProof || !/^[A-Za-z0-9_-]{40,128}$/.test(pendingProof))
+      return NextResponse.json({detail:"facebook_pending_required"},{status:401});
+    headers.set("X-Facebook-Pending-Proof",pendingProof);
+  }
   // Legacy browser-wide administration keys never transit the public BFF.
   // Organizers use /demo/manage/* with scoped, revocable web sessions.
   if (checked.startsWith("/demo/admin/")) {
@@ -159,6 +167,32 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
       path:"/api/auth/google",maxAge:600});
     return response;
   }
+  if (checked === "/demo/auth/facebook/start" && upstream.ok) {
+    const data = await upstream.json().catch(() => null);
+    if (!data || typeof data.browser_token !== "string" ||
+        !/^[A-Za-z0-9_-]{40,128}$/.test(data.browser_token) ||
+        typeof data.url !== "string")
+      return NextResponse.json({detail:"malformed_facebook_response"},{status:502});
+    let authUrl:URL;
+    try {authUrl = new URL(data.url);} catch {
+      return NextResponse.json({detail:"malformed_facebook_response"},{status:502});
+    }
+    const expectedId = process.env.FACEBOOK_APP_ID;
+    const expectedRedirect = process.env.FACEBOOK_REDIRECT_URI;
+    if (authUrl.origin !== "https://www.facebook.com" ||
+        !/^\/v[0-9]+\.[0-9]+\/dialog\/oauth$/.test(authUrl.pathname) ||
+        authUrl.searchParams.get("response_type") !== "code" ||
+        !/^[A-Za-z0-9_-]{40,128}$/.test(authUrl.searchParams.get("state") || "") ||
+        !expectedId || authUrl.searchParams.get("client_id") !== expectedId ||
+        !expectedRedirect || authUrl.searchParams.get("redirect_uri") !== expectedRedirect)
+      return NextResponse.json({detail:"malformed_facebook_response"},{status:502});
+    const response = NextResponse.json({url:data.url},{headers:{"Cache-Control":"private, no-store"}});
+    response.cookies.set("tt_facebook_flow",data.browser_token,{
+      httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production" || req.nextUrl.protocol==="https:",
+      path:"/api/auth/facebook",maxAge:600
+    });
+    return response;
+  }
   const shouldSave=sessionPaths.has(checked) && upstream.ok;
   const shouldClear=logoutPaths.has(checked) && upstream.ok;
   if(shouldSave){
@@ -168,6 +202,10 @@ async function gateway(req: NextRequest, context:{params:Promise<{path:string[]}
     const token=data.token;
     const response=NextResponse.json({...data,token:MARKER},{status:upstream.status,headers:{"Cache-Control":"private, no-store"}});
     response.cookies.set(COOKIE,token,{httpOnly:true,sameSite:"strict",secure:process.env.NODE_ENV==="production" || req.nextUrl.protocol==="https:",path:"/api/gateway",maxAge:7*24*3600});
+    if(checked==="/demo/auth/facebook/confirm")response.cookies.set("tt_facebook_pending","",{
+      httpOnly:true,sameSite:"strict",secure:process.env.NODE_ENV==="production"||req.nextUrl.protocol==="https:",
+      path:"/api/gateway",maxAge:0,
+    });
     return response;
   }
   const bytes=await upstream.arrayBuffer();
