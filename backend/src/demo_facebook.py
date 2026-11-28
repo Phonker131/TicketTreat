@@ -195,6 +195,8 @@ def install_facebook_auth(app, get_db, DemoGuest, issue_session, profile_dict):
         state, browser_token = (secrets.token_urlsafe(32) for _ in range(2))
         now = datetime.now(timezone.utc)
         db.query(FacebookFlow).filter(FacebookFlow.expires_at <= now).delete(synchronize_session=False)
+        # Remove abandoned signup challenges even if no subsequent signup finishes.
+        db.query(FacebookPending).filter(FacebookPending.expires_at <= now).delete(synchronize_session=False)
         db.add(FacebookFlow(state_hash=token_hash(state), browser_hash=token_hash(browser_token),
                             account_id=account_id, session_hash=session_hash,
                             expires_at=now + timedelta(minutes=10)))

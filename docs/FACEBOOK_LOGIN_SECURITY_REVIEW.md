@@ -4,7 +4,7 @@
 
 ## Scope / threat model
 
-- OAuth authorization-code flow against Meta Graph API v27.0. Server uses the app secret; browser only receives a Meta authorization URL. Tokens and secrets never enter URLs to TicketTreat, browser storage, or logs.
+- OAuth authorization-code flow against Meta Graph API v27.0. The browser receives a Meta authorization URL and returns with a short-lived authorization `code` in the TicketTreat callback URL; the server immediately consumes it. Access tokens and the Meta app secret are never sent to the browser, stored in browser storage or written to TicketTreat application logs. The server exchanges the code with Meta over HTTPS.
 - One-time `state` is stored hashed in PostgreSQL and paired to a separate browser proof in a 10-minute HttpOnly `SameSite=Lax` cookie. Flow is consumed **before** exchanging the code, preventing callback replay and login CSRF.
 - Exchange code only at Meta's fixed Graph endpoint; independently validate Meta `/debug_token` (`is_valid`, app audience, token type, expiry, user ID), then `/me` user ID must match. Use `appsecret_proof` when fetching the profile. Ignore user-supplied profile IDs and claims.
 - Existing TicketTreat accounts are NEVER auto-merged or claimed based on matching email/name. Account linking requires an authenticated session, current TicketTreat password and privileged MFA where needed; confirmation rechecks the original live session and MFA.
