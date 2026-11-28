@@ -1,5 +1,5 @@
-import {createServer, type Server} from "node:http";
 import {test, expect} from "@playwright/test";
+import {isolatedEventServer} from "./isolated-event-server";
 
 const event = {
   id: 9372, title: "Footer test", organizer: "Organizer", location: "Prague",
@@ -7,25 +7,20 @@ const event = {
   spots_left: 28, price: "250", currency: "CZK", languages: ["en"],
   image_url: null, starts_at: "2027-12-10T18:00:00+01:00", is_cancelled: false
 };
-// Next renders event pages on the server before browser route mocks can run.
-let api: Server;
+// Render the SSR page against an isolated API, not the shared CI backend.
+let fixture:Awaited<ReturnType<typeof isolatedEventServer>>;
 test.beforeAll(async () => {
-  api = createServer((req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify(req.url === "/events/9372" ? event : []));
-  });
-  await new Promise<void>(resolve => api.listen(8000, "127.0.0.1", resolve));
+  fixture=await isolatedEventServer(event);
 });
 test.afterAll(async () => {
-  api.closeAllConnections();
-  await new Promise<void>(resolve => api.close(() => resolve()));
+  await fixture?.close();
 });
 
 for (const width of [390, 768, 999, 1200]) {
   test(`event footer links clear the booking bar at ${width}px`, async ({page}) => {
     await page.setViewportSize({width, height: 844});
     await page.route("**/api/gateway/events/9372", route => route.fulfill({json: event}));
-    await page.goto("/events/9372?lang=en");
+    await page.goto(`${fixture.origin}/events/9372?lang=en`);
     const bar = page.locator(".ev2-bar");
     await expect(bar).toHaveCount(1);
     const consent = page.getByRole("button", {name: "Essential only", exact: true});

@@ -8,7 +8,11 @@
 html body .app-shell.tt-night-home{overflow-x:clip}
 html body .tt-night-hero.tt-tear{position:relative;display:block!important;height:210svh;min-height:0!important;padding:0!important;padding-inline:0!important;
  margin:0 calc(50% - 50vw)!important;max-width:none!important;overflow:visible!important;background:none!important;box-shadow:none!important;border:0!important;align-content:normal!important;justify-content:normal!important}
-html body .tt-tear-stage{position:sticky;top:0;height:100svh;overflow:hidden;display:grid;place-items:center;isolation:isolate}
+/* The animated full-viewport sheet is decorative. It overlaps the floating
+   header during the hero's sticky scroll; only the ticket and CTAs should
+   capture taps, otherwise the theme/menu controls can become unclickable. */
+html body .tt-tear-stage{position:sticky;top:0;height:100svh;overflow:hidden;display:grid;place-items:center;isolation:isolate;pointer-events:none}
+html body .tt-tear-stage :is(.tt-tear-ticket-wrap,.tt-tear-actions-wrap){pointer-events:auto}
 html body .tt-tear-bg{position:absolute;inset:0;z-index:0;display:block;width:100%;height:100%}
 html body .tt-tear-bg[data-fallback]{background:radial-gradient(120% 70% at 50% 110%,#FC734D 0,#0B3A52 45%,#02070A 75%)}
 html[data-theme="light"] body .tt-tear-bg[data-fallback]{background:radial-gradient(120% 70% at 50% 110%,#FC734D 0,#7FC6EA 45%,#F0EBE1 75%)}
@@ -85,7 +89,7 @@ html body .tt-night-events .tp-seg button{color:var(--tp-mute)!important;font-we
 html body .tt-night-events .tp-seg button[aria-pressed="true"]{color:var(--tp-bg)!important}
 html body .tt-night-events .tp-seg-count{background:var(--tp-surf2)!important;color:var(--tp-fg)!important}
 html body .tt-night-events .tp-seg button[aria-pressed="true"] .tp-seg-count{background:var(--tp-bg)!important;color:var(--tp-fg)!important}
-html body .tt-night-events .tp-mood{min-height:38px!important;padding:0 15px!important;border:0!important;border-radius:999px!important;background:transparent!important;
+html body .tt-night-events .tp-mood{min-height:44px!important;padding:0 15px!important;border:0!important;border-radius:999px!important;background:transparent!important;
  box-shadow:0 0 0 1px var(--tp-line)!important;color:var(--tp-fg)!important;font:500 14px/1 var(--u)!important}
 html body .tt-night-events .tp-mood svg{display:none!important}
 html body .tt-night-events .tp-mood[aria-pressed="true"]{background:var(--tp-fg)!important;color:var(--tp-bg)!important;box-shadow:none!important}
