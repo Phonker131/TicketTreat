@@ -271,6 +271,10 @@ def install_privacy_routes(app, get_db, main):
         from demo_google import GoogleIdentity, GoogleFlow
         db.query(GoogleIdentity).filter(GoogleIdentity.account_id==account.id).delete(synchronize_session=False)
         db.query(GoogleFlow).filter(GoogleFlow.account_id==account.id).delete(synchronize_session=False)
+        from demo_facebook import FacebookIdentity, FacebookFlow, FacebookPending
+        db.query(FacebookIdentity).filter(FacebookIdentity.account_id==account.id).delete(synchronize_session=False)
+        db.query(FacebookFlow).filter(FacebookFlow.account_id==account.id).delete(synchronize_session=False)
+        db.query(FacebookPending).filter(FacebookPending.email==account.email).delete(synchronize_session=False)
         guest.access_token=secrets.token_urlsafe(32)
         guest.telegram_id=None;guest.username=None;guest.email=None
         guest.first_name="Erased";guest.last_name=None

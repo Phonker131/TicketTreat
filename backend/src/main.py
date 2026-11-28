@@ -45,6 +45,7 @@ from db.base import Base
 from db.session import SessionLocal, engine, get_db
 from demo_accounts import WebAccount, WebSession, install_demo_accounts
 from demo_google import GoogleIdentity, GoogleFlow
+from demo_facebook import FacebookIdentity, FacebookFlow, FacebookPending
 from demo_telegram_oidc import TelegramOidcFlow
 from demo_telegram_browser_login import TelegramBrowserLogin
 from demo_account_recovery import VerifiedEmail, EmailChallenge, install_email_account_security
