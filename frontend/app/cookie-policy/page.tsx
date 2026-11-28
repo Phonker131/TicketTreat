@@ -30,13 +30,14 @@ export default function CookiePolicyPage(){
           <tbody>
             <tr><td><code>tt_web_session</code></td><td>Secure HttpOnly website login session; sent only to TicketTreat's same-origin API gateway.</td><td>First-party cookie, at most 7 days; deleted on logout.</td></tr>
             <tr><td><code>tt_google_flow</code></td><td>Short-lived state to link a voluntary Google sign-in callback with the original browser.</td><td>First-party HttpOnly cookie, at most 10 minutes; cleared after callback.</td></tr>
+            <tr><td><code>tt_facebook_flow</code></td><td>Short-lived browser proof required to complete a Facebook sign-in or account-linking callback.</td><td>First-party HttpOnly cookie, at most 10 minutes; cleared after callback.</td></tr>
             <tr><td><code>tickettreat_interface_language</code></td><td>Remember your chosen language.</td><td>Browser localStorage, until you clear site data.</td></tr>
             <tr><td><code>tickettreat_web_auth</code></td><td>Non-secret indicator that a website session may be available; no bearer token is stored in it.</td><td>Browser localStorage, removed on logout.</td></tr>
             <tr><td>PWA/service-worker cache</td><td>Load application assets efficiently, including offline-enabled parts of the app.</td><td>Browser cache, subject to the service worker and browser controls.</td></tr>
             <tr><td><code>tt_cookie_choice_v1</code></td><td>Store optional Google Maps permission, the policy version, choice timestamp and expiry.</td><td>Browser localStorage, up to 180 days; renewed when you change your choice.</td></tr>
           </tbody>
         </table></div>
-        <p>Telegram Mini App software is included to support users who open TicketTreat through Telegram; using Telegram can also involve the provider processing technical data under its own policies. Sign-in with Google is initiated only when you select it. Third-party authentication and transport systems are not optional advertising trackers.</p>
+        <p>Telegram Mini App software is included to support users who open TicketTreat through Telegram; using Telegram can also involve the provider processing technical data under its own policies. Sign-in with Google or Facebook is initiated only when you select that option. Third-party authentication and transport systems are not optional advertising trackers.</p>
       </section>
       <section>
         <h2>3. Optional embedded Google Maps</h2>
@@ -55,7 +56,7 @@ export default function CookiePolicyPage(){
       <section lang="cs" id="ceska-verze" className="tt-legal-czech">
         <h2>Zásady cookies: česká verze</h2>
         <p><strong>Právní základ:</strong> v souladu s § 89 odst. 3 zákona č. 127/2005 Sb. používáme nezbytné cookies bez předchozího souhlasu, pokud slouží výhradně k přenosu zpráv nebo k fungování služby výslovně požadované uživatelem. Na ostatní ukládání/čtení dat v zařízení je třeba předchozí informovaný souhlas. Pro následné zpracování osobních údajů platí GDPR a informace v <Link href="/privacy-policy">zásadách ochrany osobních údajů</Link>.</p>
-        <p><strong>Nezbytné cookies:</strong> <code>tt_web_session</code> zabezpečuje přihlášení (max. 7 dní; při odhlášení se smaže), <code>tt_google_flow</code> umožňuje bezpečně dokončit vámi zvolené přihlášení přes Google (max. 10 minut). Jde o HttpOnly cookies, takže nejsou přístupné JavaScriptu na stránce.</p>
+        <p><strong>Nezbytné cookies:</strong> <code>tt_web_session</code> zabezpečuje přihlášení (max. 7 dní; při odhlášení se smaže), <code>tt_google_flow</code> umožňuje bezpečně dokončit vámi zvolené přihlášení přes Google a <code>tt_facebook_flow</code> přes Facebook (max. 10 minut). Jde o HttpOnly cookies, takže nejsou přístupné JavaScriptu na stránce.</p>
         <p><strong>Místní úložiště:</strong> <code>tickettreat_interface_language</code> uchovává nastavený jazyk, <code>tickettreat_web_auth</code> jen netajný indikátor přihlášení (nikoliv přístupový token), <code>tt_cookie_choice_v1</code> volbu a čas souhlasu, který platí nejdéle 180 dní. Aplikace PWA může používat cache pro své soubory; můžete ji vymazat v prohlížeči.</p>
         <p><strong>Volitelné Mapy Google:</strong> vložená mapa se načítá teprve po souhlasu. Při jejím načtení může Google získat vaši IP adresu a technické údaje a využít vlastní cookies podle <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">zásad společnosti Google</a>. Souhlas není povinný pro použití TicketTreat; místo mapy lze použít odkaz, který Google otevře mimo TicketTreat.</p>
         <p><strong>Analytika a reklama:</strong> nyní nepoužíváme Google Analytics, reklamní pixely ani marketingové cookies. Souhlas s mapou nelze použít k jejich případnému budoucímu zapnutí bez nového odpovídajícího souhlasu.</p>

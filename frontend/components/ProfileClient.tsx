@@ -7,6 +7,7 @@ import {ProfileAwards} from "@/components/ProfileAwards";
 import Link from "next/link";
 import {takeBooking} from "@/lib/booking-return";
 import {GoogleSignIn} from "@/components/GoogleSignIn";
+import {FacebookSignIn} from "@/components/FacebookSignIn";
 import {TelegramSignIn} from "@/components/TelegramSignIn";
 import {getTelegramWebApp} from "@/lib/telegram";
 import { FormEvent, useEffect, useState } from "react";
@@ -907,6 +908,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
               {profile.email_verified&&<p className="form-note">✓ {ui.emailVerified}</p>}
               <div className="panel form-stack">
               <GoogleSignIn link />
+              <FacebookSignIn link />
               {!profile.guest.telegram_id && <TelegramSignIn link />}
               <p className="form-note">{ui.googlePasswordHint}</p>
               </div>
@@ -977,6 +979,7 @@ export function ProfileClient({screen="profile"}:{screen?:"profile"|"login"|"rec
                 aria-label={language==="cs"?"Přihlášení přes služby":language==="en"?"Sign in with a provider":language==="ru"?"Вход через сервис": "Вхід через сервіс"}>
                 <GoogleSignIn compact />
                 <TelegramSignIn compact />
+                <FacebookSignIn compact />
               </div>}
               <div className="tt-auth-method-divider" aria-hidden="true"><span>
                 {language==="cs"?"nebo e-mailem":language==="en"?"or with email":language==="ru"?"или через email":"або через email"}

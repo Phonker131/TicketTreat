@@ -83,3 +83,15 @@
   min-width:0;
   box-sizing:border-box;
 }
+
+/* Three providers once Facebook becomes available. If disabled, retain the
+   current two-icon layout without a vacant third slot. */
+.auth-container .tt-auth-social-row:has(.tt-auth-provider-facebook){
+  grid-template-columns:repeat(3,minmax(0,64px));
+  justify-content:center;
+}
+.auth-container .tt-auth-social-row:has(.tt-auth-provider-facebook) > .tt-auth-provider:first-child,
+.auth-container .tt-auth-social-row:has(.tt-auth-provider-facebook) > .tt-auth-provider:nth-child(2){justify-self:center}
+.auth-container .tt-auth-provider--expanded > .tt-auth-provider-facebook{
+  grid-column:3;grid-row:1;justify-self:center;
+}

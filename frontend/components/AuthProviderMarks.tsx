@@ -14,3 +14,10 @@ export function TelegramMark(){
     <path fill="#fff" d="M36.9 13.4 10.5 23.6c-1.8.7-1.8 1.7-.3 2.2l6.7 2.1 15.5-9.8c.7-.4 1.3-.2.8.3L20.6 29.8l-.5 7c.7 0 1.1-.3 1.5-.7l3.2-3.1 6.6 4.9c1.2.7 2.1.4 2.4-1.1l4.4-20.8c.5-1.9-.7-2.8-1.3-2.6Z"/>
   </svg>;
 }
+
+export function FacebookMark(){
+  return <svg aria-hidden="true" focusable="false" width="27" height="27" viewBox="0 0 48 48">
+    <circle cx="24" cy="24" r="23" fill="#0866FF"/>
+    <path fill="#fff" d="M27.9 45V27.3h5.9l.9-7.3h-6.8v-4.7c0-2.1.6-3.6 3.6-3.6H35V5.2c-.7-.1-3.1-.3-5.9-.3-5.9 0-9.9 3.6-9.9 10.2V20h-6.6v7.3h6.6V45h8.7Z"/>
+  </svg>;
+}

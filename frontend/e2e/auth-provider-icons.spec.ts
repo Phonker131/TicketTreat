@@ -5,6 +5,8 @@ for(const language of ["en","cs"] as const){
     await page.setViewportSize({width:320,height:740});
     await page.route("**/api/gateway/demo/auth/google/status",route=>
       route.fulfill({contentType:"application/json",body:JSON.stringify({enabled:true})}));
+    await page.route("**/api/gateway/demo/auth/facebook/status",route=>
+      route.fulfill({contentType:"application/json",body:JSON.stringify({enabled:false})}));
     await page.route("**/api/gateway/demo/auth/telegram/status",route=>
       route.fulfill({contentType:"application/json",body:JSON.stringify({enabled:false})}));
     await page.route("**/api/gateway/demo/auth/telegram/browser/status",route=>
@@ -42,3 +44,20 @@ for(const language of ["en","cs"] as const){
     await expect(form.locator('input[type=email]')).toHaveCount(1);
   });
 }
+
+test("Facebook joins Google and Telegram as a third icon when enabled",async({page})=>{
+  await page.setViewportSize({width:320,height:740});
+  for(const service of ["google","telegram","telegram/browser","facebook"]){
+    await page.route(`**/api/gateway/demo/auth/${service}/status`,route=>
+      route.fulfill({contentType:"application/json",body:JSON.stringify({enabled:true})}));
+  }
+  await page.goto("/profile?lang=cs");
+  const row=page.locator(".tt-auth-social-row");
+  await expect(row.locator("button.tt-auth-provider-button")).toHaveCount(3);
+  await expect(row.locator("button.tt-auth-provider-facebook")).toHaveAttribute("aria-label","Pokračovat přes Facebook");
+  const positions=await row.locator("button.tt-auth-provider-button").evaluateAll(buttons=>buttons.map(button=>{
+    const box=button.getBoundingClientRect();return {left:box.left,right:box.right,top:box.top};
+  }));
+  expect(positions.every(position=>position.left>=0&&position.right<=320)).toBe(true);
+  expect(Math.max(...positions.map(p=>p.top))-Math.min(...positions.map(p=>p.top))).toBeLessThan(2);
+});
